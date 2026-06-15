@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Search, CheckSquare, Square, Trash2, FolderInput, X } from "lucide-react";
