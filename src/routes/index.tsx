@@ -286,7 +286,9 @@ function JournalApp() {
               style={{ height: 28, fontSize: 12, width: "auto" }}
               value=""
               onChange={(e) => {
-                bulkAssignMut.mutate({ ids: selected, projectId: e.target.value || null });
+                const v = e.target.value;
+                if (!v) return;
+                bulkAssignMut.mutate({ ids: selected, projectId: v === "__none" ? null : v });
               }}
             >
               <option value="">Assign to project…</option>
