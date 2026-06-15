@@ -60,7 +60,9 @@ export function NoteEditor({
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [body, setBody] = useState(initial?.body_html ?? "");
+  const [body, setBody] = useState(
+    editing.mode === "new" ? editing.initialBody ?? "" : initial?.body_html ?? "",
+  );
   const [projectId, setProjectId] = useState<string>(
     (initial?.detail?.project_id as string | undefined) ?? "",
   );
