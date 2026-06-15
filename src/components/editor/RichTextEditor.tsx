@@ -17,7 +17,6 @@ import {
   Code,
   Undo,
   Redo,
-  Link as LinkIcon,
   Image as ImageIcon,
   Paperclip,
 } from "lucide-react";
