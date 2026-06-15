@@ -85,6 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Capture notes natively in the Xcamp ecosystem." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Xcamp Journal" },
+      { name: "twitter:description", content: "Capture notes natively in the Xcamp ecosystem." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/0c1885ff-bf72-4c24-b955-d6e9d114ce9f" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/0c1885ff-bf72-4c24-b955-d6e9d114ce9f" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
