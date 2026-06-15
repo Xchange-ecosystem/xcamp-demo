@@ -1,0 +1,102 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth";
+
+export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign in — Xcamp Journal" },
+      { name: "description", content: "Sign in to Xcamp Journal to capture and manage your notes." },
+    ],
+  }),
+  component: AuthPage,
+});
+
+function AuthPage() {
+  const { user, loading, signIn } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading && user) navigate({ to: "/" });
+  }, [loading, user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      await signIn(email.trim(), password);
+      navigate({ to: "/" });
+    } catch (err) {
+      setFormError((err as Error).message || "Unable to sign in.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "var(--skin-surface)" }}>
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <div
+            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-md text-lg font-semibold"
+            style={{ background: "var(--skin-accent)", color: "#fff" }}
+          >
+            J
+          </div>
+          <h1 className="text-xl font-semibold" style={{ color: "var(--skin-ink)" }}>
+            Xcamp Journal
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--skin-ink-soft)" }}>
+            Sign in to capture your notes.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="x-editor space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              className="x-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              className="x-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+          </div>
+
+          {formError && (
+            <p className="text-sm" style={{ color: "var(--danger)" }}>
+              {formError}
+            </p>
+          )}
+
+          <button type="submit" className="x-btn-primary w-full" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
