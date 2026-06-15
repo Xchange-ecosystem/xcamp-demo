@@ -178,9 +178,6 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
           <Code size={16} />
         </Btn>
         <span className="x-tt-sep" />
-        <Btn title="Insert link" active={editor.isActive("link")} onClick={setLink}>
-          <LinkIcon size={16} />
-        </Btn>
         <Btn title="Insert image" onClick={pickFiles}>
           <ImageIcon size={16} />
         </Btn>
