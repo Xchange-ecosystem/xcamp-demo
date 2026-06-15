@@ -76,13 +76,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(xu);
   };
 
+  const signUp = async (email: string, password: string) => {
+    setError(null);
+    const { data, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (authError) {
+      setError(authError.message);
+      throw authError;
+    }
+    return {
+      user: data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null,
+      session: data.session,
+    };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
