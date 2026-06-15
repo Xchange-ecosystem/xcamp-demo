@@ -54,6 +54,26 @@ function previewText(note: NoteRow) {
   return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
 }
 
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 4px 3px 9px",
+        borderRadius: 999, background: "var(--skin-surface2)", color: "var(--skin-ink)", border: "1px solid var(--skin-line)",
+      }}
+    >
+      {label}
+      <button
+        onClick={onClear}
+        aria-label={`Remove ${label}`}
+        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 0, lineHeight: 0 }}
+      >
+        <X size={12} />
+      </button>
+    </span>
+  );
+}
+
 type SortKey = "updated" | "created" | "title";
 type SortDir = "asc" | "desc";
 
