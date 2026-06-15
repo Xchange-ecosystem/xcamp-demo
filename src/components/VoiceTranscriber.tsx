@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mic, Square, Copy, Check } from "lucide-react";
+import { Mic, Square, FilePlus } from "lucide-react";
 import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 
