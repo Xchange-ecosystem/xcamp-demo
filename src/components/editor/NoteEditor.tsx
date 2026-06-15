@@ -3,7 +3,7 @@ import { X, FileText, Download, Globe, Tag as TagIcon } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import type { NoteAttachment, NoteRow, ProjectRow } from "@/types/xcamp";
 
-export type Editing = { mode: "new" } | { mode: "edit"; note: NoteRow };
+export type Editing = { mode: "new"; initialBody?: string } | { mode: "edit"; note: NoteRow };
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
