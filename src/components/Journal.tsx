@@ -252,36 +252,44 @@ export function Journal({
     );
   }
 
-  const sidebarWidth = collapsed ? 56 : 340;
-  const containerHeight = embedded ? "70vh" : "100vh";
+  const effCollapsed = isMobile ? false : collapsed;
+  const sidebarWidth = effCollapsed ? 56 : 340;
+  const containerHeight = embedded ? (isMobile ? "auto" : "70vh") : "100vh";
   const asidePosition = embedded ? "relative" : "sticky";
+
+  // On mobile we render a single column: the list, or the editor when one is open.
+  const showList = !isMobile || !editing;
+  const showMain = !isMobile || !!editing;
 
   return (
     <div
       style={{
         background: "var(--skin-bg)",
-        display: "grid",
-        gridTemplateColumns: `${sidebarWidth}px 1fr`,
+        display: isMobile ? "flex" : "grid",
+        flexDirection: isMobile ? "column" : undefined,
+        gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
         height: containerHeight,
+        minHeight: isMobile && embedded ? "70vh" : undefined,
         borderRadius: embedded ? 16 : 0,
         overflow: "hidden",
       }}
     >
       {/* Sidebar / history */}
+      {showList && (
       <aside
         style={{
           background: "var(--skin-surface)",
-          borderRight: "1px solid var(--skin-line)",
-          padding: collapsed ? "16px 8px" : "20px 16px",
+          borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
+          padding: effCollapsed ? "16px 8px" : isMobile ? "14px 12px" : "20px 16px",
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          position: asidePosition,
+          position: isMobile ? "relative" : asidePosition,
           top: 0,
           overflow: "hidden",
         }}
       >
-        {collapsed ? (
+        {effCollapsed ? (
           <div className="flex flex-col items-center gap-3">
             <button
               className="x-btn-secondary"
