@@ -316,15 +316,17 @@ export function Journal({
               <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
                 Journal
               </div>
-              <button
-                className="x-btn-secondary"
-                aria-label="Collapse sidebar"
-                title="Collapse sidebar"
-                style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                onClick={() => setCollapsed(true)}
-              >
-                <PanelLeftClose size={15} />
-              </button>
+              {!isMobile && (
+                <button
+                  className="x-btn-secondary"
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar"
+                  style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={() => setCollapsed(true)}
+                >
+                  <PanelLeftClose size={15} />
+                </button>
+              )}
             </div>
 
             <button className="x-btn-primary mb-3" onClick={() => { setEditing({ mode: "new" }); }}>
