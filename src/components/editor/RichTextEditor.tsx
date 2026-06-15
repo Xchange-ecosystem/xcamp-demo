@@ -43,7 +43,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false }),
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer" } }),
       Image,
       Placeholder.configure({ placeholder: "Write your note… drag & drop files anywhere." }),
