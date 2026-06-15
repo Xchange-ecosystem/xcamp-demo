@@ -1,4 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
