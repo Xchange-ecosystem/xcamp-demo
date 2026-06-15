@@ -177,7 +177,7 @@
 /* ---------- Xcamp component primitives ---------- */
 @layer components {
   .x-btn-primary {
-    background: var(--skin-accent);
+    background: var(--skin-accent-gradient);
     color: #fff;
     border-radius: var(--xr);
     font-weight: 500;
