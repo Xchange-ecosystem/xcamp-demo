@@ -69,8 +69,8 @@
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.821 0.132 175.939);
+  --primary-foreground: oklch(0.15 0.05 176);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.968 0.007 247.896);
@@ -81,7 +81,7 @@
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --ring: oklch(0.821 0.132 175.939);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -89,12 +89,12 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.821 0.132 175.939);
+  --sidebar-primary-foreground: oklch(0.15 0.05 176);
   --sidebar-accent: oklch(0.968 0.007 247.896);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar-ring: oklch(0.821 0.132 175.939);
 }
 
 .dark {
@@ -104,8 +104,8 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.85 0.12 176);
+  --primary-foreground: oklch(0.15 0.05 176);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
@@ -116,7 +116,7 @@
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.85 0.12 176);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -124,18 +124,18 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.85 0.12 176);
+  --sidebar-primary-foreground: oklch(0.15 0.05 176);
   --sidebar-accent: oklch(0.279 0.041 260.031);
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: oklch(0.85 0.12 176);
 }
 
 /* ============================================================
  * Xcamp skin tokens (Scientific / Platform — the default skin)
  * Mirrors xcamp-foundation SkinProvider output. Do not substitute
- * default Tailwind colours. Teal (#16B89A) is the only primary accent.
+ * default Tailwind colours. Accent: #4de0c1 with gradients from #34acbf.
  * ============================================================ */
 :root {
   --skin-bg:           hsl(0, 0%, 100%);
@@ -146,8 +146,9 @@
   --skin-ink-faint:    hsl(215, 16%, 65%);
   --skin-line:         hsl(214, 32%, 91%);
   --skin-line-soft:    hsl(214, 32%, 96%);
-  --skin-accent:       hsl(168, 72%, 42%);
-  --skin-accent-soft:  hsl(168, 72%, 92%);
+  --skin-accent:       #4de0c1;
+  --skin-accent-soft:  #dcf8f2;
+  --skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1);
 
   --success:           hsl(142, 71%, 45%);
   --warning:           hsl(38, 95%, 52%);
@@ -176,7 +177,7 @@
 /* ---------- Xcamp component primitives ---------- */
 @layer components {
   .x-btn-primary {
-    background: var(--skin-accent);
+    background: var(--skin-accent-gradient);
     color: #fff;
     border-radius: var(--xr);
     font-weight: 500;
