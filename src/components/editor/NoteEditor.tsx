@@ -3,7 +3,7 @@ import { X, FileText, Download, Globe, Tag as TagIcon } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import type { NoteAttachment, NoteRow, ProjectRow } from "@/types/xcamp";
 
-export type Editing = { mode: "new" } | { mode: "edit"; note: NoteRow };
+export type Editing = { mode: "new"; initialBody?: string } | { mode: "edit"; note: NoteRow };
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -60,7 +60,9 @@ export function NoteEditor({
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [body, setBody] = useState(initial?.body_html ?? "");
+  const [body, setBody] = useState(
+    editing.mode === "new" ? editing.initialBody ?? "" : initial?.body_html ?? "",
+  );
   const [projectId, setProjectId] = useState<string>(
     (initial?.detail?.project_id as string | undefined) ?? "",
   );

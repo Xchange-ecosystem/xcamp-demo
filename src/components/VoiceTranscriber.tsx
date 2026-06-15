@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mic, Square, Copy, Check } from "lucide-react";
+import { Mic, Square, FilePlus } from "lucide-react";
 import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 
@@ -65,24 +65,20 @@ function VoxOrb({
   );
 }
 
-export function VoiceTranscriber() {
+export function VoiceTranscriber({
+  onCreateNote,
+}: {
+  onCreateNote?: (text: string) => void;
+}) {
   const voice = useVoiceTranscription();
-  const [copied, setCopied] = useState(false);
 
   const toggle = () => {
     if (voice.isListening) voice.stop();
     else voice.start();
   };
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(voice.transcript.trim());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
-  };
+  const text = voice.transcript.trim();
+  const canCreate = !voice.isListening && text.length > 0;
 
   return (
     <div className="flex flex-col items-center gap-6 py-6">
@@ -100,12 +96,6 @@ export function VoiceTranscriber() {
             </>
           )}
         </button>
-        {voice.transcript.trim() && (
-          <button className="x-btn-secondary" style={{ height: 38 }} onClick={copy}>
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            <span style={{ marginLeft: 6 }}>{copied ? "Copied" : "Copy"}</span>
-          </button>
-        )}
       </div>
 
       <div
@@ -122,6 +112,16 @@ export function VoiceTranscriber() {
           </p>
         )}
       </div>
+
+      {canCreate && (
+        <button
+          className="x-btn-primary"
+          style={{ width: "auto", paddingInline: 18 }}
+          onClick={() => onCreateNote?.(text)}
+        >
+          <FilePlus size={14} style={{ display: "inline", marginRight: 6 }} /> Create note
+        </button>
+      )}
     </div>
   );
 }
