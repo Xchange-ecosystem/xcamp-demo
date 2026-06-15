@@ -89,38 +89,6 @@ export function PageHeroShell({
           </button>
         )}
 
-        {hasHeader && (
-          <div className="relative z-10 h-full mx-auto w-full px-4 sm:px-6 pb-6 sm:pb-8 flex items-end lg:w-[80%] lg:max-w-[1400px]">
-            <div
-              className={`flex w-full gap-3 sm:gap-4 ${
-                align === "center"
-                  ? "flex-col items-center text-center"
-                  : "flex-col sm:flex-row sm:items-end sm:justify-between"
-              }`}
-            >
-              <div className={align === "center" ? "mx-auto" : "min-w-0"}>
-                {eyebrow && (
-                  <div className="text-white/85 text-xs uppercase tracking-[0.18em] drop-shadow-sm">
-                    {eyebrow}
-                  </div>
-                )}
-                {title && (
-                  <h1 className="mt-1 text-white text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight drop-shadow-sm">
-                    {title}
-                  </h1>
-                )}
-                {subtitle && (
-                  <p className="mt-2 text-white/90 text-sm sm:text-base drop-shadow-sm">
-                    {subtitle}
-                  </p>
-                )}
-              </div>
-              {actions && align !== "center" && (
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       <div
@@ -135,6 +103,36 @@ export function PageHeroShell({
             color: "var(--skin-ink)",
           }}
         >
+          {hasHeader && (
+            <div
+              className={`flex gap-3 sm:gap-4 px-5 pt-5 pb-3 ${
+                align === "center"
+                  ? "flex-col items-center text-center"
+                  : "flex-col sm:flex-row sm:items-end sm:justify-between"
+              }`}
+            >
+              <div className={align === "center" ? "mx-auto" : "min-w-0"}>
+                {eyebrow && (
+                  <div className="text-[var(--skin-ink-soft)] text-xs uppercase tracking-[0.18em]">
+                    {eyebrow}
+                  </div>
+                )}
+                {title && (
+                  <h1 className="mt-1 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight" style={{ color: "var(--skin-ink)" }}>
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--skin-ink-soft)" }}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+              {actions && align !== "center" && (
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
+              )}
+            </div>
+          )}
           {children}
         </div>
       </div>
