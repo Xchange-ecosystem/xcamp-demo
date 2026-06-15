@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Search, CheckSquare, Square, Trash2, FolderInput, X } from "lucide-react";
@@ -193,12 +194,11 @@ function JournalApp() {
         }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-semibold"
-            style={{ background: "var(--skin-accent)", color: "#fff" }}
-          >
-            J
-          </div>
+          <img
+            src={xcampIcon.url}
+            alt="Xcamp"
+            className="h-8 w-8 rounded-md object-cover"
+          />
           <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
             Xcamp Journal
           </div>
