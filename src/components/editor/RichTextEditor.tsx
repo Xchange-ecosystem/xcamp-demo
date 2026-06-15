@@ -111,18 +111,6 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
     input.click();
   }, [handleFile]);
 
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    const previous = editor.getAttributes("link").href as string | undefined;
-    // eslint-disable-next-line no-alert
-    const url = window.prompt("Link URL", previous ?? "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }, [editor]);
 
   if (!editor) return null;
 
