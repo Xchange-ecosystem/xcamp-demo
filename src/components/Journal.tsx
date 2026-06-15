@@ -663,9 +663,11 @@ export function Journal({
           </>
         )}
       </aside>
+      )}
 
       {/* Main content */}
-      <main style={{ padding: 32, width: "100%", overflowY: "auto" }}>
+      {showMain && (
+      <main style={{ padding: isMobile ? 14 : 32, width: "100%", overflowY: "auto" }}>
         {editing ? (
           <NoteEditor
             key={editing.mode === "edit" ? editing.note.id : "new"}
@@ -691,6 +693,7 @@ export function Journal({
           </div>
         )}
       </main>
+      )}
     </div>
   );
 }
