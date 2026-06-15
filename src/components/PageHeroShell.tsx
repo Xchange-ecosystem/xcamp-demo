@@ -103,6 +103,36 @@ export function PageHeroShell({
             color: "var(--skin-ink)",
           }}
         >
+          {hasHeader && (
+            <div
+              className={`flex gap-3 sm:gap-4 px-5 pt-5 pb-3 ${
+                align === "center"
+                  ? "flex-col items-center text-center"
+                  : "flex-col sm:flex-row sm:items-end sm:justify-between"
+              }`}
+            >
+              <div className={align === "center" ? "mx-auto" : "min-w-0"}>
+                {eyebrow && (
+                  <div className="text-[var(--skin-ink-soft)] text-xs uppercase tracking-[0.18em]">
+                    {eyebrow}
+                  </div>
+                )}
+                {title && (
+                  <h1 className="mt-1 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight" style={{ color: "var(--skin-ink)" }}>
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--skin-ink-soft)" }}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+              {actions && align !== "center" && (
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
+              )}
+            </div>
+          )}
           {children}
         </div>
       </div>
