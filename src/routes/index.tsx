@@ -55,6 +55,13 @@ function previewText(note: NoteRow) {
 }
 
 type SortKey = "updated" | "created" | "title";
+type SortDir = "asc" | "desc";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  updated: "Last updated",
+  created: "Date created",
+  title: "Title",
+};
 
 function JournalApp() {
   const { user, loading, signOut } = useAuth();
