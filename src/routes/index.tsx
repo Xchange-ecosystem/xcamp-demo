@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { Journal } from "@/components/Journal";
 import { VoiceTranscriber } from "@/components/VoiceTranscriber";
+import xcampLogo from "@/assets/xcamp-logo.svg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +48,7 @@ function HomePage() {
 
   return (
     <PageHeroShell
+      logo={<img src={xcampLogo.url} alt="Xcamp" className="h-6 sm:h-8 w-auto" />}
       title="Your Journal"
       subtitle="Write notes or capture your voice — all in one place."
     >
