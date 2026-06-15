@@ -90,7 +90,7 @@ export function PageHeroShell({
         )}
 
         {hasHeader && (
-          <div className="relative z-10 h-full mx-auto w-full max-w-5xl px-4 sm:px-6 pb-6 sm:pb-8 flex items-end">
+          <div className="relative z-10 h-full mx-auto w-full px-4 sm:px-6 pb-6 sm:pb-8 flex items-end lg:w-[80%] lg:max-w-[1400px]">
             <div
               className={`flex w-full gap-3 sm:gap-4 ${
                 align === "center"
@@ -124,7 +124,7 @@ export function PageHeroShell({
       </div>
 
       <div
-        className="relative mx-auto w-full max-w-5xl px-4 sm:px-6"
+        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px]"
         style={{ marginTop: -overlap }}
       >
         <div
