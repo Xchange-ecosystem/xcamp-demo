@@ -578,7 +578,7 @@ export function Journal({
                 </button>
                 <select
                   className="x-input"
-                  style={{ height: 28, fontSize: 12, width: "auto" }}
+                  style={{ height: 28, fontSize: 12, flex: 1, minWidth: 0 }}
                   value=""
                   onChange={(e) => {
                     const v = e.target.value;
