@@ -19,8 +19,7 @@ async function buildXcampUser(authUserId: string, email?: string): Promise<Xcamp
     authId: authUserId,
     centralId: cu.id,
     tenantId: cu.tenant_id,
-    displayName: cu.display_name,
-    avatarUrl: cu.avatar_url ?? undefined,
+    displayName: cu.display_name ?? cu.email ?? "User",
     email: cu.email ?? email,
   };
 }
