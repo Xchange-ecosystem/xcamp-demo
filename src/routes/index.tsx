@@ -1,15 +1,19 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Search, CheckSquare, Square, Trash2, FolderInput, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import {
   archiveNote,
+  bulkArchive,
+  bulkAssignProject,
   createNote,
   getLinkedNoteIds,
   listNotes,
   listProjects,
   updateNote,
 } from "@/lib/xcamp-api";
+import { NoteEditor, type Editing, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import type { NoteRow } from "@/types/xcamp";
 
 export const Route = createFileRoute("/")({
@@ -32,17 +36,26 @@ function formatDate(iso: string) {
 }
 
 function previewText(note: NoteRow) {
-  const raw = note.body_markdown ?? "";
-  return raw.replace(/[#*`>_-]/g, "").trim().slice(0, 120);
+  const raw = note.body_html ?? note.body_markdown ?? "";
+  return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
 }
 
-type Editing = { mode: "new" } | { mode: "edit"; note: NoteRow } | null;
+type SortKey = "updated" | "created" | "title";
 
 function JournalApp() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<Editing>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortKey>("updated");
+  const [filterProject, setFilterProject] = useState("");
+  const [filterTag, setFilterTag] = useState("");
+  const [filterLinked, setFilterLinked] = useState(false);
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -61,6 +74,7 @@ function JournalApp() {
   });
 
   const notes = notesQuery.data ?? [];
+  const projects = projectsQuery.data ?? [];
 
   const linkedQuery = useQuery({
     queryKey: ["linked", notes.map((n) => n.id).join(",")],
@@ -69,11 +83,41 @@ function JournalApp() {
   });
   const linked = linkedQuery.data ?? new Set<string>();
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
+  const projectName = (id?: string) => projects.find((p) => p.id === id)?.name;
+  const allTags = useMemo(
+    () => Array.from(new Set(notes.flatMap((n) => n.tags))).sort(),
+    [notes],
+  );
+
+  const visibleNotes = useMemo(() => {
+    let list = notes.slice();
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          (n.body_html ?? "").toLowerCase().includes(q) ||
+          n.tags.some((t) => t.includes(q)),
+      );
+    }
+    if (filterProject) list = list.filter((n) => n.detail?.project_id === filterProject);
+    if (filterTag) list = list.filter((n) => n.tags.includes(filterTag));
+    if (filterLinked) list = list.filter((n) => linked.has(n.id));
+    list.sort((a, b) => {
+      if (sort === "title") return a.title.localeCompare(b.title);
+      const key = sort === "created" ? "created_at" : "updated_at";
+      return new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime();
+    });
+    return list;
+  }, [notes, search, filterProject, filterTag, filterLinked, linked, sort]);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
+    queryClient.invalidateQueries({ queryKey: ["linked"] });
+  };
 
   const createMut = useMutation({
-    mutationFn: (input: { title: string; bodyMarkdown: string; projectId?: string | null }) =>
-      createNote(user!, input),
+    mutationFn: (input: NoteEditorValues) => createNote(user!, input),
     onSuccess: () => {
       invalidate();
       setEditing(null);
@@ -81,13 +125,8 @@ function JournalApp() {
   });
 
   const updateMut = useMutation({
-    mutationFn: (input: {
-      noteId: string;
-      title: string;
-      bodyMarkdown: string;
-      projectId?: string | null;
-      existingDetail: Record<string, unknown>;
-    }) => updateNote(user!, input.noteId, input),
+    mutationFn: (input: { noteId: string; values: NoteEditorValues; existingDetail: Record<string, unknown> }) =>
+      updateNote(user!, input.noteId, { ...input.values, existingDetail: input.existingDetail }),
     onSuccess: () => {
       invalidate();
       setEditing(null);
@@ -102,6 +141,34 @@ function JournalApp() {
     },
   });
 
+  const bulkArchiveMut = useMutation({
+    mutationFn: (ids: Set<string>) => bulkArchive(user!, notes.filter((n) => ids.has(n.id))),
+    onSuccess: () => {
+      invalidate();
+      setSelected(new Set());
+      setSelectMode(false);
+    },
+  });
+
+  const bulkAssignMut = useMutation({
+    mutationFn: (input: { ids: Set<string>; projectId: string | null }) =>
+      bulkAssignProject(user!, notes.filter((n) => input.ids.has(n.id)), input.projectId),
+    onSuccess: () => {
+      invalidate();
+      setSelected(new Set());
+      setSelectMode(false);
+    },
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--skin-ink-soft)" }}>
@@ -111,8 +178,8 @@ function JournalApp() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--skin-bg)", display: "grid", gridTemplateColumns: "300px 1fr" }}>
-      {/* Sidebar */}
+    <div style={{ minHeight: "100vh", background: "var(--skin-bg)", display: "grid", gridTemplateColumns: "340px 1fr" }}>
+      {/* Sidebar / history */}
       <aside
         style={{
           background: "var(--skin-surface)",
@@ -137,38 +204,152 @@ function JournalApp() {
           </div>
         </div>
 
-        <button className="x-btn-primary mb-4" onClick={() => setEditing({ mode: "new" })}>
+        <button className="x-btn-primary mb-3" onClick={() => { setEditing({ mode: "new" }); }}>
           + New note
         </button>
 
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <Search size={14} style={{ position: "absolute", left: 10, top: 9, color: "var(--skin-ink-faint)" }} />
+          <input
+            className="x-input"
+            style={{ paddingLeft: 30, height: 32, fontSize: 13 }}
+            placeholder="Search notes…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Sort + filters */}
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            <option value="updated">Sort: Updated</option>
+            <option value="created">Sort: Created</option>
+            <option value="title">Sort: Title</option>
+          </select>
+          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
+            <option value="">All projects</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={filterTag} onChange={(e) => setFilterTag(e.target.value)}>
+            <option value="">All tags</option>
+            {allTags.map((t) => (
+              <option key={t} value={t}>
+                #{t}
+              </option>
+            ))}
+          </select>
+          <button
+            className="x-btn-secondary"
+            style={{ height: 32, fontSize: 12, padding: "0 8px", borderColor: filterLinked ? "var(--skin-accent)" : "var(--skin-line)", color: filterLinked ? "var(--skin-accent)" : "var(--skin-ink)" }}
+            onClick={() => setFilterLinked((v) => !v)}
+          >
+            {filterLinked ? "✓ Linked only" : "Linked only"}
+          </button>
+        </div>
+
+        {/* Select toolbar */}
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            className="text-xs"
+            style={{ color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            onClick={() => {
+              setSelectMode((v) => !v);
+              setSelected(new Set());
+            }}
+          >
+            {selectMode ? "Cancel selection" : "Select"}
+          </button>
+          <span style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>{visibleNotes.length} notes</span>
+        </div>
+
+        {selectMode && selected.size > 0 && (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md p-2" style={{ background: "var(--skin-surface2)" }}>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{selected.size} selected</span>
+            <button
+              className="x-btn-secondary"
+              style={{ height: 28, fontSize: 12, color: "var(--danger)" }}
+              onClick={() => {
+                if (confirm(`Delete ${selected.size} note(s)?`)) bulkArchiveMut.mutate(selected);
+              }}
+              disabled={bulkArchiveMut.isPending}
+            >
+              <Trash2 size={13} style={{ display: "inline", marginRight: 4 }} />
+              Delete
+            </button>
+            <select
+              className="x-input"
+              style={{ height: 28, fontSize: 12, width: "auto" }}
+              value=""
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                bulkAssignMut.mutate({ ids: selected, projectId: v === "__none" ? null : v });
+              }}
+            >
+              <option value="">Assign to project…</option>
+              <option value="__none">— No project —</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {notesQuery.isLoading && <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>Loading notes…</p>}
-          {!notesQuery.isLoading && notes.length === 0 && (
-            <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>No notes yet. Create your first one.</p>
+          {!notesQuery.isLoading && visibleNotes.length === 0 && (
+            <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>No notes match.</p>
           )}
-          {notes.map((note) => {
+          {visibleNotes.map((note) => {
             const active = editing?.mode === "edit" && editing.note.id === note.id;
+            const isSel = selected.has(note.id);
             return (
               <div
                 key={note.id}
                 className="x-note-card"
                 data-active={active}
-                onClick={() => setEditing({ mode: "edit", note })}
+                onClick={() => (selectMode ? toggleSelect(note.id) : setEditing({ mode: "edit", note }))}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="x-note-card__title" style={{ fontSize: 14, fontWeight: 600, color: "var(--skin-ink)" }}>
-                    {note.title || "Untitled"}
+                <div className="flex items-start gap-2">
+                  {selectMode && (
+                    <span style={{ color: isSel ? "var(--skin-accent)" : "var(--skin-ink-faint)", marginTop: 2 }}>
+                      {isSel ? <CheckSquare size={16} /> : <Square size={16} />}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="x-note-card__title" style={{ fontSize: 14, fontWeight: 600, color: "var(--skin-ink)" }}>
+                        {note.title || "Untitled"}
+                      </div>
+                      {linked.has(note.id) && <span className="x-badge-linked">linked</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", marginTop: 4 }}>
+                      {formatDate(note.updated_at || note.created_at)}
+                      {projectName(note.detail?.project_id as string) && ` · ${projectName(note.detail?.project_id as string)}`}
+                    </div>
+                    {previewText(note) && (
+                      <div style={{ fontSize: 13, color: "var(--skin-ink-soft)", marginTop: 8, lineHeight: 1.5 }}>
+                        {previewText(note)}
+                      </div>
+                    )}
+                    {note.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {note.tags.map((t) => (
+                          <span key={t} className="x-tag x-tag--sm">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {linked.has(note.id) && <span className="x-badge-linked">linked</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", marginTop: 4 }}>
-                  {formatDate(note.updated_at || note.created_at)}
-                </div>
-                {previewText(note) && (
-                  <div style={{ fontSize: 13, color: "var(--skin-ink-soft)", marginTop: 8, lineHeight: 1.5 }}>
-                    {previewText(note)}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -187,12 +368,12 @@ function JournalApp() {
       </aside>
 
       {/* Main content */}
-      <main style={{ padding: 32, maxWidth: 820, width: "100%" }}>
+      <main style={{ padding: 32, width: "100%" }}>
         {editing ? (
           <NoteEditor
             key={editing.mode === "edit" ? editing.note.id : "new"}
             editing={editing}
-            projects={projectsQuery.data ?? []}
+            projects={projects}
             saving={createMut.isPending || updateMut.isPending}
             archiving={archiveMut.isPending}
             onCancel={() => setEditing(null)}
@@ -200,111 +381,19 @@ function JournalApp() {
               if (editing.mode === "new") {
                 createMut.mutate(values);
               } else {
-                updateMut.mutate({
-                  noteId: editing.note.id,
-                  ...values,
-                  existingDetail: editing.note.detail,
-                });
+                updateMut.mutate({ noteId: editing.note.id, values, existingDetail: editing.note.detail });
               }
             }}
             onArchive={editing.mode === "edit" ? () => archiveMut.mutate(editing.note) : undefined}
           />
         ) : (
-          <div
-            className="flex h-full items-center justify-center text-center"
-            style={{ color: "var(--skin-ink-faint)", minHeight: 300 }}
-          >
+          <div className="flex h-full items-center justify-center text-center" style={{ color: "var(--skin-ink-faint)", minHeight: 300 }}>
             <div>
               <p style={{ fontSize: 15, color: "var(--skin-ink-soft)" }}>Select a note or create a new one.</p>
             </div>
           </div>
         )}
       </main>
-    </div>
-  );
-}
-
-function NoteEditor({
-  editing,
-  projects,
-  saving,
-  archiving,
-  onSave,
-  onCancel,
-  onArchive,
-}: {
-  editing: Exclude<Editing, null>;
-  projects: { id: string; name: string }[];
-  saving: boolean;
-  archiving: boolean;
-  onSave: (v: { title: string; bodyMarkdown: string; projectId?: string | null }) => void;
-  onCancel: () => void;
-  onArchive?: () => void;
-}) {
-  const initial = editing.mode === "edit" ? editing.note : null;
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [body, setBody] = useState(initial?.body_markdown ?? "");
-  const [projectId, setProjectId] = useState<string>(
-    (initial?.detail?.project_id as string | undefined) ?? "",
-  );
-
-  const canSave = useMemo(() => title.trim().length > 0, [title]);
-
-  return (
-    <div className="x-editor">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
-          {editing.mode === "new" ? "New note" : "Editing note"}
-        </span>
-        <div className="flex items-center gap-2">
-          {onArchive && (
-            <button
-              className="x-btn-secondary"
-              style={{ color: "var(--danger)", borderColor: "var(--skin-line)" }}
-              onClick={onArchive}
-              disabled={archiving}
-            >
-              {archiving ? "Archiving…" : "Archive"}
-            </button>
-          )}
-          <button className="x-btn-secondary" onClick={onCancel}>
-            Cancel
-          </button>
-          <button className="x-btn-primary" onClick={() => onSave({ title: title.trim(), bodyMarkdown: body, projectId: projectId || null })} disabled={!canSave || saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
-
-      <input
-        className="x-input"
-        style={{ fontSize: 22, fontWeight: 600, border: "none", background: "transparent", padding: 0, marginBottom: 16 }}
-        placeholder="Note title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <div className="mb-4" style={{ maxWidth: 280 }}>
-        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-          Project (optional)
-        </label>
-        <select className="x-input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-          <option value="">No project</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <textarea
-        className="x-input"
-        style={{ minHeight: 320, lineHeight: 1.7, fontSize: 15, resize: "vertical", fontFamily: "inherit" }}
-        placeholder="Write your note in markdown…"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-      />
     </div>
   );
 }
