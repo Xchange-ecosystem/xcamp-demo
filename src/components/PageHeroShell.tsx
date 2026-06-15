@@ -114,6 +114,9 @@ export function PageHeroShell({
               }`}
             >
               <div className={align === "center" ? "mx-auto" : "min-w-0"}>
+                {logo && (
+                  <div className="mb-2 sm:mb-3">{logo}</div>
+                )}
                 {eyebrow && (
                   <div className="text-[var(--skin-ink-soft)] text-[11px] sm:text-xs uppercase tracking-[0.18em]">
                     {eyebrow}
