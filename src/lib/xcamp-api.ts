@@ -2,23 +2,10 @@
 // No RPCs. Journal only writes `notes` with note_type='note'.
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import type { NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
+import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 
-// Minimal markdown -> HTML so body_html stays populated alongside body_markdown.
-export function markdownToHtml(md: string): string {
-  const escape = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return escape(md)
-    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+?)`/g, "<code>$1</code>")
-    .split(/\n{2,}/)
-    .map((block) => `<p>${block.replace(/\n/g, "<br/>")}</p>`)
-    .join("");
-}
+const NOTE_COLUMNS =
+  "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
 
 // In this schema central_users.id is the auth user id; tenant comes from the row.
 export async function resolveCentralUser(authUserId: string) {
@@ -40,6 +27,7 @@ function rowToNote(r: Record<string, unknown>): NoteRow {
     body_html: (r.body_html as string) ?? null,
     note_type: r.note_type as string,
     done: !!r.done,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
     detail: (r.detail as Record<string, unknown>) ?? {},
     created_by: r.owner_central_id as string,
     tenant_id: r.tenant_id as string,
@@ -48,10 +36,20 @@ function rowToNote(r: Record<string, unknown>): NoteRow {
   };
 }
 
+// Strip HTML tags to keep body_text/markdown roughly searchable.
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function listNotes(user: XcampUser): Promise<NoteRow[]> {
   const { data, error } = await supabase
     .from("notes")
-    .select("id, title, body_markdown, body_html, note_type, done, detail, owner_central_id, tenant_id, created_at, updated_at")
+    .select(NOTE_COLUMNS)
     .eq("owner_central_id", user.centralId)
     .eq("note_type", "note")
     .eq("tenant_id", user.tenantId)
@@ -62,27 +60,34 @@ export async function listNotes(user: XcampUser): Promise<NoteRow[]> {
   return (data ?? []).map(rowToNote);
 }
 
-export async function createNote(
-  user: XcampUser,
-  input: { title: string; bodyMarkdown: string; projectId?: string | null },
-): Promise<NoteRow> {
+interface NoteInput {
+  title: string;
+  bodyHtml: string;
+  projectId?: string | null;
+  tags?: string[];
+  attachments?: NoteAttachment[];
+}
+
+export async function createNote(user: XcampUser, input: NoteInput): Promise<NoteRow> {
   const detail: Record<string, unknown> = {};
   if (input.projectId) detail.project_id = input.projectId;
+  if (input.attachments && input.attachments.length) detail.attachments = input.attachments;
 
   const { data, error } = await supabase
     .from("notes")
     .insert({
       title: input.title,
-      body_markdown: input.bodyMarkdown,
-      body_html: markdownToHtml(input.bodyMarkdown),
-      body_text: input.bodyMarkdown,
+      body_markdown: input.bodyHtml,
+      body_html: input.bodyHtml,
+      body_text: htmlToText(input.bodyHtml),
       note_type: "note", // ALWAYS 'note'
       done: false,
+      tags: input.tags ?? [],
       detail: detail as Json,
       owner_central_id: user.centralId, // central_users.id — not authId
       tenant_id: user.tenantId,
     })
-    .select("id, title, body_markdown, body_html, note_type, done, detail, owner_central_id, tenant_id, created_at, updated_at")
+    .select(NOTE_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -92,19 +97,22 @@ export async function createNote(
 export async function updateNote(
   user: XcampUser,
   noteId: string,
-  input: { title: string; bodyMarkdown: string; projectId?: string | null; existingDetail: Record<string, unknown> },
+  input: NoteInput & { existingDetail: Record<string, unknown> },
 ): Promise<void> {
   const detail = { ...input.existingDetail };
   if (input.projectId) detail.project_id = input.projectId;
   else delete detail.project_id;
+  if (input.attachments && input.attachments.length) detail.attachments = input.attachments;
+  else delete detail.attachments;
 
   const { error } = await supabase
     .from("notes")
     .update({
       title: input.title,
-      body_markdown: input.bodyMarkdown,
-      body_html: markdownToHtml(input.bodyMarkdown),
-      body_text: input.bodyMarkdown,
+      body_markdown: input.bodyHtml,
+      body_html: input.bodyHtml,
+      body_text: htmlToText(input.bodyHtml),
+      tags: input.tags ?? [],
       detail: detail as Json,
       updated_at: new Date().toISOString(),
     })
@@ -125,6 +133,29 @@ export async function archiveNote(user: XcampUser, note: NoteRow): Promise<void>
     .eq("owner_central_id", user.centralId);
 
   if (error) throw error;
+}
+
+export async function bulkArchive(user: XcampUser, notes: NoteRow[]): Promise<void> {
+  await Promise.all(notes.map((note) => archiveNote(user, note)));
+}
+
+export async function bulkAssignProject(
+  user: XcampUser,
+  notes: NoteRow[],
+  projectId: string | null,
+): Promise<void> {
+  await Promise.all(
+    notes.map((note) => {
+      const detail = { ...note.detail };
+      if (projectId) detail.project_id = projectId;
+      else delete detail.project_id;
+      return supabase
+        .from("notes")
+        .update({ detail: detail as Json, updated_at: new Date().toISOString() })
+        .eq("id", note.id)
+        .eq("owner_central_id", user.centralId);
+    }),
+  );
 }
 
 export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
