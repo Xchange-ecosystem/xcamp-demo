@@ -78,9 +78,11 @@ const SORT_LABELS: Record<SortKey, string> = {
 export function Journal({
   embedded = false,
   defaultCollapsed = false,
+  draft = null,
 }: {
   embedded?: boolean;
   defaultCollapsed?: boolean;
+  draft?: { body: string; key: number } | null;
 }) {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +91,14 @@ export function Journal({
   const [editing, setEditing] = useState<Editing | null>(null);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
+  useEffect(() => {
+    if (!draft) return;
+    setEditing({ mode: "new", initialBody: draft.body });
+    setCollapsed(false);
+  }, [draft]);
+
+
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
