@@ -17,7 +17,6 @@ import {
   Code,
   Undo,
   Redo,
-  Link as LinkIcon,
   Image as ImageIcon,
   Paperclip,
 } from "lucide-react";
@@ -112,18 +111,6 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
     input.click();
   }, [handleFile]);
 
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    const previous = editor.getAttributes("link").href as string | undefined;
-    // eslint-disable-next-line no-alert
-    const url = window.prompt("Link URL", previous ?? "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }, [editor]);
 
   if (!editor) return null;
 
@@ -179,9 +166,6 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
           <Code size={16} />
         </Btn>
         <span className="x-tt-sep" />
-        <Btn title="Insert link" active={editor.isActive("link")} onClick={setLink}>
-          <LinkIcon size={16} />
-        </Btn>
         <Btn title="Insert image" onClick={pickFiles}>
           <ImageIcon size={16} />
         </Btn>
