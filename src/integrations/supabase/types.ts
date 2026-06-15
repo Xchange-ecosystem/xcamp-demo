@@ -2537,6 +2537,199 @@ export type Database = {
           },
         ]
       }
+      framework_concepts: {
+        Row: {
+          aliases: string[]
+          base_dimension: string | null
+          category_hint: string | null
+          concept_id: string
+          concept_type: string
+          created_at: string
+          description: string | null
+          exclusion_signals: string[]
+          expected_outcome: string | null
+          id: string
+          intent: string | null
+          maturity_band: string | null
+          name: string
+          relations: Json
+          selection_signals: string[]
+          slug: string
+          status: string
+          tags: string[]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          base_dimension?: string | null
+          category_hint?: string | null
+          concept_id: string
+          concept_type: string
+          created_at?: string
+          description?: string | null
+          exclusion_signals?: string[]
+          expected_outcome?: string | null
+          id?: string
+          intent?: string | null
+          maturity_band?: string | null
+          name: string
+          relations?: Json
+          selection_signals?: string[]
+          slug: string
+          status?: string
+          tags?: string[]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          base_dimension?: string | null
+          category_hint?: string | null
+          concept_id?: string
+          concept_type?: string
+          created_at?: string
+          description?: string | null
+          exclusion_signals?: string[]
+          expected_outcome?: string | null
+          id?: string
+          intent?: string | null
+          maturity_band?: string | null
+          name?: string
+          relations?: Json
+          selection_signals?: string[]
+          slug?: string
+          status?: string
+          tags?: string[]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "framework_concepts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      framework_objective_links: {
+        Row: {
+          concept_id: string
+          confidence_score: number
+          created_at: string
+          entity_path: Json
+          entity_type: string
+          evidence: Json
+          id: string
+          mapping_type: string
+          status: string
+          template_slug: string
+          tenant_id: string
+        }
+        Insert: {
+          concept_id: string
+          confidence_score: number
+          created_at?: string
+          entity_path: Json
+          entity_type: string
+          evidence?: Json
+          id?: string
+          mapping_type: string
+          status?: string
+          template_slug: string
+          tenant_id: string
+        }
+        Update: {
+          concept_id?: string
+          confidence_score?: number
+          created_at?: string
+          entity_path?: Json
+          entity_type?: string
+          evidence?: Json
+          id?: string
+          mapping_type?: string
+          status?: string
+          template_slug?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "framework_objective_links_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "framework_concepts"
+            referencedColumns: ["concept_id"]
+          },
+          {
+            foreignKeyName: "framework_objective_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      framework_templates: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string
+          id: string
+          name: string
+          slug: string
+          source_framework: string | null
+          source_reference: string | null
+          status: string
+          tags: string[]
+          tenant_id: string
+          updated_at: string
+          version: string
+          visibility: string
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          slug: string
+          source_framework?: string | null
+          source_reference?: string | null
+          status?: string
+          tags?: string[]
+          tenant_id: string
+          updated_at?: string
+          version?: string
+          visibility?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          slug?: string
+          source_framework?: string | null
+          source_reference?: string | null
+          status?: string
+          tags?: string[]
+          tenant_id?: string
+          updated_at?: string
+          version?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "framework_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fund_approvals: {
         Row: {
           approval_method: string
