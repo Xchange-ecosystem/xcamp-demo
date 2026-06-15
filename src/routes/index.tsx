@@ -22,7 +22,8 @@ type Tab = "journal" | "voice";
 function HomePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("journal");
+  const [tab, setTab] = useState<Tab>("voice");
+  const [draft, setDraft] = useState<{ body: string; key: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -35,6 +36,15 @@ function HomePage() {
       </div>
     );
   }
+
+  const handleCreateNote = (text: string) => {
+    const escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    setDraft({ body: `<p>${escaped}</p>`, key: Date.now() });
+    setTab("journal");
+  };
 
   return (
     <PageHeroShell
@@ -57,15 +67,16 @@ function HomePage() {
       </div>
 
       {tab === "journal" ? (
-        <Journal embedded defaultCollapsed />
+        <Journal embedded defaultCollapsed draft={draft} />
       ) : (
         <div className="p-4 sm:p-6">
-          <VoiceTranscriber />
+          <VoiceTranscriber onCreateNote={handleCreateNote} />
         </div>
       )}
     </PageHeroShell>
   );
 }
+
 
 function TabButton({
   active,
