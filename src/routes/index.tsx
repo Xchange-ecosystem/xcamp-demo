@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BookText, Mic } from "lucide-react";
-import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useAuth } from "@/contexts/auth";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { Journal } from "@/components/Journal";
