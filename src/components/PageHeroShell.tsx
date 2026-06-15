@@ -26,6 +26,7 @@ export function PageHeroShell({
   title,
   subtitle,
   actions,
+  logo,
   align = "left",
   showImageReload = true,
 }: Props) {
