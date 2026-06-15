@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BookText, Mic } from "lucide-react";
-import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useAuth } from "@/contexts/auth";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { Journal } from "@/components/Journal";
@@ -50,7 +49,6 @@ function HomePage() {
     <PageHeroShell
       title="Your Journal"
       subtitle="Write notes or capture your voice — all in one place."
-      actions={<img src={xcampIcon.url} alt="Xcamp" className="h-10 w-10 rounded-lg object-cover shadow-md" />}
     >
       {/* Tabs */}
       <div
