@@ -53,7 +53,7 @@ export async function listNotes(user: XcampUser): Promise<NoteRow[]> {
     .eq("owner_central_id", user.centralId)
     .eq("note_type", "note")
     .eq("tenant_id", user.tenantId)
-    .not("detail->archived", "eq", true)
+    .or("detail->>archived.is.null,detail->>archived.eq.false")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
