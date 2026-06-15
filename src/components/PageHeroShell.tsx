@@ -12,6 +12,7 @@ type Props = {
   title?: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  logo?: ReactNode;
   align?: "left" | "center";
   showImageReload?: boolean;
 };
