@@ -71,9 +71,38 @@ function JournalApp() {
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterProject, setFilterProject] = useState("");
-  const [filterTag, setFilterTag] = useState("");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterLinked, setFilterLinked] = useState(false);
+
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+
+  const activeFilterCount =
+    (filterProject ? 1 : 0) + filterTags.length + (filterLinked ? 1 : 0);
+
+  const toggleTag = (tag: string) =>
+    setFilterTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+
+  const clearAllFilters = () => {
+    setFilterProject("");
+    setFilterTags([]);
+    setFilterLinked(false);
+  };
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) setFiltersOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
