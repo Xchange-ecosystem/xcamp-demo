@@ -13,12 +13,15 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "register">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
@@ -27,15 +30,38 @@ function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setConfirmationSent(false);
     setSubmitting(true);
+
     try {
-      await signIn(email.trim(), password);
-      navigate({ to: "/" });
+      if (mode === "register") {
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match.");
+        }
+        const result = await signUp(email.trim(), password);
+        if (result.session) {
+          navigate({ to: "/" });
+        } else {
+          setConfirmationSent(true);
+          setEmail("");
+          setPassword("");
+          setConfirmPassword("");
+        }
+      } else {
+        await signIn(email.trim(), password);
+        navigate({ to: "/" });
+      }
     } catch (err) {
-      setFormError((err as Error).message || "Unable to sign in.");
+      setFormError((err as Error).message || "Something went wrong.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const toggleMode = () => {
+    setMode((m) => (m === "signin" ? "register" : "signin"));
+    setFormError(null);
+    setConfirmationSent(false);
   };
 
   return (
@@ -52,9 +78,18 @@ function AuthPage() {
             Xcamp Journal
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--skin-ink-soft)" }}>
-            Sign in to capture your notes.
+            {mode === "signin" ? "Sign in to capture your notes." : "Create your account to get started."}
           </p>
         </div>
+
+        {confirmationSent && (
+          <div
+            className="mb-4 rounded-md px-4 py-3 text-sm"
+            style={{ background: "var(--skin-accent-soft)", color: "var(--skin-ink)" }}
+          >
+            Registration successful. Please check your email to confirm your account before signing in.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="x-editor space-y-4">
           <div className="space-y-1.5">
@@ -82,9 +117,26 @@ function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              autoComplete="current-password"
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
             />
           </div>
+
+          {mode === "register" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+                Confirm password
+              </label>
+              <input
+                type="password"
+                required
+                className="x-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </div>
+          )}
 
           {formError && (
             <p className="text-sm" style={{ color: "var(--danger)" }}>
@@ -93,9 +145,27 @@ function AuthPage() {
           )}
 
           <button type="submit" className="x-btn-primary w-full" disabled={submitting}>
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? (mode === "register" ? "Creating account…" : "Signing in…") : mode === "register" ? "Create account" : "Sign in"}
           </button>
         </form>
+
+        <div className="mt-4 text-center text-sm" style={{ color: "var(--skin-ink-soft)" }}>
+          {mode === "signin" ? (
+            <>
+              Don&apos;t have an account?{" "}
+              <button type="button" onClick={toggleMode} className="font-medium underline" style={{ color: "var(--skin-accent)" }}>
+                Register
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button type="button" onClick={toggleMode} className="font-medium underline" style={{ color: "var(--skin-accent)" }}>
+                Sign in
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
