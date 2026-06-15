@@ -151,15 +151,16 @@ function JournalApp() {
       );
     }
     if (filterProject) list = list.filter((n) => n.detail?.project_id === filterProject);
-    if (filterTag) list = list.filter((n) => n.tags.includes(filterTag));
+    if (filterTags.length) list = list.filter((n) => filterTags.some((t) => n.tags.includes(t)));
     if (filterLinked) list = list.filter((n) => linked.has(n.id));
+    const dir = sortDir === "asc" ? -1 : 1;
     list.sort((a, b) => {
-      if (sort === "title") return a.title.localeCompare(b.title);
+      if (sort === "title") return a.title.localeCompare(b.title) * (sortDir === "asc" ? 1 : -1);
       const key = sort === "created" ? "created_at" : "updated_at";
-      return new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime();
+      return (new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime()) * dir;
     });
     return list;
-  }, [notes, search, filterProject, filterTag, filterLinked, linked, sort]);
+  }, [notes, search, filterProject, filterTags, filterLinked, linked, sort, sortDir]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
