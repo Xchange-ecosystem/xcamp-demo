@@ -393,3 +393,11 @@
   }
   .x-icon-link:hover { background: var(--skin-surface2); color: var(--skin-ink); }
 }
+
+@keyframes xFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.x-fade-in {
+  animation: xFadeIn 0.5s ease-out;
+}
