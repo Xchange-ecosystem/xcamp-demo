@@ -132,13 +132,128 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* ============================================================
+ * Xcamp skin tokens (Scientific / Platform — the default skin)
+ * Mirrors xcamp-foundation SkinProvider output. Do not substitute
+ * default Tailwind colours. Teal (#16B89A) is the only primary accent.
+ * ============================================================ */
+:root {
+  --skin-bg:           hsl(0, 0%, 100%);
+  --skin-surface:      hsl(210, 20%, 98%);
+  --skin-surface2:     hsl(210, 20%, 95%);
+  --skin-ink:          hsl(222, 47%, 11%);
+  --skin-ink-soft:     hsl(215, 16%, 47%);
+  --skin-ink-faint:    hsl(215, 16%, 65%);
+  --skin-line:         hsl(214, 32%, 91%);
+  --skin-line-soft:    hsl(214, 32%, 96%);
+  --skin-accent:       hsl(168, 72%, 42%);
+  --skin-accent-soft:  hsl(168, 72%, 92%);
+
+  --success:           hsl(142, 71%, 45%);
+  --warning:           hsl(38, 95%, 52%);
+  --danger:            hsl(0, 84%, 60%);
+
+  --xr:                6px;
+  --xr-lg:             10px;
+  --xr-pill:           999px;
+
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    background-color: var(--skin-bg);
+    color: var(--skin-ink);
+  }
+}
+
+/* ---------- Xcamp component primitives ---------- */
+@layer components {
+  .x-btn-primary {
+    background: var(--skin-accent);
+    color: #fff;
+    border-radius: var(--xr);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 150ms ease, box-shadow 150ms ease;
+  }
+  .x-btn-primary:hover { opacity: 0.9; }
+  .x-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .x-btn-secondary {
+    background: transparent;
+    color: var(--skin-ink);
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr);
+    font-size: 14px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+  .x-btn-secondary:hover { background: var(--skin-surface2); }
+
+  .x-input {
+    background: var(--skin-bg);
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr);
+    color: var(--skin-ink);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 12px;
+    width: 100%;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .x-input:focus {
+    outline: none;
+    border-color: var(--skin-accent);
+    box-shadow: 0 0 0 2px var(--skin-accent-soft);
+  }
+  .x-input::placeholder { color: var(--skin-ink-faint); }
+
+  .x-note-card {
+    background: var(--skin-surface);
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr);
+    box-shadow: var(--shadow-card);
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .x-note-card:hover {
+    border-color: var(--skin-accent);
+    box-shadow: var(--shadow-dropdown);
+  }
+  .x-note-card[data-active="true"] {
+    border-color: var(--skin-accent);
+    border-left: 3px solid var(--skin-accent);
+  }
+
+  .x-badge-linked {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--skin-accent);
+    background: var(--skin-accent-soft);
+    border-radius: var(--xr-pill);
+    padding: 2px 8px;
+  }
+
+  .x-editor {
+    background: var(--skin-surface);
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
   }
 }
