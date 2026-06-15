@@ -1,8 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Search, CheckSquare, Square, Trash2, FolderInput, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Search,
+  CheckSquare,
+  Square,
+  Trash2,
+  FolderInput,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  SlidersHorizontal,
+  Check,
+  Link2,
+} from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import {
   archiveNote,
@@ -41,7 +54,34 @@ function previewText(note: NoteRow) {
   return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
 }
 
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 4px 3px 9px",
+        borderRadius: 999, background: "var(--skin-surface2)", color: "var(--skin-ink)", border: "1px solid var(--skin-line)",
+      }}
+    >
+      {label}
+      <button
+        onClick={onClear}
+        aria-label={`Remove ${label}`}
+        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 0, lineHeight: 0 }}
+      >
+        <X size={12} />
+      </button>
+    </span>
+  );
+}
+
 type SortKey = "updated" | "created" | "title";
+type SortDir = "asc" | "desc";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  updated: "Last updated",
+  created: "Date created",
+  title: "Title",
+};
 
 function JournalApp() {
   const { user, loading, signOut } = useAuth();
@@ -51,9 +91,38 @@ function JournalApp() {
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterProject, setFilterProject] = useState("");
-  const [filterTag, setFilterTag] = useState("");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterLinked, setFilterLinked] = useState(false);
+
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+
+  const activeFilterCount =
+    (filterProject ? 1 : 0) + filterTags.length + (filterLinked ? 1 : 0);
+
+  const toggleTag = (tag: string) =>
+    setFilterTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+
+  const clearAllFilters = () => {
+    setFilterProject("");
+    setFilterTags([]);
+    setFilterLinked(false);
+  };
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) setFiltersOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -102,15 +171,16 @@ function JournalApp() {
       );
     }
     if (filterProject) list = list.filter((n) => n.detail?.project_id === filterProject);
-    if (filterTag) list = list.filter((n) => n.tags.includes(filterTag));
+    if (filterTags.length) list = list.filter((n) => filterTags.some((t) => n.tags.includes(t)));
     if (filterLinked) list = list.filter((n) => linked.has(n.id));
+    const dir = sortDir === "asc" ? -1 : 1;
     list.sort((a, b) => {
-      if (sort === "title") return a.title.localeCompare(b.title);
+      if (sort === "title") return a.title.localeCompare(b.title) * (sortDir === "asc" ? 1 : -1);
       const key = sort === "created" ? "created_at" : "updated_at";
-      return new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime();
+      return (new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime()) * dir;
     });
     return list;
-  }, [notes, search, filterProject, filterTag, filterLinked, linked, sort]);
+  }, [notes, search, filterProject, filterTags, filterLinked, linked, sort, sortDir]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
@@ -208,49 +278,207 @@ function JournalApp() {
           + New note
         </button>
 
-        {/* Search */}
-        <div style={{ position: "relative", marginBottom: 10 }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: 9, color: "var(--skin-ink-faint)" }} />
-          <input
-            className="x-input"
-            style={{ paddingLeft: 30, height: 32, fontSize: 13 }}
-            placeholder="Search notes…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Search + sort */}
+        <div className="mb-2 flex items-center gap-2">
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search size={14} style={{ position: "absolute", left: 10, top: 9, color: "var(--skin-ink-faint)" }} />
+            <input
+              className="x-input"
+              style={{ paddingLeft: 30, paddingRight: search ? 28 : 10, height: 32, fontSize: 13, width: "100%" }}
+              placeholder="Search notes…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                aria-label="Clear search"
+                onClick={() => setSearch("")}
+                style={{ position: "absolute", right: 6, top: 6, background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 2, lineHeight: 0 }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div ref={sortRef} style={{ position: "relative" }}>
+            <button
+              className="x-btn-secondary"
+              aria-label="Sort notes"
+              title={`Sort: ${SORT_LABELS[sort]} (${sortDir === "asc" ? "ascending" : "descending"})`}
+              style={{ height: 32, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => setSortOpen((v) => !v)}
+            >
+              <ArrowUpDown size={15} />
+            </button>
+            {sortOpen && (
+              <div
+                style={{
+                  position: "absolute", right: 0, top: 38, zIndex: 20, width: 190,
+                  background: "var(--skin-surface)", border: "1px solid var(--skin-line)",
+                  borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", padding: 6,
+                }}
+              >
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => { setSort(k); setSortOpen(false); }}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                      gap: 8, padding: "7px 8px", fontSize: 13, borderRadius: 6, border: "none", cursor: "pointer",
+                      background: sort === k ? "var(--skin-surface2)" : "transparent", color: "var(--skin-ink)",
+                    }}
+                  >
+                    {SORT_LABELS[k]}
+                    {sort === k && <Check size={14} style={{ color: "var(--skin-accent)" }} />}
+                  </button>
+                ))}
+                <div style={{ height: 1, background: "var(--skin-line)", margin: "5px 4px" }} />
+                <button
+                  onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+                    fontSize: 13, borderRadius: 6, border: "none", cursor: "pointer", background: "transparent", color: "var(--skin-ink)",
+                  }}
+                >
+                  {sortDir === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                  {sortDir === "asc" ? "Ascending" : "Descending"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div ref={filtersRef} style={{ position: "relative" }}>
+            <button
+              className="x-btn-secondary"
+              aria-label="Filter notes"
+              style={{
+                height: 32, padding: "0 10px", display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+                borderColor: activeFilterCount ? "var(--skin-accent)" : "var(--skin-line)",
+                color: activeFilterCount ? "var(--skin-accent)" : "var(--skin-ink)",
+              }}
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              <SlidersHorizontal size={14} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span
+                  style={{
+                    minWidth: 16, height: 16, borderRadius: 8, fontSize: 10, fontWeight: 600,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px",
+                    background: "var(--skin-accent)", color: "var(--skin-on-accent, #fff)",
+                  }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {filtersOpen && (
+              <div
+                style={{
+                  position: "absolute", right: 0, top: 38, zIndex: 20, width: 260,
+                  background: "var(--skin-surface)", border: "1px solid var(--skin-line)",
+                  borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", padding: 12,
+                }}
+              >
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 4 }}>
+                  Project
+                </label>
+                <select
+                  className="x-input"
+                  style={{ height: 32, fontSize: 12, width: "100%", marginBottom: 12 }}
+                  value={filterProject}
+                  onChange={(e) => setFilterProject(e.target.value)}
+                >
+                  <option value="">All projects</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+
+                {allTags.length > 0 && (
+                  <>
+                    <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 6 }}>
+                      Tags
+                    </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, maxHeight: 120, overflowY: "auto" }}>
+                      {allTags.map((t) => {
+                        const on = filterTags.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => toggleTag(t)}
+                            style={{
+                              fontSize: 12, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+                              border: `1px solid ${on ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                              background: on ? "var(--skin-accent)" : "transparent",
+                              color: on ? "var(--skin-on-accent, #fff)" : "var(--skin-ink)",
+                            }}
+                          >
+                            #{t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                <button
+                  onClick={() => setFilterLinked((v) => !v)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    fontSize: 13, padding: "7px 0", border: "none", background: "transparent", cursor: "pointer", color: "var(--skin-ink)",
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Link2 size={14} /> Linked notes only
+                  </span>
+                  <span
+                    style={{
+                      width: 34, height: 18, borderRadius: 999, position: "relative", transition: "background .15s",
+                      background: filterLinked ? "var(--skin-accent)" : "var(--skin-line)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute", top: 2, left: filterLinked ? 18 : 2, width: 14, height: 14,
+                        borderRadius: 999, background: "#fff", transition: "left .15s",
+                      }}
+                    />
+                  </span>
+                </button>
+
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="x-btn-secondary"
+                    style={{ height: 30, fontSize: 12, width: "100%", marginTop: 8 }}
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Sort + filters */}
-        <div className="mb-2 grid grid-cols-2 gap-2">
-          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-            <option value="updated">Sort: Updated</option>
-            <option value="created">Sort: Created</option>
-            <option value="title">Sort: Title</option>
-          </select>
-          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
-            <option value="">All projects</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+        {/* Active filter chips */}
+        {activeFilterCount > 0 && (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {filterProject && (
+              <FilterChip label={`Project: ${projectName(filterProject) ?? "Unknown"}`} onClear={() => setFilterProject("")} />
+            )}
+            {filterTags.map((t) => (
+              <FilterChip key={t} label={`#${t}`} onClear={() => toggleTag(t)} />
             ))}
-          </select>
-          <select className="x-input" style={{ height: 32, fontSize: 12 }} value={filterTag} onChange={(e) => setFilterTag(e.target.value)}>
-            <option value="">All tags</option>
-            {allTags.map((t) => (
-              <option key={t} value={t}>
-                #{t}
-              </option>
-            ))}
-          </select>
-          <button
-            className="x-btn-secondary"
-            style={{ height: 32, fontSize: 12, padding: "0 8px", borderColor: filterLinked ? "var(--skin-accent)" : "var(--skin-line)", color: filterLinked ? "var(--skin-accent)" : "var(--skin-ink)" }}
-            onClick={() => setFilterLinked((v) => !v)}
-          >
-            {filterLinked ? "✓ Linked only" : "Linked only"}
-          </button>
-        </div>
+            {filterLinked && <FilterChip label="Linked only" onClear={() => setFilterLinked(false)} />}
+            <button
+              onClick={clearAllFilters}
+              style={{ fontSize: 11, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
 
         {/* Select toolbar */}
         <div className="mb-2 flex items-center justify-between">
@@ -305,7 +533,19 @@ function JournalApp() {
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {notesQuery.isLoading && <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>Loading notes…</p>}
           {!notesQuery.isLoading && visibleNotes.length === 0 && (
-            <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>No notes match.</p>
+            <div style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>
+              <p style={{ marginBottom: activeFilterCount || search ? 6 : 0 }}>
+                {activeFilterCount || search ? "No notes match your search or filters." : "No notes yet."}
+              </p>
+              {(activeFilterCount > 0 || search) && (
+                <button
+                  onClick={() => { clearAllFilters(); setSearch(""); }}
+                  style={{ fontSize: 12, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  Clear search & filters
+                </button>
+              )}
+            </div>
           )}
           {visibleNotes.map((note) => {
             const active = editing?.mode === "edit" && editing.note.id === note.id;
