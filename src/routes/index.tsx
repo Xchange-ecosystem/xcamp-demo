@@ -49,7 +49,6 @@ function HomePage() {
     <PageHeroShell
       title="Your Journal"
       subtitle="Write notes or capture your voice — all in one place."
-      actions={<img src={xcampIcon.url} alt="Xcamp" className="h-10 w-10 rounded-lg object-cover shadow-md" />}
     >
       {/* Tabs */}
       <div
