@@ -10,6 +10,15 @@ export interface XcampUser {
   email?: string;
 }
 
+// An attachment stored inline in notes.detail.attachments.
+export interface NoteAttachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  dataUrl: string; // base64 data URL — kept inline (no storage bucket in this app)
+}
+
 // A note row as returned from the notes table.
 export interface NoteRow {
   id: string;
@@ -18,6 +27,7 @@ export interface NoteRow {
   body_html: string | null;
   note_type: string; // always 'note' in Journal
   done: boolean;
+  tags: string[];
   detail: Record<string, unknown>;
   created_by: string; // central_users.id
   tenant_id: string;
