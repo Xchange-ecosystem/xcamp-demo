@@ -533,7 +533,19 @@ function JournalApp() {
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {notesQuery.isLoading && <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>Loading notes…</p>}
           {!notesQuery.isLoading && visibleNotes.length === 0 && (
-            <p style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>No notes match.</p>
+            <div style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>
+              <p style={{ marginBottom: activeFilterCount || search ? 6 : 0 }}>
+                {activeFilterCount || search ? "No notes match your search or filters." : "No notes yet."}
+              </p>
+              {(activeFilterCount > 0 || search) && (
+                <button
+                  onClick={() => { clearAllFilters(); setSearch(""); }}
+                  style={{ fontSize: 12, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  Clear search & filters
+                </button>
+              )}
+            </div>
           )}
           {visibleNotes.map((note) => {
             const active = editing?.mode === "edit" && editing.note.id === note.id;
