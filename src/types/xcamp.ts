@@ -1,0 +1,45 @@
+// Xcamp Journal shared types — mirrors the Xcamp integration contract.
+
+// The resolved user shape — build this after sign-in and cache it.
+export interface XcampUser {
+  authId: string; // auth.users.id — only for supabase.auth calls
+  centralId: string; // central_users.id — used on all DB writes
+  tenantId: string; // required on all DB inserts
+  displayName: string;
+  avatarUrl?: string;
+  email?: string;
+}
+
+// A note row as returned from the notes table.
+export interface NoteRow {
+  id: string;
+  title: string;
+  body_markdown: string | null;
+  body_html: string | null;
+  note_type: string; // always 'note' in Journal
+  done: boolean;
+  detail: Record<string, unknown>;
+  created_by: string; // central_users.id
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectRow {
+  id: string;
+  name: string;
+}
+
+// Skin config shape stored in user_preferences.skin_config
+export type Paradigm = "platform" | "companion" | "canvas";
+export type Tone = "scientific" | "playful";
+export type AIPersona = "analyst" | "guide" | "collaborator";
+
+export interface SkinConfig {
+  paradigm: Paradigm;
+  tone: Tone;
+  aiPersona: AIPersona;
+}
+
+// CollabRole — for future use when Journal shows linked objective context.
+export type CollabRole = "creator" | "manager" | "editor" | "viewer";
