@@ -18,6 +18,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   archiveNote,
   bulkArchive,
