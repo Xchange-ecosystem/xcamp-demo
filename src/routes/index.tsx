@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { BookText, Mic } from "lucide-react";
-import { useAuth } from "@/contexts/auth";
+import { AppShell } from "@/components/AppShell";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { Journal } from "@/components/Journal";
 import { VoiceTranscriber } from "@/components/VoiceTranscriber";
@@ -20,22 +20,8 @@ export const Route = createFileRoute("/")({
 type Tab = "journal" | "voice";
 
 function HomePage() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("voice");
   const [draft, setDraft] = useState<{ body: string; key: number } | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [loading, user, navigate]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--skin-ink-soft)" }}>
-        Loading…
-      </div>
-    );
-  }
 
   const handleCreateNote = (text: string) => {
     const escaped = text
@@ -47,32 +33,34 @@ function HomePage() {
   };
 
   return (
-    <PageHeroShell
-      logo={<img src={xcampLogo.url} alt="Xcamp" className="h-6 sm:h-8 w-auto" />}
-      title="Your Journal"
-      subtitle="Write notes or capture your voice — all in one place."
-    >
-      {/* Tabs */}
-      <div
-        className="flex items-center gap-1 px-3 pt-3"
-        style={{ borderBottom: "1px solid var(--skin-line)" }}
+    <AppShell>
+      <PageHeroShell
+        logo={<img src={xcampLogo.url} alt="Xcamp" className="h-6 sm:h-8 w-auto" />}
+        title="Your Journal"
+        subtitle="Write notes or capture your voice — all in one place."
       >
-        <TabButton active={tab === "journal"} onClick={() => setTab("journal")} icon={<BookText size={15} />}>
-          Journal
-        </TabButton>
-        <TabButton active={tab === "voice"} onClick={() => setTab("voice")} icon={<Mic size={15} />}>
-          Voice
-        </TabButton>
-      </div>
-
-      {tab === "journal" ? (
-        <Journal embedded defaultCollapsed draft={draft} />
-      ) : (
-        <div className="p-4 sm:p-6">
-          <VoiceTranscriber onCreateNote={handleCreateNote} />
+        {/* Tabs */}
+        <div
+          className="flex items-center gap-1 px-3 pt-3"
+          style={{ borderBottom: "1px solid var(--skin-line)" }}
+        >
+          <TabButton active={tab === "journal"} onClick={() => setTab("journal")} icon={<BookText size={15} />}>
+            Journal
+          </TabButton>
+          <TabButton active={tab === "voice"} onClick={() => setTab("voice")} icon={<Mic size={15} />}>
+            Voice
+          </TabButton>
         </div>
-      )}
-    </PageHeroShell>
+
+        {tab === "journal" ? (
+          <Journal embedded defaultCollapsed draft={draft} />
+        ) : (
+          <div className="p-4 sm:p-6">
+            <VoiceTranscriber onCreateNote={handleCreateNote} />
+          </div>
+        )}
+      </PageHeroShell>
+    </AppShell>
   );
 }
 
