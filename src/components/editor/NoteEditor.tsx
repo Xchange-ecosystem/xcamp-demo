@@ -245,25 +245,19 @@ export function NoteEditor({
         })}
       </div>
 
-      <div className="mb-4" style={{ maxWidth: 280 }}>
-        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-          Project (optional)
-        </label>
-        <select
-          className="x-input"
-          value={projectId}
-          onChange={(e) => {
-            setProjectId(e.target.value);
+      <div className="mb-4" style={{ maxWidth: 320 }}>
+        <MultiSelectDropdown
+          label="Project (optional)"
+          placeholder="No project"
+          single
+          options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          selected={projectId ? [projectId] : []}
+          onChange={(ids) => {
+            const next = ids[0] ?? "";
+            setProjectId(next);
             setObjectiveIds([]);
           }}
-        >
-          <option value="">No project</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {/* Objective selector — only when a project is chosen */}
