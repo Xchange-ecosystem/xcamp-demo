@@ -4,7 +4,7 @@ import { createSession, interpret, listModes } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
 
 export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
-  const { state, patch } = qr;
+  const { state, patch, setStage } = qr;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modesLoading, setModesLoading] = useState(!state.selectedModeId);
@@ -13,14 +13,19 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   useEffect(() => {
     if (state.selectedModeId) {
       setModesLoading(false);
+      setStage("modes", "ok");
       return;
     }
     setModesLoading(true);
+    setStage("modes", "running", { endpoint: "GET /modes" });
     listModes()
       .then((all) => {
         const active = all.filter((m) => m.status === "active");
         if (!active.length) {
-          if (all.length) setError("No active planning modes are available right now.");
+          if (all.length) {
+            setError("No active planning modes are available right now.");
+            setStage("modes", "failed", { error: "No active planning modes." });
+          }
           return;
         }
         // This simplified Backcaster always uses the BMPO mode.
@@ -32,12 +37,17 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         const bmpo = active.find(isBmpo);
         if (!bmpo) {
           setError("The BPMO planning mode is not available right now.");
+          setStage("modes", "failed", { error: "BPMO mode not found." });
           return;
         }
         setError(null);
         patch({ selectedModeId: bmpo.id });
+        setStage("modes", "ok");
       })
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => {
+        setError((e as Error).message);
+        setStage("modes", "failed", { error: (e as Error).message });
+      })
       .finally(() => setModesLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -51,14 +61,22 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     setSubmitting(true);
     setError(null);
     try {
+      setStage("session", "running", { endpoint: "POST /sessions", error: null });
       const session = await createSession({
         mode_id: state.selectedModeId,
         raw_input: state.rawInput,
       });
+      if (!session?.id) {
+        throw new Error("No session id was returned by the server.");
+      }
+      setStage("session", "ok");
+
+      setStage("interpret", "running", { endpoint: "POST /interpret" });
       const result = await interpret({
         session_id: session.id,
         raw_input: state.rawInput,
       });
+      setStage("interpret", "ok");
       patch({
         sessionId: session.id,
         interpretation: result.interpretation,
@@ -66,7 +84,11 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         step: "interpret",
       });
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      // Mark whichever stage was running as failed.
+      if (state.diag.stages.session === "running") setStage("session", "failed", { error: msg });
+      else setStage("interpret", "failed", { error: msg });
     } finally {
       setSubmitting(false);
     }

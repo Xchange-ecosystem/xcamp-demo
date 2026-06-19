@@ -6,36 +6,52 @@ import { NodeCard } from "./NodeCard";
 import { NetworkBuildAnimation } from "./NetworkBuildAnimation";
 
 export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
-  const { state, patch, toggleNode, appendChild } = qr;
+  const { state, patch, toggleNode, appendChild, setStage } = qr;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fillingId, setFillingId] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const started = useRef(false);
 
+  // Hard guard: never silently render an empty container.
+  const missing = !state.sessionId
+    ? "session id"
+    : !state.selectedModeId
+      ? "mode id"
+      : null;
+
   const buildProject = async () => {
     if (!state.sessionId) return;
     setBuilding(true);
     setError(null);
+    setStage("materialize", "running", {
+      endpoint: `POST /sessions/${state.sessionId}/materialize`,
+      error: null,
+    });
     try {
       const result = await materialize(state.sessionId, {
         title_override: state.projectTitleOverride || state.outputTree?.title || undefined,
       });
       patch({ materializedProjectId: result.project_id });
+      setStage("materialize", "ok");
     } catch (e) {
       if (e instanceof BackcasterError && e.status === 409) {
         try {
           const session = await getSession(state.sessionId);
           if (session.materialized_init_id) {
             patch({ materializedProjectId: session.materialized_init_id });
+            setStage("materialize", "ok");
             return;
           }
         } catch {
           // ignore
         }
         setError("This project was already created.");
+        setStage("materialize", "failed", { error: "Already created (409)." });
       } else {
-        setError((e as Error).message);
+        const msg = (e as Error).message;
+        setError(msg);
+        setStage("materialize", "failed", { error: msg });
       }
     } finally {
       setBuilding(false);
@@ -43,9 +59,15 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   };
 
   const runGenerate = async () => {
-    if (!state.sessionId || !state.selectedModeId) return;
+    if (!state.sessionId || !state.selectedModeId) {
+      const msg = `Cannot generate: missing ${!state.sessionId ? "session id" : "mode id"}.`;
+      setError(msg);
+      setStage("generate", "failed", { error: msg });
+      return;
+    }
     setLoading(true);
     setError(null);
+    setStage("generate", "running", { endpoint: "POST /generate", error: null });
     try {
       const tree = await generate({
         session_id: state.sessionId,
@@ -54,8 +76,11 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         expand_leaves: false,
       });
       patch({ outputTree: tree, projectTitleOverride: state.projectTitleOverride || tree.title });
+      setStage("generate", "ok");
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      setStage("generate", "failed", { error: msg });
     } finally {
       setLoading(false);
     }
@@ -92,6 +117,27 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       runGenerate();
     }
   };
+
+  if (missing) {
+    return (
+      <div className="text-center py-8">
+        <div
+          className="mx-auto mb-4 max-w-md rounded-lg p-3 text-sm flex items-center justify-center gap-2"
+          style={{ background: "color-mix(in oklab, #dc2626 12%, transparent)", color: "var(--skin-ink)" }}
+        >
+          <AlertCircle size={16} style={{ color: "#dc2626" }} />
+          Cannot build the plan: {missing} is missing. Please go back and start again.
+        </div>
+        <button
+          onClick={() => patch({ step: "input" })}
+          className="rounded-lg px-4 py-2 text-sm font-medium"
+          style={{ background: "var(--skin-accent)", color: "#fff" }}
+        >
+          Back to start
+        </button>
+      </div>
+    );
+  }
 
   if (loading && !state.outputTree) {
     return (

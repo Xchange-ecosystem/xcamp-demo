@@ -94,15 +94,29 @@ export async function listModes(): Promise<BackcasterMode[]> {
   return Array.isArray(arr) ? (arr as BackcasterMode[]) : [];
 }
 
-export function createSession(body: {
+// Some endpoints wrap the payload as { success, data }. Unwrap consistently.
+function unwrap<T>(res: unknown): T {
+  const root = (res ?? {}) as { data?: unknown };
+  if (root && typeof root === "object" && "data" in root && root.data && typeof root.data === "object") {
+    return root.data as T;
+  }
+  return res as T;
+}
+
+export async function createSession(body: {
   mode_id: string;
   raw_input?: string;
   ai_character_id?: string;
 }): Promise<BackcasterSession> {
-  return request<BackcasterSession>("/sessions", {
+  const res = await request<unknown>("/sessions", {
     method: "POST",
     body: JSON.stringify(body),
   });
+  const session = unwrap<BackcasterSession>(res);
+  if (!session?.id) {
+    throw new BackcasterError("Session was created but no session id was returned.", 500);
+  }
+  return session;
 }
 
 export async function interpret(body: {
@@ -152,27 +166,29 @@ export async function generate(body: {
   expand_leaves?: boolean;
 }): Promise<OutputTree> {
   // Response contains backcaster_version including output_json (OutputTree).
-  const res = await request<{
-    output_json?: OutputTree;
-    backcaster_version?: { output_json?: OutputTree };
-  }>("/generate", {
+  const raw = await request<unknown>("/generate", {
     method: "POST",
     body: JSON.stringify({ expand_leaves: false, ...body }),
   });
+  const res = unwrap<{
+    output_json?: OutputTree;
+    backcaster_version?: { output_json?: OutputTree };
+  }>(raw);
   const tree = res.backcaster_version?.output_json ?? res.output_json;
   if (!tree) throw new BackcasterError("No tree returned by the generator.", 500);
   return tree;
 }
 
-export function fillNode(body: {
+export async function fillNode(body: {
   session_id: string;
   parent_node_id: string;
   context?: string;
 }): Promise<OutputNode> {
-  return request<OutputNode>("/fill-node", {
+  const res = await request<unknown>("/fill-node", {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return unwrap<OutputNode>(res);
 }
 
 export async function materialize(
@@ -201,8 +217,9 @@ export async function materialize(
   return { project_id: projectId, objective_ids: objectiveIds };
 }
 
-export function getSession(sessionId: string): Promise<BackcasterSession> {
-  return request<BackcasterSession>(`/sessions/${sessionId}`, { method: "GET" });
+export async function getSession(sessionId: string): Promise<BackcasterSession> {
+  const res = await request<unknown>(`/sessions/${sessionId}`, { method: "GET" });
+  return unwrap<BackcasterSession>(res);
 }
 
 export const DEEP_LINK_BASE = "https://xcamp.xchange.eco/app/project";

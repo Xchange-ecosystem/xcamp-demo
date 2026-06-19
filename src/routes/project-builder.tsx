@@ -7,6 +7,7 @@ import { InputStep } from "@/components/quickroad/InputStep";
 import { InterpretStep } from "@/components/quickroad/InterpretStep";
 import { GenerateStep } from "@/components/quickroad/GenerateStep";
 import { SuccessScreen } from "@/components/quickroad/SuccessScreen";
+import { WorkflowDiagnostics } from "@/components/quickroad/WorkflowDiagnostics";
 
 export const Route = createFileRoute("/project-builder")({
   head: () => ({
@@ -57,6 +58,8 @@ function ProjectBuilderPage() {
             </>
           )}
         </div>
+
+        {!showSuccess && <WorkflowDiagnostics qr={qr} />}
       </div>
     </AppShell>
   );

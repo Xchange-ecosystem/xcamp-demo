@@ -51,10 +51,16 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         </p>
       )}
 
+      {!state.sessionId && (
+        <p className="text-sm" style={{ color: "#dc2626" }}>
+          No session id is set — the plan step cannot run. Go back and start again.
+        </p>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2">
         <button
           type="button"
-          disabled={reinterpreting}
+          disabled={reinterpreting || !state.sessionId}
           onClick={reinterpret}
           className="rounded-xl py-3 px-5 font-medium inline-flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
           style={{ background: "var(--skin-surface)", color: "var(--skin-ink)", border: "1px solid var(--skin-line)" }}
@@ -64,7 +70,7 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         </button>
         <button
           type="button"
-          disabled={!(state.interpretation ?? "").trim()}
+          disabled={!(state.interpretation ?? "").trim() || !state.sessionId}
           onClick={() => patch({ step: "generate" })}
           className="flex-1 rounded-xl py-3 font-semibold transition-opacity disabled:opacity-50"
           style={{ background: "var(--skin-accent)", color: "#fff" }}
