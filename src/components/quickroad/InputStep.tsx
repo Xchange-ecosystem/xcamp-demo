@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { createSession, interpret } from "@/lib/backcaster-api";
+import { createSession, interpret, listModes } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
 
 export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
@@ -8,8 +8,26 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Silently fetch modes and auto-pick the gentlest active one.
+  useEffect(() => {
+    if (state.selectedModeId) return;
+    listModes()
+      .then((all) => {
+        const active = all.filter((m) => m.is_active);
+        if (!active.length) return;
+        const lowest = [...active].sort((a, b) => a.default_depth - b.default_depth)[0];
+        patch({ selectedModeId: lowest.id });
+      })
+      .catch((e) => setError((e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submit = async () => {
-    if (!state.rawInput.trim() || !state.selectedModeId) return;
+    if (!state.rawInput.trim()) return;
+    if (!state.selectedModeId) {
+      setError("Still getting ready — please try again in a moment.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -20,7 +38,6 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       const result = await interpret({
         session_id: session.id,
         raw_input: state.rawInput,
-        context: state.context || undefined,
       });
       patch({
         sessionId: session.id,
@@ -43,22 +60,8 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         <textarea
           value={state.rawInput}
           onChange={(e) => patch({ rawInput: e.target.value })}
-          rows={5}
+          rows={8}
           placeholder="Describe your goal in your own words…"
-          className="w-full rounded-xl p-3 text-sm outline-none resize-y"
-          style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: "var(--skin-ink-soft)" }}>
-          Any constraints or context? <span className="font-normal">(optional)</span>
-        </label>
-        <textarea
-          value={state.context}
-          onChange={(e) => patch({ context: e.target.value })}
-          rows={3}
-          placeholder="Timeframe, resources, anything on your mind…"
           className="w-full rounded-xl p-3 text-sm outline-none resize-y"
           style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
         />
