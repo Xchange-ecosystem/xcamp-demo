@@ -61,10 +61,18 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   };
 
   const runGenerate = async () => {
-    if (!state.sessionId || !state.selectedModeId) {
-      const msg = `Cannot generate: missing ${!state.sessionId ? "session id" : "mode id"}.`;
+    const interpretedInput = (state.interpretation ?? "").trim();
+    if (!state.sessionId || !state.selectedModeId || !interpretedInput) {
+      const what = !state.sessionId
+        ? "session id"
+        : !state.selectedModeId
+          ? "mode id"
+          : "interpreted input";
+      const msg = `Cannot generate: missing ${what}.`;
       setError(msg);
       setStage("generate", "failed", { error: msg });
+      // Interpreted input is recoverable — send the user back to confirm.
+      if (what === "interpreted input") patch({ step: "interpret" });
       return;
     }
     setLoading(true);
