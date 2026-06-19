@@ -94,21 +94,37 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
 
   if (loading && !state.outputTree) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16" style={{ color: "var(--skin-ink-soft)" }}>
-        <Loader2 className="animate-spin" size={28} style={{ color: "var(--skin-accent)" }} />
-        <p>Shaping your plan…</p>
+      <div>
+        <NetworkBuildAnimation caption="Shaping your plan…" />
+        {error && (
+          <div
+            className="mx-auto mt-2 max-w-md rounded-lg p-3 text-center text-sm flex items-center justify-center gap-2"
+            style={{ background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)", color: "var(--skin-ink)" }}
+          >
+            <AlertCircle size={16} style={{ color: "var(--accent-yellow, #E6A817)" }} />
+            {error}
+          </div>
+        )}
       </div>
     );
   }
 
   if (error && !state.outputTree) {
     return (
-      <div className="text-center py-16">
-        <AlertCircle className="mx-auto mb-3" size={28} style={{ color: "var(--skin-ink-soft)" }} />
-        <p style={{ color: "var(--skin-ink)" }}>{error}</p>
-        <button onClick={runGenerate} className="mt-4 rounded-lg px-4 py-2 text-sm font-medium" style={{ background: "var(--skin-accent)", color: "#fff" }}>
-          Try again
-        </button>
+      <div>
+        <NetworkBuildAnimation caption="Something interrupted the plan." />
+        <div className="text-center pb-6">
+          <div
+            className="mx-auto mb-4 max-w-md rounded-lg p-3 text-sm flex items-center justify-center gap-2"
+            style={{ background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)", color: "var(--skin-ink)" }}
+          >
+            <AlertCircle size={16} style={{ color: "var(--accent-yellow, #E6A817)" }} />
+            {error}
+          </div>
+          <button onClick={runGenerate} className="rounded-lg px-4 py-2 text-sm font-medium" style={{ background: "var(--skin-accent)", color: "#fff" }}>
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
