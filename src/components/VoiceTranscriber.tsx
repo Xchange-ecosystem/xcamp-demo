@@ -41,9 +41,12 @@ function VoxOrb({
         width: size,
         height: size,
         transform: `scale(${pulse})`,
-        background:
-          "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)",
-        boxShadow: `0 0 ${size * 0.45}px ${size * 0.06}px rgba(115,31,125,0.45), inset 0 0 ${
+        background: brand.isNox
+          ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
+          : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)",
+        boxShadow: `0 0 ${size * 0.45}px ${size * 0.06}px ${
+          brand.isNox ? "rgba(115,31,125,0.45)" : "rgba(77,224,193,0.45)"
+        }, inset 0 0 ${
           size * 0.22
         }px rgba(255,255,255,0.25)`,
       }}
