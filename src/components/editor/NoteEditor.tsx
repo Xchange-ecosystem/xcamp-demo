@@ -48,6 +48,8 @@ export interface NoteEditorValues {
   title: string;
   bodyHtml: string;
   projectId?: string | null;
+  noteType: string;
+  objectiveIds: string[];
   tags: string[];
   attachments: NoteAttachment[];
 }
@@ -55,6 +57,7 @@ export interface NoteEditorValues {
 export function NoteEditor({
   editing,
   projects,
+  user,
   saving,
   archiving,
   onSave,
@@ -63,6 +66,7 @@ export function NoteEditor({
 }: {
   editing: Editing;
   projects: ProjectRow[];
+  user: XcampUser;
   saving: boolean;
   archiving: boolean;
   onSave: (v: NoteEditorValues) => void;
@@ -74,14 +78,35 @@ export function NoteEditor({
   const [body, setBody] = useState(
     editing.mode === "new" ? editing.initialBody ?? "" : initial?.body_html ?? "",
   );
+  const [noteType, setNoteType] = useState<string>(initial?.note_type ?? "note");
   const [projectId, setProjectId] = useState<string>(
     (initial?.detail?.project_id as string | undefined) ?? "",
   );
+  const [objectiveIds, setObjectiveIds] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [attachments, setAttachments] = useState<NoteAttachment[]>(
     (initial?.detail?.attachments as NoteAttachment[] | undefined) ?? [],
   );
+
+  // Load existing objective links for an edited note (once).
+  useQuery({
+    queryKey: ["note-objectives", initial?.id],
+    queryFn: async () => {
+      const ids = await getNoteObjectiveIds(initial!.id);
+      setObjectiveIds(ids);
+      return ids;
+    },
+    enabled: editing.mode === "edit" && !!initial?.id,
+  });
+
+  // Load objectives for the selected project.
+  const objectivesQuery = useQuery({
+    queryKey: ["objectives", projectId, user.tenantId],
+    queryFn: () => listObjectives(user, projectId),
+    enabled: !!projectId,
+  });
+  const objectives = objectivesQuery.data ?? [];
 
   const links = useMemo(() => extractLinks(body), [body]);
   const imageAtts = attachments.filter((a) => a.mime.startsWith("image/"));
@@ -93,6 +118,11 @@ export function NoteEditor({
     setTagInput("");
   };
 
+  const toggleObjective = (id: string) =>
+    setObjectiveIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
   const canSave = title.trim().length > 0 || body.replace(/<[^>]+>/g, "").trim().length > 0;
 
   const save = () =>
@@ -100,9 +130,12 @@ export function NoteEditor({
       title: title.trim() || "Untitled",
       bodyHtml: body,
       projectId: projectId || null,
+      noteType,
+      objectiveIds: projectId ? objectiveIds : [],
       tags,
       attachments,
     });
+
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
