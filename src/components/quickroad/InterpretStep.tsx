@@ -38,7 +38,7 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       </div>
 
       <textarea
-        value={state.interpretation}
+        value={state.interpretation ?? ""}
         onChange={(e) => patch({ interpretation: e.target.value })}
         rows={8}
         className="w-full rounded-xl p-3 text-sm outline-none resize-y leading-relaxed"
@@ -64,7 +64,7 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         </button>
         <button
           type="button"
-          disabled={!state.interpretation.trim()}
+          disabled={!(state.interpretation ?? "").trim()}
           onClick={() => patch({ step: "generate" })}
           className="flex-1 rounded-xl py-3 font-semibold transition-opacity disabled:opacity-50"
           style={{ background: "var(--skin-accent)", color: "#fff" }}

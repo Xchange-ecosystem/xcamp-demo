@@ -1,29 +1,34 @@
 ## Problem
 
-Clicking **Continue** only shows "Still getting ready — please try again in a moment." The `/modes` request succeeds (200), but no mode ever gets selected, so `submit()` bails on the `!state.selectedModeId` guard.
+After clicking Continue, the `/interpret` call succeeds but `InterpretStep` crashes with `Cannot read properties of undefined (reading 'trim')`. `state.interpretation` is `undefined`.
 
 ## Root cause
 
-The backend returns each mode with a `status: "active"` field and **no `is_active` field**. But `InputStep.tsx` selects the mode with:
+`interpret()` in `src/lib/backcaster-api.ts` assumes the response is `{ interpretation, session_id }`. The real payload is:
 
-```ts
-const active = all.filter((m) => m.is_active); // always [] — is_active is undefined
+```json
+{
+  "success": true,
+  "interpreted": "<json string>",
+  "data": {
+    "interpretation_paragraph": "…",
+    "inferred_goal": "…",
+    "suggested_title": "…",
+    "suggested_parameters": { "depth": 3 }
+  }
+}
 ```
 
-So `active` is empty, `selectedModeId` stays `null`, and Continue can never proceed.
+So `result.interpretation` is `undefined`, which is stored into state and later `.trim()`'d → crash.
 
 ## Fix
 
-**1. `src/lib/backcaster-api.ts`** — Update the `BackcasterMode` interface to match the real payload: replace `is_active: boolean` with `status: string` (and add `slug`/`category`/`road` as optional fields for clarity). Optionally narrow to `road: "quick"` modes since those are the relevant ones.
+**`src/lib/backcaster-api.ts`** — Rewrite `interpret()` to read the real shape and return a normalized object. Request `unknown`, then resolve the interpretation text from `data.interpretation_paragraph` (fallback to parsing the `interpreted` JSON string, then to `""`). Return `{ interpretation: string; suggestedTitle?: string }`. Guard against a missing `data` object.
 
-**2. `src/components/quickroad/InputStep.tsx`** — Change the mode auto-pick to filter on `status === "active"` instead of `is_active`:
+**`src/components/quickroad/InputStep.tsx`** — On success, also store the suggested title into `projectTitleOverride` when present (optional polish), and keep storing `interpretation`.
 
-```ts
-const active = all.filter((m) => m.status === "active");
-```
-
-Keep the gentlest-mode sort by `default_depth`. Add a clearer fallback error if `all` is non-empty but none are active.
+**`src/components/quickroad/InterpretStep.tsx`** — Defensive: use `(state.interpretation ?? "")` for the textarea value and the disabled check so a missing value never crashes.
 
 ## Verification
 
-Reload `/project-builder`, type a goal, click **Continue**. Confirm it advances to the Confirm (interpret) step instead of showing "Still getting ready". Walk the full flow (Confirm → Plan → Build) to ensure the selected mode id flows through `createSession`/`interpret`/`generate`/`materialize`.
+Reload `/project-builder`, enter a goal, click Continue. Confirm the Confirm step shows the interpretation paragraph (no crash), then Create plan → tree generates → Build project works end to end.

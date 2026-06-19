@@ -105,15 +105,44 @@ export function createSession(body: {
   });
 }
 
-export function interpret(body: {
+export async function interpret(body: {
   session_id: string;
   raw_input: string;
   context?: string;
-}): Promise<{ interpretation: string; session_id: string }> {
-  return request("/interpret", {
+}): Promise<{ interpretation: string; suggestedTitle?: string }> {
+  const res = await request<unknown>("/interpret", {
     method: "POST",
     body: JSON.stringify(body),
   });
+
+  const root = (res ?? {}) as {
+    interpreted?: unknown;
+    interpretation?: unknown;
+    data?: { interpretation_paragraph?: unknown; suggested_title?: unknown };
+  };
+
+  let interpretation = "";
+  let suggestedTitle: string | undefined;
+
+  if (root.data && typeof root.data.interpretation_paragraph === "string") {
+    interpretation = root.data.interpretation_paragraph;
+    if (typeof root.data.suggested_title === "string") suggestedTitle = root.data.suggested_title;
+  } else if (typeof root.interpretation === "string") {
+    interpretation = root.interpretation;
+  } else if (typeof root.interpreted === "string") {
+    try {
+      const parsed = JSON.parse(root.interpreted) as {
+        interpretation_paragraph?: string;
+        suggested_title?: string;
+      };
+      interpretation = parsed.interpretation_paragraph ?? "";
+      suggestedTitle = parsed.suggested_title;
+    } catch {
+      interpretation = root.interpreted;
+    }
+  }
+
+  return { interpretation, suggestedTitle };
 }
 
 export async function generate(body: {

@@ -45,6 +45,7 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       patch({
         sessionId: session.id,
         interpretation: result.interpretation,
+        projectTitleOverride: result.suggestedTitle || "",
         step: "interpret",
       });
     } catch (e) {
