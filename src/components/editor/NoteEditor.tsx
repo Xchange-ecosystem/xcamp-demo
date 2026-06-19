@@ -182,7 +182,7 @@ export function NoteEditor({
                 fontSize: 13,
                 fontWeight: 500,
                 cursor: "pointer",
-                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-border)"}`,
+                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
                 background: active ? "var(--skin-accent)" : "transparent",
                 color: active ? "#fff" : "var(--skin-ink-soft)",
               }}
@@ -239,7 +239,7 @@ export function NoteEditor({
                       fontSize: 13,
                       cursor: "pointer",
                       textAlign: "left",
-                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-border)"}`,
+                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
                       background: active ? "var(--skin-accent-soft, rgba(20,184,166,0.12))" : "transparent",
                       color: active ? "var(--skin-accent)" : "var(--skin-ink-soft)",
                     }}
