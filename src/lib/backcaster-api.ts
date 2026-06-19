@@ -216,8 +216,9 @@ export async function materialize(
   return { project_id: projectId, objective_ids: objectiveIds };
 }
 
-export function getSession(sessionId: string): Promise<BackcasterSession> {
-  return request<BackcasterSession>(`/sessions/${sessionId}`, { method: "GET" });
+export async function getSession(sessionId: string): Promise<BackcasterSession> {
+  const res = await request<unknown>(`/sessions/${sessionId}`, { method: "GET" });
+  return unwrap<BackcasterSession>(res);
 }
 
 export const DEEP_LINK_BASE = "https://xcamp.xchange.eco/app/project";
