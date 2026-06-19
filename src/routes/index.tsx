@@ -20,6 +20,7 @@ export const Route = createFileRoute("/")({
 type Tab = "journal" | "voice";
 
 function HomePage() {
+  const brand = useBrand();
   const [tab, setTab] = useState<Tab>("voice");
   const [draft, setDraft] = useState<{ body: string; key: number } | null>(null);
 
@@ -35,7 +36,7 @@ function HomePage() {
   return (
     <AppShell>
       <PageHeroShell
-        logo={<img src={xcampLogo.url} alt="Xcamp" className="h-6 sm:h-8 w-auto" />}
+        logo={<img src={brand.logoUrl} alt={brand.name} className="h-6 sm:h-8 w-auto" />}
         title="Your Notes"
         subtitle="Write notes or capture your voice — all in one place."
       >
