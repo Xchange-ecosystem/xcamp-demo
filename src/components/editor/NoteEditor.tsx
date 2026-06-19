@@ -193,8 +193,32 @@ export function NoteEditor({
         onChange={(e) => setTitle(e.target.value)}
       />
 
+      {/* Collapsible meta: type / project / objectives / tags */}
+      <button
+        type="button"
+        onClick={() => setMetaOpen((o) => !o)}
+        aria-expanded={metaOpen}
+        className="mb-4 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2"
+        style={{ border: "1px solid var(--skin-line)", background: "transparent", cursor: "pointer" }}
+      >
+        <span className="flex min-w-0 items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: "var(--skin-ink-soft)" }}>
+          <SlidersHorizontal size={14} style={{ flexShrink: 0 }} />
+          <span className="truncate">
+            {NOTE_TYPE_LABELS[noteType] ?? noteType}
+            {tags.length > 0 ? ` · ${tags.length} tag${tags.length > 1 ? "s" : ""}` : ""}
+          </span>
+        </span>
+        <ChevronDown
+          size={16}
+          style={{ flexShrink: 0, transition: "transform 0.2s", transform: metaOpen ? "rotate(180deg)" : "none", color: "var(--skin-ink-faint)" }}
+        />
+      </button>
+
+      {metaOpen && (
+      <>
       {/* Note type pill selector */}
       <div className="mb-4 flex flex-wrap gap-2">
+
         {NOTE_TYPES.map((t) => {
           const active = noteType === t;
           return (
