@@ -69,7 +69,7 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           className="flex-1 rounded-xl py-3 font-semibold transition-opacity disabled:opacity-50"
           style={{ background: "var(--skin-accent)", color: "#fff" }}
         >
-          Continue
+          Create plan
         </button>
       </div>
     </div>
