@@ -160,11 +160,13 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
 
       <button
         type="button"
-        onClick={() => patch({ step: "review" })}
-        className="w-full rounded-xl py-3 font-semibold"
+        disabled={building}
+        onClick={buildProject}
+        className="w-full rounded-xl py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
         style={{ background: "var(--skin-accent)", color: "#fff" }}
       >
-        Review & create
+        {building && <Loader2 className="animate-spin" size={16} />}
+        Build project
       </button>
     </div>
   );
