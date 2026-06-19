@@ -244,10 +244,31 @@ export async function generate(body: {
   mode_id: string;
   expand_leaves?: boolean;
 }): Promise<OutputTree> {
+  // The API requires session_id, interpreted_input, and mode_id.
+  const interpretedInput = (body.interpretation ?? "").trim();
+  const sessionId = (body.session_id ?? "").trim();
+  const modeId = (body.mode_id ?? "").trim();
+
+  const missing: string[] = [];
+  if (!sessionId) missing.push("session_id");
+  if (!interpretedInput) missing.push("interpreted_input");
+  if (!modeId) missing.push("mode_id");
+  if (missing.length) {
+    throw new BackcasterError(
+      `Cannot generate the plan — missing: ${missing.join(", ")}.`,
+      400,
+    );
+  }
+
   // Response contains backcaster_version including output_json (OutputTree).
   const raw = await request<unknown>("/generate", {
     method: "POST",
-    body: JSON.stringify({ expand_leaves: false, ...body }),
+    body: JSON.stringify({
+      session_id: sessionId,
+      interpreted_input: interpretedInput,
+      mode_id: modeId,
+      expand_leaves: body.expand_leaves ?? false,
+    }),
   });
   const res = unwrap<{
     output_json?: OutputTree;
