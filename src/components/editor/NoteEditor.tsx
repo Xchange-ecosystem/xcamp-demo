@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
@@ -88,6 +88,7 @@ export function NoteEditor({
   const [attachments, setAttachments] = useState<NoteAttachment[]>(
     (initial?.detail?.attachments as NoteAttachment[] | undefined) ?? [],
   );
+  const [metaOpen, setMetaOpen] = useState(false);
 
   // Load existing objective links for an edited note (once).
   useQuery({
@@ -139,14 +140,14 @@ export function NoteEditor({
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 items-center gap-2">
           <button
             className="x-btn-secondary"
             aria-label="Back to history"
             title="Back to history"
             onClick={onCancel}
-            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
           >
             <ArrowLeft size={14} />
           </button>
@@ -154,7 +155,7 @@ export function NoteEditor({
             {editing.mode === "new" ? "New note" : "Editing note"}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {onArchive && (
             <button className="x-btn-secondary" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
               {archiving ? "Deleting…" : "Delete"}
@@ -168,6 +169,7 @@ export function NoteEditor({
           </button>
         </div>
       </div>
+
 
       <textarea
         className="x-input"
@@ -191,8 +193,32 @@ export function NoteEditor({
         onChange={(e) => setTitle(e.target.value)}
       />
 
+      {/* Collapsible meta: type / project / objectives / tags */}
+      <button
+        type="button"
+        onClick={() => setMetaOpen((o) => !o)}
+        aria-expanded={metaOpen}
+        className="mb-4 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2"
+        style={{ border: "1px solid var(--skin-line)", background: "transparent", cursor: "pointer" }}
+      >
+        <span className="flex min-w-0 items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: "var(--skin-ink-soft)" }}>
+          <SlidersHorizontal size={14} style={{ flexShrink: 0 }} />
+          <span className="truncate">
+            {NOTE_TYPE_LABELS[noteType] ?? noteType}
+            {tags.length > 0 ? ` · ${tags.length} tag${tags.length > 1 ? "s" : ""}` : ""}
+          </span>
+        </span>
+        <ChevronDown
+          size={16}
+          style={{ flexShrink: 0, transition: "transform 0.2s", transform: metaOpen ? "rotate(180deg)" : "none", color: "var(--skin-ink-faint)" }}
+        />
+      </button>
+
+      {metaOpen && (
+      <>
       {/* Note type pill selector */}
       <div className="mb-4 flex flex-wrap gap-2">
+
         {NOTE_TYPES.map((t) => {
           const active = noteType === t;
           return (
@@ -309,6 +335,10 @@ export function NoteEditor({
           />
         </div>
       </div>
+      </>
+      )}
+
+
 
       <RichTextEditor
         content={body}
