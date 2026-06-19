@@ -326,7 +326,7 @@ export function Journal({
           <>
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
-                Journal
+                Notes
               </div>
               {!isMobile && (
                 <button

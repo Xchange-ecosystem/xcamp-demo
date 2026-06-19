@@ -16,7 +16,7 @@ const resources = {
   en: {
     translation: {
       nav: {
-        journal: "Journal",
+        journal: "Notes",
         projectBuilder: "Project Builder",
         profile: "Profile",
         signOut: "Sign out",
@@ -55,7 +55,7 @@ const resources = {
   es: {
     translation: {
       nav: {
-        journal: "Diario",
+        journal: "Notas",
         projectBuilder: "Constructor de proyectos",
         profile: "Perfil",
         signOut: "Cerrar sesión",
@@ -94,7 +94,7 @@ const resources = {
   fr: {
     translation: {
       nav: {
-        journal: "Journal",
+        journal: "Notes",
         projectBuilder: "Créateur de projet",
         profile: "Profil",
         signOut: "Déconnexion",
@@ -133,7 +133,7 @@ const resources = {
   de: {
     translation: {
       nav: {
-        journal: "Journal",
+        journal: "Notizen",
         projectBuilder: "Projekt-Builder",
         profile: "Profil",
         signOut: "Abmelden",
