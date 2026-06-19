@@ -84,7 +84,7 @@ export function Journal({
   defaultCollapsed?: boolean;
   draft?: { body: string; key: number } | null;
 }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -662,16 +662,6 @@ export function Journal({
               })}
             </div>
 
-            <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--skin-line)" }}>
-              <div style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>{user.displayName}</div>
-              <button
-                className="mt-1 text-xs"
-                style={{ color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                onClick={() => signOut()}
-              >
-                Sign out
-              </button>
-            </div>
           </>
         )}
       </aside>
