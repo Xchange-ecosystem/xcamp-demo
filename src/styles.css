@@ -179,35 +179,7 @@
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 }
 
-/* ============================================================
- * Xcamp skin tokens (Scientific / Platform — the default skin)
- * Mirrors xcamp-foundation SkinProvider output. Do not substitute
- * default Tailwind colours. Accent: #4de0c1 with gradients from #34acbf.
- * ============================================================ */
-:root {
-  --skin-bg:           hsl(0, 0%, 100%);
-  --skin-surface:      hsl(210, 20%, 98%);
-  --skin-surface2:     hsl(210, 20%, 95%);
-  --skin-ink:          hsl(222, 47%, 11%);
-  --skin-ink-soft:     hsl(215, 16%, 47%);
-  --skin-ink-faint:    hsl(215, 16%, 65%);
-  --skin-line:         hsl(214, 32%, 91%);
-  --skin-line-soft:    hsl(214, 32%, 96%);
-  --skin-accent:       #4de0c1;
-  --skin-accent-soft:  #dcf8f2;
-  --skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1);
 
-  --success:           hsl(142, 71%, 45%);
-  --warning:           hsl(38, 95%, 52%);
-  --danger:            hsl(0, 84%, 60%);
-
-  --xr:                6px;
-  --xr-lg:             10px;
-  --xr-pill:           999px;
-
-  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
 
 @layer base {
   * {
