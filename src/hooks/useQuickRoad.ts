@@ -66,6 +66,13 @@ type Action =
   | { type: "patch"; payload: Partial<QuickRoadState> }
   | { type: "toggleNode"; id: string }
   | { type: "appendChild"; parentId: string; child: OutputNode }
+  | {
+      type: "setStage";
+      stage: WorkflowStage;
+      status: StageStatus;
+      endpoint?: string;
+      error?: string | null;
+    }
   | { type: "reset" };
 
 function appendChildToTree(tree: OutputTree, parentId: string, child: OutputNode): OutputTree {
