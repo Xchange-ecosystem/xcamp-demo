@@ -14,8 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
-import xcampLogo from "@/assets/xcamp-logo.svg.asset.json";
-import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
+import { useBrand } from "@/lib/brand";
 
 const items = [
   { title: "journal", url: "/", icon: BookText, labelKey: "nav.journal" },
@@ -27,6 +26,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { signOut } = useAuth();
   const { t } = useTranslation();
+  const brand = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
@@ -36,9 +36,9 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className={"flex items-center justify-start " + (collapsed ? "p-2" : "px-2 py-3")}>
           {collapsed ? (
-            <img src={xcampIcon.url} alt="Xcamp" className="h-8 w-8 object-cover" />
+            <img src={brand.iconUrl} alt={brand.name} className="h-8 w-8 object-cover" />
           ) : (
-            <img src={xcampLogo.url} alt="Xcamp" className="h-7 w-auto" />
+            <img src={brand.logoUrl} alt={brand.name} className="h-7 w-auto" />
           )}
         </div>
       </SidebarHeader>
