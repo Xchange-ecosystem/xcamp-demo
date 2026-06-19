@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
@@ -88,6 +88,7 @@ export function NoteEditor({
   const [attachments, setAttachments] = useState<NoteAttachment[]>(
     (initial?.detail?.attachments as NoteAttachment[] | undefined) ?? [],
   );
+  const [metaOpen, setMetaOpen] = useState(false);
 
   // Load existing objective links for an edited note (once).
   useQuery({
