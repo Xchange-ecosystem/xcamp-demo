@@ -1,20 +1,29 @@
-## Plan
+## Goal
 
-1. **Fix the token cascade at the source**
-   - Move the Xcamp `--skin-*` light token block before `.dark`, or merge it into the main `:root` block, so `.dark` overrides are not overwritten later by the second `:root` block.
-   - Keep dark-mode values in `.dark` as the final active override.
+Make the accent and gradient colors distinct per theme: **Xcamp (light) mode** keeps its original teal identity, **Nox (dark) mode** keeps the new purple palette.
 
-2. **Register skin tokens with Tailwind**
-   - Add `--color-skin-bg`, `--color-skin-surface`, `--color-skin-ink`, `--color-skin-line`, etc. in `@theme inline` so token-backed utilities work consistently.
-   - This prevents components from falling back to default Tailwind tokens where Xcamp skin tokens are intended.
+## Problem
 
-3. **Remove remaining hardcoded light overlays in the main page shell**
-   - Update `PageHeroShell` overlay gradients that currently use fixed light colors like `rgba(248,250,251,0.55)` so they resolve through `--skin-surface` / semantic color mixing instead.
-   - This addresses the main page specifically.
+In the last change, the light-mode `--skin-*` accent tokens in `src/styles.css` were overwritten with the purple palette (#731f7d / #b689e6 / #34acbf). That purple now also drives Xcamp light mode (visible in the screenshot's "+ New note" gradient).
 
-4. **Patch Project Builder token usage only where needed**
-   - Keep its layout and content unchanged.
-   - Ensure wrapper/card/textarea/diagnostics colors all read from the corrected skin tokens after the cascade fix.
+## Changes (`src/styles.css`)
 
-5. **Verify in dark mode**
-   - Check `/project-builder` and the main page in the preview after implementation to confirm the card, text field, diagnostics, and page backgrounds switch to dark tokens.
+1. **Light `:root` block** — restore the original Xcamp teal tokens:
+   - `--skin-accent: #4de0c1`
+   - `--skin-accent-soft: #dcf8f2`
+   - `--skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1)`
+
+2. **`.dark` block** — leave the Nox purple palette as-is:
+   - `--skin-accent: #b689e6`
+   - `--skin-accent-soft: hsl(291, 35%, 22%)`
+   - `--skin-accent-gradient: linear-gradient(135deg, #731f7d, #b689e6, #34acbf)`
+
+3. **Dark `--primary`/`--ring`/sidebar tokens** — keep the purple oklch values from the last change (these only apply in dark/Nox mode, so they stay).
+
+4. **`VoiceTranscriber` orb** — currently hardcoded to purple. Make the orb gradient theme-aware so the Vox orb is teal in Xcamp mode and purple in Nox mode (derive from `useBrand`/theme rather than a fixed purple).
+
+## Result
+
+- Xcamp (light): teal accent + teal gradient (original look).
+- Nox (dark): purple accent + purple→teal gradient.
+- Logos/icons already swap per theme and remain unchanged.
