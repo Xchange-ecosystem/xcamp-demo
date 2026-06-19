@@ -75,6 +75,8 @@ interface NoteInput {
   title: string;
   bodyHtml: string;
   projectId?: string | null;
+  noteType?: string;
+  objectiveIds?: string[];
   tags?: string[];
   attachments?: NoteAttachment[];
 }
@@ -91,7 +93,7 @@ export async function createNote(user: XcampUser, input: NoteInput): Promise<Not
       body_markdown: input.bodyHtml,
       body_html: input.bodyHtml,
       body_text: htmlToText(input.bodyHtml),
-      note_type: "note", // ALWAYS 'note'
+      note_type: input.noteType ?? "note",
       done: false,
       tags: input.tags ?? [],
       detail: detail as Json,
@@ -102,7 +104,9 @@ export async function createNote(user: XcampUser, input: NoteInput): Promise<Not
     .single();
 
   if (error) throw error;
-  return rowToNote(data);
+  const note = rowToNote(data);
+  await syncObjectiveLinks(user, note.id, input.projectId ? input.objectiveIds ?? [] : []);
+  return note;
 }
 
 export async function updateNote(
@@ -123,6 +127,7 @@ export async function updateNote(
       body_markdown: input.bodyHtml,
       body_html: input.bodyHtml,
       body_text: htmlToText(input.bodyHtml),
+      note_type: input.noteType ?? "note",
       tags: input.tags ?? [],
       detail: detail as Json,
       updated_at: new Date().toISOString(),
@@ -131,7 +136,71 @@ export async function updateNote(
     .eq("owner_central_id", user.centralId);
 
   if (error) throw error;
+  await syncObjectiveLinks(user, noteId, input.projectId ? input.objectiveIds ?? [] : []);
 }
+
+// Replace the objective_notes links for a note with the provided objective ids.
+async function syncObjectiveLinks(user: XcampUser, noteId: string, objectiveIds: string[]) {
+  const { data: existing } = await supabase
+    .from("objective_notes")
+    .select("id, objective_id")
+    .eq("note_id", noteId)
+    .eq("owner_central_id", user.centralId);
+
+  const current = new Set((existing ?? []).map((r) => r.objective_id as string));
+  const next = new Set(objectiveIds);
+
+  const toAdd = objectiveIds.filter((id) => !current.has(id));
+  const toRemove = (existing ?? []).filter((r) => !next.has(r.objective_id as string));
+
+  if (toRemove.length) {
+    await supabase
+      .from("objective_notes")
+      .delete()
+      .in(
+        "id",
+        toRemove.map((r) => r.id as string),
+      );
+  }
+  if (toAdd.length) {
+    await supabase.from("objective_notes").insert(
+      toAdd.map((objective_id) => ({
+        note_id: noteId,
+        objective_id,
+        owner_central_id: user.centralId,
+        tenant_id: user.tenantId,
+      })),
+    );
+  }
+}
+
+export async function listObjectives(
+  user: XcampUser,
+  projectId: string,
+): Promise<{ id: string; title: string }[]> {
+  if (!projectId) return [];
+  const { data, error } = await supabase
+    .from("objectives")
+    .select("id, title")
+    .eq("project_id", projectId)
+    .eq("tenant_id", user.tenantId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map((o) => ({
+    id: o.id as string,
+    title: (o.title as string) || "Untitled objective",
+  }));
+}
+
+export async function getNoteObjectiveIds(noteId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("objective_notes")
+    .select("objective_id")
+    .eq("note_id", noteId);
+  return (data ?? []).map((r) => r.objective_id as string);
+}
+
 
 export async function archiveNote(user: XcampUser, note: NoteRow): Promise<void> {
   const { error } = await supabase
