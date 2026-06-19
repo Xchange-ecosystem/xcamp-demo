@@ -94,15 +94,29 @@ export async function listModes(): Promise<BackcasterMode[]> {
   return Array.isArray(arr) ? (arr as BackcasterMode[]) : [];
 }
 
-export function createSession(body: {
+// Some endpoints wrap the payload as { success, data }. Unwrap consistently.
+function unwrap<T>(res: unknown): T {
+  const root = (res ?? {}) as { data?: unknown };
+  if (root && typeof root === "object" && "data" in root && root.data && typeof root.data === "object") {
+    return root.data as T;
+  }
+  return res as T;
+}
+
+export async function createSession(body: {
   mode_id: string;
   raw_input?: string;
   ai_character_id?: string;
 }): Promise<BackcasterSession> {
-  return request<BackcasterSession>("/sessions", {
+  const res = await request<unknown>("/sessions", {
     method: "POST",
     body: JSON.stringify(body),
   });
+  const session = unwrap<BackcasterSession>(res);
+  if (!session?.id) {
+    throw new BackcasterError("Session was created but no session id was returned.", 500);
+  }
+  return session;
 }
 
 export async function interpret(body: {
