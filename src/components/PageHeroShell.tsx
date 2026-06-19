@@ -74,7 +74,7 @@ export function PageHeroShell({
           className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, transparent 0%, rgba(248,250,251,0.55) 55%, var(--skin-surface) 100%)",
+              "linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--skin-surface) 55%, transparent) 55%, var(--skin-surface) 100%)",
           }}
         />
 
