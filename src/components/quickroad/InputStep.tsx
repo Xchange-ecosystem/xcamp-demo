@@ -13,8 +13,11 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     if (state.selectedModeId) return;
     listModes()
       .then((all) => {
-        const active = all.filter((m) => m.is_active);
-        if (!active.length) return;
+        const active = all.filter((m) => m.status === "active");
+        if (!active.length) {
+          if (all.length) setError("No active planning modes are available right now.");
+          return;
+        }
         const lowest = [...active].sort((a, b) => a.default_depth - b.default_depth)[0];
         patch({ selectedModeId: lowest.id });
       })
