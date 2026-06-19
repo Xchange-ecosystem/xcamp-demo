@@ -1,7 +1,18 @@
 import { useMemo, useState } from "react";
-import { X, FileText, Download, Globe, Tag as TagIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { X, FileText, Download, Globe, Tag as TagIcon, Target } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
-import type { NoteAttachment, NoteRow, ProjectRow } from "@/types/xcamp";
+import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
+import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
+
+const NOTE_TYPE_LABELS: Record<string, string> = {
+  note: "Note",
+  task: "Task",
+  idea: "Idea",
+  question: "Question",
+  decision: "Decision",
+  reference: "Reference",
+};
 
 export type Editing = { mode: "new"; initialBody?: string } | { mode: "edit"; note: NoteRow };
 
@@ -37,6 +48,8 @@ export interface NoteEditorValues {
   title: string;
   bodyHtml: string;
   projectId?: string | null;
+  noteType: string;
+  objectiveIds: string[];
   tags: string[];
   attachments: NoteAttachment[];
 }
@@ -44,6 +57,7 @@ export interface NoteEditorValues {
 export function NoteEditor({
   editing,
   projects,
+  user,
   saving,
   archiving,
   onSave,
@@ -52,6 +66,7 @@ export function NoteEditor({
 }: {
   editing: Editing;
   projects: ProjectRow[];
+  user: XcampUser;
   saving: boolean;
   archiving: boolean;
   onSave: (v: NoteEditorValues) => void;
@@ -63,14 +78,35 @@ export function NoteEditor({
   const [body, setBody] = useState(
     editing.mode === "new" ? editing.initialBody ?? "" : initial?.body_html ?? "",
   );
+  const [noteType, setNoteType] = useState<string>(initial?.note_type ?? "note");
   const [projectId, setProjectId] = useState<string>(
     (initial?.detail?.project_id as string | undefined) ?? "",
   );
+  const [objectiveIds, setObjectiveIds] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [attachments, setAttachments] = useState<NoteAttachment[]>(
     (initial?.detail?.attachments as NoteAttachment[] | undefined) ?? [],
   );
+
+  // Load existing objective links for an edited note (once).
+  useQuery({
+    queryKey: ["note-objectives", initial?.id],
+    queryFn: async () => {
+      const ids = await getNoteObjectiveIds(initial!.id);
+      setObjectiveIds(ids);
+      return ids;
+    },
+    enabled: editing.mode === "edit" && !!initial?.id,
+  });
+
+  // Load objectives for the selected project.
+  const objectivesQuery = useQuery({
+    queryKey: ["objectives", projectId, user.tenantId],
+    queryFn: () => listObjectives(user, projectId),
+    enabled: !!projectId,
+  });
+  const objectives = objectivesQuery.data ?? [];
 
   const links = useMemo(() => extractLinks(body), [body]);
   const imageAtts = attachments.filter((a) => a.mime.startsWith("image/"));
@@ -82,6 +118,11 @@ export function NoteEditor({
     setTagInput("");
   };
 
+  const toggleObjective = (id: string) =>
+    setObjectiveIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
   const canSave = title.trim().length > 0 || body.replace(/<[^>]+>/g, "").trim().length > 0;
 
   const save = () =>
@@ -89,9 +130,12 @@ export function NoteEditor({
       title: title.trim() || "Untitled",
       bodyHtml: body,
       projectId: projectId || null,
+      noteType,
+      objectiveIds: projectId ? objectiveIds : [],
       tags,
       attachments,
     });
+
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
@@ -122,11 +166,45 @@ export function NoteEditor({
         onChange={(e) => setTitle(e.target.value)}
       />
 
+      {/* Note type pill selector */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {NOTE_TYPES.map((t) => {
+          const active = noteType === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setNoteType(t)}
+              className="x-pill"
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                background: active ? "var(--skin-accent)" : "transparent",
+                color: active ? "#fff" : "var(--skin-ink-soft)",
+              }}
+            >
+              {NOTE_TYPE_LABELS[t] ?? t}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-4" style={{ maxWidth: 280 }}>
         <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
           Project (optional)
         </label>
-        <select className="x-input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+        <select
+          className="x-input"
+          value={projectId}
+          onChange={(e) => {
+            setProjectId(e.target.value);
+            setObjectiveIds([]);
+          }}
+        >
           <option value="">No project</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
@@ -135,6 +213,47 @@ export function NoteEditor({
           ))}
         </select>
       </div>
+
+      {/* Objective selector — only when a project is chosen */}
+      {projectId && (
+        <div className="mb-4" style={{ maxWidth: 420 }}>
+          <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+            <Target size={12} /> Objectives (optional)
+          </label>
+          {objectivesQuery.isLoading ? (
+            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>Loading objectives…</p>
+          ) : objectives.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>No objectives in this project.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {objectives.map((o) => {
+                const active = objectiveIds.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => toggleObjective(o.id)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                      background: active ? "var(--skin-accent-soft, rgba(20,184,166,0.12))" : "transparent",
+                      color: active ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+                    }}
+                  >
+                    {active ? "✓ " : ""}
+                    {o.title}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Tags */}
       <div className="mb-4">

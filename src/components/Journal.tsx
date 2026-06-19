@@ -685,6 +685,7 @@ export function Journal({
             key={editing.mode === "edit" ? editing.note.id : "new"}
             editing={editing}
             projects={projects}
+            user={user!}
             saving={createMut.isPending || updateMut.isPending}
             archiving={archiveMut.isPending}
             onCancel={() => setEditing(null)}
