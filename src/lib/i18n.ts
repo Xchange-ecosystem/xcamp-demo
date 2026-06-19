@@ -44,8 +44,8 @@ const resources = {
       appearance: {
         title: "Appearance",
         theme: "Theme",
-        light: "Light",
-        dark: "Dark",
+        light: "Xcamp mode",
+        dark: "Nox mode",
         system: "System",
         language: "Language",
         languageHint: "Choose the language used across the app.",
@@ -83,8 +83,8 @@ const resources = {
       appearance: {
         title: "Apariencia",
         theme: "Tema",
-        light: "Claro",
-        dark: "Oscuro",
+        light: "Modo Xcamp",
+        dark: "Modo Nox",
         system: "Sistema",
         language: "Idioma",
         languageHint: "Elige el idioma usado en la aplicación.",
@@ -122,8 +122,8 @@ const resources = {
       appearance: {
         title: "Apparence",
         theme: "Thème",
-        light: "Clair",
-        dark: "Sombre",
+        light: "Mode Xcamp",
+        dark: "Mode Nox",
         system: "Système",
         language: "Langue",
         languageHint: "Choisissez la langue utilisée dans l'application.",
@@ -161,8 +161,8 @@ const resources = {
       appearance: {
         title: "Darstellung",
         theme: "Thema",
-        light: "Hell",
-        dark: "Dunkel",
+        light: "Xcamp-Modus",
+        dark: "Nox-Modus",
         system: "System",
         language: "Sprache",
         languageHint: "Wähle die in der App verwendete Sprache.",
