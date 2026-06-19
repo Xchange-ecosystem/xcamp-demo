@@ -18,14 +18,15 @@ import xcampLogo from "@/assets/xcamp-logo.svg.asset.json";
 import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
 
 const items = [
-  { title: "Journal", url: "/", icon: BookText },
-  { title: "Project Builder", url: "/project-builder", icon: Compass },
+  { title: "journal", url: "/", icon: BookText, labelKey: "nav.journal" },
+  { title: "projectBuilder", url: "/project-builder", icon: Compass, labelKey: "nav.projectBuilder" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { signOut } = useAuth();
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
