@@ -84,7 +84,7 @@ export function Journal({
   defaultCollapsed?: boolean;
   draft?: { body: string; key: number } | null;
 }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
