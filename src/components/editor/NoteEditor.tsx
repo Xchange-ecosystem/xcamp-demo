@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_TYPE_LABELS: Record<string, string> = {
@@ -244,63 +245,36 @@ export function NoteEditor({
         })}
       </div>
 
-      <div className="mb-4" style={{ maxWidth: 280 }}>
-        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-          Project (optional)
-        </label>
-        <select
-          className="x-input"
-          value={projectId}
-          onChange={(e) => {
-            setProjectId(e.target.value);
+      <div className="mb-4" style={{ maxWidth: 320 }}>
+        <MultiSelectDropdown
+          label="Project (optional)"
+          placeholder="No project"
+          single
+          options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          selected={projectId ? [projectId] : []}
+          onChange={(ids) => {
+            const next = ids[0] ?? "";
+            setProjectId(next);
             setObjectiveIds([]);
           }}
-        >
-          <option value="">No project</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {/* Objective selector — only when a project is chosen */}
       {projectId && (
         <div className="mb-4" style={{ maxWidth: 420 }}>
-          <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-            <Target size={12} /> Objectives (optional)
-          </label>
           {objectivesQuery.isLoading ? (
             <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>Loading objectives…</p>
           ) : objectives.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>No objectives in this project.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {objectives.map((o) => {
-                const active = objectiveIds.includes(o.id);
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => toggleObjective(o.id)}
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
-                      background: active ? "var(--skin-accent-soft, rgba(20,184,166,0.12))" : "transparent",
-                      color: active ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                    }}
-                  >
-                    {active ? "✓ " : ""}
-                    {o.title}
-                  </button>
-                );
-              })}
-            </div>
+            <MultiSelectDropdown
+              label="Objectives (optional)"
+              placeholder="Select objectives…"
+              options={objectives.map((o) => ({ value: o.id, label: o.title }))}
+              selected={objectiveIds}
+              onChange={setObjectiveIds}
+            />
           )}
         </div>
       )}
