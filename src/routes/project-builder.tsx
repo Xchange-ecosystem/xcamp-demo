@@ -58,6 +58,8 @@ function ProjectBuilderPage() {
             </>
           )}
         </div>
+
+        {!showSuccess && <WorkflowDiagnostics qr={qr} />}
       </div>
     </AppShell>
   );
