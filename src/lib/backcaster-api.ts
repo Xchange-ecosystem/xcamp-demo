@@ -63,6 +63,56 @@ async function authHeaders(): Promise<HeadersInit> {
   };
 }
 
+function asReadable(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value.trim() || null;
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const o = item as { msg?: unknown; message?: unknown; loc?: unknown };
+          const m = o.msg ?? o.message;
+          const loc = Array.isArray(o.loc) ? o.loc.join(".") : undefined;
+          if (typeof m === "string") return loc ? `${loc}: ${m}` : m;
+        }
+        return null;
+      })
+      .filter(Boolean);
+    return parts.length ? parts.join("; ") : null;
+  }
+  if (typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    return (
+      asReadable(o.detail) ??
+      asReadable(o.message) ??
+      asReadable(o.error) ??
+      asReadable(o.errors) ??
+      JSON.stringify(value)
+    );
+  }
+  return String(value);
+}
+
+function extractErrorMessage(rawText: string, status: number): string {
+  const fallback = `Request failed (${status}).`;
+  if (!rawText) return fallback;
+  try {
+    const body = JSON.parse(rawText) as unknown;
+    return (
+      asReadable((body as Record<string, unknown>)?.detail) ??
+      asReadable((body as Record<string, unknown>)?.message) ??
+      asReadable((body as Record<string, unknown>)?.error) ??
+      asReadable((body as Record<string, unknown>)?.errors) ??
+      asReadable(body) ??
+      rawText.slice(0, 300) ??
+      fallback
+    );
+  } catch {
+    return rawText.slice(0, 300) || fallback;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -71,14 +121,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    let message = `Request failed (${res.status}).`;
-    try {
-      const body = await res.json();
-      if (body?.message) message = body.message;
-      else if (body?.error) message = body.error;
-    } catch {
-      // ignore parse errors
-    }
+    const rawText = await res.text().catch(() => "");
+    // Temporary diagnostic: surface the exact rejection payload.
+    console.error(`[backcaster] ${path} ${res.status}`, rawText);
+
+    let message = extractErrorMessage(rawText, res.status);
     throw new BackcasterError(message, res.status);
   }
 
