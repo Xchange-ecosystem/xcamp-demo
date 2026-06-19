@@ -166,11 +166,45 @@ export function NoteEditor({
         onChange={(e) => setTitle(e.target.value)}
       />
 
+      {/* Note type pill selector */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {NOTE_TYPES.map((t) => {
+          const active = noteType === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setNoteType(t)}
+              className="x-pill"
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-border)"}`,
+                background: active ? "var(--skin-accent)" : "transparent",
+                color: active ? "#fff" : "var(--skin-ink-soft)",
+              }}
+            >
+              {NOTE_TYPE_LABELS[t] ?? t}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-4" style={{ maxWidth: 280 }}>
         <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
           Project (optional)
         </label>
-        <select className="x-input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+        <select
+          className="x-input"
+          value={projectId}
+          onChange={(e) => {
+            setProjectId(e.target.value);
+            setObjectiveIds([]);
+          }}
+        >
           <option value="">No project</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
@@ -179,6 +213,47 @@ export function NoteEditor({
           ))}
         </select>
       </div>
+
+      {/* Objective selector — only when a project is chosen */}
+      {projectId && (
+        <div className="mb-4" style={{ maxWidth: 420 }}>
+          <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+            <Target size={12} /> Objectives (optional)
+          </label>
+          {objectivesQuery.isLoading ? (
+            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>Loading objectives…</p>
+          ) : objectives.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>No objectives in this project.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {objectives.map((o) => {
+                const active = objectiveIds.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => toggleObjective(o.id)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-border)"}`,
+                      background: active ? "var(--skin-accent-soft, rgba(20,184,166,0.12))" : "transparent",
+                      color: active ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+                    }}
+                  >
+                    {active ? "✓ " : ""}
+                    {o.title}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Tags */}
       <div className="mb-4">
