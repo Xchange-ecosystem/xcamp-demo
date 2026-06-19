@@ -1,29 +1,33 @@
-## Goal
+## Problem to solve
+Step 3 calls `POST /generate` with a payload shape the Backcaster API no longer accepts. The API explicitly requires `session_id`, `interpreted_input`, and `mode_id`, but the app currently sends `session_id`, `interpretation`, and `mode_id`. This explains the 400 error even though the diagnostics show session and mode IDs exist.
 
-Make the accent and gradient colors distinct per theme: **Xcamp (light) mode** keeps its original teal identity, **Nox (dark) mode** keeps the new purple palette.
+## Plan
+1. **Fix the generate payload contract**
+   - Update `src/lib/backcaster-api.ts` so `generate()` accepts/sends `interpreted_input` instead of `interpretation`.
+   - Keep a defensive compatibility mapping internally so older component calls cannot accidentally omit the required API field.
+   - Before sending, validate that `session_id`, `mode_id`, and interpreted text are all non-empty and fail locally with a clear message instead of making a bad API call.
 
-## Problem
+2. **Make Step 3 resilient to session/API state mismatch**
+   - Update `GenerateStep` to pass the confirmed interpretation as `interpreted_input`.
+   - If local state is missing interpreted text, block generation and send the user back to the confirm step rather than calling `/generate`.
+   - Improve diagnostics to show which required generate fields are present/missing, not only shortened IDs.
 
-In the last change, the light-mode `--skin-*` accent tokens in `src/styles.css` were overwritten with the purple palette (#731f7d / #b689e6 / #34acbf). That purple now also drives Xcamp light mode (visible in the screenshot's "+ New note" gradient).
+3. **Add controlled retry behavior for unstable backend responses**
+   - Add a small retry helper only for transient failures such as 504/timeouts/network errors.
+   - Do **not** retry 400 validation errors; those should surface immediately.
+   - Keep retry count low and visible in diagnostics so the UI does not feel stuck.
 
-## Changes (`src/styles.css`)
+4. **Improve error reporting for future API contract drift**
+   - Keep the raw API error logging, but also include a sanitized payload-field summary in diagnostics.
+   - Show a more actionable Step 3 message, e.g. “The generator rejected the request because interpreted_input was missing” instead of the generic interruption state.
 
-1. **Light `:root` block** — restore the original Xcamp teal tokens:
-   - `--skin-accent: #4de0c1`
-   - `--skin-accent-soft: #dcf8f2`
-   - `--skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1)`
+5. **Verify the path end-to-end**
+   - Re-check the request body construction for `/sessions`, `/interpret`, and `/generate`.
+   - Confirm TypeScript compatibility after the change.
+   - Use the browser/network signal if available to confirm `/generate` no longer sends the wrong field name.
 
-2. **`.dark` block** — leave the Nox purple palette as-is:
-   - `--skin-accent: #b689e6`
-   - `--skin-accent-soft: hsl(291, 35%, 22%)`
-   - `--skin-accent-gradient: linear-gradient(135deg, #731f7d, #b689e6, #34acbf)`
-
-3. **Dark `--primary`/`--ring`/sidebar tokens** — keep the purple oklch values from the last change (these only apply in dark/Nox mode, so they stay).
-
-4. **`VoiceTranscriber` orb** — currently hardcoded to purple. Make the orb gradient theme-aware so the Vox orb is teal in Xcamp mode and purple in Nox mode (derive from `useBrand`/theme rather than a fixed purple).
-
-## Result
-
-- Xcamp (light): teal accent + teal gradient (original look).
-- Nox (dark): purple accent + purple→teal gradient.
-- Logos/icons already swap per theme and remain unchanged.
+## Technical details
+- Current failing call is in `src/components/quickroad/GenerateStep.tsx` lines 72–77.
+- Current API wrapper sends the body in `src/lib/backcaster-api.ts` lines 209–219.
+- Root cause is field-name mismatch: `interpretation` vs required `interpreted_input`.
+- The 504 errors shown for Vite dependency chunks look separate/transient preview-server loading failures, not the Backcaster API validation error. The Step 3 fix should focus on the 400 first, with transient retry handling for actual `/generate` 504s.

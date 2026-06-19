@@ -68,6 +68,7 @@ export function WorkflowDiagnostics({ qr }: { qr: ReturnType<typeof useQuickRoad
           >
             <span>mode_id: <code>{short(state.selectedModeId)}</code></span>
             <span>session_id: <code>{short(state.sessionId)}</code></span>
+            <span>interpreted_input: <code>{(state.interpretation ?? "").trim() ? "present" : "—"}</code></span>
             <span>project_id: <code>{short(state.materializedProjectId)}</code></span>
             <span>last endpoint: <code>{diag.lastEndpoint ?? "—"}</code></span>
           </div>
