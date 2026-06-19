@@ -260,7 +260,7 @@ export async function generate(body: {
     );
   }
 
-  // Response contains backcaster_version including output_json (OutputTree).
+  // The API returns the tree in one of several shapes. Accept all of them.
   const raw = await request<unknown>("/generate", {
     method: "POST",
     body: JSON.stringify({
@@ -270,13 +270,78 @@ export async function generate(body: {
       expand_leaves: body.expand_leaves ?? false,
     }),
   });
-  const res = unwrap<{
-    output_json?: OutputTree;
-    backcaster_version?: { output_json?: OutputTree };
-  }>(raw);
-  const tree = res.backcaster_version?.output_json ?? res.output_json;
-  if (!tree) throw new BackcasterError("No tree returned by the generator.", 500);
-  return tree;
+
+  const tree = extractTree(raw);
+  if (!tree) {
+    console.error("[backcaster] /generate returned no usable tree", raw);
+    throw new BackcasterError(
+      "The planner responded but did not return a usable plan. Please try again.",
+      500,
+    );
+  }
+  return normalizeTree(tree);
+}
+
+// The backend has shipped the tree under several keys over time. Look in all
+// known locations: data.output, data.output_json, backcaster_version.output_json,
+// and the same keys at the root.
+function extractTree(raw: unknown): OutputTree | null {
+  if (!raw || typeof raw !== "object") return null;
+  const root = raw as Record<string, unknown>;
+  const data = (root.data && typeof root.data === "object" ? root.data : {}) as Record<string, unknown>;
+
+  const candidates: unknown[] = [
+    data.output,
+    data.output_json,
+    (data.backcaster_version as { output_json?: unknown } | undefined)?.output_json,
+    root.output,
+    root.output_json,
+    (root.backcaster_version as { output_json?: unknown } | undefined)?.output_json,
+  ];
+
+  for (const c of candidates) {
+    if (c && typeof c === "object" && Array.isArray((c as { root_nodes?: unknown }).root_nodes)) {
+      return c as OutputTree;
+    }
+  }
+  return null;
+}
+
+const KNOWN_NODE_TYPES: OutputNodeType[] = ["project", "objective", "note", "task"];
+
+// The API sometimes returns node_type values like "object" that the UI does not
+// recognize. Coerce unknown types to a safe default and guarantee children/title.
+function normalizeNode(raw: unknown): OutputNode | null {
+  if (!raw || typeof raw !== "object") return null;
+  const n = raw as Record<string, unknown>;
+  const rawType = typeof n.node_type === "string" ? n.node_type : "";
+  const node_type = (KNOWN_NODE_TYPES.includes(rawType as OutputNodeType)
+    ? rawType
+    : "objective") as OutputNodeType;
+  const children = Array.isArray(n.children)
+    ? n.children.map(normalizeNode).filter((c): c is OutputNode => c !== null)
+    : [];
+  return {
+    id: typeof n.id === "string" ? n.id : crypto.randomUUID(),
+    node_type,
+    title: typeof n.title === "string" ? n.title : "Untitled",
+    description: typeof n.description === "string" ? n.description : "",
+    children,
+    success_criteria: Array.isArray(n.success_criteria) ? (n.success_criteria as string[]) : undefined,
+    risks: Array.isArray(n.risks) ? (n.risks as string[]) : undefined,
+  };
+}
+
+function normalizeTree(tree: OutputTree): OutputTree {
+  return {
+    title: tree.title || "Your plan",
+    summary: tree.summary || "",
+    mode: tree.mode || "",
+    parameters: tree.parameters ?? {},
+    root_nodes: (tree.root_nodes ?? [])
+      .map(normalizeNode)
+      .filter((n): n is OutputNode => n !== null),
+  };
 }
 
 export async function fillNode(body: {
