@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
   id: '/project-builder',
   path: '/project-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/notes' | '/project-builder'
+  fullPaths: '/' | '/auth' | '/notes' | '/profile' | '/project-builder'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/notes' | '/project-builder'
-  id: '__root__' | '/' | '/auth' | '/notes' | '/project-builder'
+  to: '/' | '/auth' | '/notes' | '/profile' | '/project-builder'
+  id: '__root__' | '/' | '/auth' | '/notes' | '/profile' | '/project-builder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   NotesRoute: typeof NotesRoute
+  ProfileRoute: typeof ProfileRoute
   ProjectBuilderRoute: typeof ProjectBuilderRoute
 }
 
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/project-builder'
       fullPath: '/project-builder'
       preLoaderRoute: typeof ProjectBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   NotesRoute: NotesRoute,
+  ProfileRoute: ProfileRoute,
   ProjectBuilderRoute: ProjectBuilderRoute,
 }
 export const routeTree = rootRouteImport
