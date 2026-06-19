@@ -179,15 +179,16 @@ export async function generate(body: {
   return tree;
 }
 
-export function fillNode(body: {
+export async function fillNode(body: {
   session_id: string;
   parent_node_id: string;
   context?: string;
 }): Promise<OutputNode> {
-  return request<OutputNode>("/fill-node", {
+  const res = await request<unknown>("/fill-node", {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return unwrap<OutputNode>(res);
 }
 
 export async function materialize(
