@@ -1,9 +1,11 @@
 import { PartyPopper, ExternalLink } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { DEEP_LINK_BASE } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
 
 export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
-  const { state, reset } = qr;
+  const { state } = qr;
+  const navigate = useNavigate();
   const projectId = state.materializedProjectId;
 
   return (
@@ -19,7 +21,7 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           Your project is live!
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--skin-ink-soft)" }}>
-          {state.projectTitleOverride || "Your project"} is ready in Xcamp.
+          {state.projectTitleOverride || state.outputTree?.title || "Your project"} is ready in Xcamp.
         </p>
       </div>
 
@@ -38,11 +40,11 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       <div>
         <button
           type="button"
-          onClick={reset}
+          onClick={() => navigate({ to: "/" })}
           className="rounded-xl px-5 py-2.5 text-sm font-medium"
           style={{ background: "var(--skin-surface)", color: "var(--skin-ink-soft)", border: "1px solid var(--skin-line)" }}
         >
-          Build another
+          Close
         </button>
       </div>
     </div>

@@ -3,11 +3,9 @@ import { Compass } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useQuickRoad } from "@/hooks/useQuickRoad";
 import { StepIndicator } from "@/components/quickroad/StepIndicator";
-import { ModeSelectStep } from "@/components/quickroad/ModeSelectStep";
 import { InputStep } from "@/components/quickroad/InputStep";
 import { InterpretStep } from "@/components/quickroad/InterpretStep";
 import { GenerateStep } from "@/components/quickroad/GenerateStep";
-import { ReviewStep } from "@/components/quickroad/ReviewStep";
 import { SuccessScreen } from "@/components/quickroad/SuccessScreen";
 
 export const Route = createFileRoute("/project-builder")({
@@ -53,11 +51,9 @@ function ProjectBuilderPage() {
             <SuccessScreen qr={qr} />
           ) : (
             <>
-              {state.step === "mode" && <ModeSelectStep qr={qr} />}
               {state.step === "input" && <InputStep qr={qr} />}
               {state.step === "interpret" && <InterpretStep qr={qr} />}
               {state.step === "generate" && <GenerateStep qr={qr} />}
-              {state.step === "review" && <ReviewStep qr={qr} />}
             </>
           )}
         </div>

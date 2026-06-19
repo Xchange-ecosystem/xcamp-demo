@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { generate, fillNode } from "@/lib/backcaster-api";
+import { generate, fillNode, materialize, getSession, BackcasterError } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
 import { NodeCard } from "./NodeCard";
 
@@ -9,7 +9,37 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fillingId, setFillingId] = useState<string | null>(null);
+  const [building, setBuilding] = useState(false);
   const started = useRef(false);
+
+  const buildProject = async () => {
+    if (!state.sessionId) return;
+    setBuilding(true);
+    setError(null);
+    try {
+      const result = await materialize(state.sessionId, {
+        title_override: state.projectTitleOverride || state.outputTree?.title || undefined,
+      });
+      patch({ materializedProjectId: result.project_id });
+    } catch (e) {
+      if (e instanceof BackcasterError && e.status === 409) {
+        try {
+          const session = await getSession(state.sessionId);
+          if (session.materialized_init_id) {
+            patch({ materializedProjectId: session.materialized_init_id });
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setError("This project was already created.");
+      } else {
+        setError((e as Error).message);
+      }
+    } finally {
+      setBuilding(false);
+    }
+  };
 
   const runGenerate = async () => {
     if (!state.sessionId || !state.selectedModeId) return;
@@ -130,11 +160,13 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
 
       <button
         type="button"
-        onClick={() => patch({ step: "review" })}
-        className="w-full rounded-xl py-3 font-semibold"
+        disabled={building}
+        onClick={buildProject}
+        className="w-full rounded-xl py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
         style={{ background: "var(--skin-accent)", color: "#fff" }}
       >
-        Review & create
+        {building && <Loader2 className="animate-spin" size={16} />}
+        Build project
       </button>
     </div>
   );

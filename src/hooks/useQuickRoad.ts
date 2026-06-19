@@ -1,7 +1,7 @@
 import { useCallback, useReducer } from "react";
 import type { OutputNode, OutputTree } from "@/lib/backcaster-api";
 
-export type QuickRoadStep = "mode" | "input" | "interpret" | "generate" | "review";
+export type QuickRoadStep = "input" | "interpret" | "generate";
 
 export interface QuickRoadState {
   step: QuickRoadStep;
@@ -19,7 +19,7 @@ export interface QuickRoadState {
 }
 
 const initialState: QuickRoadState = {
-  step: "mode",
+  step: "input",
   sessionId: null,
   selectedModeId: null,
   rawInput: "",

@@ -83,8 +83,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function listModes(): Promise<BackcasterMode[]> {
-  return request<BackcasterMode[]>("/modes", { method: "GET" });
+export async function listModes(): Promise<BackcasterMode[]> {
+  const res = await request<unknown>("/modes", { method: "GET" });
+  if (Array.isArray(res)) return res as BackcasterMode[];
+  const wrapper = res as { data?: unknown; modes?: unknown; results?: unknown };
+  const arr = wrapper.data ?? wrapper.modes ?? wrapper.results ?? [];
+  return Array.isArray(arr) ? (arr as BackcasterMode[]) : [];
 }
 
 export function createSession(body: {

@@ -1,11 +1,9 @@
 import type { QuickRoadStep } from "@/hooks/useQuickRoad";
 
 const STEPS: { key: QuickRoadStep; label: string }[] = [
-  { key: "mode", label: "Mode" },
   { key: "input", label: "Input" },
-  { key: "interpret", label: "Interpret" },
-  { key: "generate", label: "Generate" },
-  { key: "review", label: "Review" },
+  { key: "interpret", label: "Confirm" },
+  { key: "generate", label: "Plan" },
 ];
 
 export function StepIndicator({ current }: { current: QuickRoadStep }) {
