@@ -316,6 +316,8 @@
     line-height: 1.7;
     color: var(--skin-ink);
     outline: none;
+    resize: vertical;
+    overflow: auto;
   }
   .x-tiptap:focus { outline: none; }
   .x-tiptap p { margin: 0 0 12px; }
