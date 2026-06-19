@@ -102,8 +102,18 @@ function reducer(state: QuickRoadState, action: Action): QuickRoadState {
         ...state,
         outputTree: appendChildToTree(state.outputTree, action.parentId, action.child),
       };
+    case "setStage":
+      return {
+        ...state,
+        diag: {
+          stages: { ...state.diag.stages, [action.stage]: action.status },
+          lastEndpoint: action.endpoint ?? state.diag.lastEndpoint,
+          lastError:
+            action.error === undefined ? state.diag.lastError : action.error,
+        },
+      };
     case "reset":
-      return { ...initialState, expandedNodeIds: new Set() };
+      return { ...initialState, diag: initialDiag, expandedNodeIds: new Set() };
     default:
       return state;
   }
