@@ -104,8 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    const xu = await buildXcampUser(authUser.id, authUser.email ?? undefined);
+    setUser(xu);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, refreshUser }}>
+
       {children}
     </AuthContext.Provider>
   );
