@@ -3,6 +3,7 @@ import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { generate, fillNode, materialize, getSession, BackcasterError } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
 import { NodeCard } from "./NodeCard";
+import { NetworkBuildAnimation } from "./NetworkBuildAnimation";
 
 export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   const { state, patch, toggleNode, appendChild } = qr;
