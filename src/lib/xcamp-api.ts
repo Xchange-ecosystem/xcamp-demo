@@ -7,6 +7,17 @@ import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xca
 const NOTE_COLUMNS =
   "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
 
+// Allowed note types selectable in the editor.
+export const NOTE_TYPES = [
+  "note",
+  "task",
+  "idea",
+  "question",
+  "decision",
+  "reference",
+] as const;
+export type NoteType = (typeof NOTE_TYPES)[number];
+
 // In this schema central_users.id is the auth user id; tenant comes from the row.
 export async function resolveCentralUser(authUserId: string) {
   const { data, error } = await supabase
