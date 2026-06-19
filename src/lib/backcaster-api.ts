@@ -166,13 +166,14 @@ export async function generate(body: {
   expand_leaves?: boolean;
 }): Promise<OutputTree> {
   // Response contains backcaster_version including output_json (OutputTree).
-  const res = await request<{
-    output_json?: OutputTree;
-    backcaster_version?: { output_json?: OutputTree };
-  }>("/generate", {
+  const raw = await request<unknown>("/generate", {
     method: "POST",
     body: JSON.stringify({ expand_leaves: false, ...body }),
   });
+  const res = unwrap<{
+    output_json?: OutputTree;
+    backcaster_version?: { output_json?: OutputTree };
+  }>(raw);
   const tree = res.backcaster_version?.output_json ?? res.output_json;
   if (!tree) throw new BackcasterError("No tree returned by the generator.", 500);
   return tree;
