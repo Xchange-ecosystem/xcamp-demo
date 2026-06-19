@@ -1,7 +1,18 @@
 import { useMemo, useState } from "react";
-import { X, FileText, Download, Globe, Tag as TagIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { X, FileText, Download, Globe, Tag as TagIcon, Target } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
-import type { NoteAttachment, NoteRow, ProjectRow } from "@/types/xcamp";
+import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
+import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
+
+const NOTE_TYPE_LABELS: Record<string, string> = {
+  note: "Note",
+  task: "Task",
+  idea: "Idea",
+  question: "Question",
+  decision: "Decision",
+  reference: "Reference",
+};
 
 export type Editing = { mode: "new"; initialBody?: string } | { mode: "edit"; note: NoteRow };
 
