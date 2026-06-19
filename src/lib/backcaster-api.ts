@@ -175,14 +175,30 @@ export function fillNode(body: {
   });
 }
 
-export function materialize(
+export async function materialize(
   sessionId: string,
   body: { title_override?: string },
 ): Promise<{ project_id: string; objective_ids?: string[] }> {
-  return request(`/sessions/${sessionId}/materialize`, {
+  const res = await request<unknown>(`/sessions/${sessionId}/materialize`, {
     method: "POST",
     body: JSON.stringify(body),
   });
+
+  const root = (res ?? {}) as Record<string, unknown>;
+  const data = (root.data ?? root) as Record<string, unknown>;
+  const projectId =
+    (data.project_id as string) ??
+    (data.init_id as string) ??
+    (data.materialized_init_id as string) ??
+    (data.id as string) ??
+    (root.project_id as string);
+
+  if (!projectId) {
+    throw new BackcasterError("Project was created but no project id was returned.", 500);
+  }
+
+  const objectiveIds = (data.objective_ids ?? root.objective_ids) as string[] | undefined;
+  return { project_id: projectId, objective_ids: objectiveIds };
 }
 
 export function getSession(sessionId: string): Promise<BackcasterSession> {
