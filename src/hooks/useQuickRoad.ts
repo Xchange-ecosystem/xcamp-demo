@@ -131,7 +131,15 @@ export function useQuickRoad() {
     (parentId: string, child: OutputNode) => dispatch({ type: "appendChild", parentId, child }),
     [],
   );
+  const setStage = useCallback(
+    (
+      stage: WorkflowStage,
+      status: StageStatus,
+      opts?: { endpoint?: string; error?: string | null },
+    ) => dispatch({ type: "setStage", stage, status, ...opts }),
+    [],
+  );
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
-  return { state, patch, toggleNode, appendChild, reset };
+  return { state, patch, toggleNode, appendChild, setStage, reset };
 }
