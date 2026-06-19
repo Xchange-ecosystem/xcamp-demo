@@ -18,7 +18,9 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     ? "session id"
     : !state.selectedModeId
       ? "mode id"
-      : null;
+      : !(state.interpretation ?? "").trim()
+        ? "interpreted input"
+        : null;
 
   const buildProject = async () => {
     if (!state.sessionId) return;
