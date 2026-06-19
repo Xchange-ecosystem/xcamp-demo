@@ -36,7 +36,7 @@ function HomePage() {
     <AppShell>
       <PageHeroShell
         logo={<img src={xcampLogo.url} alt="Xcamp" className="h-6 sm:h-8 w-auto" />}
-        title="Your Journal"
+        title="Your Notes"
         subtitle="Write notes or capture your voice — all in one place."
       >
         {/* Tabs */}
