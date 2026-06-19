@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { Journal } from "@/components/Journal";
 import { VoiceTranscriber } from "@/components/VoiceTranscriber";
-import xcampLogo from "@/assets/xcamp-logo.svg.asset.json";
+import { useBrand } from "@/lib/brand";
 
 export const Route = createFileRoute("/")({
   head: () => ({
