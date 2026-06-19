@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, Target } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
@@ -140,9 +140,20 @@ export function NoteEditor({
   return (
     <div className="x-editor" style={{ width: "100%" }}>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
-          {editing.mode === "new" ? "New note" : "Editing note"}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            className="x-btn-secondary"
+            aria-label="Back to history"
+            title="Back to history"
+            onClick={onCancel}
+            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <ArrowLeft size={14} />
+          </button>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+            {editing.mode === "new" ? "New note" : "Editing note"}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           {onArchive && (
             <button className="x-btn-secondary" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
