@@ -122,9 +122,9 @@
   --skin-ink-faint:    hsl(215, 16%, 65%);
   --skin-line:         hsl(214, 32%, 91%);
   --skin-line-soft:    hsl(214, 32%, 96%);
-  --skin-accent:       #731f7d;
-  --skin-accent-soft:  #f3e6f5;
-  --skin-accent-gradient: linear-gradient(135deg, #731f7d, #b689e6, #34acbf);
+  --skin-accent:       #4de0c1;
+  --skin-accent-soft:  #dcf8f2;
+  --skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1);
 
   --success:           hsl(142, 71%, 45%);
   --warning:           hsl(38, 95%, 52%);
