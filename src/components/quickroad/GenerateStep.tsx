@@ -9,7 +9,37 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fillingId, setFillingId] = useState<string | null>(null);
+  const [building, setBuilding] = useState(false);
   const started = useRef(false);
+
+  const buildProject = async () => {
+    if (!state.sessionId) return;
+    setBuilding(true);
+    setError(null);
+    try {
+      const result = await materialize(state.sessionId, {
+        title_override: state.projectTitleOverride || state.outputTree?.title || undefined,
+      });
+      patch({ materializedProjectId: result.project_id });
+    } catch (e) {
+      if (e instanceof BackcasterError && e.status === 409) {
+        try {
+          const session = await getSession(state.sessionId);
+          if (session.materialized_init_id) {
+            patch({ materializedProjectId: session.materialized_init_id });
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setError("This project was already created.");
+      } else {
+        setError((e as Error).message);
+      }
+    } finally {
+      setBuilding(false);
+    }
+  };
 
   const runGenerate = async () => {
     if (!state.sessionId || !state.selectedModeId) return;
