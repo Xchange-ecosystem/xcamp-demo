@@ -10,18 +10,24 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ user: { id: string; email?: string } | null; session: unknown | null }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function buildXcampUser(authUserId: string, email?: string): Promise<XcampUser> {
   const cu = await resolveCentralUser(authUserId);
+  const prefs =
+    cu.preferences && typeof cu.preferences === "object" && !Array.isArray(cu.preferences)
+      ? (cu.preferences as Record<string, unknown>)
+      : {};
   return {
     authId: authUserId,
     centralId: cu.id,
     tenantId: cu.tenant_id,
     displayName: cu.display_name ?? cu.email ?? "User",
     email: cu.email ?? email,
+    avatarUrl: typeof prefs.avatar_url === "string" ? prefs.avatar_url : undefined,
   };
 }
 
