@@ -3,6 +3,33 @@ import type { OutputNode, OutputTree } from "@/lib/backcaster-api";
 
 export type QuickRoadStep = "input" | "interpret" | "generate";
 
+export type StageStatus = "waiting" | "running" | "ok" | "failed" | "skipped";
+
+export type WorkflowStage =
+  | "modes"
+  | "session"
+  | "interpret"
+  | "generate"
+  | "materialize";
+
+export interface WorkflowDiag {
+  stages: Record<WorkflowStage, StageStatus>;
+  lastEndpoint: string | null;
+  lastError: string | null;
+}
+
+const initialDiag: WorkflowDiag = {
+  stages: {
+    modes: "waiting",
+    session: "waiting",
+    interpret: "waiting",
+    generate: "waiting",
+    materialize: "waiting",
+  },
+  lastEndpoint: null,
+  lastError: null,
+};
+
 export interface QuickRoadState {
   step: QuickRoadStep;
   sessionId: string | null;
@@ -16,6 +43,7 @@ export interface QuickRoadState {
   materializedProjectId: string | null;
   error: string | null;
   loading: boolean;
+  diag: WorkflowDiag;
 }
 
 const initialState: QuickRoadState = {
@@ -31,6 +59,7 @@ const initialState: QuickRoadState = {
   materializedProjectId: null,
   error: null,
   loading: false,
+  diag: initialDiag,
 };
 
 type Action =
