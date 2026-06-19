@@ -11,7 +11,10 @@ export interface BackcasterMode {
   allowed_depth_min: number;
   allowed_depth_max: number;
   default_depth: number;
-  is_active: boolean;
+  status: string;
+  slug?: string;
+  category?: string;
+  road?: string;
 }
 
 export type OutputNodeType = "project" | "objective" | "note" | "task";
