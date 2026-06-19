@@ -1,128 +1,49 @@
-## What is actually happening
+## Goal
+Surface the real reason behind the `POST /backcaster/generate` **400 Bad Request** so we can fix it. Right now the actual error is hidden — the UI shows `[object Object]` and the diagnostics show `last error: [object Object]`.
 
-The captured network traffic shows the backend is working through interpretation:
+## Root cause analysis
 
-1. `GET /backcaster/modes` succeeds and returns the BPMO mode (`slug: bpmo-proof-v1`).
-2. `POST /backcaster/sessions` succeeds with `201 Created`.
-3. The response shape is:
+**The "[object Object]" is the real blocker.** In `src/lib/backcaster-api.ts`, the `request()` helper extracts errors like this:
 
-```text
-{ success: true, data: { id: "11c36b99-...", ... } }
+```ts
+const body = await res.json();
+if (body?.message) message = body.message;     // <- if message is an OBJECT, this breaks
+else if (body?.error) message = body.error;
 ```
 
-4. The frontend currently treats the response as if it were the session object directly:
+The xcampapi `/generate` endpoint returns a **structured** 400 body (e.g. FastAPI-style `{ detail: [...] }`, or `{ message: { field: "..." } }`, or `{ errors: {...} }`). When `message`/`error` is an object/array, passing it to `new Error(message)` coerces it to the string `"[object Object]"`. So the validation detail (which field/value the API rejected) is being thrown away before it ever reaches the screen.
 
-```text
-session.id
-```
+We can't fix the 400 itself until we can read what the API is actually complaining about.
 
-But because the real ID is at:
+**The other console messages are noise, not bugs:**
+- `Checking for app updates` — Lovable's own preview script (`lovable.js`).
+- `Unrecognized feature: 'vr' / 'ambient-light-sensor' / 'battery'` — iframe `allow=` attribute warnings from the Lovable preview wrapper, not our code.
+- `/cdn-cgi/image/.../...?X-Goog-Expires=... 404` — an expired Google Cloud signed URL for an uploaded image (the signed link timed out). Unrelated to Backcaster.
 
-```text
-session.data.id
-```
+None of these require code changes.
 
-`session.id` is `undefined`.
+## Plan
 
-5. `POST /backcaster/interpret` still runs and succeeds, but the app patches:
+### 1. Make error extraction reveal the real message (`src/lib/backcaster-api.ts`)
+Rewrite the error branch of `request()` to:
+- Read the body as text first, then attempt `JSON.parse`.
+- Extract a human message checking, in order: `detail` (string, or array of `{msg/loc}` joined), `message`, `error`, `errors` — and `JSON.stringify` any remaining object instead of letting it become `"[object Object]"`.
+- Fall back to the raw text body, then to `Request failed (status)`.
+- Temporarily `console.error("[backcaster] <path> <status>", rawText)` so the exact 400 payload is visible in the console on the next run.
 
-```text
-sessionId: undefined
-step: "interpret"
-```
+This guarantees the diagnostics panel and the toast show the actual validation reason (e.g. "interpretation is required", "mode_id not found", "session not in interpreted state").
 
-6. When the user clicks `Create plan`, step 3 mounts `GenerateStep`, but `runGenerate()` immediately exits here:
+### 2. Read the revealed error and fix the payload
+Once the true message is visible, apply the targeted fix in `generate()` / the request body. Likely candidates (to confirm from the real message):
+- `interpretation` is empty or the API expects a different field name (e.g. `interpretation_paragraph`).
+- Session must be in `interpreted` status before `/generate` is allowed (sequencing issue).
+- `mode_id` mismatch or `expand_leaves` typing.
 
-```text
-if (!state.sessionId || !state.selectedModeId) return;
-```
+### 3. Verify
+Re-run the Project Builder flow, confirm the console prints the raw 400 body, confirm the corrected payload returns a tree, and remove the temporary `console.error` once resolved (or downgrade to a guarded debug log).
 
-So no `/generate` call happens, no animation appears, no status appears, no error appears, and no `/materialize` can ever run. This matches your screenshot: the app is on the Plan step with an empty bordered container.
+## Out of scope
+The "app updates", "Unrecognized feature", and expired signed-URL 404 messages — these originate from the Lovable preview wrapper / an expired upload link, not the application code.
 
-## Bug-fix setup to expose the workflow break
-
-### 1. Normalize backend wrapper responses
-Update `src/lib/backcaster-api.ts` so every API wrapper unwraps `{ success, data }` consistently.
-
-- `createSession()` should return the actual session object from `data`, not the wrapper.
-- `getSession()` should do the same if that endpoint also wraps responses.
-- Keep existing interpretation parsing because `/interpret` returns both `interpreted` and `data`.
-- Add hard validation: if a required ID is missing, throw a visible `BackcasterError` instead of silently passing `undefined` into app state.
-
-### 2. Prevent silent transitions into broken states
-Update `src/components/quickroad/InputStep.tsx`:
-
-- After `createSession()`, verify a real `session.id` exists before calling `interpret()`.
-- If not, show a clear error in the form and do not advance to Confirm.
-
-Update `src/components/quickroad/InterpretStep.tsx`:
-
-- Disable `Create plan` unless both `state.interpretation` and `state.sessionId` exist.
-- If `sessionId` is missing, show a visible diagnostic error instead of letting Plan render blank.
-
-Update `src/components/quickroad/GenerateStep.tsx`:
-
-- Replace the current silent early return with a visible error panel when `sessionId` or `selectedModeId` is missing.
-- This guarantees the Plan step never renders an empty container again.
-
-### 3. Add an on-screen workflow diagnostics panel
-Add a compact debug/status strip inside the Project Builder card while this workflow is being fixed:
-
-```text
-Mode loaded → Session created → Interpreted → Generating tree → Tree ready → Materializing → Project created
-```
-
-Each stage should show one of:
-
-```text
-waiting / running / ok / failed / skipped
-```
-
-This should display the key IDs safely:
-
-```text
-mode_id
-session_id
-project_id
-last endpoint
-last error
-```
-
-No bearer tokens, raw auth headers, or secrets should be shown.
-
-### 4. Wire status updates around every async call
-Track workflow status in `useQuickRoad` or local step state:
-
-- modes request start/success/failure
-- session creation start/success/failure
-- interpretation start/success/failure
-- generation start/success/failure
-- materialization start/success/failure
-
-Use this status both for UI diagnostics and to decide what error to show below the network animation.
-
-### 5. Confirm materialize is only expected after generation
-Clarify the user flow in the UI:
-
-- Step 2 → Step 3 should call `/generate`, not `/materialize`.
-- `/materialize` only runs after the generated accordion tree is visible and the user clicks `Build project`.
-- If the desired simplified version should automatically materialize immediately after generation, implement that explicitly after the tree succeeds.
-
-### 6. Verification checklist
-After implementation, verify via network/devtools that one complete successful path produces:
-
-```text
-GET  /modes
-POST /sessions
-POST /interpret
-POST /generate
-POST /sessions/{id}/materialize   only after Build project
-```
-
-And verify failure cases show in the UI instead of a blank container:
-
-- missing mode
-- missing session id
-- interpret failure
-- generate failure
-- materialize failure
+## Technical detail
+Only `src/lib/backcaster-api.ts` changes in step 1. Step 2 may touch the `generate()` body and possibly the step sequencing in `GenerateStep.tsx` / `useQuickRoad.ts`, depending on what the 400 body reveals.

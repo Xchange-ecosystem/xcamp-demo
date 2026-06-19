@@ -71,14 +71,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    let message = `Request failed (${res.status}).`;
-    try {
-      const body = await res.json();
-      if (body?.message) message = body.message;
-      else if (body?.error) message = body.error;
-    } catch {
-      // ignore parse errors
-    }
+    const rawText = await res.text().catch(() => "");
+    // Temporary diagnostic: surface the exact rejection payload.
+    console.error(`[backcaster] ${path} ${res.status}`, rawText);
+
+    let message = extractErrorMessage(rawText, res.status);
     throw new BackcasterError(message, res.status);
   }
 
