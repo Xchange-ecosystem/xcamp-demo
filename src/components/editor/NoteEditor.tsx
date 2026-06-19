@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { X, FileText, Download, Globe, Tag as TagIcon, Target, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_TYPE_LABELS: Record<string, string> = {
