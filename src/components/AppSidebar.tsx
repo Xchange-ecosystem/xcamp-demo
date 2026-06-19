@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookText, Compass, LogOut } from "lucide-react";
+import { BookText, Compass, LogOut, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
