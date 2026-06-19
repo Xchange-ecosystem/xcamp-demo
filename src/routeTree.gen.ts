@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
+  id: '/project-builder',
+  path: '/project-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -33,34 +39,45 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/project-builder': typeof ProjectBuilderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/notes'
+  fullPaths: '/' | '/auth' | '/notes' | '/project-builder'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/notes'
-  id: '__root__' | '/' | '/auth' | '/notes'
+  to: '/' | '/auth' | '/notes' | '/project-builder'
+  id: '__root__' | '/' | '/auth' | '/notes' | '/project-builder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   NotesRoute: typeof NotesRoute
+  ProjectBuilderRoute: typeof ProjectBuilderRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/project-builder': {
+      id: '/project-builder'
+      path: '/project-builder'
+      fullPath: '/project-builder'
+      preLoaderRoute: typeof ProjectBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notes': {
       id: '/notes'
       path: '/notes'
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   NotesRoute: NotesRoute,
+  ProjectBuilderRoute: ProjectBuilderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
