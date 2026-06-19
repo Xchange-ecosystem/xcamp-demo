@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Mic, Square, FilePlus } from "lucide-react";
-import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
+import { useBrand } from "@/lib/brand";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 
 type OrbState = "idle" | "listening" | "thinking" | "speaking";
