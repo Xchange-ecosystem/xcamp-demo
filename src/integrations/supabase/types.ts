@@ -833,6 +833,7 @@ export type Database = {
           default_ai_character_id: string | null
           default_depth: number
           description: string
+          display_name: string | null
           example_input: string | null
           example_output: Json | null
           framework_slug: string | null
@@ -846,6 +847,8 @@ export type Database = {
           output_type: string
           owner_central_id: string | null
           parameter_schema: Json
+          prompt_config: Json
+          road: string
           slug: string
           sort_order: number
           status: string
@@ -861,6 +864,7 @@ export type Database = {
           default_ai_character_id?: string | null
           default_depth?: number
           description?: string
+          display_name?: string | null
           example_input?: string | null
           example_output?: Json | null
           framework_slug?: string | null
@@ -874,6 +878,8 @@ export type Database = {
           output_type?: string
           owner_central_id?: string | null
           parameter_schema?: Json
+          prompt_config?: Json
+          road?: string
           slug: string
           sort_order?: number
           status?: string
@@ -889,6 +895,7 @@ export type Database = {
           default_ai_character_id?: string | null
           default_depth?: number
           description?: string
+          display_name?: string | null
           example_input?: string | null
           example_output?: Json | null
           framework_slug?: string | null
@@ -902,6 +909,8 @@ export type Database = {
           output_type?: string
           owner_central_id?: string | null
           parameter_schema?: Json
+          prompt_config?: Json
+          road?: string
           slug?: string
           sort_order?: number
           status?: string
@@ -1089,59 +1098,6 @@ export type Database = {
           },
           {
             foreignKeyName: "backcaster_versions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      backcasting_frameworks: {
-        Row: {
-          config: Json
-          created_at: string
-          description: string
-          id: string
-          is_default: boolean
-          name: string
-          slug: string
-          status: string
-          tenant_id: string
-          updated_at: string
-          version: string
-          visibility: string
-        }
-        Insert: {
-          config: Json
-          created_at?: string
-          description?: string
-          id?: string
-          is_default?: boolean
-          name: string
-          slug: string
-          status?: string
-          tenant_id: string
-          updated_at?: string
-          version: string
-          visibility?: string
-        }
-        Update: {
-          config?: Json
-          created_at?: string
-          description?: string
-          id?: string
-          is_default?: boolean
-          name?: string
-          slug?: string
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-          version?: string
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "backcasting_frameworks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1465,6 +1421,7 @@ export type Database = {
       }
       central_users: {
         Row: {
+          auth_uid: string | null
           created_at: string
           display_name: string | null
           email: string | null
@@ -1474,6 +1431,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_uid?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -1483,6 +1441,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_uid?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -6039,6 +5998,7 @@ export type Database = {
           gradient_to_hsl: string
           language: string
           skin_config: Json
+          theme_config: Json
           theme_mode: string
           updated_at: string
           user_id: string
@@ -6050,6 +6010,7 @@ export type Database = {
           gradient_to_hsl?: string
           language?: string
           skin_config?: Json
+          theme_config?: Json
           theme_mode?: string
           updated_at?: string
           user_id: string
@@ -6061,6 +6022,7 @@ export type Database = {
           gradient_to_hsl?: string
           language?: string
           skin_config?: Json
+          theme_config?: Json
           theme_mode?: string
           updated_at?: string
           user_id?: string
