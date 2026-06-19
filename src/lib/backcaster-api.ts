@@ -113,24 +113,56 @@ function extractErrorMessage(rawText: string, status: number): string {
   }
 }
 
+// Retry only transient failures (gateway timeouts / network blips), never 4xx.
+const TRANSIENT_STATUS = new Set([502, 503, 504]);
+const MAX_RETRIES = 2;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = await authHeaders();
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: { ...headers, ...(init?.headers ?? {}) },
-  });
 
-  if (!res.ok) {
-    const rawText = await res.text().catch(() => "");
-    // Temporary diagnostic: surface the exact rejection payload.
-    console.error(`[backcaster] ${path} ${res.status}`, rawText);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}${path}`, {
+        ...init,
+        headers: { ...headers, ...(init?.headers ?? {}) },
+      });
+    } catch (networkErr) {
+      // Network-level failure (offline, DNS, aborted) — treat as transient.
+      lastErr = new BackcasterError(
+        "Network error reaching the planner. Please try again.",
+        0,
+      );
+      if (attempt < MAX_RETRIES) {
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+      throw lastErr;
+    }
 
-    let message = extractErrorMessage(rawText, res.status);
-    throw new BackcasterError(message, res.status);
+    if (!res.ok) {
+      const rawText = await res.text().catch(() => "");
+      console.error(`[backcaster] ${path} ${res.status}`, rawText);
+      const message = extractErrorMessage(rawText, res.status);
+      const err = new BackcasterError(message, res.status);
+
+      if (TRANSIENT_STATUS.has(res.status) && attempt < MAX_RETRIES) {
+        lastErr = err;
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+
+    if (res.status === 204) return undefined as T;
+    return (await res.json()) as T;
   }
 
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  // Exhausted retries on transient errors.
+  throw lastErr ?? new BackcasterError("Request failed after retries.", 504);
 }
 
 export async function listModes(): Promise<BackcasterMode[]> {
