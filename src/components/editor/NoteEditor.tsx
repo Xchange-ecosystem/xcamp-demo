@@ -263,39 +263,18 @@ export function NoteEditor({
       {/* Objective selector — only when a project is chosen */}
       {projectId && (
         <div className="mb-4" style={{ maxWidth: 420 }}>
-          <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-            <Target size={12} /> Objectives (optional)
-          </label>
           {objectivesQuery.isLoading ? (
             <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>Loading objectives…</p>
           ) : objectives.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>No objectives in this project.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {objectives.map((o) => {
-                const active = objectiveIds.includes(o.id);
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => toggleObjective(o.id)}
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
-                      background: active ? "var(--skin-accent-soft, rgba(20,184,166,0.12))" : "transparent",
-                      color: active ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                    }}
-                  >
-                    {active ? "✓ " : ""}
-                    {o.title}
-                  </button>
-                );
-              })}
-            </div>
+            <MultiSelectDropdown
+              label="Objectives (optional)"
+              placeholder="Select objectives…"
+              options={objectives.map((o) => ({ value: o.id, label: o.title }))}
+              selected={objectiveIds}
+              onChange={setObjectiveIds}
+            />
           )}
         </div>
       )}
