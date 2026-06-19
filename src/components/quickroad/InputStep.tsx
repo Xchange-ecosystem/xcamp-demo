@@ -18,8 +18,15 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           if (all.length) setError("No active planning modes are available right now.");
           return;
         }
-        const lowest = [...active].sort((a, b) => a.default_depth - b.default_depth)[0];
-        patch({ selectedModeId: lowest.id });
+        // This simplified Backcaster always uses the BMPO mode.
+        const isBmpo = (m: { name?: string; slug?: string; category?: string }) =>
+          [m.name, m.slug, m.category].some((v) => (v ?? "").toLowerCase().includes("bmpo"));
+        const bmpo = active.find(isBmpo);
+        if (!bmpo) {
+          setError("The BMPO planning mode is not available right now.");
+          return;
+        }
+        patch({ selectedModeId: bmpo.id });
       })
       .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
