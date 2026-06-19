@@ -32,7 +32,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className={"flex items-center justify-center " + (collapsed ? "p-2" : "px-2 py-3")}>
+        <div className={"flex items-center justify-start " + (collapsed ? "p-2" : "px-2 py-3")}>
           {collapsed ? (
             <img src={xcampIcon.url} alt="Xcamp" className="h-8 w-8 object-cover" />
           ) : (
