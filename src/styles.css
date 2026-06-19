@@ -130,6 +130,22 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.85 0.12 176);
+
+  /* Xcamp skin tokens — dark overrides */
+  --skin-bg:           hsl(222, 47%, 11%);
+  --skin-surface:      hsl(217, 33%, 17%);
+  --skin-surface2:     hsl(215, 28%, 22%);
+  --skin-ink:          hsl(210, 40%, 96%);
+  --skin-ink-soft:     hsl(215, 20%, 70%);
+  --skin-ink-faint:    hsl(215, 16%, 50%);
+  --skin-line:         hsl(215, 28%, 25%);
+  --skin-line-soft:    hsl(215, 28%, 20%);
+  --skin-accent:       #4de0c1;
+  --skin-accent-soft:  hsl(171, 60%, 18%);
+  --skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1);
+
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 }
 
 /* ============================================================
