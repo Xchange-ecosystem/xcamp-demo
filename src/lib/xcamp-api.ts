@@ -62,7 +62,7 @@ export async function listNotes(user: XcampUser): Promise<NoteRow[]> {
     .from("notes")
     .select(NOTE_COLUMNS)
     .eq("owner_central_id", user.centralId)
-    .eq("note_type", "note")
+    .in("note_type", NOTE_TYPES as unknown as string[])
     .eq("tenant_id", user.tenantId)
     .or("detail->>archived.is.null,detail->>archived.eq.false")
     .order("created_at", { ascending: false });
