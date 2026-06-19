@@ -335,6 +335,10 @@ export function NoteEditor({
           />
         </div>
       </div>
+      </>
+      )}
+
+
 
       <RichTextEditor
         content={body}
