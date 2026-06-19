@@ -49,10 +49,10 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={t(item.labelKey)}>
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.labelKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -65,9 +65,17 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => signOut()} tooltip="Sign out">
+            <SidebarMenuButton asChild isActive={isActive("/profile")} tooltip={t("nav.profile")}>
+              <Link to="/profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>{t("nav.profile")}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => signOut()} tooltip={t("nav.signOut")}>
               <LogOut className="h-4 w-4" />
-              <span>Sign out</span>
+              <span>{t("nav.signOut")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
