@@ -169,9 +169,23 @@ export function NoteEditor({
         </div>
       </div>
 
-      <input
+      <textarea
         className="x-input"
-        style={{ fontSize: 26, fontWeight: 700, border: "none", background: "transparent", padding: 0, marginBottom: 16 }}
+        style={{
+          fontSize: 26,
+          fontWeight: 700,
+          border: "none",
+          background: "transparent",
+          padding: 0,
+          marginBottom: 16,
+          width: "100%",
+          resize: "none",
+          overflow: "hidden",
+          lineHeight: 1.2,
+          minHeight: 36,
+          fieldSizing: "content",
+        }}
+        rows={1}
         placeholder="Note title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
