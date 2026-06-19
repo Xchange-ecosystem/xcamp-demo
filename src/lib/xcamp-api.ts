@@ -22,12 +22,41 @@ export type NoteType = (typeof NOTE_TYPES)[number];
 export async function resolveCentralUser(authUserId: string) {
   const { data, error } = await supabase
     .from("central_users")
-    .select("id, tenant_id, display_name, email")
+    .select("id, tenant_id, display_name, email, preferences")
     .eq("id", authUserId)
     .single();
 
   if (error || !data) throw new Error("Central user not found for this account.");
   return data;
+}
+
+// Persist the user's display name on their central_users row.
+export async function updateDisplayName(centralId: string, displayName: string) {
+  const { error } = await supabase
+    .from("central_users")
+    .update({ display_name: displayName })
+    .eq("id", centralId);
+  if (error) throw new Error(error.message);
+}
+
+// Persist the avatar as an inline data URL inside central_users.preferences.
+export async function updateAvatar(centralId: string, avatarUrl: string | null) {
+  const { data: row, error: readError } = await supabase
+    .from("central_users")
+    .select("preferences")
+    .eq("id", centralId)
+    .single();
+  if (readError) throw new Error(readError.message);
+  const prefs =
+    row?.preferences && typeof row.preferences === "object" && !Array.isArray(row.preferences)
+      ? (row.preferences as Record<string, unknown>)
+      : {};
+  const nextPrefs = { ...prefs, avatar_url: avatarUrl ?? undefined };
+  const { error } = await supabase
+    .from("central_users")
+    .update({ preferences: nextPrefs as Json })
+    .eq("id", centralId);
+  if (error) throw new Error(error.message);
 }
 
 function rowToNote(r: Record<string, unknown>): NoteRow {

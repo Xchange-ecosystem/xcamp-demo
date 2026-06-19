@@ -10,18 +10,24 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ user: { id: string; email?: string } | null; session: unknown | null }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function buildXcampUser(authUserId: string, email?: string): Promise<XcampUser> {
   const cu = await resolveCentralUser(authUserId);
+  const prefs =
+    cu.preferences && typeof cu.preferences === "object" && !Array.isArray(cu.preferences)
+      ? (cu.preferences as Record<string, unknown>)
+      : {};
   return {
     authId: authUserId,
     centralId: cu.id,
     tenantId: cu.tenant_id,
     displayName: cu.display_name ?? cu.email ?? "User",
     email: cu.email ?? email,
+    avatarUrl: typeof prefs.avatar_url === "string" ? prefs.avatar_url : undefined,
   };
 }
 
@@ -98,8 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    const xu = await buildXcampUser(authUser.id, authUser.email ?? undefined);
+    setUser(xu);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, refreshUser }}>
+
       {children}
     </AuthContext.Provider>
   );

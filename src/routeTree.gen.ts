@@ -10,13 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileIndexRouteImport } from './routes/profile.index'
+import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
 
 const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
   id: '/project-builder',
   path: '/project-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -34,38 +42,78 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileIndexRoute = ProfileIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProfileRoute,
+} as any)
+const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => ProfileRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
+  '/profile/appearance': typeof ProfileAppearanceRoute
+  '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
   '/project-builder': typeof ProjectBuilderRoute
+  '/profile/appearance': typeof ProfileAppearanceRoute
+  '/profile': typeof ProfileIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
+  '/profile/appearance': typeof ProfileAppearanceRoute
+  '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/notes' | '/project-builder'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/notes'
+    | '/profile'
+    | '/project-builder'
+    | '/profile/appearance'
+    | '/profile/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/notes' | '/project-builder'
-  id: '__root__' | '/' | '/auth' | '/notes' | '/project-builder'
+  to:
+    | '/'
+    | '/auth'
+    | '/notes'
+    | '/project-builder'
+    | '/profile/appearance'
+    | '/profile'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/notes'
+    | '/profile'
+    | '/project-builder'
+    | '/profile/appearance'
+    | '/profile/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   NotesRoute: typeof NotesRoute
+  ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
 }
 
@@ -76,6 +124,13 @@ declare module '@tanstack/react-router' {
       path: '/project-builder'
       fullPath: '/project-builder'
       preLoaderRoute: typeof ProjectBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -99,13 +154,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/': {
+      id: '/profile/'
+      path: '/'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof ProfileRoute
+    }
+    '/profile/appearance': {
+      id: '/profile/appearance'
+      path: '/appearance'
+      fullPath: '/profile/appearance'
+      preLoaderRoute: typeof ProfileAppearanceRouteImport
+      parentRoute: typeof ProfileRoute
+    }
   }
 }
+
+interface ProfileRouteChildren {
+  ProfileAppearanceRoute: typeof ProfileAppearanceRoute
+  ProfileIndexRoute: typeof ProfileIndexRoute
+}
+
+const ProfileRouteChildren: ProfileRouteChildren = {
+  ProfileAppearanceRoute: ProfileAppearanceRoute,
+  ProfileIndexRoute: ProfileIndexRoute,
+}
+
+const ProfileRouteWithChildren =
+  ProfileRoute._addFileChildren(ProfileRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   NotesRoute: NotesRoute,
+  ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
 }
 export const routeTree = rootRouteImport
