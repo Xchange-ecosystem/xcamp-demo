@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,6 +31,8 @@ import {
   updateNote,
 } from "@/lib/xcamp-api";
 import { NoteEditor, type Editing, type NoteEditorValues } from "@/components/editor/NoteEditor";
+import { OrganiseSheet } from "@/components/organiser/OrganiseSheet";
+import { noteToIntent } from "@/lib/organiser-api";
 import type { NoteRow } from "@/types/xcamp";
 
 function formatDate(iso: string) {
