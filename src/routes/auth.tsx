@@ -29,6 +29,11 @@ function AuthPage() {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
 
+  useEffect(() => {
+    const action = mode === "register" ? "Register" : "Sign in";
+    document.title = `${action} — ${brand.name} App`;
+  }, [mode, brand.name]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
