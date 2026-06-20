@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown, Sparkles } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import { MultiSelectDropdown } from "@/components/ui/multi-select";
