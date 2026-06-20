@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth";
+import { useBrand } from "@/lib/brand";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const brand = useBrand();
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,14 +70,13 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "var(--skin-surface)" }}>
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div
-            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-md text-lg font-semibold"
-            style={{ background: "var(--skin-accent)", color: "#fff" }}
-          >
-            J
-          </div>
+          <img
+            src={brand.iconUrl}
+            alt={brand.name}
+            className="mx-auto mb-3 h-11 w-11 rounded-md object-cover"
+          />
           <h1 className="text-xl font-semibold" style={{ color: "var(--skin-ink)" }}>
-            Xcamp Journal
+            {brand.name} App
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--skin-ink-soft)" }}>
             {mode === "signin" ? "Sign in to capture your notes." : "Create your account to get started."}

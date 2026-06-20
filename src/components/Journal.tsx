@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useBrand } from "@/lib/brand";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   archiveNote,
@@ -89,6 +90,7 @@ export function Journal({
 }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const brand = useBrand();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -258,10 +260,13 @@ export function Journal({
   if (loading || !user) {
     return (
       <div
-        className="flex items-center justify-center"
+        className="flex flex-col items-center justify-center gap-4"
         style={{ color: "var(--skin-ink-soft)", height: embedded ? "60vh" : "100vh" }}
       >
-        Loading…
+        <img src={brand.iconUrl} alt={brand.name} className="h-10 w-10 object-cover rounded-lg" />
+        <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+          {brand.name} App
+        </h2>
       </div>
     );
   }
