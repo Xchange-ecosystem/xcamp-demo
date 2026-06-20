@@ -159,6 +159,12 @@ export function NoteEditor({
           </span>
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          {onOrganise && (
+            <button className="x-btn-secondary" onClick={onOrganise} title="Organise with Chi">
+              <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
+              Organise with Chi
+            </button>
+          )}
           {onArchive && (
             <button className="x-btn-secondary" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
               {archiving ? "Deleting…" : "Delete"}
