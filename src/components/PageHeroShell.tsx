@@ -52,6 +52,20 @@ export function PageHeroShell({
           />
         )}
 
+        {/* Accent colour multiply filter — tints the hero with the active brand accent
+            (Xcamp #4de0c1 / Nox #b689e6 via --skin-accent) */}
+        {heroUrl && (
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "var(--skin-accent)",
+              mixBlendMode: "multiply",
+              opacity: 0.55,
+            }}
+          />
+        )}
+
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
