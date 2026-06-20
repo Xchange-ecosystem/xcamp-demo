@@ -6,8 +6,8 @@ import { useBrand } from "@/lib/brand";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Xcamp Journal" },
-      { name: "description", content: "Sign in to Xcamp Journal to capture and manage your notes." },
+      { title: "Sign in" },
+      { name: "description", content: "Sign in to capture and manage your notes." },
     ],
   }),
   component: AuthPage,
@@ -28,6 +28,11 @@ function AuthPage() {
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    const action = mode === "register" ? "Register" : "Sign in";
+    document.title = `${action} — ${brand.name} App`;
+  }, [mode, brand.name]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
