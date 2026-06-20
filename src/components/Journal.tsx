@@ -716,6 +716,16 @@ export function Journal({
         )}
       </main>
       )}
+
+      {organising && (
+        <OrganiseSheet
+          open={!!organising}
+          user={user}
+          intent={noteToIntent(organising.title, organising.body_html)}
+          onClose={() => setOrganising(null)}
+          onOrganised={() => queryClient.invalidateQueries({ queryKey: ["linked"] })}
+        />
+      )}
     </div>
   );
 }
