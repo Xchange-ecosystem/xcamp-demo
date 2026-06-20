@@ -90,6 +90,7 @@ export function Journal({
 }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const brand = useBrand();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [editing, setEditing] = useState<Editing | null>(null);
