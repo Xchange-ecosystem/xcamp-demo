@@ -35,12 +35,13 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className={"flex items-center justify-start " + (collapsed ? "p-2" : "px-2 py-3")}>
+        <div className={"flex items-center " + (collapsed ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}>
           {collapsed ? (
             <img src={brand.iconUrl} alt={brand.name} className="h-8 w-8 object-cover" />
           ) : (
             <img src={brand.logoUrl} alt={brand.name} className="h-7 w-auto" />
           )}
+          <SidebarTrigger />
         </div>
       </SidebarHeader>
 
