@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useBrand } from "@/lib/brand";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   archiveNote,
