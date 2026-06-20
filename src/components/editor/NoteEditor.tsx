@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown, Sparkles } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import { MultiSelectDropdown } from "@/components/ui/multi-select";
@@ -64,6 +64,7 @@ export function NoteEditor({
   onSave,
   onCancel,
   onArchive,
+  onOrganise,
 }: {
   editing: Editing;
   projects: ProjectRow[];
@@ -73,6 +74,7 @@ export function NoteEditor({
   onSave: (v: NoteEditorValues) => void;
   onCancel: () => void;
   onArchive?: () => void;
+  onOrganise?: () => void;
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -157,6 +159,12 @@ export function NoteEditor({
           </span>
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          {onOrganise && (
+            <button className="x-btn-secondary" onClick={onOrganise} title="Organise with Chi">
+              <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
+              Organise with Chi
+            </button>
+          )}
           {onArchive && (
             <button className="x-btn-secondary" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
               {archiving ? "Deleting…" : "Delete"}

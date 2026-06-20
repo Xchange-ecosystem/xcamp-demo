@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,6 +31,8 @@ import {
   updateNote,
 } from "@/lib/xcamp-api";
 import { NoteEditor, type Editing, type NoteEditorValues } from "@/components/editor/NoteEditor";
+import { OrganiseSheet } from "@/components/organiser/OrganiseSheet";
+import { noteToIntent } from "@/lib/organiser-api";
 import type { NoteRow } from "@/types/xcamp";
 
 function formatDate(iso: string) {
@@ -89,6 +92,7 @@ export function Journal({
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [organising, setOrganising] = useState<NoteRow | null>(null);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -635,7 +639,22 @@ export function Journal({
                           <div className="x-note-card__title" style={{ fontSize: 14, fontWeight: 600, color: "var(--skin-ink)" }}>
                             {note.title || "Untitled"}
                           </div>
-                          {linked.has(note.id) && <span className="x-badge-linked">linked</span>}
+                          <div className="flex flex-shrink-0 items-center gap-1">
+                            {linked.has(note.id) && <span className="x-badge-linked">linked</span>}
+                            <button
+                              type="button"
+                              aria-label="Organise with Chi"
+                              title="Organise with Chi"
+                              onClick={(e) => { e.stopPropagation(); setOrganising(note); }}
+                              style={{
+                                height: 26, width: 26, padding: 0, borderRadius: 6, cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                border: "1px solid var(--skin-line)", background: "transparent", color: "var(--skin-accent)",
+                              }}
+                            >
+                              <Sparkles size={14} />
+                            </button>
+                          </div>
                         </div>
                         <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", marginTop: 4 }}>
                           {formatDate(note.updated_at || note.created_at)}
@@ -687,6 +706,7 @@ export function Journal({
               }
             }}
             onArchive={editing.mode === "edit" ? () => archiveMut.mutate(editing.note) : undefined}
+            onOrganise={editing.mode === "edit" ? () => setOrganising(editing.note) : undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-center" style={{ color: "var(--skin-ink-faint)", minHeight: 300 }}>
@@ -696,6 +716,16 @@ export function Journal({
           </div>
         )}
       </main>
+      )}
+
+      {organising && (
+        <OrganiseSheet
+          open={!!organising}
+          user={user}
+          intent={noteToIntent(organising.title, organising.body_html)}
+          onClose={() => setOrganising(null)}
+          onOrganised={() => queryClient.invalidateQueries({ queryKey: ["linked"] })}
+        />
       )}
     </div>
   );
