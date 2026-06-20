@@ -706,6 +706,7 @@ export function Journal({
               }
             }}
             onArchive={editing.mode === "edit" ? () => archiveMut.mutate(editing.note) : undefined}
+            onOrganise={editing.mode === "edit" ? () => setOrganising(editing.note) : undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-center" style={{ color: "var(--skin-ink-faint)", minHeight: 300 }}>
