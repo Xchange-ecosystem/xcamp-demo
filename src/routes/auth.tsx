@@ -6,8 +6,8 @@ import { useBrand } from "@/lib/brand";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Xcamp Journal" },
-      { name: "description", content: "Sign in to Xcamp Journal to capture and manage your notes." },
+      { title: "Sign in" },
+      { name: "description", content: "Sign in to capture and manage your notes." },
     ],
   }),
   component: AuthPage,
