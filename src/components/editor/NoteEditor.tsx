@@ -64,6 +64,7 @@ export function NoteEditor({
   onSave,
   onCancel,
   onArchive,
+  onOrganise,
 }: {
   editing: Editing;
   projects: ProjectRow[];
@@ -73,6 +74,7 @@ export function NoteEditor({
   onSave: (v: NoteEditorValues) => void;
   onCancel: () => void;
   onArchive?: () => void;
+  onOrganise?: () => void;
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
