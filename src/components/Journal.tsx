@@ -92,6 +92,7 @@ export function Journal({
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [organising, setOrganising] = useState<NoteRow | null>(null);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
