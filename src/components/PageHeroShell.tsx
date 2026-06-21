@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { RefreshCw } from "lucide-react";
+import { Menu, RefreshCw } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useHeroImage } from "@/lib/useHeroImage";
 
 type Props = {
@@ -16,6 +17,20 @@ type Props = {
   align?: "left" | "center";
   showImageReload?: boolean;
 };
+
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="md:hidden absolute top-4 left-4 z-20 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm p-2.5 text-white/90 hover:bg-black/50 transition-colors cursor-pointer"
+      aria-label="Open menu"
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
 
 export function PageHeroShell({
   seed,
@@ -42,6 +57,8 @@ export function PageHeroShell({
         className="relative w-full overflow-hidden h-[150px] sm:h-[280px] md:h-[320px]"
         style={{ background: fallbackGradient }}
       >
+        <MobileMenuButton />
+
         {heroUrl && (
           <img
             src={heroUrl}
