@@ -2,7 +2,7 @@
 // Auth bearer token comes from the app's own Supabase session.
 import { supabase } from "@/integrations/supabase/client";
 
-const BASE_URL = "https://chiapi.xchange.eco/organiser";
+const BASE_URL = "https://chiapi.xchange.eco";
 
 export type ProposalType = "new_objective" | "link_to_objective" | (string & {});
 
