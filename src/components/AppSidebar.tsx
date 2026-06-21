@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookText, Compass, LogOut, User } from "lucide-react";
+import { BookText, Compass, LogOut, NotebookPen, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ import { useBrand } from "@/lib/brand";
 
 const items = [
   { title: "journal", url: "/", icon: BookText, labelKey: "nav.journal" },
+  { title: "journalApp", url: "/journal", icon: NotebookPen, labelKey: "nav.journalApp" },
   { title: "projectBuilder", url: "/project-builder", icon: Compass, labelKey: "nav.projectBuilder" },
 ];
 

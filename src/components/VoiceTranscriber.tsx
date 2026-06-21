@@ -71,8 +71,10 @@ function VoxOrb({
 
 export function VoiceTranscriber({
   onCreateNote,
+  createLabel = "Create note",
 }: {
   onCreateNote?: (text: string) => void;
+  createLabel?: string;
 }) {
   const voice = useVoiceTranscription();
 
@@ -123,7 +125,7 @@ export function VoiceTranscriber({
           style={{ width: "auto", paddingInline: 18 }}
           onClick={() => onCreateNote?.(text)}
         >
-          <FilePlus size={14} style={{ display: "inline", marginRight: 6 }} /> Create note
+          <FilePlus size={14} style={{ display: "inline", marginRight: 6 }} /> {createLabel}
         </button>
       )}
     </div>

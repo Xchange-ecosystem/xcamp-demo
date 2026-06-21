@@ -17,6 +17,7 @@ const resources = {
     translation: {
       nav: {
         journal: "Notes",
+        journalApp: "Journal",
         projectBuilder: "Project Builder",
         profile: "Profile",
         signOut: "Sign out",
@@ -56,6 +57,7 @@ const resources = {
     translation: {
       nav: {
         journal: "Notas",
+        journalApp: "Diario",
         projectBuilder: "Constructor de proyectos",
         profile: "Perfil",
         signOut: "Cerrar sesión",
@@ -95,6 +97,7 @@ const resources = {
     translation: {
       nav: {
         journal: "Notes",
+        journalApp: "Journal",
         projectBuilder: "Créateur de projet",
         profile: "Profil",
         signOut: "Déconnexion",
@@ -134,6 +137,7 @@ const resources = {
     translation: {
       nav: {
         journal: "Notizen",
+        journalApp: "Journal",
         projectBuilder: "Projekt-Builder",
         profile: "Profil",
         signOut: "Abmelden",

@@ -102,7 +102,7 @@ export async function analyse(args: {
   userId: string;
   tenantId: string;
 }): Promise<JournalTopic[]> {
-  const res = await request<Record<string, unknown>>("/journal/analyse", {
+  const res = await request<Record<string, unknown>>("/api/journal/analyse", {
     method: "POST",
     body: JSON.stringify({
       text: args.text,
@@ -132,14 +132,14 @@ export async function answerWithContext(args: {
   projectId?: string;
   topK?: number;
 }): Promise<AnswerWithContextResult> {
-  const res = await request<Record<string, unknown>>("/answer-with-context", {
+  const res = await request<Record<string, unknown>>("/api/answer-with-context", {
     method: "POST",
     body: JSON.stringify({
       question: args.question,
       top_k: args.topK ?? 5,
       project_id: args.projectId,
       tenant_id: args.tenantId,
-      context_scope: "project",
+      context_scope: "workspace",
     }),
   });
   const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
@@ -160,14 +160,14 @@ export async function confirmSession(
   sessionId: string,
   approvals: { proposal_id: string; approved: boolean }[],
 ): Promise<void> {
-  await request("/organiser/confirm", {
+  await request("/api/organiser/confirm", {
     method: "POST",
     body: JSON.stringify({ session_id: sessionId, approvals }),
   });
 }
 
 export async function commitSession(sessionId: string): Promise<CommitResult> {
-  const res = await request<Record<string, unknown>>("/organiser/commit", {
+  const res = await request<Record<string, unknown>>("/api/organiser/commit", {
     method: "POST",
     body: JSON.stringify({ session_id: sessionId }),
   });
@@ -209,7 +209,7 @@ export async function listJournalSessions(userId: string): Promise<JournalSessio
     .from("organiser_sessions")
     .select("*")
     .eq("user_id", userId)
-    .eq("context->>source", "journal")
+    .eq("source", "journal")
     .order("created_at", { ascending: false });
   if (error) throw error;
   const sessions = (data ?? []) as Record<string, unknown>[];
