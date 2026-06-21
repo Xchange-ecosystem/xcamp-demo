@@ -57,6 +57,8 @@ export function PageHeroShell({
         className="relative w-full overflow-hidden h-[150px] sm:h-[280px] md:h-[320px]"
         style={{ background: fallbackGradient }}
       >
+        <MobileMenuButton />
+
         {heroUrl && (
           <img
             src={heroUrl}
