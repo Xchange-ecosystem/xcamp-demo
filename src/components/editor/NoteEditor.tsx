@@ -183,9 +183,8 @@ export function NoteEditor({
 
 
       <textarea
-        className="x-input"
+        className="x-input x-editor-title"
         style={{
-          fontSize: 26,
           fontWeight: 700,
           border: "none",
           background: "transparent",
