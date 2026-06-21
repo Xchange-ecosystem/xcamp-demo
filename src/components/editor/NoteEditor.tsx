@@ -143,7 +143,7 @@ export function NoteEditor({
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
           <button
             className="x-btn-secondary"
@@ -158,32 +158,33 @@ export function NoteEditor({
             {editing.mode === "new" ? "New note" : "Editing note"}
           </span>
         </div>
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
           {onOrganise && (
-            <button className="x-btn-secondary" onClick={onOrganise} title="Organise with Chi">
+            <button className="x-btn-secondary w-full sm:w-auto" onClick={onOrganise} title="Organise with Chi">
               <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
               Organise with Chi
             </button>
           )}
-          {onArchive && (
-            <button className="x-btn-secondary" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
-              {archiving ? "Deleting…" : "Delete"}
+          <div className="flex items-center gap-2">
+            {onArchive && (
+              <button className="x-btn-secondary flex-1 sm:flex-none" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
+                {archiving ? "Deleting…" : "Delete"}
+              </button>
+            )}
+            <button className="x-btn-secondary flex-1 sm:flex-none" onClick={onCancel}>
+              Cancel
             </button>
-          )}
-          <button className="x-btn-secondary" onClick={onCancel}>
-            Cancel
-          </button>
-          <button className="x-btn-primary" onClick={save} disabled={!canSave || saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
+            <button className="x-btn-primary flex-1 sm:flex-none" onClick={save} disabled={!canSave || saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 
 
       <textarea
-        className="x-input"
+        className="x-input x-editor-title"
         style={{
-          fontSize: 26,
           fontWeight: 700,
           border: "none",
           background: "transparent",

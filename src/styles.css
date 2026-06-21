@@ -338,6 +338,23 @@
   .x-tt-btn[data-active="true"] { background: var(--skin-accent-soft); color: var(--skin-accent); }
   .x-tt-sep { width: 1px; height: 20px; background: var(--skin-line); margin: 0 4px; }
 
+  .x-editor-title { font-size: 26px; }
+
+  /* ---- Mobile editor tuning ---- */
+  @media (max-width: 640px) {
+    .x-editor { padding: 16px; border-radius: var(--xr); }
+    .x-editor-title { font-size: 21px; }
+    .x-tt-toolbar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .x-tt-toolbar::-webkit-scrollbar { display: none; }
+    .x-tt-btn { flex: 0 0 auto; }
+    .x-tiptap { min-height: 220px; padding: 14px 16px; }
+  }
+
   .x-tiptap {
     min-height: 360px;
     padding: 20px 24px;
