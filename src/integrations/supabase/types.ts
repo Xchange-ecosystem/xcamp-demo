@@ -4447,7 +4447,7 @@ export type Database = {
           emotion: string | null
           goal: string
           id: string
-          project_id: string
+          project_id: string | null
           source: string | null
           status: string
           tenant_id: string
@@ -4461,7 +4461,7 @@ export type Database = {
           emotion?: string | null
           goal: string
           id?: string
-          project_id: string
+          project_id?: string | null
           source?: string | null
           status?: string
           tenant_id: string
@@ -4475,7 +4475,7 @@ export type Database = {
           emotion?: string | null
           goal?: string
           id?: string
-          project_id?: string
+          project_id?: string | null
           source?: string | null
           status?: string
           tenant_id?: string
