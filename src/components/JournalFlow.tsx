@@ -1,0 +1,550 @@
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+  History as HistoryIcon,
+} from "lucide-react";
+import { useAuth } from "@/contexts/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { createNote } from "@/lib/xcamp-api";
+import {
+  analyse,
+  answerWithContext,
+  confirmSession,
+  commitSession,
+  listJournalSessions,
+  getSessionNoteTitles,
+  placementLabel,
+  type JournalTopic,
+  type JournalProposal,
+  type SessionStatus,
+} from "@/lib/journal-api";
+
+type Screen = "input" | "cards" | "editor";
+
+const NOTE_TYPE_BADGE: Record<string, string> = {
+  note: "Note",
+  task: "Task",
+  resource: "Resource",
+};
+
+function badgeLabel(t: string) {
+  return NOTE_TYPE_BADGE[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// Resolve a placement proposal to "Project > Objective" where available.
+function resolvedPlacement(p: JournalProposal): string {
+  const project = p.payload.project_title;
+  const objective = p.payload.objective_title || p.payload.title;
+  if (project && objective) return `${project} > ${objective}`;
+  if (project) return String(project);
+  if (objective) return String(objective);
+  return placementLabel(p);
+}
+
+function statusColors(status: SessionStatus): { bg: string; fg: string } {
+  switch (status) {
+    case "committed":
+      return { bg: "color-mix(in srgb, var(--skin-accent) 18%, transparent)", fg: "var(--skin-accent)" };
+    case "partial":
+      return { bg: "color-mix(in srgb, #e0a23a 22%, transparent)", fg: "#b87814" };
+    default:
+      return { bg: "var(--skin-surface2)", fg: "var(--skin-ink-soft)" };
+  }
+}
+
+export function JournalFlow({
+  draft = null,
+}: {
+  draft?: { text: string; key: number } | null;
+}) {
+  const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
+
+  const [screen, setScreen] = useState<Screen>("input");
+  const [entryText, setEntryText] = useState("");
+  const [analysing, setAnalysing] = useState(false);
+  const [topics, setTopics] = useState<JournalTopic[]>([]);
+  const [editingTopic, setEditingTopic] = useState<JournalTopic | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [openSession, setOpenSession] = useState<string | null>(null);
+
+  // Receive text handed over from the Voice tab.
+  useEffect(() => {
+    if (!draft) return;
+    setEntryText(draft.text);
+    setScreen("input");
+    setEditingTopic(null);
+  }, [draft]);
+
+  const sessionsQuery = useQuery({
+    queryKey: ["journal-sessions", user?.centralId],
+    queryFn: () => listJournalSessions(user!.centralId),
+    enabled: !!user,
+  });
+
+  const handleProcess = async () => {
+    const text = entryText.trim();
+    if (!text || !user) return;
+    setAnalysing(true);
+    try {
+      const result = await analyse({ text, userId: user.centralId, tenantId: user.tenantId });
+      setTopics(result);
+      setScreen("cards");
+      if (result.length === 0) toast("No topics found in this entry.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
+  const handleDismiss = async (topic: JournalTopic) => {
+    setTopics((prev) => prev.filter((t) => t.id !== topic.id));
+    if (topic.organiser_proposals.length > 0 && topic.organiser_session_id) {
+      try {
+        await confirmSession(
+          topic.organiser_session_id,
+          topic.organiser_proposals
+            .filter((p) => p.proposal_id)
+            .map((p) => ({ proposal_id: p.proposal_id!, approved: false })),
+        );
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    }
+  };
+
+  const startNew = () => {
+    setEntryText("");
+    setTopics([]);
+    setEditingTopic(null);
+    setOpenSession(null);
+    setScreen("input");
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center py-16" style={{ color: "var(--skin-ink-soft)" }}>
+        <Loader2 className="animate-spin" size={20} />
+      </div>
+    );
+  }
+
+  const effCollapsed = isMobile ? false : collapsed;
+  const sidebarWidth = effCollapsed ? 56 : 300;
+  const sessions = sessionsQuery.data ?? [];
+
+  return (
+    <div
+      style={{
+        display: isMobile ? "flex" : "grid",
+        flexDirection: isMobile ? "column" : undefined,
+        gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
+        minHeight: isMobile ? "auto" : "70vh",
+      }}
+    >
+      {/* Sidebar: New + History */}
+      <aside
+        style={{
+          background: "var(--skin-surface)",
+          borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
+          borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
+          padding: effCollapsed ? "16px 8px" : "18px 14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {effCollapsed ? (
+          <div className="flex flex-col items-center gap-3">
+            <button
+              className="x-btn-secondary"
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+              style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => setCollapsed(false)}
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+            <button
+              className="x-btn-primary"
+              aria-label="New entry"
+              title="New entry"
+              style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => { startNew(); setCollapsed(false); }}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
+                Journal
+              </div>
+              {!isMobile && (
+                <button
+                  className="x-btn-secondary"
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar"
+                  style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={() => setCollapsed(true)}
+                >
+                  <PanelLeftClose size={15} />
+                </button>
+              )}
+            </div>
+
+            <button className="x-btn-primary" onClick={startNew}>
+              + New entry
+            </button>
+
+            <div
+              className="flex items-center gap-1.5 mt-1"
+              style={{ color: "var(--skin-ink-faint)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}
+            >
+              <HistoryIcon size={13} /> History
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
+              {sessionsQuery.isLoading && (
+                <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
+              )}
+              {!sessionsQuery.isLoading && sessions.length === 0 && (
+                <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>
+                  No journal sessions yet.
+                </div>
+              )}
+              {sessions.map((s) => {
+                const c = statusColors(s.status);
+                const isOpen = openSession === s.id;
+                return (
+                  <div key={s.id}>
+                    <button
+                      onClick={() => setOpenSession(isOpen ? null : s.id)}
+                      style={{
+                        width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
+                        background: isOpen ? "var(--skin-surface2)" : "transparent",
+                        borderRadius: 8, padding: "8px 10px", cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
+                          {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
+                        {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
+                      </div>
+                    </button>
+                    {isOpen && <SessionNoteTitles sessionId={s.id} />}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </aside>
+
+      {/* Main pane */}
+      <div style={{ padding: isMobile ? "16px" : "22px 26px", minWidth: 0 }}>
+        {screen === "input" && (
+          <div className="max-w-2xl">
+            <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--skin-ink)" }}>
+              New journal entry
+            </h2>
+            <p className="mb-3" style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>
+              Write freely. We'll analyse it and suggest notes linked to your projects.
+            </p>
+            <textarea
+              className="x-input"
+              style={{ width: "100%", minHeight: 200, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
+              placeholder="What's on your mind today?"
+              value={entryText}
+              onChange={(e) => setEntryText(e.target.value)}
+              disabled={analysing}
+            />
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                className="x-btn-primary"
+                style={{ width: "auto", paddingInline: 22 }}
+                onClick={handleProcess}
+                disabled={analysing || !entryText.trim()}
+              >
+                {analysing ? (
+                  <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Analysing your entry…</>
+                ) : (
+                  "Process"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {screen === "cards" && (
+          <div className="max-w-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+                Suggested topics
+              </h2>
+              <button className="x-btn-secondary" style={{ width: "auto", paddingInline: 14 }} onClick={startNew}>
+                <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> New entry
+              </button>
+            </div>
+            {topics.length === 0 ? (
+              <div style={{ color: "var(--skin-ink-faint)", fontSize: 14, padding: "24px 0" }}>
+                No topics to review. Start a new entry.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {topics.map((topic) => (
+                  <TopicCard
+                    key={topic.id}
+                    topic={topic}
+                    onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
+                    onDismiss={() => handleDismiss(topic)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {screen === "editor" && editingTopic && (
+          <NoteEditorPane
+            topic={editingTopic}
+            onBack={() => { setScreen("cards"); setEditingTopic(null); }}
+            onSaved={() => {
+              setTopics((prev) => prev.filter((t) => t.id !== editingTopic.id));
+              setEditingTopic(null);
+              setScreen("cards");
+              sessionsQuery.refetch();
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlacementPills({ proposals, resolve = false }: { proposals: JournalProposal[]; resolve?: boolean }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {proposals.map((p, i) => (
+        <span
+          key={p.proposal_id ?? i}
+          style={{
+            fontSize: 11, padding: "3px 9px", borderRadius: 999,
+            background: "var(--skin-surface2)", color: "var(--skin-ink-soft)",
+            border: "1px solid var(--skin-line)",
+          }}
+        >
+          {resolve ? `→ ${resolvedPlacement(p)}` : placementLabel(p)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TopicCard({
+  topic,
+  onAccept,
+  onDismiss,
+}: {
+  topic: JournalTopic;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
+        background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 10,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 16 }}>
+          {topic.title}
+        </h3>
+        <span
+          style={{
+            fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+            background: "color-mix(in srgb, var(--skin-accent) 16%, transparent)", color: "var(--skin-accent)",
+          }}
+        >
+          {badgeLabel(topic.suggested_note_type)}
+        </span>
+      </div>
+      {topic.summary && (
+        <p style={{ color: "var(--skin-ink-soft)", fontSize: 14, lineHeight: 1.55 }}>{topic.summary}</p>
+      )}
+      {topic.organiser_proposals.length > 0 && <PlacementPills proposals={topic.organiser_proposals} />}
+      <div className="flex items-center gap-2 mt-1">
+        <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={onAccept}>
+          Accept
+        </button>
+        <button
+          onClick={onDismiss}
+          style={{
+            background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+            color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NoteEditorPane({
+  topic,
+  onBack,
+  onSaved,
+}: {
+  topic: JournalTopic;
+  onBack: () => void;
+  onSaved: () => void;
+}) {
+  const { user } = useAuth();
+  const [title, setTitle] = useState(topic.title);
+  const [body, setBody] = useState(topic.summary);
+  const [enriching, setEnriching] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const hasProposals = topic.organiser_proposals.length > 0;
+
+  useEffect(() => {
+    let active = true;
+    setEnriching(true);
+    answerWithContext({
+      question: `${topic.title}: ${topic.summary}`,
+      topK: 5,
+      tenantId: user!.tenantId,
+    })
+      .then((res) => {
+        if (!active) return;
+        if (res.answer.trim()) {
+          setBody((prev) => `${prev}\n\n— From your projects —\n${res.answer.trim()}`);
+        }
+      })
+      .catch((e) => toast.error((e as Error).message))
+      .finally(() => active && setEnriching(false));
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
+      if (hasProposals && topic.organiser_session_id) {
+        await confirmSession(
+          topic.organiser_session_id,
+          topic.organiser_proposals
+            .filter((p) => p.proposal_id)
+            .map((p) => ({ proposal_id: p.proposal_id!, approved: true })),
+        );
+        await commitSession(topic.organiser_session_id);
+        toast.success("Note saved and linked");
+      } else {
+        await createNote(user, { title, bodyHtml, noteType: topic.suggested_note_type });
+        toast.success("Note saved");
+      }
+      onSaved();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <button className="x-btn-secondary mb-3" style={{ width: "auto", paddingInline: 14 }} onClick={onBack}>
+        <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
+      </button>
+
+      {/* Placement pills (read-only) */}
+      <div className="mb-3">
+        {hasProposals ? (
+          <PlacementPills proposals={topic.organiser_proposals} resolve />
+        ) : (
+          <span style={{ fontSize: 12, color: "var(--skin-ink-faint)", fontStyle: "italic" }}>
+            No project context found
+          </span>
+        )}
+      </div>
+
+      <input
+        className="x-input"
+        style={{ width: "100%", fontSize: 18, fontWeight: 600, padding: "10px 12px", marginBottom: 10 }}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title"
+      />
+
+      <textarea
+        className="x-input"
+        style={{ width: "100%", minHeight: 240, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Note body"
+      />
+
+      {enriching && (
+        <div className="flex items-center gap-2 mt-2" style={{ color: "var(--skin-ink-soft)", fontSize: 13 }}>
+          <Sparkles size={14} className="animate-pulse" /> Enriching with project context…
+        </div>
+      )}
+
+      <div className="mt-4">
+        <button
+          className="x-btn-primary"
+          style={{ width: "auto", paddingInline: 24 }}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Saving…</>
+          ) : (
+            "Save"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SessionNoteTitles({ sessionId }: { sessionId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["journal-session-notes", sessionId],
+    queryFn: () => getSessionNoteTitles(sessionId),
+  });
+  const titles = data ?? [];
+  return (
+    <div style={{ padding: "6px 10px 2px 12px" }}>
+      {isLoading ? (
+        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>Loading…</div>
+      ) : titles.length === 0 ? (
+        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>No committed notes.</div>
+      ) : (
+        <ul style={{ listStyle: "disc", paddingLeft: 16, margin: 0 }}>
+          {titles.map((t, i) => (
+            <li key={i} style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginBottom: 2 }}>{t}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
