@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { RefreshCw } from "lucide-react";
+import { Menu, RefreshCw } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useHeroImage } from "@/lib/useHeroImage";
 
 type Props = {
