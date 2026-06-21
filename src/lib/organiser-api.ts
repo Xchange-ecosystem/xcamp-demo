@@ -90,7 +90,7 @@ export async function propose(args: {
   tenantId: string;
   intent: string;
 }): Promise<ProposeResponse> {
-  const res = await request<Record<string, unknown>>("/propose", {
+  const res = await request<Record<string, unknown>>("/api/organiser/propose", {
     method: "POST",
     body: JSON.stringify({
       user_id: args.userId,
@@ -109,14 +109,14 @@ export async function confirm(
   sessionId: string,
   approvals: { proposal_id: string; approved: boolean }[],
 ): Promise<void> {
-  await request("/confirm", {
+  await request("/api/organiser/confirm", {
     method: "POST",
     body: JSON.stringify({ session_id: sessionId, approvals }),
   });
 }
 
 export async function commit(sessionId: string): Promise<CommitResult> {
-  const res = await request<Record<string, unknown>>("/commit", {
+  const res = await request<Record<string, unknown>>("/api/organiser/commit", {
     method: "POST",
     body: JSON.stringify({ session_id: sessionId }),
   });
