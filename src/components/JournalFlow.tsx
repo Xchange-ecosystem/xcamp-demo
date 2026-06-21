@@ -470,7 +470,7 @@ function NoteEditorPane({
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="x-editor max-w-2xl">
       <button className="x-btn-secondary mb-3" style={{ width: "auto", paddingInline: 14 }} onClick={onBack}>
         <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
       </button>
