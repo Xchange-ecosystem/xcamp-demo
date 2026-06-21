@@ -510,8 +510,8 @@ function NoteEditorPane({
 
       <div className="mt-4">
         <button
-          className="x-btn-primary"
-          style={{ width: "auto", paddingInline: 24 }}
+          className="x-btn-primary w-full sm:w-auto"
+          style={{ paddingInline: 24 }}
           onClick={handleSave}
           disabled={saving}
         >
