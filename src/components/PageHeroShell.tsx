@@ -18,6 +18,20 @@ type Props = {
   showImageReload?: boolean;
 };
 
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="md:hidden absolute top-4 left-4 z-20 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm p-2.5 text-white/90 hover:bg-black/50 transition-colors cursor-pointer"
+      aria-label="Open menu"
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
+
 export function PageHeroShell({
   seed,
   image,
