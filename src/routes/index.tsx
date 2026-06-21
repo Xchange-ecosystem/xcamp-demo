@@ -46,7 +46,7 @@ function HomePage() {
           style={{ borderBottom: "1px solid var(--skin-line)" }}
         >
           <TabButton active={tab === "journal"} onClick={() => setTab("journal")} icon={<BookText size={15} />}>
-            Journal
+            Notes
           </TabButton>
           <TabButton active={tab === "voice"} onClick={() => setTab("voice")} icon={<Mic size={15} />}>
             Voice
