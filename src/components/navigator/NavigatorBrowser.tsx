@@ -38,6 +38,7 @@ export function NavigatorBrowser() {
   const { user } = useAuth();
   const { activeProjectId, setActiveProjectId } = useActiveProject();
   const isMobile = useIsMobile();
+  const { toggleSidebar } = useSidebar();
   const queryClient = useQueryClient();
 
   const [selectedObj, setSelectedObj] = useState<string | null>(null);
