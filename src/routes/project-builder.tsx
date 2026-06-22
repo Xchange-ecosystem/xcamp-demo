@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Compass } from "lucide-react";
+import { Compass, Menu } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useQuickRoad } from "@/hooks/useQuickRoad";
 import { StepIndicator } from "@/components/quickroad/StepIndicator";
 import { InputStep } from "@/components/quickroad/InputStep";
