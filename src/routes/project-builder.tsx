@@ -20,6 +20,21 @@ export const Route = createFileRoute("/project-builder")({
   component: ProjectBuilderPage,
 });
 
+function MenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="mb-2 flex items-center justify-center rounded-md p-1.5"
+      aria-label="Toggle menu"
+      style={{ color: "var(--skin-ink-soft)", background: "transparent", border: "none", cursor: "pointer" }}
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
+
 function ProjectBuilderPage() {
   const qr = useQuickRoad();
   const { state } = qr;
