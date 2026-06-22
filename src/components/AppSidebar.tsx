@@ -30,10 +30,23 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { t } = useTranslation();
   const brand = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { activeProjectId, setActiveProjectId } = useActiveProject();
+
+  const projectsQuery = useQuery({
+    queryKey: ["projects", user?.tenantId],
+    queryFn: () => listProjects(user!),
+    enabled: !!user,
+  });
+  const projects = projectsQuery.data ?? [];
+
+  // Default to the first project once loaded.
+  if (!activeProjectId && projects.length > 0) {
+    setActiveProjectId(projects[0].id);
+  }
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
