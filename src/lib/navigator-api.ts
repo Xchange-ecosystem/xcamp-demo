@@ -206,7 +206,12 @@ export async function createTaskNote(
   } else {
     await supabase
       .from("project_notes")
-      .insert({ project_id: projectId, note_id: note.id, tenant_id: user.tenantId });
+      .insert({
+        project_id: projectId,
+        note_id: note.id,
+        owner_central_id: user.centralId,
+        tenant_id: user.tenantId,
+      });
   }
   return note;
 }
