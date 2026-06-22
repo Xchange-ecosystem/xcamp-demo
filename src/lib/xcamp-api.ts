@@ -275,7 +275,9 @@ export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
     .order("title");
 
   if (error) throw error;
-  return (data ?? []).map((p) => ({ id: p.id as string, name: (p.title as string) ?? "Untitled" }));
+  return (data ?? [])
+    .filter((p) => (p.title as string) !== "__general__")
+    .map((p) => ({ id: p.id as string, name: (p.title as string) ?? "Untitled" }));
 }
 
 export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> {

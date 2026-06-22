@@ -35,7 +35,7 @@ type EditTarget =
 
 export function NavigatorBrowser() {
   const { user } = useAuth();
-  const { activeProjectId } = useActiveProject();
+  const { activeProjectId, setActiveProjectId } = useActiveProject();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
@@ -48,7 +48,12 @@ export function NavigatorBrowser() {
     enabled: !!user,
   });
   const projects = projectsQuery.data ?? [];
-  const projectName = projects.find((p) => p.id === activeProjectId)?.name;
+
+  const onChangeProject = (id: string) => {
+    setActiveProjectId(id || null);
+    setSelectedObj(null);
+    setEditing(null);
+  };
 
   const createObj = useCreateObjective(user!, activeProjectId ?? "");
   const updateObj = useUpdateObjective(user!, activeProjectId ?? "");
@@ -153,10 +158,19 @@ export function NavigatorBrowser() {
           Navigator
         </h1>
       </div>
-      {projectName && (
-        <span className="truncate" style={{ fontSize: 13, color: "var(--skin-ink-soft)" }}>
-          {projectName}
-        </span>
+      {projects.length > 0 && (
+        <select
+          className="x-input"
+          style={{ height: 32, fontSize: 13, maxWidth: isMobile ? 180 : 280 }}
+          value={activeProjectId ?? ""}
+          onChange={(e) => onChangeProject(e.target.value)}
+        >
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       )}
     </div>
   );
@@ -253,7 +267,8 @@ function ObjectivesColumn({
   onOpenObjective: (o: ObjectiveRow) => void;
   createObj: ReturnType<typeof useCreateObjective>;
 }) {
-  const { data: objectives = [], isLoading } = useObjectives(user, projectId);
+  const { data: allObjectives = [], isLoading } = useObjectives(user, projectId);
+  const objectives = allObjectives.filter((o) => o.title !== "__general__");
   const [draft, setDraft] = useState("");
 
   const submit = async () => {

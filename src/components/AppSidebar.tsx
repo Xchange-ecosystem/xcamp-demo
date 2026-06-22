@@ -44,11 +44,12 @@ export function AppSidebar() {
   });
   const projects = projectsQuery.data ?? [];
 
-  // Default to the first project once loaded.
+  // Default to the first project once loaded, and recover from a stale id
+  // (e.g. someone previously stuck on the hidden system project).
   useEffect(() => {
-    if (!activeProjectId && projects.length > 0) {
-      setActiveProjectId(projects[0].id);
-    }
+    if (projects.length === 0) return;
+    const exists = activeProjectId && projects.some((p) => p.id === activeProjectId);
+    if (!exists) setActiveProjectId(projects[0].id);
   }, [activeProjectId, projects, setActiveProjectId]);
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
