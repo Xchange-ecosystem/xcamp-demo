@@ -35,7 +35,7 @@ type EditTarget =
 
 export function NavigatorBrowser() {
   const { user } = useAuth();
-  const { activeProjectId } = useActiveProject();
+  const { activeProjectId, setActiveProjectId } = useActiveProject();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
@@ -48,7 +48,12 @@ export function NavigatorBrowser() {
     enabled: !!user,
   });
   const projects = projectsQuery.data ?? [];
-  const projectName = projects.find((p) => p.id === activeProjectId)?.name;
+
+  const onChangeProject = (id: string) => {
+    setActiveProjectId(id || null);
+    setSelectedObj(null);
+    setEditing(null);
+  };
 
   const createObj = useCreateObjective(user!, activeProjectId ?? "");
   const updateObj = useUpdateObjective(user!, activeProjectId ?? "");
