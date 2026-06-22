@@ -196,7 +196,7 @@ export function NavigatorBrowser() {
     <div style={{ background: "var(--skin-bg)", height: "100vh", display: "flex", flexDirection: "column" }}>
       {header}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ResizablePanelGroup direction="horizontal">
+        <ResizablePanelGroup orientation="horizontal">
           <ResizablePanel defaultSize={34} minSize={20}>
             <ObjectivesColumn
               user={user}
