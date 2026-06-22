@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookText, Compass, LogOut, NotebookPen, User } from "lucide-react";
+import { BookText, Compass, LogOut, Map, NotebookPen, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -15,21 +17,39 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
+import { useActiveProject } from "@/contexts/active-project";
 import { useBrand } from "@/lib/brand";
+import { listProjects } from "@/lib/xcamp-api";
 
 const items = [
   { title: "journal", url: "/", icon: BookText, labelKey: "nav.journal" },
   { title: "journalApp", url: "/journal", icon: NotebookPen, labelKey: "nav.journalApp" },
+  { title: "navigator", url: "/navigator", icon: Map, labelKey: "nav.navigator" },
   { title: "projectBuilder", url: "/project-builder", icon: Compass, labelKey: "nav.projectBuilder" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { t } = useTranslation();
   const brand = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { activeProjectId, setActiveProjectId } = useActiveProject();
+
+  const projectsQuery = useQuery({
+    queryKey: ["projects", user?.tenantId],
+    queryFn: () => listProjects(user!),
+    enabled: !!user,
+  });
+  const projects = projectsQuery.data ?? [];
+
+  // Default to the first project once loaded.
+  useEffect(() => {
+    if (!activeProjectId && projects.length > 0) {
+      setActiveProjectId(projects[0].id);
+    }
+  }, [activeProjectId, projects, setActiveProjectId]);
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
@@ -47,6 +67,29 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {!collapsed && projects.length > 0 && (
+          <div className="px-2 pt-2">
+            <label
+              className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--skin-ink-faint)" }}
+            >
+              Project
+            </label>
+            <select
+              className="x-input w-full"
+              style={{ height: 32, fontSize: 13 }}
+              value={activeProjectId ?? ""}
+              onChange={(e) => setActiveProjectId(e.target.value || null)}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
