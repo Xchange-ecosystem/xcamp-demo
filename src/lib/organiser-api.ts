@@ -88,14 +88,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function propose(args: {
   userId: string;
   tenantId: string;
-  intent: string;
+  goal?: string;
+  /** @deprecated use goal */
+  intent?: string;
 }): Promise<ProposeResponse> {
   const res = await request<Record<string, unknown>>("/api/organiser/propose", {
     method: "POST",
     body: JSON.stringify({
       user_id: args.userId,
       tenant_id: args.tenantId,
-      goal: args.intent,
+      goal: args.goal ?? args.intent,
       context: {},
     }),
   });
@@ -142,7 +144,10 @@ export async function commit(sessionId: string): Promise<CommitResult> {
   return { succeeded, failures };
 }
 
-export function noteToIntent(title: string, bodyHtml: string | null): string {
+export function noteToGoal(title: string, bodyHtml: string | null): string {
   const body = (bodyHtml ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return [title.trim(), body].filter(Boolean).join("\n\n");
 }
+
+/** @deprecated use noteToGoal */
+export const noteToIntent = noteToGoal;
