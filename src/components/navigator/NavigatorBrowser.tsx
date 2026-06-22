@@ -155,6 +155,15 @@ export function NavigatorBrowser() {
       style={{ borderBottom: "1px solid var(--skin-line)", background: "var(--skin-surface)" }}
     >
       <div className="flex items-center gap-2 min-w-0">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="flex items-center justify-center rounded-md p-1.5"
+          aria-label="Toggle menu"
+          style={{ color: "var(--skin-ink-soft)", background: "transparent", border: "none", cursor: "pointer", flexShrink: 0 }}
+        >
+          <Menu size={18} />
+        </button>
         <Compass size={18} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
         <h1 className="truncate" style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>
           Navigator
