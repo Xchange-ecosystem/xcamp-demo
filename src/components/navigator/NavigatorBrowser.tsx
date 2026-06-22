@@ -267,7 +267,8 @@ function ObjectivesColumn({
   onOpenObjective: (o: ObjectiveRow) => void;
   createObj: ReturnType<typeof useCreateObjective>;
 }) {
-  const { data: objectives = [], isLoading } = useObjectives(user, projectId);
+  const { data: allObjectives = [], isLoading } = useObjectives(user, projectId);
+  const objectives = allObjectives.filter((o) => o.title !== "__general__");
   const [draft, setDraft] = useState("");
 
   const submit = async () => {
