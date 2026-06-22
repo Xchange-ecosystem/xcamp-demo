@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookText, Compass, LogOut, NotebookPen, User } from "lucide-react";
+import { BookText, Compass, LogOut, Map, NotebookPen, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -15,11 +16,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
+import { useActiveProject } from "@/contexts/active-project";
 import { useBrand } from "@/lib/brand";
+import { listProjects } from "@/lib/xcamp-api";
 
 const items = [
   { title: "journal", url: "/", icon: BookText, labelKey: "nav.journal" },
   { title: "journalApp", url: "/journal", icon: NotebookPen, labelKey: "nav.journalApp" },
+  { title: "navigator", url: "/navigator", icon: Map, labelKey: "nav.navigator" },
   { title: "projectBuilder", url: "/project-builder", icon: Compass, labelKey: "nav.projectBuilder" },
 ];
 
