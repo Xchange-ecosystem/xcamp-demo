@@ -95,7 +95,7 @@ export async function propose(args: {
     body: JSON.stringify({
       user_id: args.userId,
       tenant_id: args.tenantId,
-      intent: args.intent,
+      goal: args.intent,
       context: {},
     }),
   });
