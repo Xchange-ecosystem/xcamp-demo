@@ -67,6 +67,29 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {!collapsed && projects.length > 0 && (
+          <div className="px-2 pt-2">
+            <label
+              className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--skin-ink-faint)" }}
+            >
+              Project
+            </label>
+            <select
+              className="x-input w-full"
+              style={{ height: 32, fontSize: 13 }}
+              value={activeProjectId ?? ""}
+              onChange={(e) => setActiveProjectId(e.target.value || null)}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
