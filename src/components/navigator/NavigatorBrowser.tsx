@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Target, Inbox, Compass, ArrowLeft } from "lucide-react";
+import { Plus, Target, Inbox, Compass, ArrowLeft, Menu } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
