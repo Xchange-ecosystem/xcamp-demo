@@ -28,6 +28,7 @@ function ProjectBuilderPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
+        <MenuButton />
         <header className="text-center mb-2">
           <div
             className="mx-auto mb-3 flex items-center justify-center rounded-2xl"
