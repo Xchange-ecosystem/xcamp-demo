@@ -158,10 +158,19 @@ export function NavigatorBrowser() {
           Navigator
         </h1>
       </div>
-      {projectName && (
-        <span className="truncate" style={{ fontSize: 13, color: "var(--skin-ink-soft)" }}>
-          {projectName}
-        </span>
+      {projects.length > 0 && (
+        <select
+          className="x-input"
+          style={{ height: 32, fontSize: 13, maxWidth: isMobile ? 180 : 280 }}
+          value={activeProjectId ?? ""}
+          onChange={(e) => onChangeProject(e.target.value)}
+        >
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       )}
     </div>
   );
