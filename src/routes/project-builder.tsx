@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Compass } from "lucide-react";
+import { Compass, Menu } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useQuickRoad } from "@/hooks/useQuickRoad";
 import { StepIndicator } from "@/components/quickroad/StepIndicator";
 import { InputStep } from "@/components/quickroad/InputStep";
@@ -19,6 +20,21 @@ export const Route = createFileRoute("/project-builder")({
   component: ProjectBuilderPage,
 });
 
+function MenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="mb-2 flex items-center justify-center rounded-md p-1.5"
+      aria-label="Toggle menu"
+      style={{ color: "var(--skin-ink-soft)", background: "transparent", border: "none", cursor: "pointer" }}
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
+
 function ProjectBuilderPage() {
   const qr = useQuickRoad();
   const { state } = qr;
@@ -27,6 +43,7 @@ function ProjectBuilderPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
+        <MenuButton />
         <header className="text-center mb-2">
           <div
             className="mx-auto mb-3 flex items-center justify-center rounded-2xl"
