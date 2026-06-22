@@ -45,9 +45,11 @@ export function AppSidebar() {
   const projects = projectsQuery.data ?? [];
 
   // Default to the first project once loaded.
-  if (!activeProjectId && projects.length > 0) {
-    setActiveProjectId(projects[0].id);
-  }
+  useEffect(() => {
+    if (!activeProjectId && projects.length > 0) {
+      setActiveProjectId(projects[0].id);
+    }
+  }, [activeProjectId, projects, setActiveProjectId]);
 
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
