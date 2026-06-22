@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +32,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NavigatorRoute = NavigatorRouteImport.update({
+  id: '/navigator',
+  path: '/navigator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/journal': typeof JournalRoute
+  '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/journal': typeof JournalRoute
+  '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
   '/project-builder': typeof ProjectBuilderRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/journal': typeof JournalRoute
+  '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/journal'
+    | '/navigator'
     | '/notes'
     | '/profile'
     | '/project-builder'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/journal'
+    | '/navigator'
     | '/notes'
     | '/project-builder'
     | '/profile/appearance'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/journal'
+    | '/navigator'
     | '/notes'
     | '/profile'
     | '/project-builder'
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   JournalRoute: typeof JournalRoute
+  NavigatorRoute: typeof NavigatorRoute
   NotesRoute: typeof NotesRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/navigator': {
+      id: '/navigator'
+      path: '/navigator'
+      fullPath: '/navigator'
+      preLoaderRoute: typeof NavigatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -208,6 +228,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   JournalRoute: JournalRoute,
+  NavigatorRoute: NavigatorRoute,
   NotesRoute: NotesRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
