@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BookText, Compass, LogOut, Map, NotebookPen, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
