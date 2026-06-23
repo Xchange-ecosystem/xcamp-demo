@@ -1,5 +1,4 @@
-@import "tailwindcss" source(none);
-@source "../src";
+/* @xchange/ui/styles provides @import 'tailwindcss' and base resets. */
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -189,18 +188,18 @@
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 }
 
+/*
+ * App-specific base overrides. Unlayered so they win over globals.css's
+ * unlayered body/* rules via source order (this file loads after @xchange/ui/styles).
+ */
+* {
+  border-color: var(--color-border);
+}
 
-
-@layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  body {
-    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-    background-color: var(--skin-bg);
-    color: var(--skin-ink);
-  }
+body {
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--skin-bg);
+  color: var(--skin-ink);
 }
 
 /* ---------- Xcamp component primitives ---------- */
