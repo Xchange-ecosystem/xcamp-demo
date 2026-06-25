@@ -1,4 +1,4 @@
-/* @xchange/ui/styles provides @import 'tailwindcss' and base resets. */
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

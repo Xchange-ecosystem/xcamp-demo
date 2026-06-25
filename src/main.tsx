@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 
-import "@xchange/ui/styles";
 import "./styles.css";
 
 const router = getRouter();
