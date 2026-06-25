@@ -74,7 +74,7 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "zod": "^3.24.2",
-    "@xchange/ui": "file:../xcamp-designsystem"
+    "@xchange/ui": "github:Xchange-ecosystem/xcamp-designsystem"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
