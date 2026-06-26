@@ -1,5 +1,5 @@
 {
-  "buildCommand": "corepack enable && cd submodules/xcamp-sdk && pnpm install && pnpm --filter @xchange/client build && cd ../.. && bun run build",
+  "buildCommand": "cd submodules/xcamp-sdk/packages/client && npm install && npm run build && cd ../../.. && bun run build",
   "installCommand": "bun install",
   "outputDirectory": "dist",
   "git": {
