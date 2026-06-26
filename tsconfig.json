@@ -21,7 +21,13 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@xchange/companion": ["../xcamp-sdk/packages/companion/src/index.ts"],
+      "@xchange/companion/*": ["../xcamp-sdk/packages/companion/src/*"],
+      "@xchange/client": ["../xcamp-sdk/packages/client/src/index.ts"],
+      "@xchange/client/*": ["../xcamp-sdk/packages/client/src/*"],
+      "@xchange/ui": ["../xcamp-designsystem/src/index.ts"],
+      "@xchange/ui/*": ["../xcamp-designsystem/src/*"]
     }
   }
 }
