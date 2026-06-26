@@ -1,5 +1,5 @@
 {
-  "buildCommand": "git config --global url.\"https://${GITHUB_TOKEN}@github.com/\".insteadOf \"https://github.com/\" && git submodule update --init --recursive && cd submodules/xcamp-sdk/packages/client && npm install && npm run build && cd ../../.. && bun run build",
+  "buildCommand": "bun run build",
   "installCommand": "bun install",
   "outputDirectory": "dist",
   "rewrites": [
