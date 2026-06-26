@@ -16,6 +16,8 @@ const resources = {
   en: {
     translation: {
       nav: {
+        home: "Home",
+        notes: "Notes",
         journal: "Notes",
         journalApp: "Journal",
         projectBuilder: "Project Builder",
@@ -57,6 +59,8 @@ const resources = {
   es: {
     translation: {
       nav: {
+        home: "Inicio",
+        notes: "Notas",
         journal: "Notas",
         journalApp: "Diario",
         projectBuilder: "Constructor de proyectos",
@@ -98,6 +102,8 @@ const resources = {
   fr: {
     translation: {
       nav: {
+        home: "Accueil",
+        notes: "Notes",
         journal: "Notes",
         journalApp: "Journal",
         projectBuilder: "Créateur de projet",
@@ -139,6 +145,8 @@ const resources = {
   de: {
     translation: {
       nav: {
+        home: "Startseite",
+        notes: "Notizen",
         journal: "Notizen",
         journalApp: "Journal",
         projectBuilder: "Projekt-Builder",
