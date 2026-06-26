@@ -21,7 +21,13 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@xchange/companion": ["./vendor/companion/src/index.ts"],
+      "@xchange/companion/*": ["./vendor/companion/src/*"],
+      "@xchange/client": ["./vendor/client/src/index.ts"],
+      "@xchange/client/*": ["./vendor/client/src/*"],
+      "@xchange/ui": ["./vendor/ui/src/index.ts"],
+      "@xchange/ui/*": ["./vendor/ui/src/*"]
     }
   }
 }
