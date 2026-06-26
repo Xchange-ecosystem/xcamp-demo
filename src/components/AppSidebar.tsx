@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookText, ChevronDown, Compass, LogOut, Map, NotebookPen, PanelLeftClose, PanelLeftOpen, User } from "lucide-react";
+import { ChevronDown, Compass, Home, LogOut, Map, NotebookPen, PanelLeftClose, PanelLeftOpen, StickyNote, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,10 +21,11 @@ import { listProjects } from "@/lib/xcamp-api";
 import { AppLogo } from "@/components/AppLogo";
 
 const items = [
-  { title: "home", url: "/home", icon: BookText, labelKey: "nav.journal" },
-  { title: "journalApp", url: "/journal", icon: NotebookPen, labelKey: "nav.journalApp" },
-  { title: "navigator", url: "/navigator", icon: Map, labelKey: "nav.navigator" },
-  { title: "projectBuilder", url: "/project-builder", icon: Compass, labelKey: "nav.projectBuilder" },
+  { title: "home",           url: "/home",           icon: Home,        labelKey: "nav.home" },
+  { title: "notes",          url: "/notes",          icon: StickyNote,  labelKey: "nav.notes" },
+  { title: "journalApp",     url: "/journal",        icon: NotebookPen, labelKey: "nav.journalApp" },
+  { title: "navigator",      url: "/navigator",      icon: Map,         labelKey: "nav.navigator" },
+  { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
 ];
 
 export function AppSidebar() {
