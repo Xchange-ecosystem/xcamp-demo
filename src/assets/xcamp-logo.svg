@@ -1,0 +1,6 @@
+<!-- PLACEHOLDER asset. Replace with real branding supplied by Claude Design. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="40" viewBox="0 0 160 40" role="img" aria-label="Xcamp">
+  <rect width="160" height="40" rx="8" fill="currentColor" fill-opacity="0.08"/>
+  <rect x="6" y="8" width="24" height="24" rx="6" fill="currentColor" fill-opacity="0.85"/>
+  <text x="40" y="26" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="18" font-weight="600" fill="currentColor">Xcamp</text>
+</svg>

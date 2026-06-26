@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Local env — never commit real secrets. See .env.example for required keys.
+.env
+.env.*
+!.env.example
 .output
 .vinxi
 .tanstack/**

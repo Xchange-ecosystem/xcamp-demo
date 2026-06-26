@@ -4,12 +4,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  HeadContent,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { AuthProvider } from "../contexts/auth";
 import { ActiveProjectProvider } from "../contexts/active-project";
-import { ThemeProvider } from "../lib/theme";
 import { Toaster } from "../components/ui/sonner";
 import "../lib/i18n";
 
@@ -73,6 +73,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Xcamp Nox" },
+      { name: "description", content: "Capture and organise your notes." },
+      { property: "og:title", content: "Xcamp Nox" },
+      { property: "og:description", content: "Capture and organise your notes." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Xcamp Nox" },
+      { name: "twitter:description", content: "Capture and organise your notes." },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap",
+      },
+    ],
+  }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
@@ -83,14 +105,16 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <ActiveProjectProvider>
-            <Outlet />
-            <Toaster />
-          </ActiveProjectProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      {/* Client-side head management (per-route title/meta). No SSR shell:
+          index.html provides <html>/<body> and main.tsx mounts into #root. */}
+      <HeadContent />
+      <AuthProvider>
+        <ActiveProjectProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster />
+        </ActiveProjectProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

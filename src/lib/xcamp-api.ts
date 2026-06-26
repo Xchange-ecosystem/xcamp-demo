@@ -1,6 +1,6 @@
 // Xcamp Journal data access — direct Supabase table access only.
 // No RPCs. Journal only writes `notes` with note_type='note'.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import type { Json } from "@/integrations/supabase/types";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 

@@ -1,6 +1,6 @@
 // Backcaster Quick Road API client — talks directly to the live xcampapi backend.
 // Auth bearer token comes from the app's own Supabase session.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 const BASE_URL = "https://xcampapi.xchange.eco/api/v1/backcaster";
 

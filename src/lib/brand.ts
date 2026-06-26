@@ -1,8 +1,10 @@
 import { useTheme } from "@/lib/theme";
-import xcampLogo from "@/assets/xcamp-logo.svg.asset.json";
-import xcampIcon from "@/assets/xcamp-icon.png.asset.json";
-import noxLogo from "@/assets/nox-logo.png.asset.json";
-import noxIcon from "@/assets/nox-icon.png.asset.json";
+// Vite returns the resolved asset URL (string) for `.svg` imports.
+// NOTE: these are placeholder marks — Claude Design will supply real branding.
+import xcampLogo from "@/assets/xcamp-logo.svg";
+import xcampIcon from "@/assets/xcamp-icon.svg";
+import noxLogo from "@/assets/nox-logo.svg";
+import noxIcon from "@/assets/nox-icon.svg";
 
 export function useBrand() {
   const { resolved } = useTheme();
@@ -10,7 +12,7 @@ export function useBrand() {
   return {
     isNox,
     name: isNox ? "Nox" : "Xcamp",
-    logoUrl: isNox ? noxLogo.url : xcampLogo.url,
-    iconUrl: isNox ? noxIcon.url : xcampIcon.url,
+    logoUrl: isNox ? noxLogo : xcampLogo,
+    iconUrl: isNox ? noxIcon : xcampIcon,
   };
 }
