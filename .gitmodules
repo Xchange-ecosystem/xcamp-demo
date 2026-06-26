@@ -1,0 +1,8 @@
+[submodule "submodules/xcamp-sdk"]
+	path = submodules/xcamp-sdk
+	url = https://github.com/Xchange-ecosystem/xcamp-sdk.git
+	branch = main
+[submodule "submodules/xcamp-designsystem"]
+	path = submodules/xcamp-designsystem
+	url = https://github.com/Xchange-ecosystem/xcamp-designsystem.git
+	branch = main

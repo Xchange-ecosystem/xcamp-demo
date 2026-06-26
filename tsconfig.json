@@ -22,12 +22,12 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@xchange/companion": ["../xcamp-sdk/packages/companion/src/index.ts"],
-      "@xchange/companion/*": ["../xcamp-sdk/packages/companion/src/*"],
-      "@xchange/client": ["../xcamp-sdk/packages/client/src/index.ts"],
-      "@xchange/client/*": ["../xcamp-sdk/packages/client/src/*"],
-      "@xchange/ui": ["../xcamp-designsystem/src/index.ts"],
-      "@xchange/ui/*": ["../xcamp-designsystem/src/*"]
+      "@xchange/companion": ["./submodules/xcamp-sdk/packages/companion/src/index.ts"],
+      "@xchange/companion/*": ["./submodules/xcamp-sdk/packages/companion/src/*"],
+      "@xchange/client": ["./submodules/xcamp-sdk/packages/client/src/index.ts"],
+      "@xchange/client/*": ["./submodules/xcamp-sdk/packages/client/src/*"],
+      "@xchange/ui": ["./submodules/xcamp-designsystem/src/index.ts"],
+      "@xchange/ui/*": ["./submodules/xcamp-designsystem/src/*"]
     }
   }
 }
