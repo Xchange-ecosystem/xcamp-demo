@@ -448,3 +448,14 @@ body {
 .x-fade-in {
   animation: xFadeIn 0.5s ease-out;
 }
+
+/* ---- Sidebar drag-to-resize handle ---- */
+.sidebar-resize-handle {
+  opacity: 0;
+  background: var(--primary, #0ea5e9);
+  transition: opacity 150ms;
+}
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  opacity: 1;
+}
