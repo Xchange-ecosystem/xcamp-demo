@@ -2,7 +2,7 @@
 // Adapted from the Xcamp Foundation navigator, using this app's supabase
 // client and XcampUser identity.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import type { Json } from "@/integrations/supabase/types";
 import type { NoteRow, XcampUser } from "@/types/xcamp";
 

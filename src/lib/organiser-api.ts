@@ -1,6 +1,6 @@
 // Chi Organiser API client — talks directly to the live chiapi backend.
 // Auth bearer token comes from the app's own Supabase session.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 const BASE_URL = "https://chiapi.xchange.eco";
 

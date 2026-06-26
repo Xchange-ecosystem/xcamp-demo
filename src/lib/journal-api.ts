@@ -1,6 +1,6 @@
 // Journal → Notes flow API client. Talks to the live chiapi backend and reads
 // the Supabase session for auth + tenant context.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 const BASE_URL = "https://chiapi.xchange.eco";
 

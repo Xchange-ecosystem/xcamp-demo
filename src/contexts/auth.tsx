@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { resolveCentralUser } from "@/lib/xcamp-api";
 import type { XcampUser } from "@/types/xcamp";
 
