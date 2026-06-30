@@ -346,6 +346,8 @@ function normalizeTree(tree: OutputTree): OutputTree {
 
 export async function fillNode(body: {
   session_id: string;
+  interpreted_input: string;
+  output_tree: OutputTree;
   parent_node_id: string;
   context?: string;
 }): Promise<OutputNode> {
