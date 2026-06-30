@@ -2,6 +2,7 @@
 // the Supabase session for auth + tenant context.
 import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
+import type { AICard } from "@/types/ai";
 
 const BASE_URL = "https://chiapi.xchange.eco";
 
@@ -30,6 +31,7 @@ export interface JournalTopic {
 
 export interface AnswerWithContextResult {
   answer: string;
+  cards: AICard[];
 }
 
 export class JournalError extends Error {
@@ -148,10 +150,12 @@ export async function answerWithContext(args: {
   const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
   const answer =
     (typeof root.answer === "string" && root.answer) ||
+    (typeof root.reply_markdown === "string" && root.reply_markdown) ||
     (typeof root.text === "string" && root.text) ||
     (typeof root.response === "string" && root.response) ||
     "";
-  return { answer: answer as string };
+  const cards = Array.isArray(root.cards) ? (root.cards as AICard[]) : [];
+  return { answer: answer as string, cards };
 }
 
 export interface CommitResult {
