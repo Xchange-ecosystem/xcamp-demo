@@ -1,18 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { MessageSquarePlus, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { CompanionShell } from "@/components/CompanionShell";
-import { EntityPanel } from "@/components/EntityPanel";
-import { ActionPillButton } from "@/shared/ui/ActionPillButton";
-import { ProjectCard } from "@/shared/ui/ProjectCard";
-import { CreateProjectTile } from "@/shared/ui/CreateProjectTile";
+import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
 import { listProjectsFull } from "@/lib/xcamp-api";
+import { useCompanionSession } from "@/lib/useCompanionSession";
 import type { ProjectFull } from "@/types/xcamp";
 
-// ─── CSS custom properties injected as inline style on the glass panel ───────
+// ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
   "--glass-blur": "18px",
   "--glass-bg-light": "rgba(255,255,255,0.55)",
@@ -20,6 +18,13 @@ const GLASS_STYLE: React.CSSProperties = {
   "--glass-border": "rgba(255,255,255,0.18)",
   "--glass-shadow": "0 8px 40px rgba(0,0,0,0.28)",
 } as React.CSSProperties;
+
+const SHORTCUT_PILLS = [
+  { id: "note", label: "Quick note" },
+  { id: "objective", label: "Set objective" },
+  { id: "reflect", label: "Reflect" },
+  { id: "plan", label: "Plan today" },
+];
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -31,76 +36,140 @@ export const Route = createFileRoute("/home")({
   component: CompanionHomePage,
 });
 
-// ─── Step state machine ───────────────────────────────────────────────────────
-type Step = "welcome" | "project-select" | "inside-project";
-
-// ─── Shortcut pill definitions ────────────────────────────────────────────────
-const SHORTCUT_PILLS = [
-  { id: "note",      label: "Quick note" },
-  { id: "objective", label: "Set objective" },
-  { id: "reflect",   label: "Reflect" },
-  { id: "plan",      label: "Plan today" },
-];
+// ─── Conversation controller step ─────────────────────────────────────────────
+type ConvStep = "welcome" | "project-select" | "inside-project";
 
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
 
-  // ── Step state ──────────────────────────────────────────────────────────────
-  const [step, setStep] = useState<Step>("welcome");
+  // ── Companion session (persistence) ────────────────────────────────────────
+  const session = useCompanionSession(authUser);
+
+  // ── Step state (drives what the controller dispatches next) ────────────────
+  const [step, setStep] = useState<ConvStep>("welcome");
   const [activeProject, setActiveProject] = useState<ProjectFull | null>(null);
+  // Track which component message ids correspond to each step's grid/cards
+  const gridMsgIdRef = useRef<string | null>(null);
 
-  // ── Entity panel smoke-test state ──────────────────────────────────────────
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [panelType, setPanelType] = useState<"note" | "task" | "objective">("note");
-
-  // ── TTS toggle (inert — wired later) ───────────────────────────────────────
+  // ── TTS toggle (inert — wired in CC-2) ────────────────────────────────────
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
   // ── Background image ───────────────────────────────────────────────────────
-  // When inside a project with a feature_image, use that URL directly.
-  // Otherwise fall back to the hero bucket with seed "companion-home".
-  const projectBgUrl = step === "inside-project" && activeProject?.feature_image
-    ? activeProject.feature_image
-    : null;
-  const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion-home");
+  // Fix 1: seed is just "companion" — images are in Hero/ root, not subfolder
+  const projectBgUrl =
+    step === "inside-project" && activeProject?.feature_image
+      ? activeProject.feature_image
+      : null;
+  // Fix 3: canReload always passed through (no && !projectBgUrl gating)
+  const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion");
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
-  // ── Projects query ─────────────────────────────────────────────────────────
+  // ── Projects query — Fix 2: pass authUser directly (has tenantId) ──────────
   const { data: projects = [] } = useQuery({
-    queryKey: ["projects-full", authUser?.authId],
-    queryFn: async () => {
-      // Build a minimal XcampUser from authUser; full user resolved elsewhere
-      // We need tenantId — guard gracefully if not yet resolved.
-      if (!authUser) return [];
-      // Re-use the resolved user from context if available; otherwise skip query.
-      return [];
-    },
-    enabled: !!authUser && step === "project-select",
+    queryKey: ["projects-full", authUser?.centralId],
+    queryFn: () => listProjectsFull(authUser!),
+    enabled: !!authUser,
   });
 
-  // Separate query with resolved xcamp user — needs the auth context to provide it.
-  // For now the query above returns [] until the auth context exposes xcampUser.
-  // This is an intentional stub — wired fully in CC-2.
-  void projects;
+  // ── Free-input state ───────────────────────────────────────────────────────
+  const [draft, setDraft] = useState("");
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  function handleProjectSelect(p: ProjectFull) {
-    setActiveProject(p);
-    setStep("inside-project");
-  }
-
-  function handleShortcut(id: string) {
-    if (id === "note") {
-      setPanelType("note");
-      setPanelOpen(true);
-    } else if (id === "objective") {
-      setPanelType("objective");
-      setPanelOpen(true);
+  // ── Conversation controller: welcome dispatch on first load ───────────────
+  // Only fires once per session (when messages are empty and loading is done)
+  const welcomeFiredRef = useRef(false);
+  useEffect(() => {
+    if (session.loading || welcomeFiredRef.current) return;
+    if (session.messages.length > 0) {
+      // Reconstruct step from persisted messages
+      welcomeFiredRef.current = true;
+      return;
     }
-    // reflect / plan-today — wired in later sessions
-  }
+    welcomeFiredRef.current = true;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+    async function dispatchWelcome() {
+      await session.appendChiMessage(
+        "Hello! Let's make the most of today. What would you like to work on?",
+      );
+      await session.appendChiMessage("Let's jump into a project.");
+      const gridId = await session.appendComponentMessage("project-grid");
+      gridMsgIdRef.current = gridId;
+      setStep("project-select");
+    }
+
+    void dispatchWelcome();
+  }, [session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Project selection handler ─────────────────────────────────────────────
+  const handleProjectSelect = useCallback(
+    async (project: ProjectFull) => {
+      setActiveProject(project);
+      // Resolve (grey out) the grid component
+      if (gridMsgIdRef.current) session.resolveComponent(gridMsgIdRef.current);
+      // Append user selection + Chi response
+      await session.appendUserMessage(project.name);
+      await session.appendChiMessage(
+        `Here's what I suggest you focus on today.`,
+      );
+      await session.appendComponentMessage("action-cards-stub");
+      setStep("inside-project");
+    },
+    [session],
+  );
+
+  // ── Project branching: 0 projects → backcaster, 1 → auto-select ──────────
+  // Applied after projects load if we're in project-select and have no grid yet
+  const branchFiredRef = useRef(false);
+  useEffect(() => {
+    if (step !== "project-select") return;
+    if (session.loading) return;
+    if (branchFiredRef.current) return;
+    if (projects.length === 0) return; // wait for query
+
+    branchFiredRef.current = true;
+
+    if (projects.length === 1) {
+      // Auto-select the single project
+      void handleProjectSelect(projects[0]);
+    }
+    // 2+ projects: grid already rendered, nothing extra to dispatch
+    // 0 projects handled by query returning empty — grid shows "No projects yet"
+  }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── New session handler ───────────────────────────────────────────────────
+  const handleNewSession = useCallback(async () => {
+    if (!confirm("Start a new conversation?")) return;
+    await session.newSession();
+    setStep("welcome");
+    setActiveProject(null);
+    welcomeFiredRef.current = false;
+    branchFiredRef.current = false;
+    gridMsgIdRef.current = null;
+  }, [session]);
+
+  // ── Free-text submit ──────────────────────────────────────────────────────
+  const handleSend = useCallback(async () => {
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    await session.appendUserMessage(text);
+    await session.appendChiMessage("Got it — I'll help with that soon.");
+  }, [draft, session]);
+
+  // ── Shortcut pills ────────────────────────────────────────────────────────
+  const handleShortcut = useCallback(
+    async (id: string) => {
+      if (id === "note") {
+        await session.appendUserMessage("Quick note");
+        await session.appendChiMessage("Got it — I'll help with that soon.");
+      } else if (id === "objective") {
+        await session.appendUserMessage("Set objective");
+        await session.appendChiMessage("Got it — I'll help with that soon.");
+      }
+    },
+    [session],
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <CompanionShell>
       {/* Layer 0 — full-screen background */}
@@ -109,19 +178,17 @@ function CompanionHomePage() {
           position: "fixed",
           inset: 0,
           zIndex: 0,
-          background: bgUrl
-            ? `url(${bgUrl}) center/cover no-repeat`
-            : "var(--skin-surface)",
+          background: bgUrl ? `url(${bgUrl}) center/cover no-repeat` : "var(--skin-surface)",
           transition: "background-image 0.6s ease",
         }}
       />
-      {/* Layer 0.5 — dim scrim for legibility */}
+      {/* Layer 0.5 — dim scrim */}
       <div
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 1,
-          background: "rgba(0,0,0,0.35)",
+          background: "rgba(0,0,0,0.38)",
           pointerEvents: "none",
         }}
       />
@@ -131,10 +198,11 @@ function CompanionHomePage() {
         ttsEnabled={ttsEnabled}
         onTtsToggle={() => setTtsEnabled((v) => !v)}
         onReload={reloadHero}
-        canReload={canReload && !projectBgUrl}
+        canReload={canReload}
+        onNewSession={handleNewSession}
       />
 
-      {/* Layer 2 — glass panel (center) */}
+      {/* Layer 2 — glass panel */}
       <div
         style={{
           position: "fixed",
@@ -146,32 +214,96 @@ function CompanionHomePage() {
           pointerEvents: "none",
         }}
       >
-        <GlassPanel step={step} activeProject={activeProject} onEnterProjects={() => setStep("project-select")} onBack={() => setStep("welcome")}>
-          {step === "welcome" && (
-            <WelcomeStep onEnterProjects={() => setStep("project-select")} />
-          )}
-          {step === "project-select" && (
-            <ProjectSelectStep
-              onSelect={handleProjectSelect}
-              onCreateProject={() => {/* wired in CC-2 */}}
+        <div
+          style={{
+            ...GLASS_STYLE,
+            pointerEvents: "auto",
+            width: "min(580px, 92vw)",
+            height: "min(600px, 78vh)",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 20,
+            background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
+            border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
+            boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
+            backdropFilter: "blur(var(--glass-blur, 18px))",
+            WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
+            color: "white",
+            overflow: "hidden",
+          }}
+        >
+          {/* Thread area */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
+            <ChatThread
+              messages={session.messages}
+              projects={projects}
+              onProjectSelect={handleProjectSelect}
+              onCreateProject={() => {/* CC-3 scope */}}
             />
-          )}
-          {step === "inside-project" && activeProject && (
-            <InsideProjectStep project={activeProject} onBack={() => setStep("project-select")} />
-          )}
-        </GlassPanel>
+          </div>
+
+          {/* Input bar */}
+          <div
+            style={{
+              flexShrink: 0,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              padding: "10px 14px 12px",
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-end",
+            }}
+          >
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              rows={2}
+              placeholder="Ask Chi anything…"
+              style={{
+                flex: 1,
+                resize: "none",
+                background: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                borderRadius: 10,
+                color: "white",
+                fontSize: 14,
+                padding: "8px 12px",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              onClick={() => void handleSend()}
+              disabled={!draft.trim()}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "var(--skin-accent-gradient)",
+                border: "none",
+                color: "white",
+                cursor: draft.trim() ? "pointer" : "not-allowed",
+                opacity: draft.trim() ? 1 : 0.4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flexShrink: 0,
+              }}
+            >
+              ➤
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Layer 3 — shortcut pill bar (pinned bottom) */}
+      {/* Layer 3 — shortcut pill bar */}
       <ShortcutPillBar onShortcut={handleShortcut} />
-
-      {/* Entity panel smoke-test */}
-      <EntityPanel
-        open={panelOpen}
-        onClose={() => setPanelOpen(false)}
-        type={panelType}
-        id="smoke-test-placeholder"
-      />
     </CompanionShell>
   );
 }
@@ -182,11 +314,13 @@ function TopChrome({
   onTtsToggle,
   onReload,
   canReload,
+  onNewSession,
 }: {
   ttsEnabled: boolean;
   onTtsToggle: () => void;
   onReload: () => void;
   canReload: boolean;
+  onNewSession: () => void;
 }) {
   return (
     <div
@@ -202,19 +336,22 @@ function TopChrome({
         pointerEvents: "auto",
       }}
     >
+      <ChromeButton onClick={onNewSession} title="New conversation">
+        <MessageSquarePlus size={15} />
+      </ChromeButton>
       {canReload && (
-        <IconButton onClick={onReload} title="Reload background">
-          <RefreshCw size={16} />
-        </IconButton>
+        <ChromeButton onClick={onReload} title="Reload background">
+          <RefreshCw size={15} />
+        </ChromeButton>
       )}
-      <IconButton onClick={onTtsToggle} title={ttsEnabled ? "Disable TTS" : "Enable TTS"}>
-        {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-      </IconButton>
+      <ChromeButton onClick={onTtsToggle} title={ttsEnabled ? "Disable TTS" : "Enable TTS"}>
+        {ttsEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+      </ChromeButton>
     </div>
   );
 }
 
-function IconButton({
+function ChromeButton({
   children,
   onClick,
   title,
@@ -231,8 +368,8 @@ function IconButton({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 36,
-        height: 36,
+        width: 34,
+        height: 34,
         borderRadius: "50%",
         background: "rgba(255,255,255,0.15)",
         border: "1px solid rgba(255,255,255,0.2)",
@@ -244,139 +381,6 @@ function IconButton({
     >
       {children}
     </button>
-  );
-}
-
-// ─── Glass panel ─────────────────────────────────────────────────────────────
-function GlassPanel({
-  children,
-  step: _step,
-  activeProject: _ap,
-  onEnterProjects: _oep,
-  onBack: _ob,
-}: {
-  children: React.ReactNode;
-  step: Step;
-  activeProject: ProjectFull | null;
-  onEnterProjects: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div
-      style={{
-        ...GLASS_STYLE,
-        pointerEvents: "auto",
-        width: "min(560px, 92vw)",
-        maxHeight: "72vh",
-        overflowY: "auto",
-        borderRadius: 20,
-        background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
-        border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
-        boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
-        backdropFilter: "blur(var(--glass-blur, 18px))",
-        WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-        padding: "28px 28px 24px",
-        color: "white",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ─── Step: Welcome ────────────────────────────────────────────────────────────
-function WelcomeStep({ onEnterProjects }: { onEnterProjects: () => void }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}>
-          Good to see you.
-        </h1>
-        <p style={{ margin: "8px 0 0", fontSize: 15, opacity: 0.75, lineHeight: 1.5 }}>
-          What would you like to work on today?
-        </p>
-      </div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <ActionPillButton label="Pick a project" onClick={onEnterProjects} />
-        <ActionPillButton
-          label="Quick note"
-          style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Step: Project select ─────────────────────────────────────────────────────
-function ProjectSelectStep({
-  onSelect,
-  onCreateProject,
-}: {
-  onSelect: (p: ProjectFull) => void;
-  onCreateProject: () => void;
-}) {
-  // Stub projects list — wired to real data in CC-2 once xcampUser is exposed
-  const stubProjects: ProjectFull[] = [];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Choose a project</h2>
-      {stubProjects.length === 0 ? (
-        <p style={{ margin: 0, fontSize: 14, opacity: 0.65 }}>
-          No projects yet — create your first one below.
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {stubProjects.map((p) => (
-            <ProjectCard key={p.id} project={p} onClick={() => onSelect(p)} />
-          ))}
-        </div>
-      )}
-      <CreateProjectTile onClick={onCreateProject} />
-    </div>
-  );
-}
-
-// ─── Step: Inside project ─────────────────────────────────────────────────────
-function InsideProjectStep({
-  project,
-  onBack,
-}: {
-  project: ProjectFull;
-  onBack: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button
-          onClick={onBack}
-          style={{
-            all: "unset",
-            cursor: "pointer",
-            fontSize: 13,
-            opacity: 0.65,
-            textDecoration: "underline",
-          }}
-        >
-          ← Projects
-        </button>
-      </div>
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{project.name}</h2>
-      {project.description && (
-        <p style={{ margin: 0, fontSize: 14, opacity: 0.7, lineHeight: 1.5 }}>
-          {project.description}
-        </p>
-      )}
-      <p style={{ margin: 0, fontSize: 13, opacity: 0.5 }}>
-        [Project context panel — wired in CC-2]
-      </p>
-    </div>
   );
 }
 
@@ -394,7 +398,7 @@ function ShortcutPillBar({ onShortcut }: { onShortcut: (id: string) => void }) {
         gap: 8,
         padding: "8px 16px",
         borderRadius: "var(--xr-pill, 999px)",
-        background: "rgba(18,10,30,0.55)",
+        background: "rgba(18,10,30,0.6)",
         border: "1px solid rgba(255,255,255,0.18)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
@@ -414,13 +418,6 @@ function ShortcutPillBar({ onShortcut }: { onShortcut: (id: string) => void }) {
             fontWeight: 500,
             color: "rgba(255,255,255,0.85)",
             background: "rgba(255,255,255,0.1)",
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.2)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)";
           }}
         >
           {pill.label}
