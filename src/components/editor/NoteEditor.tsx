@@ -1,9 +1,35 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, FileText, Download, Globe, Tag as TagIcon, ArrowLeft, SlidersHorizontal, ChevronDown, Sparkles } from "lucide-react";
+import {
+  X,
+  FileText,
+  Download,
+  Globe,
+  Tag as TagIcon,
+  ArrowLeft,
+  SlidersHorizontal,
+  ChevronDown,
+  Sparkles,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
 import { MultiSelectDropdown } from "@/components/ui/multi-select";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_TYPE_LABELS: Record<string, string> = {
@@ -93,6 +119,88 @@ export function NoteEditor({
   );
   const [metaOpen, setMetaOpen] = useState(false);
 
+  // Autosave state
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
+  // Unsaved-changes tracking — skip the very first render
+  const isFirstRender = useRef(true);
+  const hasUnsavedChanges = useRef(false);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    hasUnsavedChanges.current = true;
+  }, [body, title]);
+
+  // Debounced values for autosave (1500 ms)
+  const debouncedBody = useDebounce(body, 1500);
+  const debouncedTitle = useDebounce(title, 1500);
+
+  // Stable initial-value refs — set once on mount, never change
+  const initialBodyRef = useRef(body);
+  const initialTitleRef = useRef(title);
+
+  // Keep onSave prop fresh without it being a dep of the autosave effect
+  const onSaveRef = useRef(onSave);
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  // Always-fresh snapshot of current save values, updated every render
+  const currentValuesRef = useRef<NoteEditorValues>({
+    title: title.trim() || "Untitled",
+    bodyHtml: body,
+    projectId: projectId || null,
+    noteType,
+    objectiveIds: projectId ? objectiveIds : [],
+    tags,
+    attachments,
+  });
+  useEffect(() => {
+    currentValuesRef.current = {
+      title: title.trim() || "Untitled",
+      bodyHtml: body,
+      projectId: projectId || null,
+      noteType,
+      objectiveIds: projectId ? objectiveIds : [],
+      tags,
+      attachments,
+    };
+  });
+
+  // Autosave: fires 1500 ms after the last title/content keystroke
+  useEffect(() => {
+    if (
+      debouncedBody === initialBodyRef.current &&
+      debouncedTitle === initialTitleRef.current
+    ) {
+      return;
+    }
+    const isNonEmpty =
+      debouncedTitle.trim().length > 0 ||
+      debouncedBody.replace(/<[^>]+>/g, "").trim().length > 0;
+    if (!isNonEmpty) return;
+    setSaveStatus("saving");
+    onSaveRef.current(currentValuesRef.current);
+  }, [debouncedBody, debouncedTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Detect when saving prop transitions true → false (save completed)
+  const prevSaving = useRef(false);
+  useEffect(() => {
+    if (prevSaving.current && !saving) {
+      setSaveStatus("saved");
+      hasUnsavedChanges.current = false;
+      const t = setTimeout(
+        () => setSaveStatus((s) => (s === "saved" ? "idle" : s)),
+        2000,
+      );
+      return () => clearTimeout(t);
+    }
+    prevSaving.current = saving;
+  }, [saving]);
+
   // Load existing objective links for an edited note (once).
   useQuery({
     queryKey: ["note-objectives", initial?.id],
@@ -127,29 +235,24 @@ export function NoteEditor({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const canSave = title.trim().length > 0 || body.replace(/<[^>]+>/g, "").trim().length > 0;
-
-  const save = () =>
-    onSave({
-      title: title.trim() || "Untitled",
-      bodyHtml: body,
-      projectId: projectId || null,
-      noteType,
-      objectiveIds: projectId ? objectiveIds : [],
-      tags,
-      attachments,
-    });
-
+  const handleBack = () => {
+    if (hasUnsavedChanges.current) {
+      setShowUnsavedModal(true);
+    } else {
+      onCancel();
+    }
+  };
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
+      {/* Header row */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
           <button
             className="x-btn-secondary"
             aria-label="Back to history"
             title="Back to history"
-            onClick={onCancel}
+            onClick={handleBack}
             style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
           >
             <ArrowLeft size={14} />
@@ -157,6 +260,12 @@ export function NoteEditor({
           <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
             {editing.mode === "new" ? "New note" : "Editing note"}
           </span>
+          {saveStatus === "saving" && (
+            <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saving…</span>
+          )}
+          {saveStatus === "saved" && (
+            <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saved</span>
+          )}
         </div>
         <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
           {onOrganise && (
@@ -165,22 +274,57 @@ export function NoteEditor({
               Organise with Chi
             </button>
           )}
-          <div className="flex items-center gap-2">
-            {onArchive && (
-              <button className="x-btn-secondary flex-1 sm:flex-none" style={{ color: "var(--danger)" }} onClick={onArchive} disabled={archiving}>
-                {archiving ? "Deleting…" : "Delete"}
-              </button>
-            )}
-            <button className="x-btn-secondary flex-1 sm:flex-none" onClick={onCancel}>
-              Cancel
-            </button>
-            <button className="x-btn-primary flex-1 sm:flex-none" onClick={save} disabled={!canSave || saving}>
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </div>
+          {onArchive && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="x-btn-secondary"
+                  aria-label="More options"
+                  style={{ height: 32, width: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <MoreVertical size={14} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={onArchive}
+                  disabled={archiving}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {archiving ? "Deleting…" : "Delete note"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
+      {/* Unsaved changes confirmation dialog */}
+      <Dialog open={showUnsavedModal} onOpenChange={setShowUnsavedModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved changes</DialogTitle>
+          </DialogHeader>
+          <p style={{ fontSize: 14, color: "var(--skin-ink-soft)" }}>
+            Your changes haven’t been saved yet. Leave anyway?
+          </p>
+          <DialogFooter>
+            <button className="x-btn-secondary" onClick={() => setShowUnsavedModal(false)}>
+              Stay
+            </button>
+            <button
+              className="x-btn-primary"
+              onClick={() => {
+                setShowUnsavedModal(false);
+                onCancel();
+              }}
+            >
+              Leave anyway
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <textarea
         className="x-input x-editor-title"
@@ -228,7 +372,6 @@ export function NoteEditor({
       <>
       {/* Note type pill selector */}
       <div className="mb-4 flex flex-wrap gap-2">
-
         {NOTE_TYPES.map((t) => {
           const active = noteType === t;
           return (
@@ -288,7 +431,6 @@ export function NoteEditor({
         </div>
       )}
 
-
       {/* Tags */}
       <div className="mb-4">
         <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
@@ -320,8 +462,6 @@ export function NoteEditor({
       </div>
       </>
       )}
-
-
 
       <RichTextEditor
         content={body}

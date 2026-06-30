@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Mic, Square, FilePlus } from "lucide-react";
 import { useBrand } from "@/lib/brand";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
@@ -15,57 +14,73 @@ function VoxOrb({
   onClick?: () => void;
 }) {
   const brand = useBrand();
-  const [pulse, setPulse] = useState(1);
-  useEffect(() => {
-    let raf: number;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = (now - start) / 1000;
-      const speed =
-        state === "listening" ? 3.2 : state === "speaking" ? 4.5 : state === "thinking" ? 1.6 : 1.0;
-      const amp = state === "idle" ? 0.03 : 0.08;
-      setPulse(1 + Math.sin(t * speed) * amp);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [state]);
+  const gradientBg = brand.isNox
+    ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
+    : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)";
+  const glowColor = brand.isNox
+    ? "rgba(115,31,125,0.55)"
+    : "rgba(77,224,193,0.55)";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`Voice orb — ${state}`}
-      className="relative shrink-0 rounded-full outline-none transition-transform cursor-pointer"
-      style={{
-        width: size,
-        height: size,
-        transform: `scale(${pulse})`,
-        background: brand.isNox
-          ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
-          : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)",
-        boxShadow: `0 0 ${size * 0.45}px ${size * 0.06}px ${
-          brand.isNox ? "rgba(115,31,125,0.45)" : "rgba(77,224,193,0.45)"
-        }, inset 0 0 ${
-          size * 0.22
-        }px rgba(255,255,255,0.25)`,
-      }}
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
     >
-      <span
-        className="pointer-events-none absolute inset-2 rounded-full opacity-70"
+      {/* Outer glow ring — orb-pulse-outer: scale + opacity breathe at 1.8s */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full"
         style={{
-          background:
-            "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%)",
+          animation: "orb-pulse-outer 1.8s ease-in-out infinite",
+          background: gradientBg,
+          boxShadow: `0 0 ${size * 0.5}px ${size * 0.15}px ${glowColor}`,
         }}
       />
-      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <img
-          src={brand.iconUrl}
-          alt=""
-          style={{ width: size * 0.5, height: size * 0.5, filter: "brightness(0) invert(1)" }}
+      {/* Main orb — solid body, clickable */}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Voice orb — ${state}`}
+        className="absolute inset-0 rounded-full border-0 p-0 outline-none cursor-pointer"
+        style={{
+          background: gradientBg,
+          boxShadow: `inset 0 0 ${size * 0.22}px rgba(255,255,255,0.25)`,
+        }}
+      >
+        {/* Highlight shimmer */}
+        <span
+          className="pointer-events-none absolute inset-2 rounded-full opacity-70"
+          style={{
+            background:
+              "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%)",
+          }}
         />
-      </span>
-    </button>
+        {/* Inner circle — independent animation layer at 1.2s (CR-006b: perfect circle) */}
+        <span
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ animation: "orb-pulse-inner 1.2s ease-in-out infinite" }}
+        >
+          <span
+            style={{
+              width: size * 0.55,
+              height: size * 0.55,
+              borderRadius: "50%",
+              background: brand.isNox ? "var(--skin-bg)" : "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {/* CR-006c: brand icon via useBrand(), no brightness filter */}
+            <img
+              src={brand.iconUrl}
+              alt={brand.name}
+              style={{ width: "48%", height: "48%", objectFit: "contain" }}
+            />
+          </span>
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -93,13 +108,9 @@ export function VoiceTranscriber({
       <div className="flex items-center gap-3">
         <button className="x-btn-primary" style={{ width: "auto", paddingInline: 18 }} onClick={toggle}>
           {voice.isListening ? (
-            <>
-              <Square size={14} style={{ display: "inline", marginRight: 6 }} /> Stop
-            </>
+            <><Square size={14} style={{ display: "inline", marginRight: 6 }} /> Stop</>
           ) : (
-            <>
-              <Mic size={14} style={{ display: "inline", marginRight: 6 }} /> Start recording
-            </>
+            <><Mic size={14} style={{ display: "inline", marginRight: 6 }} /> Start recording</>
           )}
         </button>
       </div>
