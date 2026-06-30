@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
 
+const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
+  id: '/project/$projectId',
+  path: '/project/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
   id: '/project-builder',
   path: '/project-builder',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/profile/': typeof ProfileIndexRoute
 }
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
   '/project-builder': typeof ProjectBuilderRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/profile': typeof ProfileIndexRoute
 }
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/profile/': typeof ProfileIndexRoute
 }
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/profile'
     | '/project-builder'
+    | '/project/$projectId'
     | '/profile/appearance'
     | '/profile/'
   fileRoutesByTo: FileRoutesByTo
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/navigator'
     | '/notes'
     | '/project-builder'
+    | '/project/$projectId'
     | '/profile/appearance'
     | '/profile'
   id:
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/profile'
     | '/project-builder'
+    | '/project/$projectId'
     | '/profile/appearance'
     | '/profile/'
   fileRoutesById: FileRoutesById
@@ -154,10 +166,18 @@ export interface RootRouteChildren {
   NotesRoute: typeof NotesRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
+  ProjectProjectIdRoute: typeof ProjectProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/project/$projectId': {
+      id: '/project/$projectId'
+      path: '/project/$projectId'
+      fullPath: '/project/$projectId'
+      preLoaderRoute: typeof ProjectProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project-builder': {
       id: '/project-builder'
       path: '/project-builder'
@@ -253,6 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotesRoute: NotesRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
+  ProjectProjectIdRoute: ProjectProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -76,7 +76,7 @@ function ProjectBuilderPage() {
           )}
         </div>
 
-        {!showSuccess && <WorkflowDiagnostics qr={qr} />}
+        {!showSuccess && import.meta.env.DEV && <WorkflowDiagnostics qr={qr} />}
       </div>
     </AppShell>
   );
