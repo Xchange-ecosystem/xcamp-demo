@@ -1,4 +1,4 @@
-import { PartyPopper, ExternalLink } from "lucide-react";
+import { PartyPopper, ExternalLink, ArrowRight } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { DEEP_LINK_BASE } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
@@ -26,15 +26,26 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       </div>
 
       {projectId && (
-        <a
-          href={`${DEEP_LINK_BASE}/${projectId}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold"
-          style={{ background: "var(--skin-accent)", color: "#fff" }}
-        >
-          Open in Xcamp <ExternalLink size={16} />
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/project/$projectId", params: { projectId } })}
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold"
+            style={{ background: "var(--skin-accent)", color: "#fff" }}
+          >
+            Go to project <ArrowRight size={16} />
+          </button>
+
+          <a
+            href={`${DEEP_LINK_BASE}/${projectId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium"
+            style={{ background: "var(--skin-surface)", color: "var(--skin-ink-soft)", border: "1px solid var(--skin-line)" }}
+          >
+            Open in Xcamp <ExternalLink size={14} />
+          </a>
+        </div>
       )}
 
       <div>
