@@ -459,3 +459,13 @@ body {
 .sidebar-resize-handle:active {
   opacity: 1;
 }
+
+/* ---- Voice orb animations ---- */
+@keyframes orb-pulse-outer {
+  0%, 100% { transform: scale(1);    opacity: 0.6; }
+  50%       { transform: scale(1.18); opacity: 0.25; }
+}
+@keyframes orb-pulse-inner {
+  0%, 100% { transform: scale(1);    opacity: 0.9; }
+  50%       { transform: scale(1.10); opacity: 0.6; }
+}
