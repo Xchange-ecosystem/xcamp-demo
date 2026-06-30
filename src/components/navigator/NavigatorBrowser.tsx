@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Target, Inbox, Compass, ArrowLeft, Menu } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { Plus, Target, Inbox, Compass, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,39 +22,44 @@ import {
   type NavTask,
 } from "@/lib/navigator-api";
 import { listProjects, updateNote, archiveNote } from "@/lib/xcamp-api";
-import { NoteEditor, type Editing, type NoteEditorValues } from "@/components/editor/NoteEditor";
+import type { NoteEditorValues } from "@/components/editor/NoteEditor";
 import { ObjectiveEditor, type ObjectiveEditorValues } from "@/components/navigator/ObjectiveEditor";
+import { ColumnToolbar, type ToolbarState, type ObjSortKey, type ObjGroupBy } from "@/components/navigator/ColumnToolbar";
+import { TaskPanel } from "@/components/navigator/TaskPanel";
 import type { NoteRow } from "@/types/xcamp";
 
 const UNASSIGNED = "__unassigned__";
 
-type EditTarget =
-  | { kind: "note"; note: NoteRow }
-  | { kind: "objective"; objective: ObjectiveRow }
-  | null;
+type EditTarget = { objective: ObjectiveRow } | null;
+
+const DEFAULT_TOOLBAR: ToolbarState = {
+  search: "",
+  statusFilter: [],
+  sort: "name",
+  sortDir: "asc",
+  groupBy: "none",
+};
 
 export function NavigatorBrowser() {
   const { user } = useAuth();
-  const { activeProjectId, setActiveProjectId } = useActiveProject();
+  const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
-  const { toggleSidebar } = useSidebar();
   const queryClient = useQueryClient();
 
   const [selectedObj, setSelectedObj] = useState<string | null>(null);
   const [editing, setEditing] = useState<EditTarget>(null);
+  const [taskPanelNote, setTaskPanelNote] = useState<NoteRow | null>(null);
+  const [toolbar, setToolbar] = useState<ToolbarState>(DEFAULT_TOOLBAR);
 
-  const projectsQuery = useQuery({
+  const onToolbarChange = (next: Partial<ToolbarState>) =>
+    setToolbar((prev) => ({ ...prev, ...next }));
+
+  // Projects still needed for NoteEditor inside TaskPanel
+  const { data: projects = [] } = useQuery({
     queryKey: ["projects", user?.tenantId],
     queryFn: () => listProjects(user!),
     enabled: !!user,
   });
-  const projects = projectsQuery.data ?? [];
-
-  const onChangeProject = (id: string) => {
-    setActiveProjectId(id || null);
-    setSelectedObj(null);
-    setEditing(null);
-  };
 
   const createObj = useCreateObjective(user!, activeProjectId ?? "");
   const updateObj = useUpdateObjective(user!, activeProjectId ?? "");
@@ -67,7 +71,7 @@ export function NavigatorBrowser() {
       updateNote(user!, input.noteId, { ...input.values, existingDetail: input.existingDetail }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-tasks"] });
-      setEditing(null);
+      // Panel stays open after save — user can keep editing
     },
   });
 
@@ -76,7 +80,7 @@ export function NavigatorBrowser() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["nav-objectives"] });
-      setEditing(null);
+      setTaskPanelNote(null);
     },
   });
 
@@ -93,7 +97,7 @@ export function NavigatorBrowser() {
 
   const openTask = async (id: string) => {
     const note = await getNoteById(id);
-    if (note) setEditing({ kind: "note", note });
+    if (note) setTaskPanelNote(note);
   };
 
   if (!user) return null;
@@ -111,86 +115,41 @@ export function NavigatorBrowser() {
     );
   }
 
-  // ---- Editor view (full area) ----
+  // Full-page editor — objectives only
   if (editing) {
     return (
       <div style={{ background: "var(--skin-bg)", height: "100vh", overflowY: "auto" }}>
         <div style={{ padding: isMobile ? 16 : 32, maxWidth: 880, margin: "0 auto" }}>
-          {editing.kind === "note" ? (
-            <NoteEditor
-              key={editing.note.id}
-              editing={{ mode: "edit", note: editing.note } as Editing}
-              projects={projects}
-              user={user}
-              saving={updateNoteMut.isPending}
-              archiving={archiveNoteMut.isPending}
-              onCancel={() => setEditing(null)}
-              onSave={(values) =>
-                updateNoteMut.mutate({
-                  noteId: editing.note.id,
-                  values,
-                  existingDetail: editing.note.detail,
-                })
-              }
-              onArchive={() => archiveNoteMut.mutate(editing.note)}
-            />
-          ) : (
-            <ObjectiveEditor
-              key={editing.objective.id}
-              objective={editing.objective}
-              saving={updateObjMut.isPending}
-              onCancel={() => setEditing(null)}
-              onSave={(values) => updateObjMut.mutate({ objective: editing.objective, values })}
-            />
-          )}
+          <ObjectiveEditor
+            key={editing.objective.id}
+            objective={editing.objective}
+            saving={updateObjMut.isPending}
+            onCancel={() => setEditing(null)}
+            onSave={(values) => updateObjMut.mutate({ objective: editing.objective, values })}
+          />
         </div>
       </div>
     );
   }
 
-  // ---- Browser columns ----
   const header = (
     <div
-      className="flex items-center justify-between gap-2 px-4 py-3"
+      className="flex items-center gap-2 px-4 py-3"
       style={{ borderBottom: "1px solid var(--skin-line)", background: "var(--skin-surface)" }}
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="flex items-center justify-center rounded-md p-1.5"
-          aria-label="Toggle menu"
-          style={{ color: "var(--skin-ink-soft)", background: "transparent", border: "none", cursor: "pointer", flexShrink: 0 }}
-        >
-          <Menu size={18} />
-        </button>
-        <Compass size={18} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
-        <h1 className="truncate" style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>
-          Navigator
-        </h1>
-      </div>
-      {projects.length > 0 && (
-        <select
-          className="x-input"
-          style={{ height: 32, fontSize: 13, maxWidth: isMobile ? 180 : 280 }}
-          value={activeProjectId ?? ""}
-          onChange={(e) => onChangeProject(e.target.value)}
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      )}
+      <Compass size={18} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
+      <h1 style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>
+        Navigator
+      </h1>
     </div>
   );
 
-  // Mobile: one column at a time (objectives -> tasks)
+  // Mobile: one column at a time
   if (isMobile) {
     return (
       <div style={{ background: "var(--skin-bg)", height: "100vh", display: "flex", flexDirection: "column" }}>
         {header}
+        <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
         <div style={{ flex: 1, minHeight: 0 }}>
           {selectedObj === null ? (
             <ObjectivesColumn
@@ -198,8 +157,9 @@ export function NavigatorBrowser() {
               projectId={activeProjectId}
               selected={selectedObj}
               onSelect={setSelectedObj}
-              onOpenObjective={(o) => setEditing({ kind: "objective", objective: o })}
+              onOpenObjective={(o) => setEditing({ objective: o })}
               createObj={createObj}
+              toolbar={toolbar}
             />
           ) : (
             <TasksColumn
@@ -212,6 +172,16 @@ export function NavigatorBrowser() {
             />
           )}
         </div>
+        <TaskPanel
+          note={taskPanelNote}
+          projects={projects}
+          user={user}
+          saving={updateNoteMut.isPending}
+          archiving={archiveNoteMut.isPending}
+          onSave={(values, note) => updateNoteMut.mutate({ noteId: note.id, values, existingDetail: note.detail })}
+          onClose={() => setTaskPanelNote(null)}
+          onArchive={(note) => archiveNoteMut.mutate(note)}
+        />
       </div>
     );
   }
@@ -220,6 +190,7 @@ export function NavigatorBrowser() {
   return (
     <div style={{ background: "var(--skin-bg)", height: "100vh", display: "flex", flexDirection: "column" }}>
       {header}
+      <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
       <div style={{ flex: 1, minHeight: 0 }}>
         <ResizablePanelGroup orientation="horizontal">
           <ResizablePanel defaultSize={34} minSize={20}>
@@ -228,8 +199,9 @@ export function NavigatorBrowser() {
               projectId={activeProjectId}
               selected={selectedObj}
               onSelect={setSelectedObj}
-              onOpenObjective={(o) => setEditing({ kind: "objective", objective: o })}
+              onOpenObjective={(o) => setEditing({ objective: o })}
               createObj={createObj}
+              toolbar={toolbar}
             />
           </ResizablePanel>
           <ResizableHandle />
@@ -244,6 +216,16 @@ export function NavigatorBrowser() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+      <TaskPanel
+        note={taskPanelNote}
+        projects={projects}
+        user={user}
+        saving={updateNoteMut.isPending}
+        archiving={archiveNoteMut.isPending}
+        onSave={(values, note) => updateNoteMut.mutate({ noteId: note.id, values, existingDetail: note.detail })}
+        onClose={() => setTaskPanelNote(null)}
+        onArchive={(note) => archiveNoteMut.mutate(note)}
+      />
     </div>
   );
 }
@@ -263,6 +245,45 @@ function EmptyShell({ children }: { children: React.ReactNode }) {
 /* Objectives column                                                   */
 /* ------------------------------------------------------------------ */
 
+function applyToolbar(objectives: ObjectiveRow[], toolbar: ToolbarState): ObjectiveRow[] {
+  let result = objectives;
+
+  // Search
+  if (toolbar.search.trim()) {
+    const q = toolbar.search.trim().toLowerCase();
+    result = result.filter((o) => o.title.toLowerCase().includes(q));
+  }
+
+  // Status filter
+  if (toolbar.statusFilter.length > 0) {
+    result = result.filter((o) => toolbar.statusFilter.includes(o.status ?? ""));
+  }
+
+  // Sort
+  result = [...result].sort((a, b) => {
+    let cmp = 0;
+    if (toolbar.sort === "name") {
+      cmp = a.title.localeCompare(b.title);
+    } else if (toolbar.sort === "tasks") {
+      cmp = b.tasksCount - a.tasksCount;
+    } else if (toolbar.sort === "progress") {
+      const pA = a.tasksCount ? a.completedTasksCount / a.tasksCount : 0;
+      const pB = b.tasksCount ? b.completedTasksCount / b.tasksCount : 0;
+      cmp = pB - pA;
+    }
+    return toolbar.sortDir === "asc" ? cmp : -cmp;
+  });
+
+  return result;
+}
+
+const STATUS_GROUP_ORDER = ["active", "inactive", "completed"];
+const STATUS_GROUP_LABELS: Record<string, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  completed: "Completed",
+};
+
 function ObjectivesColumn({
   user,
   projectId,
@@ -270,6 +291,7 @@ function ObjectivesColumn({
   onSelect,
   onOpenObjective,
   createObj,
+  toolbar,
 }: {
   user: import("@/types/xcamp").XcampUser;
   projectId: string;
@@ -277,9 +299,11 @@ function ObjectivesColumn({
   onSelect: (id: string | null) => void;
   onOpenObjective: (o: ObjectiveRow) => void;
   createObj: ReturnType<typeof useCreateObjective>;
+  toolbar: ToolbarState;
 }) {
   const { data: allObjectives = [], isLoading } = useObjectives(user, projectId);
-  const objectives = allObjectives.filter((o) => o.title !== "__general__");
+  const base = allObjectives.filter((o) => o.title !== "__general__");
+  const objectives = applyToolbar(base, toolbar);
   const [draft, setDraft] = useState("");
 
   const submit = async () => {
@@ -287,6 +311,70 @@ function ObjectivesColumn({
     const o = await createObj.mutateAsync(draft.trim());
     setDraft("");
     if (o?.id) onSelect(o.id);
+  };
+
+  // Grouped rendering
+  const renderObjective = (o: ObjectiveRow) => {
+    const isActive = selected === o.id;
+    return (
+      <div
+        key={o.id}
+        onClick={() => onSelect(o.id)}
+        className="flex w-full flex-col gap-1 rounded-lg px-2.5 py-2"
+        style={{
+          cursor: "pointer",
+          border: `1px solid ${isActive ? "var(--skin-accent)" : "var(--skin-line)"}`,
+          background: isActive ? "var(--skin-surface2)" : "var(--skin-bg)",
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Target size={14} style={{ flexShrink: 0, color: "var(--skin-accent)" }} />
+          <span
+            className="flex-1 truncate"
+            style={{ fontSize: 14, color: isActive ? "var(--skin-accent)" : "var(--skin-ink)", fontWeight: isActive ? 600 : 400 }}
+          >
+            {o.title || "Untitled objective"}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenObjective(o); }}
+            title="Edit details"
+            style={{ fontSize: 11, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Open
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-2" style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+          <span style={{ textTransform: "capitalize" }}>
+            {(o.status ?? "").replace("_", " ") || "draft"}
+          </span>
+          <span>{o.completedTasksCount}/{o.tasksCount} tasks</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGrouped = () => {
+    const groups = new Map<string, ObjectiveRow[]>();
+    for (const o of objectives) {
+      const key = o.status ?? "inactive";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(o);
+    }
+    const orderedKeys = STATUS_GROUP_ORDER.filter((k) => groups.has(k));
+    const extraKeys = [...groups.keys()].filter((k) => !STATUS_GROUP_ORDER.includes(k));
+    return [...orderedKeys, ...extraKeys].map((key) => (
+      <div key={key}>
+        <div
+          style={{
+            fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+            color: "var(--skin-ink-faint)", padding: "8px 4px 4px",
+          }}
+        >
+          {STATUS_GROUP_LABELS[key] ?? key}
+        </div>
+        {groups.get(key)!.map(renderObjective)}
+      </div>
+    ));
   };
 
   return (
@@ -297,9 +385,7 @@ function ObjectivesColumn({
           onClick={() => onSelect(UNASSIGNED)}
           className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left"
           style={{
-            fontSize: 14,
-            cursor: "pointer",
-            border: "none",
+            fontSize: 14, cursor: "pointer", border: "none",
             background: selected === UNASSIGNED ? "var(--skin-surface2)" : "transparent",
             color: selected === UNASSIGNED ? "var(--skin-accent)" : "var(--skin-ink-soft)",
           }}
@@ -313,53 +399,15 @@ function ObjectivesColumn({
           </p>
         )}
 
-        {objectives.map((o) => {
-          const isActive = selected === o.id;
-          return (
-            <div
-              key={o.id}
-              onClick={() => onSelect(o.id)}
-              className="flex w-full flex-col gap-1 rounded-lg px-2.5 py-2"
-              style={{
-                cursor: "pointer",
-                border: `1px solid ${isActive ? "var(--skin-accent)" : "var(--skin-line)"}`,
-                background: isActive ? "var(--skin-surface2)" : "var(--skin-bg)",
-              }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <Target size={14} style={{ flexShrink: 0, color: "var(--skin-accent)" }} />
-                <span
-                  className="flex-1 truncate"
-                  style={{ fontSize: 14, color: isActive ? "var(--skin-accent)" : "var(--skin-ink)", fontWeight: isActive ? 600 : 400 }}
-                >
-                  {o.title || "Untitled objective"}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenObjective(o);
-                  }}
-                  title="Edit details"
-                  style={{ fontSize: 11, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  Open
-                </button>
-              </div>
-              <div className="flex items-center justify-between gap-2" style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
-                <span style={{ textTransform: "capitalize" }}>
-                  {(o.status ?? "").replace("_", " ") || "draft"}
-                </span>
-                <span>
-                  {o.completedTasksCount}/{o.tasksCount} tasks
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {!isLoading && toolbar.groupBy === "status"
+          ? renderGrouped()
+          : objectives.map(renderObjective)}
 
         {!isLoading && objectives.length === 0 && (
           <p style={{ padding: "12px 8px", fontSize: 13, color: "var(--skin-ink-faint)" }}>
-            No objectives yet.
+            {toolbar.search || toolbar.statusFilter.length > 0
+              ? "No objectives match your filters."
+              : "No objectives yet."}
           </p>
         )}
       </div>
@@ -472,10 +520,7 @@ function TasksColumn({
                 onClick={() => onOpenTask(t.id)}
                 className="flex-1 truncate text-left"
                 style={{
-                  fontSize: 14,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
+                  fontSize: 14, background: "none", border: "none", cursor: "pointer",
                   textDecoration: done ? "line-through" : "none",
                   color: done ? "var(--skin-ink-faint)" : "var(--skin-ink)",
                 }}
