@@ -40,6 +40,14 @@ export interface ProjectRow {
   name: string;
 }
 
+export interface ProjectFull {
+  id: string;
+  name: string;
+  feature_image: string | null;
+  color: string | null;
+  description: string | null;
+}
+
 // Skin config shape stored in user_preferences.skin_config
 export type Paradigm = "platform" | "companion" | "canvas";
 export type Tone = "scientific" | "playful";

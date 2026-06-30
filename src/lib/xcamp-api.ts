@@ -2,7 +2,7 @@
 // No RPCs. Journal only writes `notes` with note_type='note'.
 import { supabase } from "@/lib/supabase";
 import type { Json } from "@/integrations/supabase/types";
-import type { NoteAttachment, NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
+import type { NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_COLUMNS =
   "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
@@ -278,6 +278,30 @@ export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
   return (data ?? [])
     .filter((p) => (p.title as string) !== "__general__")
     .map((p) => ({ id: p.id as string, name: (p.title as string) ?? "Untitled" }));
+}
+
+export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> {
+  // Supabase generated types are stale — feature_image exists in DB but isn't
+  // reflected yet. Cast through unknown to allow the column in the select.
+  const { data, error } = await (supabase
+    .from("projects")
+    .select("id, title, feature_image, color, description")
+    .eq("tenant_id", user.tenantId)
+    .order("title") as unknown as Promise<{
+    data: Array<Record<string, unknown>> | null;
+    error: { message: string } | null;
+  }>);
+
+  if (error) throw new Error(error.message);
+  return (data ?? [])
+    .filter((p) => (p["title"] as string) !== "__general__")
+    .map((p) => ({
+      id: p["id"] as string,
+      name: (p["title"] as string) ?? "Untitled",
+      feature_image: (p["feature_image"] as string | null) ?? null,
+      color: (p["color"] as string | null) ?? null,
+      description: (p["description"] as string | null) ?? null,
+    }));
 }
 
 export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> {
