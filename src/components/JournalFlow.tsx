@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -9,6 +9,8 @@ import {
   Loader2,
   Sparkles,
   History as HistoryIcon,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,6 +27,9 @@ import {
   type JournalProposal,
   type SessionStatus,
 } from "@/lib/journal-api";
+import { executeProposal } from "@/lib/executeProposal";
+import { EntityPanel } from "@/components/EntityPanel";
+import type { AICard } from "@/types/ai";
 
 type Screen = "input" | "cards" | "editor";
 
@@ -38,7 +43,6 @@ function badgeLabel(t: string) {
   return NOTE_TYPE_BADGE[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-// Resolve a placement proposal to "Project > Objective" where available.
 function resolvedPlacement(p: JournalProposal): string {
   const project = p.payload.project_title;
   const objective = p.payload.objective_title || p.payload.title;
@@ -59,6 +63,14 @@ function statusColors(status: SessionStatus): { bg: string; fg: string } {
   }
 }
 
+interface PanelTarget {
+  type: 'note' | 'task' | 'objective';
+  id: string;
+  objectiveId?: string;
+  prefillText?: string;
+  initialTitle?: string;
+}
+
 export function JournalFlow({
   draft = null,
 }: {
@@ -71,11 +83,14 @@ export function JournalFlow({
   const [entryText, setEntryText] = useState("");
   const [analysing, setAnalysing] = useState(false);
   const [topics, setTopics] = useState<JournalTopic[]>([]);
+  const [cards, setCards] = useState<AICard[]>([]);
+  const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
+  const [accepting, setAccepting] = useState<string | null>(null);
+  const [panelTarget, setPanelTarget] = useState<PanelTarget | null>(null);
   const [editingTopic, setEditingTopic] = useState<JournalTopic | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [openSession, setOpenSession] = useState<string | null>(null);
 
-  // Receive text handed over from the Voice tab.
   useEffect(() => {
     if (!draft) return;
     setEntryText(draft.text);
@@ -94,10 +109,26 @@ export function JournalFlow({
     if (!text || !user) return;
     setAnalysing(true);
     try {
-      const result = await analyse({ text, userId: user.centralId, tenantId: user.tenantId });
-      setTopics(result);
+      const [analysisResult, contextResult] = await Promise.allSettled([
+        analyse({ text, userId: user.centralId, tenantId: user.tenantId }),
+        answerWithContext({ question: text, tenantId: user.tenantId }),
+      ]);
+
+      const newTopics = analysisResult.status === "fulfilled" ? analysisResult.value : [];
+      const newCards = contextResult.status === "fulfilled" ? contextResult.value.cards : [];
+
+      if (analysisResult.status === "rejected") {
+        toast.error((analysisResult.reason as Error).message);
+      }
+
+      setTopics(newTopics);
+      setCards(newCards);
+      setCardErrors({});
       setScreen("cards");
-      if (result.length === 0) toast("No topics found in this entry.");
+
+      if (newTopics.length === 0 && newCards.length === 0) {
+        toast("No topics found in this entry.");
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -105,7 +136,7 @@ export function JournalFlow({
     }
   };
 
-  const handleDismiss = async (topic: JournalTopic) => {
+  const handleDismissTopic = async (topic: JournalTopic) => {
     setTopics((prev) => prev.filter((t) => t.id !== topic.id));
     if (topic.organiser_proposals.length > 0 && topic.organiser_session_id) {
       try {
@@ -121,9 +152,38 @@ export function JournalFlow({
     }
   };
 
+  const handleAcceptCard = async (card: AICard) => {
+    if (!card.proposal) return;
+    setAccepting(card.id);
+    const result = await executeProposal(card.proposal);
+    setAccepting(null);
+
+    if (result.ok) {
+      setCards((prev) => prev.filter((c) => c.id !== card.id));
+      const proposal = card.proposal!;
+      const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
+      const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
+      setPanelTarget({
+        type: result.entityType!,
+        id: result.entityId ?? proposal.objective_id,
+        objectiveId: proposal.objective_id,
+        prefillText: card.body,
+        initialTitle: payloadTitle,
+      });
+    } else {
+      setCardErrors((prev) => ({ ...prev, [card.id]: result.error ?? 'Unknown error' }));
+    }
+  };
+
+  const handleDismissCard = (card: AICard) => {
+    setCards((prev) => prev.filter((c) => c.id !== card.id));
+  };
+
   const startNew = () => {
     setEntryText("");
     setTopics([]);
+    setCards([]);
+    setCardErrors({});
     setEditingTopic(null);
     setOpenSession(null);
     setScreen("input");
@@ -142,198 +202,229 @@ export function JournalFlow({
   const sessions = sessionsQuery.data ?? [];
 
   return (
-    <div
-      style={{
-        display: isMobile ? "flex" : "grid",
-        flexDirection: isMobile ? "column" : undefined,
-        gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
-        minHeight: isMobile ? "auto" : "70vh",
-      }}
-    >
-      {/* Sidebar: New + History */}
-      <aside
+    <>
+      <div
         style={{
-          background: "var(--skin-surface)",
-          borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
-          borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
-          padding: effCollapsed ? "16px 8px" : "18px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
+          display: isMobile ? "flex" : "grid",
+          flexDirection: isMobile ? "column" : undefined,
+          gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
+          minHeight: isMobile ? "auto" : "70vh",
         }}
       >
-        {effCollapsed ? (
-          <div className="flex flex-col items-center gap-3">
-            <button
-              className="x-btn-secondary"
-              aria-label="Expand sidebar"
-              title="Expand sidebar"
-              style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={() => setCollapsed(false)}
-            >
-              <PanelLeftOpen size={16} />
-            </button>
-            <button
-              className="x-btn-primary"
-              aria-label="New entry"
-              title="New entry"
-              style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={() => { startNew(); setCollapsed(false); }}
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
-                Journal
-              </div>
-              {!isMobile && (
-                <button
-                  className="x-btn-secondary"
-                  aria-label="Collapse sidebar"
-                  title="Collapse sidebar"
-                  style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                  onClick={() => setCollapsed(true)}
-                >
-                  <PanelLeftClose size={15} />
-                </button>
-              )}
-            </div>
-
-            <button className="x-btn-primary" onClick={startNew}>
-              + New entry
-            </button>
-
-            <div
-              className="flex items-center gap-1.5 mt-1"
-              style={{ color: "var(--skin-ink-faint)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}
-            >
-              <HistoryIcon size={13} /> History
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
-              {sessionsQuery.isLoading && (
-                <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
-              )}
-              {!sessionsQuery.isLoading && sessions.length === 0 && (
-                <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>
-                  No journal sessions yet.
-                </div>
-              )}
-              {sessions.map((s) => {
-                const c = statusColors(s.status);
-                const isOpen = openSession === s.id;
-                return (
-                  <div key={s.id}>
-                    <button
-                      onClick={() => setOpenSession(isOpen ? null : s.id)}
-                      style={{
-                        width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
-                        background: isOpen ? "var(--skin-surface2)" : "transparent",
-                        borderRadius: 8, padding: "8px 10px", cursor: "pointer",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
-                          {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                        </span>
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
-                          {s.status}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
-                        {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
-                      </div>
-                    </button>
-                    {isOpen && <SessionNoteTitles sessionId={s.id} />}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </aside>
-
-      {/* Main pane */}
-      <div style={{ padding: isMobile ? "16px" : "22px 26px", minWidth: 0 }}>
-        {screen === "input" && (
-          <div className="max-w-2xl">
-            <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--skin-ink)" }}>
-              New journal entry
-            </h2>
-            <p className="mb-3" style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>
-              Write freely. We'll analyse it and suggest notes linked to your projects.
-            </p>
-            <textarea
-              className="x-input"
-              style={{ width: "100%", minHeight: 200, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
-              placeholder="What's on your mind today?"
-              value={entryText}
-              onChange={(e) => setEntryText(e.target.value)}
-              disabled={analysing}
-            />
-            <div className="mt-3 flex items-center gap-3">
+        {/* Sidebar */}
+        <aside
+          style={{
+            background: "var(--skin-surface)",
+            borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
+            borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
+            padding: effCollapsed ? "16px 8px" : "18px 14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {effCollapsed ? (
+            <div className="flex flex-col items-center gap-3">
+              <button
+                className="x-btn-secondary"
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+                style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                onClick={() => setCollapsed(false)}
+              >
+                <PanelLeftOpen size={16} />
+              </button>
               <button
                 className="x-btn-primary"
-                style={{ width: "auto", paddingInline: 22 }}
-                onClick={handleProcess}
-                disabled={analysing || !entryText.trim()}
+                aria-label="New entry"
+                title="New entry"
+                style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                onClick={() => { startNew(); setCollapsed(false); }}
               >
-                {analysing ? (
-                  <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Analysing your entry…</>
-                ) : (
-                  "Process"
+                <Plus size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
+                  Journal
+                </div>
+                {!isMobile && (
+                  <button
+                    className="x-btn-secondary"
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                    style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    onClick={() => setCollapsed(true)}
+                  >
+                    <PanelLeftClose size={15} />
+                  </button>
                 )}
-              </button>
-            </div>
-          </div>
-        )}
+              </div>
 
-        {screen === "cards" && (
-          <div className="max-w-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
-                Suggested topics
+              <button className="x-btn-primary" onClick={startNew}>
+                + New entry
+              </button>
+
+              <div
+                className="flex items-center gap-1.5 mt-1"
+                style={{ color: "var(--skin-ink-faint)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                <HistoryIcon size={13} /> History
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
+                {sessionsQuery.isLoading && (
+                  <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
+                )}
+                {!sessionsQuery.isLoading && sessions.length === 0 && (
+                  <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>
+                    No journal sessions yet.
+                  </div>
+                )}
+                {sessions.map((s) => {
+                  const c = statusColors(s.status);
+                  const isOpen = openSession === s.id;
+                  return (
+                    <div key={s.id}>
+                      <button
+                        onClick={() => setOpenSession(isOpen ? null : s.id)}
+                        style={{
+                          width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
+                          background: isOpen ? "var(--skin-surface2)" : "transparent",
+                          borderRadius: 8, padding: "8px 10px", cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
+                            {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
+                            {s.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
+                          {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
+                        </div>
+                      </button>
+                      {isOpen && <SessionNoteTitles sessionId={s.id} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </aside>
+
+        {/* Main pane */}
+        <div style={{ padding: isMobile ? "16px" : "22px 26px", minWidth: 0 }}>
+          {screen === "input" && (
+            <div className="max-w-2xl">
+              <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--skin-ink)" }}>
+                New journal entry
               </h2>
-              <button className="x-btn-secondary" style={{ width: "auto", paddingInline: 14 }} onClick={startNew}>
-                <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> New entry
-              </button>
+              <p className="mb-3" style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>
+                Write freely. We'll analyse it and suggest notes linked to your projects.
+              </p>
+              <textarea
+                className="x-input"
+                style={{ width: "100%", minHeight: 200, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
+                placeholder="What's on your mind today?"
+                value={entryText}
+                onChange={(e) => setEntryText(e.target.value)}
+                disabled={analysing}
+              />
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  className="x-btn-primary"
+                  style={{ width: "auto", paddingInline: 22 }}
+                  onClick={handleProcess}
+                  disabled={analysing || !entryText.trim()}
+                >
+                  {analysing ? (
+                    <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Analysing your entry…</>
+                  ) : (
+                    "Process"
+                  )}
+                </button>
+              </div>
             </div>
-            {topics.length === 0 ? (
-              <div style={{ color: "var(--skin-ink-faint)", fontSize: 14, padding: "24px 0" }}>
-                No topics to review. Start a new entry.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {topics.map((topic) => (
-                  <TopicCard
-                    key={topic.id}
-                    topic={topic}
-                    onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
-                    onDismiss={() => handleDismiss(topic)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {screen === "editor" && editingTopic && (
-          <NoteEditorPane
-            topic={editingTopic}
-            onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-            onSaved={() => {
-              setTopics((prev) => prev.filter((t) => t.id !== editingTopic.id));
-              setEditingTopic(null);
-              setScreen("cards");
-              sessionsQuery.refetch();
-            }}
-          />
-        )}
+          {screen === "cards" && (
+            <div className="max-w-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+                  Suggested topics
+                </h2>
+                <button className="x-btn-secondary" style={{ width: "auto", paddingInline: 14 }} onClick={startNew}>
+                  <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> New entry
+                </button>
+              </div>
+
+              {topics.length === 0 && cards.length === 0 ? (
+                <div style={{ padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                  <CheckCircle2 size={36} style={{ color: "var(--skin-accent)", opacity: 0.7 }} />
+                  <p style={{ color: "var(--skin-ink-faint)", fontSize: 14, textAlign: "center", margin: 0 }}>
+                    No suggestions remaining.
+                  </p>
+                  <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={startNew}>
+                    New entry
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {topics.map((topic) => (
+                    <TopicCard
+                      key={topic.id}
+                      topic={topic}
+                      onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
+                      onDismiss={() => handleDismissTopic(topic)}
+                    />
+                  ))}
+                  {cards.map((card) => (
+                    <AICardView
+                      key={card.id}
+                      card={card}
+                      accepting={accepting === card.id}
+                      error={cardErrors[card.id]}
+                      onAccept={() => handleAcceptCard(card)}
+                      onDismiss={() => handleDismissCard(card)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {screen === "editor" && editingTopic && (
+            <NoteEditorPane
+              topic={editingTopic}
+              onBack={() => { setScreen("cards"); setEditingTopic(null); }}
+              onSaved={() => {
+                setTopics((prev) => prev.filter((t) => t.id !== editingTopic.id));
+                setEditingTopic(null);
+                setScreen("cards");
+                sessionsQuery.refetch();
+              }}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      {panelTarget && (
+        <EntityPanel
+          open={panelTarget !== null}
+          onClose={() => setPanelTarget(null)}
+          type={panelTarget.type}
+          id={panelTarget.id}
+          objectiveId={panelTarget.objectiveId}
+          prefillText={panelTarget.prefillText}
+          initialTitle={panelTarget.initialTitle}
+        />
+      )}
+    </>
   );
 }
 
@@ -407,6 +498,104 @@ function TopicCard({
   );
 }
 
+function AICardView({
+  card,
+  accepting,
+  error,
+  onAccept,
+  onDismiss,
+}: {
+  card: AICard;
+  accepting: boolean;
+  error?: string;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const kindLabel: Record<string, string> = {
+    action_item: "Action",
+    update: "Update",
+    opportunity: "Opportunity",
+    content: "Content",
+    urgency: "Urgent",
+    celebration: "Win",
+    metric: "Metric",
+    web_result: "Reference",
+  };
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
+        background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 10,
+        opacity: accepting ? 0.7 : 1,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <Sparkles size={14} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
+          <h3 className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 16 }}>
+            {card.title}
+          </h3>
+        </div>
+        <span
+          style={{
+            fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+            background: "color-mix(in srgb, var(--skin-accent) 10%, transparent)", color: "var(--skin-accent)",
+          }}
+        >
+          {kindLabel[card.kind] ?? card.kind}
+        </span>
+      </div>
+
+      {card.body && (
+        <p style={{ color: "var(--skin-ink-soft)", fontSize: 14, lineHeight: 1.55 }}>{card.body}</p>
+      )}
+
+      {card.proposal?.rationale && (
+        <p style={{ color: "var(--skin-ink-faint)", fontSize: 12, fontStyle: "italic", margin: 0 }}>
+          {card.proposal.rationale}
+        </p>
+      )}
+
+      {error && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--skin-danger, #d4524e)", fontSize: 13 }}>
+          <XCircle size={14} />
+          {error}
+        </div>
+      )}
+
+      {(card.confirmable || card.dismissible) && (
+        <div className="flex items-center gap-2 mt-1">
+          {card.confirmable && (
+            <button
+              className="x-btn-primary"
+              style={{ width: "auto", paddingInline: 20 }}
+              onClick={onAccept}
+              disabled={accepting || !card.proposal}
+            >
+              {accepting ? (
+                <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
+              ) : "Accept"}
+            </button>
+          )}
+          {card.dismissible && (
+            <button
+              onClick={onDismiss}
+              disabled={accepting}
+              style={{
+                background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+                color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+              }}
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NoteEditorPane({
   topic,
   onBack,
@@ -475,7 +664,6 @@ function NoteEditorPane({
         <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
       </button>
 
-      {/* Placement pills (read-only) */}
       <div className="mb-3">
         {hasProposals ? (
           <PlacementPills proposals={topic.organiser_proposals} resolve />
