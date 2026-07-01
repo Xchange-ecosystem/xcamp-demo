@@ -41,13 +41,19 @@ export function CompanionShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider
       defaultOpen={false}
-      style={{ "--sidebar-width": "256px" } as React.CSSProperties}
+      style={{
+        "--sidebar-width": "256px",
+        background: "transparent",
+      } as React.CSSProperties}
     >
       <CollapseOnMount />
-      <div className="flex min-h-screen w-full" style={{ background: "transparent" }}>
+      <div
+        className="flex min-h-screen w-full"
+        style={{ background: "transparent" }}
+      >
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1 min-w-0">{children}</main>
+        <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
+          <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
         </div>
       </div>
     </SidebarProvider>
