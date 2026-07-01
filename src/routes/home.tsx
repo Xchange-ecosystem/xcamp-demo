@@ -79,6 +79,11 @@ function CompanionHomePage() {
   });
 
   const [draft, setDraft] = useState("");
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+
+  // Resolves after the typewriter would finish for a given text at 38ms/char.
+  const waitForTyping = (text: string) =>
+    new Promise<void>((resolve) => setTimeout(resolve, text.length * 38));
 
   const welcomeFiredRef = useRef(false);
   useEffect(() => {
@@ -90,10 +95,18 @@ function CompanionHomePage() {
     welcomeFiredRef.current = true;
 
     async function dispatchWelcome() {
-      await session.appendChiMessage(
-        "Hello! Let's make the most of today. What would you like to work on?",
-      );
-      await session.appendChiMessage("Let's jump into a project.");
+      const MSG1 = "Hello! Let's make the most of today. What would you like to work on?";
+      const id1 = await session.appendChiMessage(MSG1);
+      setTypingMessageId(id1);
+      await waitForTyping(MSG1);
+      setTypingMessageId(null);
+
+      const MSG2 = "Let's start by jumping into a project.";
+      const id2 = await session.appendChiMessage(MSG2);
+      setTypingMessageId(id2);
+      await waitForTyping(MSG2);
+      setTypingMessageId(null);
+
       const gridId = await session.appendComponentMessage("project-grid");
       gridMsgIdRef.current = gridId;
       setStep("project-select");
@@ -103,15 +116,19 @@ function CompanionHomePage() {
   }, [session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectSelect = useCallback(
-    async (project: ProjectFull) => {
+    async (project: ProjectFull, silent = false) => {
       setActiveProject(project);
       if (gridMsgIdRef.current) session.resolveComponent(gridMsgIdRef.current);
-      await session.appendUserMessage(project.name);
-      await session.appendChiMessage(`Here's what I suggest you focus on today.`);
+      if (!silent) await session.appendUserMessage(project.name);
+      const MSG = `Here's what I suggest you focus on today.`;
+      const chiId = await session.appendChiMessage(MSG);
+      setTypingMessageId(chiId);
+      await waitForTyping(MSG);
+      setTypingMessageId(null);
       await session.appendComponentMessage("action-cards-stub");
       setStep("inside-project");
     },
-    [session],
+    [session], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const branchFiredRef = useRef(false);
@@ -124,7 +141,7 @@ function CompanionHomePage() {
     branchFiredRef.current = true;
 
     if (projects.length === 1) {
-      void handleProjectSelect(projects[0]);
+      void handleProjectSelect(projects[0], true);
     }
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -160,7 +177,12 @@ function CompanionHomePage() {
   );
 
   return (
-    <CompanionShell>
+    <CompanionShell
+      onProjectChange={(projectId) => {
+        const project = projects.find((p) => p.id === projectId);
+        if (project) void handleProjectSelect(project, false);
+      }}
+    >
       {/* Scrim — sits above the <html> background image */}
       <div
         style={{
@@ -217,6 +239,7 @@ function CompanionHomePage() {
               projects={projects}
               onProjectSelect={handleProjectSelect}
               onCreateProject={() => {/* CC-3 scope */}}
+              typingMessageId={typingMessageId ?? undefined}
             />
           </div>
 

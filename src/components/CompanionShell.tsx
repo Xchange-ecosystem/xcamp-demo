@@ -15,7 +15,7 @@ function CollapseOnMount() {
   return null;
 }
 
-export function CompanionShell({ children }: { children: ReactNode }) {
+export function CompanionShell({ children, onProjectChange }: { children: ReactNode; onProjectChange?: (projectId: string) => void }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
@@ -51,7 +51,7 @@ export function CompanionShell({ children }: { children: ReactNode }) {
         className="flex min-h-screen w-full"
         style={{ background: "transparent" }}
       >
-        <AppSidebar />
+        <AppSidebar onProjectChange={onProjectChange} />
         <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
           <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
         </div>

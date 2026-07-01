@@ -48,7 +48,7 @@ export interface CompanionSession {
   conversationId: string | null;
   messages: ChatMessage[];
   loading: boolean;
-  appendChiMessage: (text: string) => Promise<void>;
+  appendChiMessage: (text: string) => Promise<string>;
   appendUserMessage: (text: string) => Promise<void>;
   appendComponentMessage: (type: ComponentMessageType, payload?: Record<string, unknown>) => Promise<string>;
   resolveComponent: (messageId: string) => void;
@@ -114,17 +114,18 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
     return () => { cancelled = true; };
   }, [user?.centralId, user?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const appendChiMessage = useCallback(async (text: string) => {
+  const appendChiMessage = useCallback(async (text: string): Promise<string> => {
     const id = crypto.randomUUID();
     const newMsg: ChatMessage = { id, kind: "chi", text };
     setMessages((prev) => [...prev, newMsg]);
 
     const convId = conversationIdRef.current;
-    if (!convId || !user) return;
+    if (!convId || !user) return id;
     // Cast through unknown: generated types are stale and missing content_type column
     await (supabase.from("jarvix_messages") as unknown as {
       insert: (row: Record<string, unknown>) => Promise<unknown>;
     }).insert({ id, conversation_id: convId, role: "assistant", content: text, content_type: "text", tenant_id: user.tenantId });
+    return id;
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const appendUserMessage = useCallback(async (text: string) => {
