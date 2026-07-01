@@ -59,10 +59,9 @@ function CompanionHomePage() {
 
   // Apply background image directly on <html> — bypasses all React layer stacking
   useEffect(() => {
-    const imageUrl =
-      "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(89).png";
-    console.log("[hero] setting background image on html element");
-    document.documentElement.style.cssText += `; background-image: url("${imageUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
+    if (!bgUrl) return;
+    console.log("[hero] setting background image:", bgUrl);
+    document.documentElement.style.cssText += `; background-image: url("${bgUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
 
     return () => {
       document.documentElement.style.backgroundImage = "";
@@ -71,7 +70,7 @@ function CompanionHomePage() {
       document.documentElement.style.backgroundRepeat = "";
       document.documentElement.style.backgroundAttachment = "";
     };
-  }, []);
+  }, [bgUrl]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
@@ -159,9 +158,6 @@ function CompanionHomePage() {
     },
     [session],
   );
-
-  // Suppress unused warning — bgUrl will wire back in when we remove the hardcode
-  void bgUrl;
 
   return (
     <CompanionShell>
