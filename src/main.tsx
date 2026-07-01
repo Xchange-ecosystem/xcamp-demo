@@ -1,4 +1,4 @@
-import "./lib/i18n";
+import i18n from "./lib/i18n";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
@@ -8,17 +8,21 @@ import { getRouter } from "./router";
 // so it serves as the outermost theme wrapper. Swap to the design-system
 // provider here once it ships.
 import { ThemeProvider } from "./lib/theme";
-
 import "./styles.css";
 
-const router = getRouter();
+async function main() {
+  if (!i18n.isInitialized) {
+    await i18n.init();
+  }
 
-const rootElement = document.getElementById("root")!;
+  const root = document.getElementById("root")!;
+  ReactDOM.createRoot(root).render(
+    <StrictMode>
+      <ThemeProvider>
+        <RouterProvider router={getRouter()} />
+      </ThemeProvider>
+    </StrictMode>,
+  );
+}
 
-ReactDOM.createRoot(rootElement).render(
-  <StrictMode>
-    <ThemeProvider>
-      <RouterProvider router={router} />
-    </ThemeProvider>
-  </StrictMode>,
-);
+main();
