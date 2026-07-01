@@ -28,7 +28,7 @@ const items = [
   { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ onProjectChange }: { onProjectChange?: (projectId: string) => void }) {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
@@ -83,7 +83,11 @@ export function AppSidebar() {
                 className="x-input w-full appearance-none"
                 style={{ height: 32, fontSize: 13, paddingRight: 28 }}
                 value={activeProjectId ?? ""}
-                onChange={(e) => setActiveProjectId(e.target.value || null)}
+                onChange={(e) => {
+                  const id = e.target.value || null;
+                  setActiveProjectId(id);
+                  if (id) onProjectChange?.(id);
+                }}
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>

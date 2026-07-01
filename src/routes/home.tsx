@@ -101,7 +101,7 @@ function CompanionHomePage() {
       await waitForTyping(MSG1);
       setTypingMessageId(null);
 
-      const MSG2 = "Let's jump into a project.";
+      const MSG2 = "Let's start by jumping into a project.";
       const id2 = await session.appendChiMessage(MSG2);
       setTypingMessageId(id2);
       await waitForTyping(MSG2);
@@ -177,7 +177,12 @@ function CompanionHomePage() {
   );
 
   return (
-    <CompanionShell>
+    <CompanionShell
+      onProjectChange={(projectId) => {
+        const project = projects.find((p) => p.id === projectId);
+        if (project) void handleProjectSelect(project, false);
+      }}
+    >
       {/* Scrim — sits above the <html> background image */}
       <div
         style={{

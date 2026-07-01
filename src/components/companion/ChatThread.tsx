@@ -41,10 +41,15 @@ interface ChatThreadProps {
 }
 
 export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId }: ChatThreadProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const lastMsgIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const last = messages[messages.length - 1];
+    if (!last || last.id === lastMsgIdRef.current) return;
+    lastMsgIdRef.current = last.id;
+    const el = msgRefs.current.get(last.id);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [messages]);
 
   return (
@@ -59,12 +64,17 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
       }}
     >
       {messages.map((msg) => {
-        if (msg.kind === "chi") return <ChiMessage key={msg.id} message={msg} isTyping={msg.id === typingMessageId} />;
-        if (msg.kind === "user") return <UserMessage key={msg.id} message={msg} />;
+        const setRef = (el: HTMLDivElement | null) => {
+          if (el) msgRefs.current.set(msg.id, el);
+          else msgRefs.current.delete(msg.id);
+        };
+        if (msg.kind === "chi") return <ChiMessage key={msg.id} msgRef={setRef} message={msg} isTyping={msg.id === typingMessageId} />;
+        if (msg.kind === "user") return <UserMessage key={msg.id} msgRef={setRef} message={msg} />;
         if (msg.kind === "component")
           return (
             <ComponentMessage
               key={msg.id}
+              msgRef={setRef}
               message={msg}
               projects={projects}
               onProjectSelect={onProjectSelect}
@@ -73,16 +83,15 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
           );
         return null;
       })}
-      <div ref={bottomRef} />
     </div>
   );
 }
 
 // ─── ChiMessage ───────────────────────────────────────────────────────────────
 
-function ChiMessage({ message, isTyping }: { message: ChiMsg; isTyping: boolean }) {
+function ChiMessage({ message, isTyping, msgRef }: { message: ChiMsg; isTyping: boolean; msgRef: (el: HTMLDivElement | null) => void }) {
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <div ref={msgRef} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
       {/* Static orb placeholder — pulsing animation wired in CC-2 with TTS */}
       <div
         style={{
@@ -126,9 +135,9 @@ function ChiMessage({ message, isTyping }: { message: ChiMsg; isTyping: boolean 
 
 // ─── UserMessage ──────────────────────────────────────────────────────────────
 
-function UserMessage({ message }: { message: UserMsg }) {
+function UserMessage({ message, msgRef }: { message: UserMsg; msgRef: (el: HTMLDivElement | null) => void }) {
   return (
-    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+    <div ref={msgRef} style={{ display: "flex", justifyContent: "flex-end" }}>
       <div
         style={{
           background: "var(--skin-accent-gradient)",
@@ -154,11 +163,13 @@ interface ComponentMessageProps {
   projects: ProjectFull[];
   onProjectSelect?: (project: ProjectFull) => void;
   onCreateProject?: () => void;
+  msgRef: (el: HTMLDivElement | null) => void;
 }
 
-function ComponentMessage({ message, projects, onProjectSelect, onCreateProject }: ComponentMessageProps) {
+function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef }: ComponentMessageProps) {
   return (
     <div
+      ref={msgRef}
       style={{
         opacity: message.resolved ? 0.45 : 1,
         transition: "opacity 0.3s",
