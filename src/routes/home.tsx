@@ -42,45 +42,48 @@ type ConvStep = "welcome" | "project-select" | "inside-project";
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
 
-  // ── Companion session (persistence) ────────────────────────────────────────
   const session = useCompanionSession(authUser);
 
-  // ── Step state (drives what the controller dispatches next) ────────────────
   const [step, setStep] = useState<ConvStep>("welcome");
   const [activeProject, setActiveProject] = useState<ProjectFull | null>(null);
-  // Track which component message ids correspond to each step's grid/cards
   const gridMsgIdRef = useRef<string | null>(null);
 
-  // ── TTS toggle (inert — wired in CC-2) ────────────────────────────────────
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
-  // ── Background image ───────────────────────────────────────────────────────
-  // Fix 1: seed is just "companion" — images are in Hero/ root, not subfolder
   const projectBgUrl =
     step === "inside-project" && activeProject?.feature_image
       ? activeProject.feature_image
       : null;
-  // Fix 3: canReload always passed through (no && !projectBgUrl gating)
   const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion");
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
-  // ── Projects query — Fix 2: pass authUser directly (has tenantId) ──────────
+  // Apply background image directly on <html> — bypasses all React layer stacking
+  useEffect(() => {
+    if (!bgUrl) return;
+    console.log("[hero] setting background image:", bgUrl);
+    document.documentElement.style.cssText += `; background-image: url("${bgUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
+
+    return () => {
+      document.documentElement.style.backgroundImage = "";
+      document.documentElement.style.backgroundSize = "";
+      document.documentElement.style.backgroundPosition = "";
+      document.documentElement.style.backgroundRepeat = "";
+      document.documentElement.style.backgroundAttachment = "";
+    };
+  }, [bgUrl]);
+
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
     queryFn: () => listProjectsFull(authUser!),
     enabled: !!authUser,
   });
 
-  // ── Free-input state ───────────────────────────────────────────────────────
   const [draft, setDraft] = useState("");
 
-  // ── Conversation controller: welcome dispatch on first load ───────────────
-  // Only fires once per session (when messages are empty and loading is done)
   const welcomeFiredRef = useRef(false);
   useEffect(() => {
     if (session.loading || welcomeFiredRef.current) return;
     if (session.messages.length > 0) {
-      // Reconstruct step from persisted messages
       welcomeFiredRef.current = true;
       return;
     }
@@ -99,43 +102,32 @@ function CompanionHomePage() {
     void dispatchWelcome();
   }, [session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Project selection handler ─────────────────────────────────────────────
   const handleProjectSelect = useCallback(
     async (project: ProjectFull) => {
       setActiveProject(project);
-      // Resolve (grey out) the grid component
       if (gridMsgIdRef.current) session.resolveComponent(gridMsgIdRef.current);
-      // Append user selection + Chi response
       await session.appendUserMessage(project.name);
-      await session.appendChiMessage(
-        `Here's what I suggest you focus on today.`,
-      );
+      await session.appendChiMessage(`Here's what I suggest you focus on today.`);
       await session.appendComponentMessage("action-cards-stub");
       setStep("inside-project");
     },
     [session],
   );
 
-  // ── Project branching: 0 projects → backcaster, 1 → auto-select ──────────
-  // Applied after projects load if we're in project-select and have no grid yet
   const branchFiredRef = useRef(false);
   useEffect(() => {
     if (step !== "project-select") return;
     if (session.loading) return;
     if (branchFiredRef.current) return;
-    if (projects.length === 0) return; // wait for query
+    if (projects.length === 0) return;
 
     branchFiredRef.current = true;
 
     if (projects.length === 1) {
-      // Auto-select the single project
       void handleProjectSelect(projects[0]);
     }
-    // 2+ projects: grid already rendered, nothing extra to dispatch
-    // 0 projects handled by query returning empty — grid shows "No projects yet"
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── New session handler ───────────────────────────────────────────────────
   const handleNewSession = useCallback(async () => {
     if (!confirm("Start a new conversation?")) return;
     await session.newSession();
@@ -146,7 +138,6 @@ function CompanionHomePage() {
     gridMsgIdRef.current = null;
   }, [session]);
 
-  // ── Free-text submit ──────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
     const text = draft.trim();
     if (!text) return;
@@ -155,7 +146,6 @@ function CompanionHomePage() {
     await session.appendChiMessage("Got it — I'll help with that soon.");
   }, [draft, session]);
 
-  // ── Shortcut pills ────────────────────────────────────────────────────────
   const handleShortcut = useCallback(
     async (id: string) => {
       if (id === "note") {
@@ -169,20 +159,9 @@ function CompanionHomePage() {
     [session],
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <CompanionShell>
-      {/* Layer 0 — full-screen background (DEBUG: hardcoded URL) */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          background: `url(https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(22).png) center/cover no-repeat`,
-          transition: "background-image 0.6s ease",
-        }}
-      />
-      {/* Layer 0.5 — dim scrim */}
+      {/* Scrim — sits above the <html> background image */}
       <div
         style={{
           position: "fixed",
@@ -193,7 +172,7 @@ function CompanionHomePage() {
         }}
       />
 
-      {/* Layer 1 — top chrome */}
+      {/* Top chrome */}
       <TopChrome
         ttsEnabled={ttsEnabled}
         onTtsToggle={() => setTtsEnabled((v) => !v)}
@@ -202,7 +181,7 @@ function CompanionHomePage() {
         onNewSession={handleNewSession}
       />
 
-      {/* Layer 2 — glass panel */}
+      {/* Glass panel */}
       <div
         style={{
           position: "fixed",
@@ -232,7 +211,6 @@ function CompanionHomePage() {
             overflow: "hidden",
           }}
         >
-          {/* Thread area */}
           <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
             <ChatThread
               messages={session.messages}
@@ -242,7 +220,6 @@ function CompanionHomePage() {
             />
           </div>
 
-          {/* Input bar */}
           <div
             style={{
               flexShrink: 0,
@@ -302,7 +279,7 @@ function CompanionHomePage() {
         </div>
       </div>
 
-      {/* Layer 3 — shortcut pill bar */}
+      {/* Shortcut pill bar */}
       <ShortcutPillBar onShortcut={handleShortcut} />
     </CompanionShell>
   );
