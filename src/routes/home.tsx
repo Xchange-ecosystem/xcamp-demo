@@ -42,19 +42,14 @@ type ConvStep = "welcome" | "project-select" | "inside-project";
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
 
-  // ── Companion session (persistence) ────────────────────────────────────────
   const session = useCompanionSession(authUser);
 
-  // ── Step state (drives what the controller dispatches next) ────────────────
   const [step, setStep] = useState<ConvStep>("welcome");
   const [activeProject, setActiveProject] = useState<ProjectFull | null>(null);
-  // Track which component message ids correspond to each step's grid/cards
   const gridMsgIdRef = useRef<string | null>(null);
 
-  // ── TTS toggle (inert — wired in CC-2) ────────────────────────────────────
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
-  // ── Background image ───────────────────────────────────────────────────────
   const projectBgUrl =
     step === "inside-project" && activeProject?.feature_image
       ? activeProject.feature_image
@@ -62,17 +57,14 @@ function CompanionHomePage() {
   const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion");
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
-  // ── Projects query ───────────────────────────────────────────────────────────
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
     queryFn: () => listProjectsFull(authUser!),
     enabled: !!authUser,
   });
 
-  // ── Free-input state ───────────────────────────────────────────────────────
   const [draft, setDraft] = useState("");
 
-  // ── Conversation controller: welcome dispatch on first load ───────────────
   const welcomeFiredRef = useRef(false);
   useEffect(() => {
     if (session.loading || welcomeFiredRef.current) return;
@@ -95,7 +87,6 @@ function CompanionHomePage() {
     void dispatchWelcome();
   }, [session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Project selection handler ─────────────────────────────────────────────
   const handleProjectSelect = useCallback(
     async (project: ProjectFull) => {
       setActiveProject(project);
@@ -108,7 +99,6 @@ function CompanionHomePage() {
     [session],
   );
 
-  // ── Project branching ──────────────────────────────────────────────────────────
   const branchFiredRef = useRef(false);
   useEffect(() => {
     if (step !== "project-select") return;
@@ -123,7 +113,6 @@ function CompanionHomePage() {
     }
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── New session handler ───────────────────────────────────────────────────
   const handleNewSession = useCallback(async () => {
     if (!confirm("Start a new conversation?")) return;
     await session.newSession();
@@ -134,7 +123,6 @@ function CompanionHomePage() {
     gridMsgIdRef.current = null;
   }, [session]);
 
-  // ── Free-text submit ──────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
     const text = draft.trim();
     if (!text) return;
@@ -143,7 +131,6 @@ function CompanionHomePage() {
     await session.appendChiMessage("Got it — I'll help with that soon.");
   }, [draft, session]);
 
-  // ── Shortcut pills ────────────────────────────────────────────────────────
   const handleShortcut = useCallback(
     async (id: string) => {
       if (id === "note") {
@@ -157,33 +144,41 @@ function CompanionHomePage() {
     [session],
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <CompanionShell>
       {/* Outermost positioning context */}
       <div
         style={{
           position: "relative",
-          minHeight: "100vh",
+          minHeight: "100svh",
           width: "100%",
-          overflow: "hidden",
         }}
       >
-        {/* Layer 0 — full-screen background (DEBUG: hardcoded URL, absolute) */}
+        {/* Layer 0 — full-screen background (DEBUG: hardcoded URL) */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: "100%",
             zIndex: 0,
             background: `url(https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(22).png) center/cover no-repeat`,
             transition: "background-image 0.6s ease",
           }}
         />
-        {/* Layer 0.5 — dim scrim (absolute) */}
+        {/* Layer 0.5 — dim scrim */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: "100%",
             zIndex: 1,
             background: "rgba(0,0,0,0.38)",
             pointerEvents: "none",
@@ -229,7 +224,6 @@ function CompanionHomePage() {
               overflow: "hidden",
             }}
           >
-            {/* Thread area */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
               <ChatThread
                 messages={session.messages}
@@ -239,7 +233,6 @@ function CompanionHomePage() {
               />
             </div>
 
-            {/* Input bar */}
             <div
               style={{
                 flexShrink: 0,
