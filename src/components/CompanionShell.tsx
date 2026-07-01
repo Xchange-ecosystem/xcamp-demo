@@ -20,14 +20,6 @@ export function CompanionShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const brand = useBrand();
 
-  // Clear the body background so the full-screen hero image shows through on mobile.
-  // The body background-color in styles.css is correct for other routes but creates a
-  // compositing-layer conflict with backdrop-filter on this route.
-  useEffect(() => {
-    document.body.style.backgroundColor = "transparent";
-    return () => { document.body.style.removeProperty("background-color"); };
-  }, []);
-
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
