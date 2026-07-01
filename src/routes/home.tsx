@@ -61,12 +61,8 @@ function CompanionHomePage() {
   useEffect(() => {
     const imageUrl =
       "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(89).png";
-
-    document.documentElement.style.backgroundImage = `url(${imageUrl})`;
-    document.documentElement.style.backgroundSize = "cover";
-    document.documentElement.style.backgroundPosition = "center";
-    document.documentElement.style.backgroundRepeat = "no-repeat";
-    document.documentElement.style.backgroundAttachment = "fixed";
+    console.log("[hero] setting background image on html element");
+    document.documentElement.style.cssText += `; background-image: url("${imageUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
 
     return () => {
       document.documentElement.style.backgroundImage = "";
