@@ -5,9 +5,8 @@ import { useCallback, useEffect, useState } from "react";
  * Falls back to a gradient if the bucket can't be listed.
  */
 
-const SUPABASE_URL = "https://ueebzuleyrnsrxbowdfa.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZWJ6dWxleXJuc3J4Ym93ZGZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTQ1MTYsImV4cCI6MjA5NTYzMDUxNn0.Tt4kYbQ94kzXlOVVPZFWBxLdVFpB4kyynN9Ui0ANkEs";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const BUCKET = "App media";
 const FOLDER = "Hero";
 
@@ -25,7 +24,7 @@ function publicUrl(path: string): string {
 async function loadHeroUrls(): Promise<string[]> {
   if (cachedUrls) return cachedUrls;
   if (inflight) return inflight;
-  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return [];
 
   inflight = (async () => {
     try {
@@ -35,8 +34,8 @@ async function loadHeroUrls(): Promise<string[]> {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             prefix: FOLDER,
@@ -48,7 +47,7 @@ async function loadHeroUrls(): Promise<string[]> {
       if (!res.ok) {
         if (!warnedEmpty) {
           warnedEmpty = true;
-          console.warn(`[useHeroImage] Storage list failed (${res.status}).`);
+          console.error("[useHeroImage] storage list failed:", res.status, await res.text());
         }
         return [];
       }
@@ -60,7 +59,7 @@ async function loadHeroUrls(): Promise<string[]> {
     } catch (e) {
       if (!warnedEmpty) {
         warnedEmpty = true;
-        console.warn("[useHeroImage] Storage list error", e);
+        console.error("[useHeroImage] storage list error", e);
       }
       return [];
     } finally {

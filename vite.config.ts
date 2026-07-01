@@ -21,5 +21,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      treeshake: {
+        moduleSideEffects: ["./src/lib/i18n.ts"],
+      },
+    },
   },
 });
