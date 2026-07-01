@@ -57,6 +57,26 @@ function CompanionHomePage() {
   const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion");
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
+  // Apply background image directly on <html> — bypasses all React layer stacking
+  useEffect(() => {
+    const imageUrl =
+      "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(89).png";
+
+    document.documentElement.style.backgroundImage = `url(${imageUrl})`;
+    document.documentElement.style.backgroundSize = "cover";
+    document.documentElement.style.backgroundPosition = "center";
+    document.documentElement.style.backgroundRepeat = "no-repeat";
+    document.documentElement.style.backgroundAttachment = "fixed";
+
+    return () => {
+      document.documentElement.style.backgroundImage = "";
+      document.documentElement.style.backgroundSize = "";
+      document.documentElement.style.backgroundPosition = "";
+      document.documentElement.style.backgroundRepeat = "";
+      document.documentElement.style.backgroundAttachment = "";
+    };
+  }, []);
+
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
     queryFn: () => listProjectsFull(authUser!),
@@ -144,157 +164,131 @@ function CompanionHomePage() {
     [session],
   );
 
+  // Suppress unused warning — bgUrl will wire back in when we remove the hardcode
+  void bgUrl;
+
   return (
     <CompanionShell>
-      {/* Outermost positioning context */}
+      {/* Scrim — sits above the <html> background image */}
       <div
         style={{
-          position: "relative",
-          minHeight: "100svh",
-          width: "100%",
+          position: "fixed",
+          inset: 0,
+          zIndex: 1,
+          background: "rgba(0,0,0,0.38)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Top chrome */}
+      <TopChrome
+        ttsEnabled={ttsEnabled}
+        onTtsToggle={() => setTtsEnabled((v) => !v)}
+        onReload={reloadHero}
+        canReload={canReload}
+        onNewSession={handleNewSession}
+      />
+
+      {/* Glass panel */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
         }}
       >
-        {/* Layer 0 — full-screen background (DEBUG: hardcoded URL) */}
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 0,
-            background: `url(https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(22).png) center/cover no-repeat`,
-            transition: "background-image 0.6s ease",
-          }}
-        />
-        {/* Layer 0.5 — dim scrim */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 1,
-            background: "rgba(0,0,0,0.38)",
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* Layer 1 — top chrome (fixed) */}
-        <TopChrome
-          ttsEnabled={ttsEnabled}
-          onTtsToggle={() => setTtsEnabled((v) => !v)}
-          onReload={reloadHero}
-          canReload={canReload}
-          onNewSession={handleNewSession}
-        />
-
-        {/* Layer 2 — glass panel (fixed) */}
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 10,
+            ...GLASS_STYLE,
+            pointerEvents: "auto",
+            width: "min(580px, 92vw)",
+            height: "min(600px, 78vh)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
+            flexDirection: "column",
+            borderRadius: 20,
+            background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
+            border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
+            boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
+            backdropFilter: "blur(var(--glass-blur, 18px))",
+            WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
+            color: "white",
+            overflow: "hidden",
           }}
         >
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
+            <ChatThread
+              messages={session.messages}
+              projects={projects}
+              onProjectSelect={handleProjectSelect}
+              onCreateProject={() => {/* CC-3 scope */}}
+            />
+          </div>
+
           <div
             style={{
-              ...GLASS_STYLE,
-              pointerEvents: "auto",
-              width: "min(580px, 92vw)",
-              height: "min(600px, 78vh)",
+              flexShrink: 0,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              padding: "10px 14px 12px",
               display: "flex",
-              flexDirection: "column",
-              borderRadius: 20,
-              background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
-              border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
-              boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
-              backdropFilter: "blur(var(--glass-blur, 18px))",
-              WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-              color: "white",
-              overflow: "hidden",
+              gap: 8,
+              alignItems: "flex-end",
             }}
           >
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
-              <ChatThread
-                messages={session.messages}
-                projects={projects}
-                onProjectSelect={handleProjectSelect}
-                onCreateProject={() => {/* CC-3 scope */}}
-              />
-            </div>
-
-            <div
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              rows={2}
+              placeholder="Ask Chi anything…"
               style={{
-                flexShrink: 0,
-                borderTop: "1px solid rgba(255,255,255,0.1)",
-                padding: "10px 14px 12px",
+                flex: 1,
+                resize: "none",
+                background: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                borderRadius: 10,
+                color: "white",
+                fontSize: 14,
+                padding: "8px 12px",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              onClick={() => void handleSend()}
+              disabled={!draft.trim()}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "var(--skin-accent-gradient)",
+                border: "none",
+                color: "white",
+                cursor: draft.trim() ? "pointer" : "not-allowed",
+                opacity: draft.trim() ? 1 : 0.4,
                 display: "flex",
-                gap: 8,
-                alignItems: "flex-end",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flexShrink: 0,
               }}
             >
-              <textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void handleSend();
-                  }
-                }}
-                rows={2}
-                placeholder="Ask Chi anything…"
-                style={{
-                  flex: 1,
-                  resize: "none",
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  borderRadius: 10,
-                  color: "white",
-                  fontSize: 14,
-                  padding: "8px 12px",
-                  outline: "none",
-                  fontFamily: "inherit",
-                }}
-              />
-              <button
-                onClick={() => void handleSend()}
-                disabled={!draft.trim()}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--skin-accent-gradient)",
-                  border: "none",
-                  color: "white",
-                  cursor: draft.trim() ? "pointer" : "not-allowed",
-                  opacity: draft.trim() ? 1 : 0.4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  flexShrink: 0,
-                }}
-              >
-                ➤
-              </button>
-            </div>
+              ➤
+            </button>
           </div>
         </div>
-
-        {/* Layer 3 — shortcut pill bar (fixed) */}
-        <ShortcutPillBar onShortcut={handleShortcut} />
       </div>
+
+      {/* Shortcut pill bar */}
+      <ShortcutPillBar onShortcut={handleShortcut} />
     </CompanionShell>
   );
 }
