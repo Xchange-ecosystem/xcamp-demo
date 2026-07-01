@@ -172,13 +172,13 @@ function CompanionHomePage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <CompanionShell>
-      {/* Layer 0 — full-screen background */}
+      {/* Layer 0 — full-screen background (DEBUG: hardcoded URL) */}
       <div
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 0,
-          background: bgUrl ? `url(${bgUrl}) center/cover no-repeat` : "var(--skin-surface)",
+          background: `url(https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Hero/Nox%20(22).png) center/cover no-repeat`,
           transition: "background-image 0.6s ease",
         }}
       />
