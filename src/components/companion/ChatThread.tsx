@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import type { ProjectFull } from "@/types/xcamp";
 import { ProjectCard } from "@/shared/ui/ProjectCard";
@@ -37,9 +37,10 @@ interface ChatThreadProps {
   onProjectSelect?: (project: ProjectFull) => void;
   onCreateProject?: () => void;
   projects?: ProjectFull[];
+  typingMessageId?: string;
 }
 
-export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [] }: ChatThreadProps) {
+export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId }: ChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
       }}
     >
       {messages.map((msg) => {
-        if (msg.kind === "chi") return <ChiMessage key={msg.id} message={msg} />;
+        if (msg.kind === "chi") return <ChiMessage key={msg.id} message={msg} isTyping={msg.id === typingMessageId} />;
         if (msg.kind === "user") return <UserMessage key={msg.id} message={msg} />;
         if (msg.kind === "component")
           return (
@@ -79,9 +80,7 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
 
 // ─── ChiMessage ───────────────────────────────────────────────────────────────
 
-function ChiMessage({ message }: { message: ChiMsg }) {
-  const [done, setDone] = useState(false);
-
+function ChiMessage({ message, isTyping }: { message: ChiMsg; isTyping: boolean }) {
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
       {/* Static orb placeholder — pulsing animation wired in CC-2 with TTS */}
@@ -115,8 +114,8 @@ function ChiMessage({ message }: { message: ChiMsg }) {
           minHeight: 20,
         }}
       >
-        {!done ? (
-          <Typewriter text={message.text} onDone={() => setDone(true)} />
+        {isTyping ? (
+          <Typewriter text={message.text} />
         ) : (
           message.text
         )}
