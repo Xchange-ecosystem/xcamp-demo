@@ -110,6 +110,7 @@ function CompanionHomePage() {
   const welcomeFiredRef = useRef(false);
   useEffect(() => {
     if (session.loading || welcomeFiredRef.current) return;
+    if (projects.length === 0) return; // wait for projects to load
 
     // If the loaded conversation is from a previous day, start fresh
     if (
@@ -130,7 +131,6 @@ function CompanionHomePage() {
     }
 
     if (session.messages.length > 0) {
-      welcomeFiredRef.current = true;
       // Restore project from previous session if available
       if (session.conversationProjectId && !activeProjectId) {
         const project = projects.find((p) => p.id === session.conversationProjectId);
@@ -141,6 +141,8 @@ function CompanionHomePage() {
           setStep("inside-project");
         }
       }
+      // Mark done only after project restore attempt — projects are loaded at this point
+      welcomeFiredRef.current = true;
       return;
     }
     welcomeFiredRef.current = true;
@@ -166,7 +168,7 @@ function CompanionHomePage() {
     }
 
     void dispatchWelcome();
-  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectSelect = useCallback(
     async (project: ProjectFull, silent = false) => {
