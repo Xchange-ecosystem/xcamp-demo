@@ -8,7 +8,9 @@ import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
 import { listProjectsFull } from "@/lib/xcamp-api";
 import { useCompanionSession } from "@/lib/useCompanionSession";
+import { useVox } from "@/hooks/useVox";
 import type { ProjectFull } from "@/types/xcamp";
+import type { AICard } from "@xchange/client";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -78,8 +80,12 @@ function CompanionHomePage() {
     enabled: !!authUser,
   });
 
+  const vox = useVox();
+  const altitude = 1 as const;
+
   const [draft, setDraft] = useState("");
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Resolves after the typewriter would finish for a given text at 38ms/char.
   const waitForTyping = (text: string) =>
@@ -120,15 +126,40 @@ function CompanionHomePage() {
       setActiveProject(project);
       if (gridMsgIdRef.current) session.resolveComponent(gridMsgIdRef.current);
       if (!silent) await session.appendUserMessage(project.name);
-      const MSG = `Here's what I suggest you focus on today.`;
-      const chiId = await session.appendChiMessage(MSG);
-      setTypingMessageId(chiId);
-      await waitForTyping(MSG);
-      setTypingMessageId(null);
-      await session.appendComponentMessage("action-cards-stub");
       setStep("inside-project");
+
+      let reply = "Here's what I suggest you focus on today.";
+      let cards: AICard[] = [];
+
+      setIsLoading(true);
+      try {
+        const res = await vox.call({
+          message: `I selected the project: ${project.name}. What should I focus on?`,
+          project_id: project.id,
+          objective_id: "",
+          tenant_id: authUser!.tenantId,
+          altitude,
+          aiPersona: "guide",
+          context_scope: "project",
+        });
+        reply = res.reply_markdown;
+        cards = res.cards ?? [];
+      } catch (err) {
+        console.error("[Chi] Vox call failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+
+      const chiId = await session.appendChiMessage(reply);
+      setTypingMessageId(chiId);
+      await waitForTyping(reply);
+      setTypingMessageId(null);
+
+      if (cards.length > 0) {
+        await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
+      }
     },
-    [session], // eslint-disable-line react-hooks/exhaustive-deps
+    [session, vox, authUser, altitude], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const branchFiredRef = useRef(false);
@@ -157,11 +188,40 @@ function CompanionHomePage() {
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || isLoading) return;
     setDraft("");
     await session.appendUserMessage(text);
-    await session.appendChiMessage("Got it — I'll help with that soon.");
-  }, [draft, session]);
+
+    let reply = "Got it — I'll help with that soon.";
+    let cards: AICard[] = [];
+
+    setIsLoading(true);
+    try {
+      const res = await vox.call({
+        message: text,
+        project_id: activeProject?.id ?? "",
+        objective_id: "",
+        tenant_id: authUser!.tenantId,
+        altitude,
+        aiPersona: "guide",
+      });
+      reply = res.reply_markdown;
+      cards = res.cards ?? [];
+    } catch (err) {
+      console.error("[Chi] Vox call failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+
+    const chiId = await session.appendChiMessage(reply);
+    setTypingMessageId(chiId);
+    await waitForTyping(reply);
+    setTypingMessageId(null);
+
+    if (cards.length > 0) {
+      await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
+    }
+  }, [draft, isLoading, session, vox, activeProject, authUser, altitude]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShortcut = useCallback(
     async (id: string) => {
@@ -240,6 +300,9 @@ function CompanionHomePage() {
               onProjectSelect={handleProjectSelect}
               onCreateProject={() => {/* CC-3 scope */}}
               typingMessageId={typingMessageId ?? undefined}
+              isLoading={isLoading}
+              onCardConfirm={(card) => console.log("[Chi] card confirmed:", card.id)}
+              onCardDismiss={(card) => console.log("[Chi] card dismissed:", card.id)}
             />
           </div>
 
@@ -263,7 +326,8 @@ function CompanionHomePage() {
                 }
               }}
               rows={2}
-              placeholder="Ask Chi anything…"
+              placeholder={isLoading ? "Chi is thinking…" : "Ask Chi anything…"}
+              disabled={isLoading}
               style={{
                 flex: 1,
                 resize: "none",
@@ -275,11 +339,12 @@ function CompanionHomePage() {
                 padding: "8px 12px",
                 outline: "none",
                 fontFamily: "inherit",
+                opacity: isLoading ? 0.5 : 1,
               }}
             />
             <button
               onClick={() => void handleSend()}
-              disabled={!draft.trim()}
+              disabled={!draft.trim() || isLoading}
               style={{
                 width: 36,
                 height: 36,
@@ -287,8 +352,8 @@ function CompanionHomePage() {
                 background: "var(--skin-accent-gradient)",
                 border: "none",
                 color: "white",
-                cursor: draft.trim() ? "pointer" : "not-allowed",
-                opacity: draft.trim() ? 1 : 0.4,
+                cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
+                opacity: draft.trim() && !isLoading ? 1 : 0.4,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
