@@ -323,6 +323,8 @@ function CompanionHomePage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          paddingTop: "2vh",
+          paddingBottom: "2vh",
           pointerEvents: "none",
         }}
       >
@@ -331,7 +333,7 @@ function CompanionHomePage() {
             ...GLASS_STYLE,
             pointerEvents: "auto",
             width: "min(580px, 92vw)",
-            height: "min(700px, 85vh)",
+            height: "min(92vh, 860px)",
             display: "flex",
             flexDirection: "column",
             borderRadius: 20,
