@@ -322,6 +322,18 @@ function ActionCardsStub() {
   );
 }
 
+const KIND_CONFIG: Record<string, { label: string; applyLabel: string }> = {
+  action_item:  { label: "Action",      applyLabel: "Apply" },
+  opportunity:  { label: "Opportunity", applyLabel: "Explore" },
+  update:       { label: "Update",      applyLabel: "Apply" },
+  metric:       { label: "Metric",      applyLabel: "View" },
+  urgency:      { label: "Urgent",      applyLabel: "Handle" },
+  celebration:  { label: "Win",         applyLabel: "Noted" },
+  content:      { label: "Content",     applyLabel: "Open" },
+  web_result:   { label: "Reference",   applyLabel: "Open" },
+};
+const DEFAULT_KIND_CONFIG = { label: "Item", applyLabel: "Apply" };
+
 function ActionCards({
   cards,
   onConfirm,
@@ -334,78 +346,103 @@ function ActionCards({
   if (cards.length === 0) return null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {cards.map((card) => (
-        <div
-          key={card.id}
-          style={{
-            border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
-            borderRadius: "var(--skin-radius, 10px)",
-            padding: 12,
-            background: "var(--skin-surface, rgba(255,255,255,0.06))",
-            marginBottom: 8,
-          }}
-        >
+      {cards.map((card) => {
+        const config = KIND_CONFIG[card.kind] ?? DEFAULT_KIND_CONFIG;
+        return (
           <div
+            key={card.id}
             style={{
-              fontWeight: 600,
-              color: "var(--skin-ink, rgba(255,255,255,0.92))",
-              marginBottom: 4,
-              fontSize: 13,
+              border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+              borderRadius: "var(--skin-radius, 10px)",
+              padding: 12,
+              background: "var(--skin-surface, rgba(255,255,255,0.06))",
+              marginBottom: 8,
             }}
           >
-            {card.title}
-          </div>
-          {card.body && (
             <div
               style={{
-                color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
-                fontSize: "0.9em",
-                marginBottom: 8,
-                lineHeight: 1.4,
+                fontSize: "0.7em",
+                color: "var(--skin-ink-faint)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                marginBottom: 4,
               }}
             >
-              {card.body}
+              {config.label}
             </div>
-          )}
-          {(card.dismissible || card.confirmable) && (
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              {card.dismissible && (
-                <button
-                  onClick={() => onDismiss?.(card)}
-                  style={{
-                    background: "transparent",
-                    color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
-                    border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
-                    borderRadius: "var(--skin-radius, 10px)",
-                    padding: "4px 12px",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
-                >
-                  Dismiss
-                </button>
-              )}
-              {card.confirmable && (
-                <button
-                  onClick={() => onConfirm?.(card)}
-                  style={{
-                    background: "var(--skin-accent, #7c3aed)",
-                    color: "var(--skin-bg, #fff)",
-                    border: "none",
-                    borderRadius: "var(--skin-radius, 10px)",
-                    padding: "4px 12px",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Apply
-                </button>
-              )}
+            <div
+              style={{
+                fontWeight: 600,
+                color: "var(--skin-ink, rgba(255,255,255,0.92))",
+                marginBottom: 4,
+                fontSize: 13,
+              }}
+            >
+              {card.title || config.label}
             </div>
-          )}
-        </div>
-      ))}
+            {card.body && (
+              <div
+                style={{
+                  color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+                  fontSize: "0.9em",
+                  marginBottom: 8,
+                  lineHeight: 1.4,
+                }}
+              >
+                {card.body}
+              </div>
+            )}
+            {card.kind === "action_item" && card.proposal && (
+              <div
+                style={{
+                  fontSize: "0.7em",
+                  color: "var(--skin-ink-faint)",
+                  marginTop: 4,
+                }}
+              >
+                {card.proposal.tool.replace(/_/g, " ")}
+              </div>
+            )}
+            {(card.dismissible || card.confirmable) && (
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+                {card.dismissible && (
+                  <button
+                    onClick={() => onDismiss?.(card)}
+                    style={{
+                      background: "transparent",
+                      color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+                      border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+                      borderRadius: "var(--skin-radius, 10px)",
+                      padding: "4px 12px",
+                      cursor: "pointer",
+                      fontSize: 12,
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                )}
+                {card.confirmable && (
+                  <button
+                    onClick={() => onConfirm?.(card)}
+                    style={{
+                      background: "var(--skin-accent, #7c3aed)",
+                      color: "var(--skin-bg, #fff)",
+                      border: "none",
+                      borderRadius: "var(--skin-radius, 10px)",
+                      padding: "4px 12px",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {config.applyLabel}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
