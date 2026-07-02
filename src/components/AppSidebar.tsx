@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Compass, Home, LogOut, Map, NotebookPen, PanelLeftClose, PanelLeftOpen, StickyNote, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -28,7 +27,7 @@ const items = [
   { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
 ];
 
-export function AppSidebar({ onProjectChange }: { onProjectChange?: (projectId: string) => void }) {
+export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
@@ -42,12 +41,6 @@ export function AppSidebar({ onProjectChange }: { onProjectChange?: (projectId: 
     enabled: !!user,
   });
   const projects = projectsQuery.data ?? [];
-
-  useEffect(() => {
-    if (projects.length === 0) return;
-    const exists = activeProjectId && projects.some((p) => p.id === activeProjectId);
-    if (!exists) setActiveProjectId(projects[0].id);
-  }, [activeProjectId, projects, setActiveProjectId]);
 
   const isActive = (url: string) => {
     if (url === "/home") return pathname === "/" || pathname.startsWith("/home");
@@ -86,7 +79,6 @@ export function AppSidebar({ onProjectChange }: { onProjectChange?: (projectId: 
                 onChange={(e) => {
                   const id = e.target.value || null;
                   setActiveProjectId(id);
-                  if (id) onProjectChange?.(id);
                 }}
               >
                 {projects.map((p) => (

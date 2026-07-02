@@ -46,6 +46,7 @@ function rowToMessage(row: MessageRow): ChatMessage {
 
 export interface CompanionSession {
   conversationId: string | null;
+  conversationCreatedAt: string | null;
   messages: ChatMessage[];
   loading: boolean;
   appendChiMessage: (text: string) => Promise<string>;
@@ -57,6 +58,7 @@ export interface CompanionSession {
 
 export function useCompanionSession(user: XcampUser | null): CompanionSession {
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationCreatedAt, setConversationCreatedAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const conversationIdRef = useRef<string | null>(null);
@@ -88,8 +90,10 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
         if (cancelled) return;
 
         let convId: string;
+        let convCreatedAt: string | null = null;
         if (convRows && convRows.length > 0) {
           convId = convRows[0].id;
+          convCreatedAt = convRows[0].created_at;
         } else {
           convId = await createConversation(user!);
         }
@@ -104,6 +108,7 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
         if (cancelled) return;
 
         setConversationId(convId);
+        setConversationCreatedAt(convCreatedAt);
         setMessages((msgRows ?? []).map(rowToMessage));
       } finally {
         if (!cancelled) setLoading(false);
@@ -173,10 +178,11 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
     if (!user) return;
     const nextId = await createConversation(user);
     setConversationId(nextId);
+    setConversationCreatedAt(null);
     setMessages([]);
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { conversationId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession };
+  return { conversationId, conversationCreatedAt, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession };
 }
 
 async function createConversation(user: XcampUser): Promise<string> {
