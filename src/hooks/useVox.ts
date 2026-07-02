@@ -3,7 +3,7 @@ import type { AnswerWithContextRequest, AnswerWithContextResponse } from "@xchan
 
 export function useVox() {
   const call = async (req: AnswerWithContextRequest): Promise<AnswerWithContextResponse> => {
-    const res = await voxFetch("/answer-with-context", {
+    const res = await voxFetch("/api/answer-with-context", {
       method: "POST",
       body: JSON.stringify(req),
     });
