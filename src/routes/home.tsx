@@ -13,6 +13,7 @@ import { useCompanionSession } from "@/lib/useCompanionSession";
 import { useVox } from "@/hooks/useVox";
 import type { ProjectFull } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
+import { executeProposal } from "@xchange/client";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -191,7 +192,7 @@ function CompanionHomePage() {
       setIsLoading(true);
       try {
         const res = await vox.call({
-          message: `I selected the project: ${project.name}. What should I focus on?`,
+          message: `I just selected the project "${project.name}". Based on the current objectives and notes, suggest 2-3 specific action cards I should work on right now. Each card should be a concrete next step.`,
           project_id: project.id,
           objective_id: "",
           tenant_id: authUser!.tenantId,
@@ -249,6 +250,22 @@ function CompanionHomePage() {
     const project = projects.find((p) => p.id === activeProjectId);
     if (project) void handleProjectSelect(project, false);
   }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCardConfirm = useCallback(async (card: AICard) => {
+    if (!card.proposal) return;
+    try {
+      const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
+      const result = await executeProposal(
+        card.proposal,
+        () => Promise.resolve(token),
+        import.meta.env.VITE_BACKEND_URL as string,
+      );
+      console.log('[Chi] proposal executed:', result);
+      // TODO CR-H10: show toast and open side panel
+    } catch (err) {
+      console.error('[Chi] proposal failed:', err);
+    }
+  }, []);
 
   const handleNewSession = useCallback(async () => {
     if (!confirm("Start a new conversation?")) return;
@@ -372,7 +389,7 @@ function CompanionHomePage() {
               onCreateProject={() => {/* CC-3 scope */}}
               typingMessageId={typingMessageId ?? undefined}
               isLoading={isLoading}
-              onCardConfirm={(card) => console.log("[Chi] card confirmed:", card.id)}
+              onCardConfirm={handleCardConfirm}
               onCardDismiss={(card) => console.log("[Chi] card dismissed:", card.id)}
             />
           </div>
