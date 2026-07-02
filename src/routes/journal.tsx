@@ -6,7 +6,6 @@ import { PageHeroShell } from "@/components/PageHeroShell";
 import { JournalFlow } from "@/components/JournalFlow";
 import { VoiceTranscriber } from "@/components/VoiceTranscriber";
 import { useBrand } from "@/lib/brand";
-import { ChiCompanionPanel } from "@xchange/companion";
 
 export const Route = createFileRoute("/journal")({
   head: () => ({
@@ -32,46 +31,31 @@ function JournalPage() {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "100vh" }}>
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <PageHeroShell
-            logo={<img src={brand.logoUrl} alt={brand.name} className="h-6 sm:h-8 w-auto" />}
-            title="Journal"
-            subtitle="Capture your thoughts by writing or voice — we'll turn them into linked notes."
-          >
-            <div
-              className="flex items-center gap-1 px-3 pt-3"
-              style={{ borderBottom: "1px solid var(--skin-line)" }}
-            >
-              <TabButton active={tab === "journal"} onClick={() => setTab("journal")} icon={<BookText size={15} />}>
-                Journal
-              </TabButton>
-              <TabButton active={tab === "voice"} onClick={() => setTab("voice")} icon={<Mic size={15} />}>
-                Voice
-              </TabButton>
-            </div>
+      <PageHeroShell
+        logo={<img src={brand.logoUrl} alt={brand.name} className="h-6 sm:h-8 w-auto" />}
+        title="Journal"
+        subtitle="Capture your thoughts by writing or voice — we'll turn them into linked notes."
+      >
+        <div
+          className="flex items-center gap-1 px-3 pt-3"
+          style={{ borderBottom: "1px solid var(--skin-line)" }}
+        >
+          <TabButton active={tab === "journal"} onClick={() => setTab("journal")} icon={<BookText size={15} />}>
+            Journal
+          </TabButton>
+          <TabButton active={tab === "voice"} onClick={() => setTab("voice")} icon={<Mic size={15} />}>
+            Voice
+          </TabButton>
+        </div>
 
-            {tab === "journal" ? (
-              <JournalFlow draft={draft} />
-            ) : (
-              <div className="p-4 sm:p-6">
-                <VoiceTranscriber onCreateNote={handleCreateEntry} createLabel="Create journal entry" />
-              </div>
-            )}
-          </PageHeroShell>
-        </div>
-        <div style={{ width: "380px", borderLeft: "1px solid var(--skin-line)", flexShrink: 0 }}>
-          <ChiCompanionPanel
-            tenantId={import.meta.env.VITE_TENANT_ID ?? ""}
-            userId={import.meta.env.VITE_USER_ID ?? ""}
-            altitude={1}
-            context={{ projectLabel: "Journal" }}
-            onCardAccept={(card, result) => console.log("Chi AI card accepted", card, result)}
-            onCardDismiss={(card) => console.log("Chi AI card dismissed", card)}
-            style={{ height: "100vh" }}
-          />
-        </div>
-      </div>
+        {tab === "journal" ? (
+          <JournalFlow draft={draft} />
+        ) : (
+          <div className="p-4 sm:p-6">
+            <VoiceTranscriber onCreateNote={handleCreateEntry} createLabel="Create journal entry" />
+          </div>
+        )}
+      </PageHeroShell>
     </AppShell>
   );
 }
