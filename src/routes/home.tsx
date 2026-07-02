@@ -331,7 +331,7 @@ function CompanionHomePage() {
             ...GLASS_STYLE,
             pointerEvents: "auto",
             width: "min(580px, 92vw)",
-            height: "min(600px, 78vh)",
+            height: "min(700px, 85vh)",
             display: "flex",
             flexDirection: "column",
             borderRadius: 20,
