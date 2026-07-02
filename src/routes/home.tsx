@@ -106,9 +106,11 @@ function CompanionHomePage() {
     return sessionDate !== today;
   };
 
+  const projectRestoredRef = useRef(false);
   const welcomeFiredRef = useRef(false);
   useEffect(() => {
     if (session.loading || welcomeFiredRef.current) return;
+    if (projects.length === 0) return; // wait for projects to load
 
     // If the loaded conversation is from a previous day, start fresh
     if (
@@ -129,6 +131,17 @@ function CompanionHomePage() {
     }
 
     if (session.messages.length > 0) {
+      // Restore project from previous session if available
+      if (session.conversationProjectId && !activeProjectId) {
+        const project = projects.find((p) => p.id === session.conversationProjectId);
+        if (project) {
+          projectRestoredRef.current = true;
+          setActiveProjectId(session.conversationProjectId);
+          setActiveProject(project);
+          setStep("inside-project");
+        }
+      }
+      // Mark done only after project restore attempt — projects are loaded at this point
       welcomeFiredRef.current = true;
       return;
     }
@@ -155,7 +168,7 @@ function CompanionHomePage() {
     }
 
     void dispatchWelcome();
-  }, [session.loading, session.messages.length, session.conversationCreatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectSelect = useCallback(
     async (project: ProjectFull, silent = false) => {
@@ -228,6 +241,11 @@ function CompanionHomePage() {
     // Don't fire during initial session restore (returning session with messages
     // already loaded — welcomeFiredRef not yet set means we're still initializing)
     if (session.messages.length > 0 && !welcomeFiredRef.current) return;
+    // Skip if the project was just restored from session — not a user selection
+    if (projectRestoredRef.current) {
+      projectRestoredRef.current = false;
+      return;
+    }
     const project = projects.find((p) => p.id === activeProjectId);
     if (project) void handleProjectSelect(project, false);
   }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
