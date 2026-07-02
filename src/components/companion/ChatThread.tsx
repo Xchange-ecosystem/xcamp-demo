@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import type { ProjectFull } from "@/types/xcamp";
+import type { AICard } from "@xchange/client";
 import { ProjectCard } from "@/shared/ui/ProjectCard";
 import { CreateProjectTile } from "@/shared/ui/CreateProjectTile";
 
 // ─── Message types ────────────────────────────────────────────────────────────
 
-export type ComponentMessageType = "project-grid" | "backcaster-stub" | "action-cards-stub";
+export type ComponentMessageType = "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
 
 export interface ChiMsg {
   id: string;
@@ -38,9 +39,12 @@ interface ChatThreadProps {
   onCreateProject?: () => void;
   projects?: ProjectFull[];
   typingMessageId?: string;
+  isLoading?: boolean;
+  onCardConfirm?: (card: AICard) => void;
+  onCardDismiss?: (card: AICard) => void;
 }
 
-export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId }: ChatThreadProps) {
+export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId, isLoading, onCardConfirm, onCardDismiss }: ChatThreadProps) {
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lastMsgIdRef = useRef<string | null>(null);
 
@@ -79,10 +83,13 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
               projects={projects}
               onProjectSelect={onProjectSelect}
               onCreateProject={onCreateProject}
+              onCardConfirm={onCardConfirm}
+              onCardDismiss={onCardDismiss}
             />
           );
         return null;
       })}
+      {isLoading && <LoadingBubble />}
     </div>
   );
 }
@@ -156,6 +163,46 @@ function UserMessage({ message, msgRef }: { message: UserMsg; msgRef: (el: HTMLD
   );
 }
 
+// ─── LoadingBubble ────────────────────────────────────────────────────────────
+
+function LoadingBubble() {
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          flexShrink: 0,
+          background: "var(--skin-accent-gradient)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "white",
+          marginTop: 2,
+        }}
+      >
+        χ
+      </div>
+      <div
+        style={{
+          background: "rgba(255,255,255,0.1)",
+          borderRadius: "12px 12px 12px 4px",
+          padding: "10px 14px",
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: "rgba(255,255,255,0.55)",
+          minHeight: 20,
+        }}
+      >
+        <Typewriter text="..." />
+      </div>
+    </div>
+  );
+}
+
 // ─── ComponentMessage ─────────────────────────────────────────────────────────
 
 interface ComponentMessageProps {
@@ -164,9 +211,11 @@ interface ComponentMessageProps {
   onProjectSelect?: (project: ProjectFull) => void;
   onCreateProject?: () => void;
   msgRef: (el: HTMLDivElement | null) => void;
+  onCardConfirm?: (card: AICard) => void;
+  onCardDismiss?: (card: AICard) => void;
 }
 
-function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef }: ComponentMessageProps) {
+function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef, onCardConfirm, onCardDismiss }: ComponentMessageProps) {
   return (
     <div
       ref={msgRef}
@@ -188,6 +237,13 @@ function ComponentMessage({ message, projects, onProjectSelect, onCreateProject,
       )}
       {message.type === "action-cards-stub" && (
         <ActionCardsStub />
+      )}
+      {message.type === "action-cards" && (
+        <ActionCards
+          cards={(message.payload?.cards ?? []) as AICard[]}
+          onConfirm={onCardConfirm}
+          onDismiss={onCardDismiss}
+        />
       )}
     </div>
   );
@@ -260,6 +316,94 @@ function ActionCardsStub() {
           }}
         >
           {item}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActionCards({
+  cards,
+  onConfirm,
+  onDismiss,
+}: {
+  cards: AICard[];
+  onConfirm?: (card: AICard) => void;
+  onDismiss?: (card: AICard) => void;
+}) {
+  if (cards.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {cards.map((card) => (
+        <div
+          key={card.id}
+          style={{
+            border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+            borderRadius: "var(--skin-radius, 10px)",
+            padding: 12,
+            background: "var(--skin-surface, rgba(255,255,255,0.06))",
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 600,
+              color: "var(--skin-ink, rgba(255,255,255,0.92))",
+              marginBottom: 4,
+              fontSize: 13,
+            }}
+          >
+            {card.title}
+          </div>
+          {card.body && (
+            <div
+              style={{
+                color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+                fontSize: "0.9em",
+                marginBottom: 8,
+                lineHeight: 1.4,
+              }}
+            >
+              {card.body}
+            </div>
+          )}
+          {(card.dismissible || card.confirmable) && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              {card.dismissible && (
+                <button
+                  onClick={() => onDismiss?.(card)}
+                  style={{
+                    background: "transparent",
+                    color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+                    border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+                    borderRadius: "var(--skin-radius, 10px)",
+                    padding: "4px 12px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  Dismiss
+                </button>
+              )}
+              {card.confirmable && (
+                <button
+                  onClick={() => onConfirm?.(card)}
+                  style={{
+                    background: "var(--skin-accent, #7c3aed)",
+                    color: "var(--skin-bg, #fff)",
+                    border: "none",
+                    borderRadius: "var(--skin-radius, 10px)",
+                    padding: "4px 12px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  Apply
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
