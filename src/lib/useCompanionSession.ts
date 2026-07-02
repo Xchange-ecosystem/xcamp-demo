@@ -47,6 +47,7 @@ function rowToMessage(row: MessageRow): ChatMessage {
 export interface CompanionSession {
   conversationId: string | null;
   conversationCreatedAt: string | null;
+  conversationProjectId: string | null;
   messages: ChatMessage[];
   loading: boolean;
   appendChiMessage: (text: string) => Promise<string>;
@@ -59,6 +60,7 @@ export interface CompanionSession {
 export function useCompanionSession(user: XcampUser | null): CompanionSession {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState<string | null>(null);
+  const [conversationProjectId, setConversationProjectId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const conversationIdRef = useRef<string | null>(null);
@@ -77,10 +79,10 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
       try {
         // Find most recent active conversation
         // Cast through unknown early: generated types are stale and missing status column
-        type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string }> | null }> };
+        type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
         const { data: convRows } = await (supabase
           .from("jarvix_conversations")
-          .select("id, status, created_at") as unknown as ConvQuery)
+          .select("id, status, created_at, project_id") as unknown as ConvQuery)
           .eq("owner_central_id", user!.centralId)
           .eq("tenant_id", user!.tenantId)
           .neq("status", "closed")
@@ -91,9 +93,11 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
 
         let convId: string;
         let convCreatedAt: string | null = null;
+        let convProjectId: string | null = null;
         if (convRows && convRows.length > 0) {
           convId = convRows[0].id;
           convCreatedAt = convRows[0].created_at;
+          convProjectId = convRows[0].project_id ?? null;
         } else {
           convId = await createConversation(user!);
         }
@@ -109,6 +113,7 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
 
         setConversationId(convId);
         setConversationCreatedAt(convCreatedAt);
+        setConversationProjectId(convProjectId);
         setMessages((msgRows ?? []).map(rowToMessage));
       } finally {
         if (!cancelled) setLoading(false);
@@ -179,10 +184,11 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
     const nextId = await createConversation(user);
     setConversationId(nextId);
     setConversationCreatedAt(null);
+    setConversationProjectId(null);
     setMessages([]);
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { conversationId, conversationCreatedAt, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession };
+  return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession };
 }
 
 async function createConversation(user: XcampUser): Promise<string> {
