@@ -40,6 +40,12 @@ export const Route = createFileRoute("/home")({
   component: CompanionHomePage,
 });
 
+// Clear project selection on every page load so the companion — not localStorage —
+// controls which project is active. Runs before ActiveProjectContext hydrates.
+if (typeof window !== "undefined") {
+  localStorage.removeItem("xcamp-active-project");
+}
+
 // ─── Conversation controller step ─────────────────────────────────────────────
 type ConvStep = "welcome" | "project-select" | "inside-project";
 
@@ -113,7 +119,6 @@ function CompanionHomePage() {
     ) {
       void session.newSession().then(() => {
         setActiveProjectId(null);
-        localStorage.removeItem("xcamp-active-project");
         setStep("welcome");
         setActiveProject(null);
         welcomeFiredRef.current = false;
@@ -129,9 +134,7 @@ function CompanionHomePage() {
     }
     welcomeFiredRef.current = true;
 
-    // Fresh session — clear any lingering project selection
     setActiveProjectId(null);
-    localStorage.removeItem("xcamp-active-project");
 
     async function dispatchWelcome() {
       const MSG1 = "Hello! Let's make the most of today. What would you like to work on?";
@@ -221,9 +224,13 @@ function CompanionHomePage() {
   useEffect(() => {
     if (!activeProjectId) return;
     if (activeProject?.id === activeProjectId) return;
+    if (session.loading) return;
+    // Don't fire during initial session restore (returning session with messages
+    // already loaded — welcomeFiredRef not yet set means we're still initializing)
+    if (session.messages.length > 0 && !welcomeFiredRef.current) return;
     const project = projects.find((p) => p.id === activeProjectId);
     if (project) void handleProjectSelect(project, false);
-  }, [activeProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewSession = useCallback(async () => {
     if (!confirm("Start a new conversation?")) return;
