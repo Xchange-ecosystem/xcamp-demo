@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
 import type { AICard } from "@/types/ai";
+import { confirm } from "./organiser-api";
 
 const BASE_URL = "https://chiapi.xchange.eco";
 
@@ -163,14 +164,12 @@ export interface CommitResult {
   failures: { proposal_id?: string; title?: string; error?: string }[];
 }
 
+/** Delegates to organiser-api.confirm to avoid duplicate request logic. */
 export async function confirmSession(
   sessionId: string,
   approvals: { proposal_id: string; approved: boolean }[],
 ): Promise<void> {
-  await request("/api/organiser/confirm", {
-    method: "POST",
-    body: JSON.stringify({ session_id: sessionId, approvals }),
-  });
+  return confirm(sessionId, approvals);
 }
 
 export async function commitSession(sessionId: string): Promise<CommitResult> {

@@ -1,8 +1,10 @@
-// Chi Organiser API client — talks directly to the live chiapi backend.
+// Chi Organiser API client — talks to xcamp-backend.
 // Auth bearer token comes from the app's own Supabase session.
 import { supabase } from "@/lib/supabase";
 
-const BASE_URL = "https://chiapi.xchange.eco";
+// VITE_BACKEND_API_URL should be the bare origin with no path suffix
+// e.g. https://xcampapi.xchange.eco (paths below already include /api/)
+const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? '').replace(/\/$/, '');
 
 export type ProposalType = "new_objective" | "link_to_objective" | (string & {});
 
