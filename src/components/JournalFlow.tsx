@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createNote } from "@/lib/xcamp-api";
+import { supabase } from "@/lib/supabase";
 import {
   analyse,
   answerWithContext,
@@ -27,9 +28,9 @@ import {
   type JournalProposal,
   type SessionStatus,
 } from "@/lib/journal-api";
-import { executeProposal } from "@/lib/executeProposal";
+import { executeProposal } from "@xchange/client";
+import type { AICard } from "@xchange/client";
 import { EntityPanel } from "@/components/EntityPanel";
-import type { AICard } from "@/types/ai";
 
 type Screen = "input" | "cards" | "editor";
 
@@ -155,7 +156,12 @@ export function JournalFlow({
   const handleAcceptCard = async (card: AICard) => {
     if (!card.proposal) return;
     setAccepting(card.id);
-    const result = await executeProposal(card.proposal);
+    const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
+    const result = await executeProposal(
+      card.proposal,
+      () => Promise.resolve(token || null),
+      (import.meta.env.VITE_BACKEND_URL as string) ?? '',
+    );
     setAccepting(null);
 
     if (result.ok) {
@@ -163,10 +169,18 @@ export function JournalFlow({
       const proposal = card.proposal!;
       const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
       const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
+      const objectiveId = typeof rawPayload.objective_id === 'string' ? rawPayload.objective_id : undefined;
+      const entityType = ((): 'note' | 'task' | 'objective' => {
+        switch (proposal.tool) {
+          case 'create_task': case 'complete_task': return 'task';
+          case 'set_objective_fields': return 'objective';
+          default: return 'note';
+        }
+      })();
       setPanelTarget({
-        type: result.entityType!,
-        id: result.entityId ?? proposal.objective_id,
-        objectiveId: proposal.objective_id,
+        type: entityType,
+        id: result.committed_id ?? objectiveId ?? '',
+        objectiveId,
         prefillText: card.body,
         initialTitle: payloadTitle,
       });
@@ -551,9 +565,9 @@ function AICardView({
         <p style={{ color: "var(--skin-ink-soft)", fontSize: 14, lineHeight: 1.55 }}>{card.body}</p>
       )}
 
-      {card.proposal?.rationale && (
+      {(card.proposal as unknown as { rationale?: string })?.rationale && (
         <p style={{ color: "var(--skin-ink-faint)", fontSize: 12, fontStyle: "italic", margin: 0 }}>
-          {card.proposal.rationale}
+          {(card.proposal as unknown as { rationale?: string }).rationale}
         </p>
       )}
 

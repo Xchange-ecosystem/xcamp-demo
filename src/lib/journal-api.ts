@@ -2,7 +2,7 @@
 // the Supabase session for auth + tenant context.
 import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
-import type { AICard } from "@/types/ai";
+import type { AICard } from "@xchange/client";
 import { confirm } from "./organiser-api";
 
 const BASE_URL = "https://chiapi.xchange.eco";
