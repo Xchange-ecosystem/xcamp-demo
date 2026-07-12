@@ -1,4 +1,5 @@
 export * from './types/ai';
+export * from './types/toolAuth';
 export * from './types/context';
 export * from './types/conversation';
 export * from './vox/client';

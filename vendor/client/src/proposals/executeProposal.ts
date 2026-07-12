@@ -1,6 +1,7 @@
 import type { AIProposal, ProposalResult } from '../types/ai';
 import type { TokenProvider } from '../vox/client';
 import { getSupabaseClient } from '../supabase/client';
+import { checkToolAuth } from '../types/toolAuth';
 
 function extractError(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -17,6 +18,12 @@ export async function executeProposal(
   getToken: TokenProvider,
   backendUrl: string,
 ): Promise<ProposalResult> {
+  // Auth gate: HARD_GATE and NOT_EXECUTABLE tools are rejected before any network call.
+  const authCheck = checkToolAuth(proposal.tool);
+  if (!authCheck.permitted) {
+    return { ok: false, error: authCheck.reason };
+  }
+
   try {
     const token = await getToken();
     if (!token) return { ok: false, error: 'No auth token available' };
@@ -33,7 +40,6 @@ export async function executeProposal(
           body: JSON.stringify({
             tool: proposal.tool,
             payload: proposal.payload,
-            objective_id: proposal.objective_id,
           }),
         });
 
@@ -66,13 +72,13 @@ export async function executeProposal(
       case 'create_task': {
         const p = proposal.payload;
         const { data, error } = await supabase.rpc('upsert_objective_note', {
-          p_objective_id:  proposal.objective_id,
+          p_objective_id:  p.objective_id,
           p_note_id:       null,
           p_note_type:     'task',
           p_title:         p.title,
           p_body_html:     '',
           p_body_markdown: p.body_markdown ?? '',
-          p_detail:        {},
+          p_detail:        p.detail ?? {},
         });
         console.log('[executeProposal] supabase create_task:', { data, error });
         if (error) return { ok: false, error: error.message };
@@ -81,11 +87,11 @@ export async function executeProposal(
       case 'add_note': {
         const p = proposal.payload;
         const { data, error } = await supabase.rpc('upsert_objective_note', {
-          p_objective_id:  proposal.objective_id,
+          p_objective_id:  p.objective_id,
           p_note_id:       null,
           p_note_type:     'note',
           p_title:         p.title,
-          p_body_html:     '',
+          p_body_html:     p.body_html ?? '',
           p_body_markdown: p.body_markdown ?? '',
           p_detail:        {},
         });
