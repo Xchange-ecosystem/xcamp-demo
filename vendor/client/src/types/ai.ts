@@ -1,8 +1,8 @@
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 export type Altitude = 0 | 1 | 2;
-export type AIPersona = 'analyst' | 'guide';
-export type ContextScope = 'project' | 'organization' | 'tenant';
+export type AIPersona = string;
+export type ContextScope = 'private' | 'project' | 'organization' | 'tenant';
 
 export const AI_CARD_KINDS = [
   'update', 'metric', 'opportunity', 'web_result',
@@ -212,10 +212,21 @@ export type AIProposal =
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-export interface AICardRef {
+/** Hyperlink reference (external URL) */
+export interface AICardRefLink {
   label: string;
   url: string;
 }
+
+/** Entity reference (internal Xcamp object) */
+export interface AICardRefEntity {
+  kind: string;
+  id: string;
+  label?: string;
+}
+
+/** Union: a card ref is either an external hyperlink or an internal entity reference. */
+export type AICardRef = AICardRefLink | AICardRefEntity;
 
 export interface AICard {
   id: string;
@@ -228,23 +239,31 @@ export interface AICard {
   dismissible: boolean;
   confirmable: boolean;
   requires_reconfirmation?: boolean;
+  is_gravity?: boolean;
 }
 
 // ─── Request / response contracts ────────────────────────────────────────────
 
 export interface AttachmentInput {
-  name: string;
-  mime: string;
+  type: string;
   url?: string;
-  base64?: string;
+  text?: string;
 }
 
 export interface AnswerWithContextRequest {
   message: string;
   attachments?: AttachmentInput[];
-  objective_id: string;
-  project_id: string;
-  tenant_id: string;
+  objective_id?: string;
+  project_id?: string;
+  tenant_id?: string;
+  workplace_id?: string;
+  central_user_id?: string;
+  scope_projects?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    role: string;
+  }>;
   altitude: Altitude;
   aiPersona?: AIPersona;
   context_scope?: ContextScope;
@@ -255,7 +274,7 @@ export interface AnswerWithContextResponse {
   ok?: boolean;
   reply_markdown: string;
   cards: AICard[];
-  used_context?: {
+  used_context?: boolean | {
     task_ids?: string[];
     note_ids?: string[];
     related_sources?: string[];

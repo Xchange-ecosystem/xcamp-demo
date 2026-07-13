@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
 import type { AICard } from "@xchange/client";
 import { confirm } from "./organiser-api";
+import { voxFetch } from "@/integrations/vox/client";
 
 const BASE_URL = "https://chiapi.xchange.eco";
 
@@ -134,26 +135,26 @@ export async function answerWithContext(args: {
   question: string;
   tenantId: string;
   projectId?: string;
-  topK?: number;
 }): Promise<AnswerWithContextResult> {
   const { altitude } = useAltitudeStore.getState();
-  const res = await request<Record<string, unknown>>("/api/answer-with-context", {
+  const res = await voxFetch("/api/answer-with-context", {
     method: "POST",
     body: JSON.stringify({
-      question: args.question,
-      top_k: args.topK ?? 5,
+      message: args.question,
       project_id: args.projectId,
       tenant_id: args.tenantId,
-      context_scope: "workspace",
       altitude,
     }),
   });
-  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
+  if (!res.ok) {
+    const rawText = await res.text().catch(() => "");
+    throw new JournalError(extractErrorMessage(rawText, res.status), res.status);
+  }
+  const data = await res.json() as Record<string, unknown>;
+  const root = (data?.data && typeof data.data === "object" ? data.data : data) as Record<string, unknown>;
   const answer =
-    (typeof root.answer === "string" && root.answer) ||
     (typeof root.reply_markdown === "string" && root.reply_markdown) ||
-    (typeof root.text === "string" && root.text) ||
-    (typeof root.response === "string" && root.response) ||
+    (typeof root.answer === "string" && root.answer) ||
     "";
   const cards = Array.isArray(root.cards) ? (root.cards as AICard[]) : [];
   return { answer: answer as string, cards };
