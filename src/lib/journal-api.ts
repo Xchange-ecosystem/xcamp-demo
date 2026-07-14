@@ -3,10 +3,10 @@
 import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
 import type { AICard } from "@xchange/client";
-import { confirm } from "./organiser-api";
+import { confirm, commit } from "./organiser-api";
 import { voxFetch } from "@/integrations/vox/client";
 
-const BASE_URL = "https://chiapi.xchange.eco";
+const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? '').replace(/\/$/, '');
 
 export type SuggestedNoteType = "note" | "task" | "resource" | (string & {});
 
@@ -173,26 +173,9 @@ export async function confirmSession(
   return confirm(sessionId, approvals);
 }
 
+/** Delegates to organiser-api.commit to avoid duplicate request logic. */
 export async function commitSession(sessionId: string): Promise<CommitResult> {
-  const res = await request<Record<string, unknown>>("/api/organiser/commit", {
-    method: "POST",
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
-  const rawFailures = (asArray(root.failures).length ? root.failures : root.errors) as unknown;
-  const failures = asArray(rawFailures).map((f) => {
-    const o = (f ?? {}) as Record<string, unknown>;
-    return {
-      proposal_id: typeof o.proposal_id === "string" ? o.proposal_id : undefined,
-      title: typeof o.title === "string" ? o.title : undefined,
-      error: typeof o.error === "string" ? o.error : undefined,
-    };
-  });
-  const succeeded =
-    typeof root.succeeded === "number"
-      ? root.succeeded
-      : asArray(root.committed).length;
-  return { succeeded, failures };
+  return commit(sessionId);
 }
 
 // ---- History (direct Supabase) ----
