@@ -295,3 +295,128 @@ Code-splitting status: `vite.config.ts:10` enables `TanStackRouterVite({ autoCod
 | `.env.example` | Documents `VITE_BACKEND_URL` and `VITE_VOX_API_URL` but not `VITE_BACKEND_API_URL` — incomplete |
 | `package.json` | No `engines` field and no Bun version pin; Vercel's Bun version may drift |
 | `AUDIT-xcamp-nox-founder-app.md` (root) | Prior security audit committed to repo — may expose internal security findings if repo is public |
+
+---
+
+## 6. Notes Route Regression Investigation
+
+*Requested follow-up. Three specific questions answered below with file:line citations and git evidence.*
+
+---
+
+### I.1 The commit that changed `/notes`'s render tree
+
+The render tree of `src/routes/notes.tsx` has changed three times since the file was created:
+
+| Commit | Date | Message | Change to `/notes` render tree |
+|---|---|---|---|
+| `2a44b57` | 2026-06-22 | Changes (gpt-engineer-app) | **Created**: `return <Journal />;` — bare Journal component, no shell |
+| `95ccfe9` | 2026-07-02 07:56 | `fix(layout): companion height CR-H12, notes layout CR-H14` | Wrapped `<Journal />` in `AppShell` + `PageHeroShell` — layout fix, same content |
+| **`7ceffa2`** | **2026-07-02 08:05** | **`fix(layout): companion height, notes tabs, remove journal companion panel`** | **Replaced `<Journal />` with a two-tab layout: tab "Notes" → `<JournalFlow>`, tab "Voice" → `<VoiceTranscriber>`. Default tab is `"voice"`.** |
+
+**The regression commit is `7ceffa2`** (nine minutes after `95ccfe9`, same session). The diff at `src/routes/notes.tsx` shows:
+
+```diff
+-import { Journal } from "@/components/Journal";
++import { JournalFlow } from "@/components/JournalFlow";
++import { VoiceTranscriber } from "@/components/VoiceTranscriber";
+ ...
+-        <Journal />
++        {tab === "journal" ? (
++          <JournalFlow draft={draft} />
++        ) : (
++          <VoiceTranscriber onCreateNote={handleCreateEntry} createLabel="Create note" />
++        )}
+```
+
+The commit message calls this "CR-H14: /notes restored with Journal + Voice tabs and VoiceTranscriber orb, matching /journal structure". The word "restored" is misleading — the original `/notes` never had tabs. What actually happened is that `/notes` was restructured to mirror `/journal` rather than to restore the original `<Journal />` implementation.
+
+---
+
+### I.2 Does `AppSidebar.tsx`'s Notes nav entry point at the wrong route?
+
+**VERDICT: The route target is correct; the route content has regressed.**
+
+`src/components/AppSidebar.tsx:24-25` (confirmed at commit `30ffa73`, "fix: add Notes nav entry"):
+
+```ts
+{ title: "notes",      url: "/notes",   icon: StickyNote,  labelKey: "nav.notes"      },
+{ title: "journalApp", url: "/journal", icon: NotebookPen, labelKey: "nav.journalApp" },
+```
+
+The "Notes" entry correctly targets `/notes` — the route is registered and the router resolves it. The entry does not point at a 404 or the wrong path.
+
+**However, `/notes` and `/journal` are now functionally near-identical** (diff between `src/routes/notes.tsx` and `src/routes/journal.tsx` as of `7ceffa2`):
+
+| Property | `/notes` | `/journal` |
+|---|---|---|
+| Page title | "Notes" | "Journal" |
+| Tab A label | "Notes" (renders `JournalFlow`) | "Journal" (renders `JournalFlow`) |
+| Tab B label | "Voice" (renders `VoiceTranscriber`) | "Voice" (renders `VoiceTranscriber`) |
+| `VoiceTranscriber` createLabel | `"Create note"` | `"Create journal entry"` |
+| Default tab | `"voice"` | `"voice"` |
+| Subtitle | "Capture and manage your notes…" | "Capture your thoughts by writing or voice…" |
+
+The original intent of the "Notes" sidebar entry was to land users on the full note management UI (`<Journal />`: two-panel list + editor). That component still exists at `src/components/Journal.tsx` but **is not rendered on any top-level route** as of `7ceffa2`. The AppSidebar is not pointing at the wrong URL — but the URL it points at no longer delivers the expected feature.
+
+---
+
+### I.3 Pre-regression feature list for `/notes`
+
+The original `<Journal />` component (`src/components/Journal.tsx`, 737 lines) rendered a full note management UI. Below is its confirmed feature list, verified by reading the file directly.
+
+**What `/notes` delivered BEFORE `7ceffa2`:**
+
+| Feature | Evidence (Journal.tsx:line) |
+|---|---|
+| Two-panel layout: collapsible sidebar + main editor | `:283-295` — `display: grid`, `gridTemplateColumns: ${sidebarWidth}px 1fr` |
+| Note list with title, date, project label, body preview, tags | `:626-687` — note card rendering |
+| "Linked" badge on notes that have objective links | `:647-648` — `linked.has(note.id)` badge |
+| Live search across title, body HTML, tags | `:183-190` — `search.trim().toLowerCase()` filter |
+| Sort by: last updated / date created / title (asc/desc) | `:73-80, :390-424` — `SortKey` type, dropdown |
+| Filter by project | `:190, :462-470` — `filterProject` select |
+| Filter by tags (multi-select chip list) | `:191, :474-498` — `filterTags` state |
+| Filter: linked notes only toggle | `:192, :501-524` — `filterLinked` toggle |
+| Active filter chips with individual clear | `:540-557` — `FilterChip` component |
+| Multi-select mode (bulk operations) | `:144-146, :560-569` — `selectMode`, `selected` Set |
+| Bulk archive (delete) selected notes | `:232-239, :578-582` — `bulkArchiveMut` |
+| Bulk assign to project | `:241-249, :588-606` — `bulkAssignMut` |
+| Create new note (full rich-text editor) | `:207-213, :353-355` — `createMut`, "+ New note" button |
+| Edit existing note (rich-text editor, `NoteEditor`) | `:215-222, :698-715` — `updateMut`, `NoteEditor` component |
+| Archive (delete) individual note | `:224-230, :712` — `archiveMut` |
+| AI organise shortcut (Sparkles button → `OrganiseSheet`) | `:649-659, :726-734` — per-note Sparkles button, `OrganiseSheet` |
+| Sidebar collapse/expand (icon-only mode) | `:313-333` — collapsed sidebar with icon buttons |
+| Mobile-responsive (single-column, list or editor view) | `:274-282, :697-724` — `isMobile` toggle |
+| Note count display | `:571` — `{visibleNotes.length} notes` |
+| Auth guard (redirect to `/auth` if no session) | `:147-149` — `useEffect` on `loading, user` |
+
+**What `/notes` delivers NOW (post `7ceffa2`):**
+
+| Feature | Component |
+|---|---|
+| Voice note capture (mic → transcript) | `VoiceTranscriber` (default tab) |
+| AI journal analysis flow → note proposals | `JournalFlow` |
+
+**Capabilities lost from `/notes` after `7ceffa2`:**
+- Note list (browse existing notes)
+- Note search, sort, filter
+- Note creation via rich text editor
+- Note editing
+- Note archiving / deletion
+- Bulk operations
+- Objective linking badge
+- AI "Organise" per-note shortcut
+- Mobile two-column layout
+
+The `Journal` component is orphaned — it exists at `src/components/Journal.tsx` and is not imported by any route or top-level component as of `7ceffa2`.
+
+---
+
+### I.4 Summary
+
+| Question | Answer |
+|---|---|
+| Which commit changed notes.tsx's render tree? | `7ceffa2` (2026-07-02 08:05) — "fix(layout): companion height, notes tabs, remove journal companion panel" |
+| Does AppSidebar point at the wrong route? | No — `/notes` is the correct target. But `/notes` now renders a journal creation flow (identical to `/journal`), not the original note management UI. |
+| Pre-regression `/notes` feature set | Full notes manager: list, search, sort, filter, create, edit, archive, bulk ops, AI organise, mobile layout. All via `<Journal />` component still present at `src/components/Journal.tsx` but now unused on any route. |
+| Recommended fix | Restore `<Journal />` as the primary content of `/notes` (either as-is or as a tab within the current tab layout). The component is intact and functional — it simply needs to be re-imported by `notes.tsx`. |
