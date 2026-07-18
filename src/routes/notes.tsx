@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Journal } from "@/components/Journal";
+import { AppShell } from "@/components/AppShell";
+import { PageHeroShell } from "@/components/PageHeroShell";
+import { NotesBrowser } from "@/components/NotesBrowser";
+import { useBrand } from "@/lib/brand";
 
 export const Route = createFileRoute("/notes")({
   head: () => ({
@@ -12,5 +15,16 @@ export const Route = createFileRoute("/notes")({
 });
 
 function NotesPage() {
-  return <Journal />;
+  const brand = useBrand();
+  return (
+    <AppShell>
+      <PageHeroShell
+        logo={<img src={brand.logoUrl} alt={brand.name} className="h-6 sm:h-8 w-auto" />}
+        title="Notes"
+        subtitle="Capture and manage your notes in the Xcamp ecosystem."
+      >
+        <NotesBrowser />
+      </PageHeroShell>
+    </AppShell>
+  );
 }

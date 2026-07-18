@@ -79,7 +79,7 @@ const SORT_LABELS: Record<SortKey, string> = {
   title: "Title",
 };
 
-export function Journal({
+export function NotesBrowser({
   embedded = false,
   defaultCollapsed = false,
   draft = null,
@@ -261,7 +261,7 @@ export function Journal({
     return (
       <div
         className="flex flex-col items-center justify-center gap-4"
-        style={{ color: "var(--skin-ink-soft)", height: embedded ? "60vh" : "100vh" }}
+        style={{ color: "var(--skin-ink-soft)", height: "60vh" }}
       >
         <img src={brand.iconUrl} alt={brand.name} className="h-10 w-10 object-cover rounded-lg" />
         <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
@@ -273,7 +273,7 @@ export function Journal({
 
   const effCollapsed = isMobile ? false : collapsed;
   const sidebarWidth = effCollapsed ? 56 : 340;
-  const containerHeight = embedded ? (isMobile ? "auto" : "70vh") : "100vh";
+  const containerHeight = isMobile ? "auto" : "70vh";
   const asidePosition = embedded ? "relative" : "sticky";
 
   // On mobile we render a single column: the list, or the editor when one is open.
@@ -283,13 +283,11 @@ export function Journal({
   return (
     <div
       style={{
-        background: "var(--skin-bg)",
         display: isMobile ? "flex" : "grid",
         flexDirection: isMobile ? "column" : undefined,
         gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
         height: containerHeight,
         minHeight: isMobile && embedded ? "70vh" : undefined,
-        borderRadius: embedded ? 16 : 0,
         overflow: "hidden",
       }}
     >
