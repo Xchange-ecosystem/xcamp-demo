@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -19,13 +18,9 @@ import { Route as HomeRouteImport } from './routes/home'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
+import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
 
-const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
-  id: '/project/$projectId',
-  path: '/project/$projectId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
   id: '/project-builder',
   path: '/project-builder',
@@ -71,6 +66,11 @@ const ProfileIndexRoute = ProfileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
+  id: '/project/$projectId',
+  path: '/project/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
@@ -86,8 +86,8 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRoutesByTo {
@@ -98,8 +98,8 @@ export interface FileRoutesByTo {
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
   '/project-builder': typeof ProjectBuilderRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile': typeof ProfileIndexRoute
 }
 export interface FileRoutesById {
@@ -112,8 +112,8 @@ export interface FileRoutesById {
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
+  '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRouteTypes {
@@ -127,8 +127,8 @@ export interface FileRouteTypes {
     | '/notes'
     | '/profile'
     | '/project-builder'
-    | '/project/$projectId'
     | '/profile/appearance'
+    | '/project/$projectId'
     | '/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -139,8 +139,8 @@ export interface FileRouteTypes {
     | '/navigator'
     | '/notes'
     | '/project-builder'
-    | '/project/$projectId'
     | '/profile/appearance'
+    | '/project/$projectId'
     | '/profile'
   id:
     | '__root__'
@@ -152,8 +152,8 @@ export interface FileRouteTypes {
     | '/notes'
     | '/profile'
     | '/project-builder'
-    | '/project/$projectId'
     | '/profile/appearance'
+    | '/project/$projectId'
     | '/profile/'
   fileRoutesById: FileRoutesById
 }
@@ -171,13 +171,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/project/$projectId': {
-      id: '/project/$projectId'
-      path: '/project/$projectId'
-      fullPath: '/project/$projectId'
-      preLoaderRoute: typeof ProjectProjectIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/project-builder': {
       id: '/project-builder'
       path: '/project-builder'
@@ -240,6 +233,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/profile/'
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRoute
+    }
+    '/project/$projectId': {
+      id: '/project/$projectId'
+      path: '/project/$projectId'
+      fullPath: '/project/$projectId'
+      preLoaderRoute: typeof ProjectProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/profile/appearance': {
       id: '/profile/appearance'
