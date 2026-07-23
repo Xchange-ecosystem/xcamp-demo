@@ -14,6 +14,8 @@ import { useVox } from "@/hooks/useVox";
 import type { ProjectFull } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import { executeProposal } from "@xchange/client";
+import { toast } from "sonner";
+import { EntityPanel } from "@/components/EntityPanel";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -43,6 +45,14 @@ export const Route = createFileRoute("/home")({
 
 // ─── Conversation controller step ─────────────────────────────────────────────
 type ConvStep = "welcome" | "project-select" | "inside-project";
+
+interface PanelTarget {
+  type: 'note' | 'task' | 'objective';
+  id: string;
+  objectiveId?: string;
+  prefillText?: string;
+  initialTitle?: string;
+}
 
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
@@ -90,6 +100,8 @@ function CompanionHomePage() {
   const [draft, setDraft] = useState("");
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [panelTarget, setPanelTarget] = useState<PanelTarget | null>(null);
+  const [dismissedCardIds, setDismissedCardIds] = useState<Set<string>>(new Set());
 
   // Resolves after the typewriter would finish for a given text at 38ms/char.
   const waitForTyping = (text: string) =>
@@ -251,14 +263,41 @@ function CompanionHomePage() {
       const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
       const result = await executeProposal(
         card.proposal,
-        () => Promise.resolve(token),
-        import.meta.env.VITE_BACKEND_URL as string,
+        () => Promise.resolve(token || null),
+        (import.meta.env.VITE_BACKEND_URL as string) ?? '',
       );
-      console.log('[Chi] proposal executed:', result);
-      // TODO CR-H10: show toast and open side panel
+      if (result.ok) {
+        const proposal = card.proposal;
+        const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
+        const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
+        const objectiveId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
+        const entityType = ((): 'note' | 'task' | 'objective' => {
+          switch (proposal.tool) {
+            case 'create_task': case 'complete_task': return 'task';
+            case 'set_objective_fields': return 'objective';
+            default: return 'note';
+          }
+        })();
+        setDismissedCardIds((prev) => new Set([...prev, card.id]));
+        setPanelTarget({
+          type: entityType,
+          id: result.committed_id ?? objectiveId ?? '',
+          objectiveId,
+          prefillText: card.body,
+          initialTitle: payloadTitle,
+        });
+        toast.success('Done — card applied.');
+      } else {
+        toast.error(result.error ?? 'Could not apply card.');
+      }
     } catch (err) {
       console.error('[Chi] proposal failed:', err);
+      toast.error('Something went wrong applying the card.');
     }
+  }, []);
+
+  const handleCardDismiss = useCallback((card: AICard) => {
+    setDismissedCardIds((prev) => new Set([...prev, card.id]));
   }, []);
 
   const handleNewSession = useCallback(async () => {
@@ -322,136 +361,151 @@ function CompanionHomePage() {
   );
 
   return (
-    <CompanionShell>
-      {/* Scrim — sits above the <html> background image */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 1,
-          background: "rgba(0,0,0,0.38)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Top chrome */}
-      <TopChrome
-        ttsEnabled={ttsEnabled}
-        onTtsToggle={() => setTtsEnabled((v) => !v)}
-        onReload={reloadHero}
-        canReload={canReload}
-        onNewSession={handleNewSession}
-      />
-
-      {/* Glass panel */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingTop: "2vh",
-          paddingBottom: "2vh",
-          pointerEvents: "none",
-        }}
-      >
+    <>
+      <CompanionShell>
+        {/* Scrim — sits above the <html> background image */}
         <div
           style={{
-            ...GLASS_STYLE,
-            pointerEvents: "auto",
-            width: "min(580px, 92vw)",
-            height: "min(92vh, 860px)",
+            position: "fixed",
+            inset: 0,
+            zIndex: 1,
+            background: "rgba(0,0,0,0.38)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Top chrome */}
+        <TopChrome
+          ttsEnabled={ttsEnabled}
+          onTtsToggle={() => setTtsEnabled((v) => !v)}
+          onReload={reloadHero}
+          canReload={canReload}
+          onNewSession={handleNewSession}
+        />
+
+        {/* Glass panel */}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10,
             display: "flex",
-            flexDirection: "column",
-            borderRadius: 20,
-            background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
-            border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
-            boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
-            backdropFilter: "blur(var(--glass-blur, 18px))",
-            WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-            color: "white",
-            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: "2vh",
+            paddingBottom: "2vh",
+            pointerEvents: "none",
           }}
         >
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
-            <ChatThread
-              messages={session.messages}
-              projects={projects}
-              onProjectSelect={handleProjectSelect}
-              onCreateProject={() => {/* CC-3 scope */}}
-              typingMessageId={typingMessageId ?? undefined}
-              isLoading={isLoading}
-              onCardConfirm={handleCardConfirm}
-              onCardDismiss={(card) => console.log("[Chi] card dismissed:", card.id)}
-            />
-          </div>
-
           <div
             style={{
-              flexShrink: 0,
-              borderTop: "1px solid rgba(255,255,255,0.1)",
-              padding: "10px 14px 12px",
+              ...GLASS_STYLE,
+              pointerEvents: "auto",
+              width: "min(580px, 92vw)",
+              height: "min(92vh, 860px)",
               display: "flex",
-              gap: 8,
-              alignItems: "flex-end",
+              flexDirection: "column",
+              borderRadius: 20,
+              background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
+              border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
+              boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
+              backdropFilter: "blur(var(--glass-blur, 18px))",
+              WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
+              color: "white",
+              overflow: "hidden",
             }}
           >
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleSend();
-                }
-              }}
-              rows={2}
-              placeholder={isLoading ? "Chi is thinking…" : "Ask Chi anything…"}
-              disabled={isLoading}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
+              <ChatThread
+                messages={session.messages}
+                projects={projects}
+                onProjectSelect={handleProjectSelect}
+                onCreateProject={() => {/* CC-3 scope */}}
+                typingMessageId={typingMessageId ?? undefined}
+                isLoading={isLoading}
+                onCardConfirm={handleCardConfirm}
+                onCardDismiss={handleCardDismiss}
+                hiddenCardIds={dismissedCardIds}
+              />
+            </div>
+
+            <div
               style={{
-                flex: 1,
-                resize: "none",
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.18)",
-                borderRadius: 10,
-                color: "white",
-                fontSize: 14,
-                padding: "8px 12px",
-                outline: "none",
-                fontFamily: "inherit",
-                opacity: isLoading ? 0.5 : 1,
-              }}
-            />
-            <button
-              onClick={() => void handleSend()}
-              disabled={!draft.trim() || isLoading}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "var(--skin-accent-gradient)",
-                border: "none",
-                color: "white",
-                cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
-                opacity: draft.trim() && !isLoading ? 1 : 0.4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 16,
                 flexShrink: 0,
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                padding: "10px 14px 12px",
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-end",
               }}
             >
-              ➤
-            </button>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSend();
+                  }
+                }}
+                rows={2}
+                placeholder={isLoading ? "Chi is thinking…" : "Ask Chi anything…"}
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  resize: "none",
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  borderRadius: 10,
+                  color: "white",
+                  fontSize: 14,
+                  padding: "8px 12px",
+                  outline: "none",
+                  fontFamily: "inherit",
+                  opacity: isLoading ? 0.5 : 1,
+                }}
+              />
+              <button
+                onClick={() => void handleSend()}
+                disabled={!draft.trim() || isLoading}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--skin-accent-gradient)",
+                  border: "none",
+                  color: "white",
+                  cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
+                  opacity: draft.trim() && !isLoading ? 1 : 0.4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                  flexShrink: 0,
+                }}
+              >
+                ➤
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Shortcut pill bar */}
-      <ShortcutPillBar onShortcut={handleShortcut} />
-    </CompanionShell>
+        {/* Shortcut pill bar */}
+        <ShortcutPillBar onShortcut={handleShortcut} />
+      </CompanionShell>
+
+      {panelTarget && (
+        <EntityPanel
+          open
+          onClose={() => setPanelTarget(null)}
+          type={panelTarget.type}
+          id={panelTarget.id}
+          objectiveId={panelTarget.objectiveId}
+          prefillText={panelTarget.prefillText}
+          initialTitle={panelTarget.initialTitle}
+        />
+      )}
+    </>
   );
 }
 

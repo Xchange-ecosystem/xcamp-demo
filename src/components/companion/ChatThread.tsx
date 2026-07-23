@@ -42,9 +42,10 @@ interface ChatThreadProps {
   isLoading?: boolean;
   onCardConfirm?: (card: AICard) => void;
   onCardDismiss?: (card: AICard) => void;
+  hiddenCardIds?: Set<string>;
 }
 
-export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId, isLoading, onCardConfirm, onCardDismiss }: ChatThreadProps) {
+export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId, isLoading, onCardConfirm, onCardDismiss, hiddenCardIds }: ChatThreadProps) {
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lastMsgIdRef = useRef<string | null>(null);
 
@@ -85,6 +86,7 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
               onCreateProject={onCreateProject}
               onCardConfirm={onCardConfirm}
               onCardDismiss={onCardDismiss}
+              hiddenCardIds={hiddenCardIds}
             />
           );
         return null;
@@ -213,9 +215,10 @@ interface ComponentMessageProps {
   msgRef: (el: HTMLDivElement | null) => void;
   onCardConfirm?: (card: AICard) => void;
   onCardDismiss?: (card: AICard) => void;
+  hiddenCardIds?: Set<string>;
 }
 
-function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef, onCardConfirm, onCardDismiss }: ComponentMessageProps) {
+function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef, onCardConfirm, onCardDismiss, hiddenCardIds }: ComponentMessageProps) {
   return (
     <div
       ref={msgRef}
@@ -243,6 +246,7 @@ function ComponentMessage({ message, projects, onProjectSelect, onCreateProject,
           cards={(message.payload?.cards ?? []) as AICard[]}
           onConfirm={onCardConfirm}
           onDismiss={onCardDismiss}
+          hiddenCardIds={hiddenCardIds}
         />
       )}
     </div>
@@ -338,15 +342,18 @@ function ActionCards({
   cards,
   onConfirm,
   onDismiss,
+  hiddenCardIds,
 }: {
   cards: AICard[];
   onConfirm?: (card: AICard) => void;
   onDismiss?: (card: AICard) => void;
+  hiddenCardIds?: Set<string>;
 }) {
-  if (cards.length === 0) return null;
+  const visibleCards = hiddenCardIds ? cards.filter((c) => !hiddenCardIds.has(c.id)) : cards;
+  if (visibleCards.length === 0) return null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {cards.map((card) => {
+      {visibleCards.map((card) => {
         const config = KIND_CONFIG[card.kind] ?? DEFAULT_KIND_CONFIG;
         return (
           <div
