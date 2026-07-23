@@ -1,6 +1,7 @@
 // Chi Organiser API client — talks to xcamp-backend.
 // Auth bearer token comes from the app's own Supabase session.
 import { supabase } from "@/lib/supabase";
+import type { AICard } from "@xchange/client";
 
 // VITE_BACKEND_API_URL should be the bare origin with no path suffix
 // e.g. https://xcampapi.xchange.eco (paths below already include /api/)
@@ -28,6 +29,7 @@ export interface CommitFailure {
 export interface CommitResult {
   succeeded: number;
   failures: CommitFailure[];
+  suggested_task_cards?: AICard[];
 }
 
 export class OrganiserError extends Error {
@@ -145,7 +147,10 @@ export async function commit(sessionId: string): Promise<CommitResult> {
       : Array.isArray(root.committed)
         ? (root.committed as unknown[]).length
         : 0;
-  return { succeeded, failures };
+  const suggested_task_cards = Array.isArray(root.suggested_task_cards)
+    ? (root.suggested_task_cards as AICard[])
+    : undefined;
+  return { succeeded, failures, suggested_task_cards };
 }
 
 export function noteToGoal(title: string, bodyHtml: string | null): string {
