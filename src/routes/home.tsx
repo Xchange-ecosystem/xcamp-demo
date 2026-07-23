@@ -157,13 +157,20 @@ function CompanionHomePage() {
     setActiveProjectId(null);
 
     async function dispatchWelcome() {
-      const MSG1 = "Hello! Let's make the most of today. What would you like to work on?";
+      const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+      const MSG1 = `${timeGreeting}, ${firstName}! Let's make the most of today. What would you like to work on?`;
       const id1 = await session.appendChiMessage(MSG1);
       setTypingMessageId(id1);
       await waitForTyping(MSG1);
       setTypingMessageId(null);
 
-      const MSG2 = "Let's start by jumping into a project.";
+      const MSG2 =
+        projects.length > 0
+          ? `You have ${projects.length} ${projects.length === 1 ? "project" : "projects"} — let's jump in.`
+          : "Let's start by jumping into a project.";
       const id2 = await session.appendChiMessage(MSG2);
       setTypingMessageId(id2);
       await waitForTyping(MSG2);
@@ -191,6 +198,17 @@ function CompanionHomePage() {
       if (gridMsgIdRef.current) session.resolveComponent(gridMsgIdRef.current);
       if (!silent) await session.appendUserMessage(project.name);
       setStep("inside-project");
+
+      // Show project description as an immediate 2-line motivational summary (no AI call needed)
+      if (project.description) {
+        const desc = project.description.trim();
+        const sentences = desc.match(/[^.!?\n][^.!?\n]*[.!?]?/g) ?? [desc];
+        const summary = sentences.slice(0, 2).join(" ").trim().slice(0, 240);
+        const descId = await session.appendChiMessage(summary);
+        setTypingMessageId(descId);
+        await waitForTyping(summary);
+        setTypingMessageId(null);
+      }
 
       let reply = "Here's what I suggest you focus on today.";
       let cards: AICard[] = [];
@@ -323,7 +341,7 @@ function CompanionHomePage() {
     try {
       const res = await vox.call({
         message: text,
-        project_id: activeProject?.id ?? "",
+        project_id: activeProject?.id || undefined,
         objective_id: "",
         tenant_id: authUser!.tenantId,
         altitude,
@@ -349,15 +367,55 @@ function CompanionHomePage() {
 
   const handleShortcut = useCallback(
     async (id: string) => {
-      if (id === "note") {
-        await session.appendUserMessage("Quick note");
+      const labelMap: Record<string, string> = {
+        note: "Quick note",
+        objective: "Set objective",
+        reflect: "Reflect",
+        plan: "Plan today",
+      };
+      const userLabel = labelMap[id] ?? id;
+      await session.appendUserMessage(userLabel);
+
+      if (id === "note" || id === "objective") {
         await session.appendChiMessage("Got it — I'll help with that soon.");
-      } else if (id === "objective") {
-        await session.appendUserMessage("Set objective");
-        await session.appendChiMessage("Got it — I'll help with that soon.");
+        return;
+      }
+
+      const voxMessage =
+        id === "reflect"
+          ? "Let's reflect on my recent progress. What have I accomplished, and where should I direct my energy next?"
+          : "Help me plan the rest of my day based on my current goals and commitments.";
+
+      let reply = "Got it — I'll help with that soon.";
+      let cards: AICard[] = [];
+      setIsLoading(true);
+      try {
+        const res = await vox.call({
+          message: voxMessage,
+          project_id: activeProject?.id || undefined,
+          objective_id: "",
+          tenant_id: authUser!.tenantId,
+          altitude,
+          aiPersona: "guide",
+        });
+        reply = res.reply_markdown;
+        cards = res.cards ?? [];
+      } catch (err) {
+        console.error("[Chi] Shortcut vox call failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+
+      const chiId = await session.appendChiMessage(reply);
+      setTypingMessageId(chiId);
+      await waitForTyping(reply);
+      setTypingMessageId(null);
+
+      if (cards.length > 0) {
+        await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
       }
     },
-    [session],
+    [session, vox, activeProject, authUser, altitude], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (

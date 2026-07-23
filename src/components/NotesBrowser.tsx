@@ -24,6 +24,7 @@ import { useBrand } from "@/lib/brand";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   archiveNote,
+  autoTagNote,
   bulkArchive,
   bulkAssignProject,
   createNote,
@@ -213,9 +214,15 @@ export function NotesBrowser({
 
   const createMut = useMutation({
     mutationFn: (input: NoteEditorValues) => createNote(user!, input),
-    onSuccess: () => {
+    onSuccess: (note, input) => {
       invalidate();
       setEditing(null);
+      // Auto-tag in the background when the user left the tags field empty
+      if (input.tags.length === 0 && user) {
+        void autoTagNote(user, note.id, note.title, note.body_html ?? "").then(() =>
+          queryClient.invalidateQueries({ queryKey: ["notes", user.centralId] }),
+        );
+      }
     },
   });
 
