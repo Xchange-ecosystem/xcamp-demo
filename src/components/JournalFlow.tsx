@@ -95,7 +95,9 @@ export function JournalFlow({
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [appliedCards, setAppliedCards] = useState<Map<string, PanelTarget>>(new Map());
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
-  const [suggestedTaskOrigins, setSuggestedTaskOrigins] = useState<Map<string, string>>(new Map());
+  // suggestedCards: topic.id → cards spawned by that topic's objective commit.
+  // Kept separate from context cards so rendering doesn't cross-reference two Maps.
+  const [suggestedCards, setSuggestedCards] = useState<Map<string, AICard[]>>(new Map());
 
   useEffect(() => {
     if (!draft) return;
@@ -132,7 +134,7 @@ export function JournalFlow({
       setCardErrors({});
       setAppliedCards(new Map());
       setSavedTopicIds(new Set());
-      setSuggestedTaskOrigins(new Map());
+      setSuggestedCards(new Map());
       setScreen("cards");
 
       if (newTopics.length === 0 && newCards.length === 0) {
@@ -147,6 +149,7 @@ export function JournalFlow({
 
   const handleDismissTopic = async (topic: JournalTopic) => {
     setTopics((prev) => prev.filter((t) => t.id !== topic.id));
+    setSuggestedCards((prev) => { const next = new Map(prev); next.delete(topic.id); return next; });
     if (topic.organiser_proposals.length > 0 && topic.organiser_session_id) {
       try {
         await confirmSession(
@@ -201,6 +204,11 @@ export function JournalFlow({
 
   const handleDismissCard = (card: AICard) => {
     setCards((prev) => prev.filter((c) => c.id !== card.id));
+    setSuggestedCards((prev) => {
+      const next = new Map(prev);
+      for (const [k, v] of next) next.set(k, v.filter((c) => c.id !== card.id));
+      return next;
+    });
   };
 
   const startNew = () => {
@@ -212,7 +220,7 @@ export function JournalFlow({
     setOpenSession(null);
     setAppliedCards(new Map());
     setSavedTopicIds(new Set());
-    setSuggestedTaskOrigins(new Map());
+    setSuggestedCards(new Map());
     setScreen("input");
   };
 
@@ -403,7 +411,7 @@ export function JournalFlow({
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {topics.map((topic) => {
-                    const suggestedForTopic = cards.filter(c => suggestedTaskOrigins.get(c.id) === topic.id);
+                    const topicSuggested = suggestedCards.get(topic.id) ?? [];
                     return (
                       <div key={topic.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <TopicCard
@@ -412,7 +420,7 @@ export function JournalFlow({
                           onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
                           onDismiss={() => handleDismissTopic(topic)}
                         />
-                        {suggestedForTopic.map((card) => (
+                        {topicSuggested.map((card) => (
                           <div
                             key={card.id}
                             style={{
@@ -435,7 +443,7 @@ export function JournalFlow({
                       </div>
                     );
                   })}
-                  {cards.filter(c => !suggestedTaskOrigins.has(c.id)).map((card) => (
+                  {cards.map((card) => (
                     <AICardView
                       key={card.id}
                       card={card}
@@ -457,16 +465,16 @@ export function JournalFlow({
               topic={editingTopic}
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-              onSaved={(suggestedCards) => {
+              onSaved={(newSuggestedCards) => {
                 const topicId = editingTopic!.id;
                 setSavedTopicIds((prev) => new Set([...prev, topicId]));
-                if (suggestedCards && suggestedCards.length > 0) {
-                  setSuggestedTaskOrigins((prev) => {
+                if (newSuggestedCards && newSuggestedCards.length > 0) {
+                  setSuggestedCards((prev) => {
                     const next = new Map(prev);
-                    for (const c of suggestedCards) next.set(c.id, topicId);
+                    const existing = next.get(topicId) ?? [];
+                    next.set(topicId, [...existing, ...newSuggestedCards]);
                     return next;
                   });
-                  setCards((prev) => [...prev, ...suggestedCards]);
                 }
                 setEditingTopic(null);
                 setScreen("cards");
