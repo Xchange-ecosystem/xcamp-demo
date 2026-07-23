@@ -15,7 +15,7 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     try {
       const result = await interpret({
         session_id: state.sessionId,
-        raw_input: state.interpretation,
+        raw_input: state.rawInput,
         context: state.context || undefined,
       });
       patch({ interpretation: result.interpretation });
