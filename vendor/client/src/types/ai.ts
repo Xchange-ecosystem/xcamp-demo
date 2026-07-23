@@ -6,7 +6,7 @@ export type ContextScope = 'private' | 'project' | 'organization' | 'tenant';
 
 export const AI_CARD_KINDS = [
   'update', 'metric', 'opportunity', 'web_result',
-  'urgency', 'celebration', 'content', 'action_item',
+  'urgency', 'celebration', 'content', 'action_item', 'task',
 ] as const;
 export type AICardKind = (typeof AI_CARD_KINDS)[number];
 
