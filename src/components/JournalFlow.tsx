@@ -93,6 +93,8 @@ export function JournalFlow({
   const [editingTopic, setEditingTopic] = useState<JournalTopic | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [openSession, setOpenSession] = useState<string | null>(null);
+  const [appliedCards, setAppliedCards] = useState<Map<string, PanelTarget>>(new Map());
+  const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!draft) return;
@@ -127,6 +129,8 @@ export function JournalFlow({
       setTopics(newTopics);
       setCards(newCards);
       setCardErrors({});
+      setAppliedCards(new Map());
+      setSavedTopicIds(new Set());
       setScreen("cards");
 
       if (newTopics.length === 0 && newCards.length === 0) {
@@ -167,7 +171,6 @@ export function JournalFlow({
     setAccepting(null);
 
     if (result.ok) {
-      setCards((prev) => prev.filter((c) => c.id !== card.id));
       const proposal = card.proposal!;
       const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
       const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
@@ -179,13 +182,16 @@ export function JournalFlow({
           default: return 'note';
         }
       })();
-      setPanelTarget({
+      const target: PanelTarget = {
         type: entityType,
         id: result.committed_id ?? objectiveId ?? '',
         objectiveId,
         prefillText: card.body,
         initialTitle: payloadTitle,
-      });
+      };
+      setAppliedCards((prev) => new Map(prev).set(card.id, target));
+      setPanelTarget(target);
+      toast.success('Applied');
     } else {
       setCardErrors((prev) => ({ ...prev, [card.id]: result.error ?? 'Unknown error' }));
     }
@@ -202,6 +208,8 @@ export function JournalFlow({
     setCardErrors({});
     setEditingTopic(null);
     setOpenSession(null);
+    setAppliedCards(new Map());
+    setSavedTopicIds(new Set());
     setScreen("input");
   };
 
@@ -395,6 +403,7 @@ export function JournalFlow({
                     <TopicCard
                       key={topic.id}
                       topic={topic}
+                      saved={savedTopicIds.has(topic.id)}
                       onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
                       onDismiss={() => handleDismissTopic(topic)}
                     />
@@ -405,6 +414,8 @@ export function JournalFlow({
                       card={card}
                       accepting={accepting === card.id}
                       error={cardErrors[card.id]}
+                      applied={appliedCards.has(card.id)}
+                      onGoTo={appliedCards.has(card.id) ? () => setPanelTarget(appliedCards.get(card.id)!) : undefined}
                       onAccept={() => handleAcceptCard(card)}
                       onDismiss={() => handleDismissCard(card)}
                     />
@@ -420,7 +431,7 @@ export function JournalFlow({
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
               onSaved={() => {
-                setTopics((prev) => prev.filter((t) => t.id !== editingTopic.id));
+                setSavedTopicIds((prev) => new Set([...prev, editingTopic!.id]));
                 setEditingTopic(null);
                 setScreen("cards");
                 sessionsQuery.refetch();
@@ -468,16 +479,19 @@ function TopicCard({
   topic,
   onAccept,
   onDismiss,
+  saved = false,
 }: {
   topic: JournalTopic;
   onAccept: () => void;
   onDismiss: () => void;
+  saved?: boolean;
 }) {
   return (
     <div
       style={{
         border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
         background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 10,
+        opacity: saved ? 0.75 : 1,
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -498,18 +512,27 @@ function TopicCard({
       )}
       {topic.organiser_proposals.length > 0 && <PlacementPills proposals={topic.organiser_proposals} />}
       <div className="flex items-center gap-2 mt-1">
-        <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={onAccept}>
-          Accept
-        </button>
-        <button
-          onClick={onDismiss}
-          style={{
-            background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
-            color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
-          }}
-        >
-          Dismiss
-        </button>
+        {saved ? (
+          <>
+            <CheckCircle2 size={15} style={{ color: "var(--skin-accent)" }} />
+            <span style={{ fontSize: 13, color: "var(--skin-accent)", fontWeight: 500 }}>Saved</span>
+          </>
+        ) : (
+          <>
+            <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={onAccept}>
+              Accept
+            </button>
+            <button
+              onClick={onDismiss}
+              style={{
+                background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+                color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+              }}
+            >
+              Dismiss
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -521,12 +544,16 @@ function AICardView({
   error,
   onAccept,
   onDismiss,
+  applied = false,
+  onGoTo,
 }: {
   card: AICard;
   accepting: boolean;
   error?: string;
   onAccept: () => void;
   onDismiss: () => void;
+  applied?: boolean;
+  onGoTo?: () => void;
 }) {
   const kindLabel: Record<string, string> = {
     action_item: "Action",
@@ -544,7 +571,7 @@ function AICardView({
       style={{
         border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
         background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 10,
-        opacity: accepting ? 0.7 : 1,
+        opacity: accepting ? 0.7 : applied ? 0.75 : 1,
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -581,33 +608,52 @@ function AICardView({
         </div>
       )}
 
-      {(card.confirmable || card.dismissible) && (
+      {applied ? (
         <div className="flex items-center gap-2 mt-1">
-          {card.confirmable && (
+          <CheckCircle2 size={14} style={{ color: "var(--skin-accent)" }} />
+          <span style={{ fontSize: 13, color: "var(--skin-accent)", fontWeight: 500 }}>Applied</span>
+          {onGoTo && (
             <button
-              className="x-btn-primary"
-              style={{ width: "auto", paddingInline: 20 }}
-              onClick={onAccept}
-              disabled={accepting || !card.proposal}
-            >
-              {accepting ? (
-                <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
-              ) : "Accept"}
-            </button>
-          )}
-          {card.dismissible && (
-            <button
-              onClick={onDismiss}
-              disabled={accepting}
+              onClick={onGoTo}
               style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
-                color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 13, color: "var(--skin-ink-soft)", padding: "0 4px",
+                textDecoration: "underline",
               }}
             >
-              Dismiss
+              Go to →
             </button>
           )}
         </div>
+      ) : (
+        (card.confirmable || card.dismissible) && (
+          <div className="flex items-center gap-2 mt-1">
+            {card.confirmable && (
+              <button
+                className="x-btn-primary"
+                style={{ width: "auto", paddingInline: 20 }}
+                onClick={onAccept}
+                disabled={accepting || !card.proposal}
+              >
+                {accepting ? (
+                  <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
+                ) : "Accept"}
+              </button>
+            )}
+            {card.dismissible && (
+              <button
+                onClick={onDismiss}
+                disabled={accepting}
+                style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+                  color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+                }}
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        )
       )}
     </div>
   );
