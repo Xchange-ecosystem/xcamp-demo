@@ -26,10 +26,19 @@ export interface CommitFailure {
   error?: string;
 }
 
+export interface CommitResultItem {
+  proposal_id: string;
+  proposal_type: string;
+  id: string;
+  project_id?: string;    // populated for new_objective
+  objective_id?: string;  // populated for link_to_objective
+}
+
 export interface CommitResult {
   succeeded: number;
   failures: CommitFailure[];
   suggested_task_cards?: AICard[];
+  results?: CommitResultItem[];
 }
 
 export class OrganiserError extends Error {
@@ -150,7 +159,19 @@ export async function commit(sessionId: string): Promise<CommitResult> {
   const suggested_task_cards = Array.isArray(root.suggested_task_cards)
     ? (root.suggested_task_cards as AICard[])
     : undefined;
-  return { succeeded, failures, suggested_task_cards };
+  const results = Array.isArray(root.results)
+    ? (root.results as unknown[]).map((r) => {
+        const o = (r ?? {}) as Record<string, unknown>;
+        return {
+          proposal_id: String(o.proposal_id ?? ''),
+          proposal_type: String(o.proposal_type ?? ''),
+          id: String(o.id ?? ''),
+          project_id: typeof o.project_id === 'string' ? o.project_id : undefined,
+          objective_id: typeof o.objective_id === 'string' ? o.objective_id : undefined,
+        } as CommitResultItem;
+      })
+    : undefined;
+  return { succeeded, failures, suggested_task_cards, results };
 }
 
 export function noteToGoal(title: string, bodyHtml: string | null): string {

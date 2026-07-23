@@ -95,6 +95,7 @@ export function JournalFlow({
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [appliedCards, setAppliedCards] = useState<Map<string, PanelTarget>>(new Map());
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
+  const [savedTopicTargets, setSavedTopicTargets] = useState<Map<string, PanelTarget>>(new Map());
   // suggestedCards: topic.id → cards spawned by that topic's objective commit.
   // Kept separate from context cards so rendering doesn't cross-reference two Maps.
   const [suggestedCards, setSuggestedCards] = useState<Map<string, AICard[]>>(new Map());
@@ -134,6 +135,7 @@ export function JournalFlow({
       setCardErrors({});
       setAppliedCards(new Map());
       setSavedTopicIds(new Set());
+      setSavedTopicTargets(new Map());
       setSuggestedCards(new Map());
       setScreen("cards");
 
@@ -220,6 +222,7 @@ export function JournalFlow({
     setOpenSession(null);
     setAppliedCards(new Map());
     setSavedTopicIds(new Set());
+    setSavedTopicTargets(new Map());
     setSuggestedCards(new Map());
     setScreen("input");
   };
@@ -417,8 +420,10 @@ export function JournalFlow({
                         <TopicCard
                           topic={topic}
                           saved={savedTopicIds.has(topic.id)}
+                          target={savedTopicTargets.get(topic.id)}
                           onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
                           onDismiss={() => handleDismissTopic(topic)}
+                          onGoTo={(t) => setPanelTarget(t)}
                         />
                         {topicSuggested.map((card) => (
                           <div
@@ -465,9 +470,12 @@ export function JournalFlow({
               topic={editingTopic}
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-              onSaved={(newSuggestedCards) => {
+              onSaved={(newSuggestedCards, newTarget) => {
                 const topicId = editingTopic!.id;
                 setSavedTopicIds((prev) => new Set([...prev, topicId]));
+                if (newTarget) {
+                  setSavedTopicTargets((prev) => new Map(prev).set(topicId, newTarget));
+                }
                 if (newSuggestedCards && newSuggestedCards.length > 0) {
                   setSuggestedCards((prev) => {
                     const next = new Map(prev);
@@ -524,11 +532,15 @@ function TopicCard({
   onAccept,
   onDismiss,
   saved = false,
+  target,
+  onGoTo,
 }: {
   topic: JournalTopic;
   onAccept: () => void;
   onDismiss: () => void;
   saved?: boolean;
+  target?: PanelTarget;
+  onGoTo?: (target: PanelTarget) => void;
 }) {
   return (
     <div
@@ -560,6 +572,18 @@ function TopicCard({
           <>
             <CheckCircle2 size={15} style={{ color: "var(--skin-accent)" }} />
             <span style={{ fontSize: 13, color: "var(--skin-accent)", fontWeight: 500 }}>Saved</span>
+            {target && onGoTo && (
+              <button
+                onClick={() => onGoTo(target)}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: 13, color: "var(--skin-ink-soft)", padding: "0 4px",
+                  textDecoration: "underline",
+                }}
+              >
+                Go to →
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -713,7 +737,7 @@ function NoteEditorPane({
   topic: JournalTopic;
   projectId?: string;
   onBack: () => void;
-  onSaved: (suggestedCards?: AICard[]) => void;
+  onSaved: (suggestedCards?: AICard[], panelTarget?: PanelTarget) => void;
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState(topic.title);
@@ -748,6 +772,7 @@ function NoteEditorPane({
     try {
       const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
       let suggestedCards: AICard[] | undefined;
+      let panelTarget: PanelTarget | undefined;
       if (hasProposals && topic.organiser_session_id) {
         await confirmSession(
           topic.organiser_session_id,
@@ -757,12 +782,22 @@ function NoteEditorPane({
         );
         const commitResult = await commitSession(topic.organiser_session_id);
         suggestedCards = commitResult.suggested_task_cards;
+        if (commitResult.results && commitResult.results.length > 0) {
+          const first = commitResult.results[0];
+          if (first.proposal_type === 'new_objective') {
+            panelTarget = { type: 'objective', id: first.id };
+          } else if (first.proposal_type === 'add_note') {
+            panelTarget = { type: 'note', id: first.id };
+          } else if (first.proposal_type === 'link_to_objective') {
+            panelTarget = { type: 'note', id: first.id, objectiveId: first.objective_id };
+          }
+        }
         toast.success("Note saved and linked");
       } else {
         await createNote(user, { title, bodyHtml, noteType: topic.suggested_note_type });
         toast.success("Note saved");
       }
-      onSaved(suggestedCards);
+      onSaved(suggestedCards, panelTarget);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
