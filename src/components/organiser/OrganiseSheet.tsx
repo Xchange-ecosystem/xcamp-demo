@@ -23,12 +23,14 @@ export function OrganiseSheet({
   open,
   user,
   intent,
+  projectId,
   onClose,
   onOrganised,
 }: {
   open: boolean;
   user: XcampUser;
   intent: string;
+  projectId?: string;
   onClose: () => void;
   onOrganised?: () => void;
 }) {
@@ -43,7 +45,7 @@ export function OrganiseSheet({
     setStage("loading");
     setProposals([]);
     setApproved({});
-    propose({ userId: user.centralId, tenantId: user.tenantId, intent })
+    propose({ userId: user.centralId, tenantId: user.tenantId, projectId, intent })
       .then((res) => {
         if (!active) return;
         setSessionId(res.session_id);

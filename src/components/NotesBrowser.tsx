@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useActiveProject } from "@/contexts/active-project";
 import { useBrand } from "@/lib/brand";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -89,6 +90,7 @@ export function NotesBrowser({
   draft?: { body: string; key: number } | null;
 }) {
   const { user, loading } = useAuth();
+  const { activeProjectId } = useActiveProject();
   const navigate = useNavigate();
   const brand = useBrand();
   const queryClient = useQueryClient();
@@ -109,7 +111,12 @@ export function NotesBrowser({
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filterProject, setFilterProject] = useState("");
+  const [filterProject, setFilterProject] = useState(activeProjectId ?? "");
+
+  // Keep filter in sync with the sidebar's active project selection.
+  useEffect(() => {
+    setFilterProject(activeProjectId ?? "");
+  }, [activeProjectId]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterLinked, setFilterLinked] = useState(false);
 
@@ -324,7 +331,7 @@ export function NotesBrowser({
               aria-label="New note"
               title="New note"
               style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={() => { setEditing({ mode: "new" }); setCollapsed(false); }}
+              onClick={() => { setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); setCollapsed(false); }}
             >
               <Plus size={16} />
             </button>
@@ -348,7 +355,7 @@ export function NotesBrowser({
               )}
             </div>
 
-            <button className="x-btn-primary mb-3" onClick={() => { setEditing({ mode: "new" }); }}>
+            <button className="x-btn-primary mb-3" onClick={() => { setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); }}>
               + New note
             </button>
 
@@ -726,6 +733,7 @@ export function NotesBrowser({
           open={!!organising}
           user={user}
           intent={noteToIntent(organising.title, organising.body_html)}
+          projectId={activeProjectId ?? undefined}
           onClose={() => setOrganising(null)}
           onOrganised={() => queryClient.invalidateQueries({ queryKey: ["linked"] })}
         />

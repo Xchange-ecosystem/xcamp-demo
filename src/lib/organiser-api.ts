@@ -90,6 +90,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function propose(args: {
   userId: string;
   tenantId: string;
+  projectId?: string;
   goal?: string;
   /** @deprecated use goal */
   intent?: string;
@@ -99,6 +100,7 @@ export async function propose(args: {
     body: JSON.stringify({
       user_id: args.userId,
       tenant_id: args.tenantId,
+      project_id: args.projectId,
       goal: args.goal ?? args.intent,
       context: {},
     }),

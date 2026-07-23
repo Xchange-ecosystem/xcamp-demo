@@ -41,7 +41,7 @@ const NOTE_TYPE_LABELS: Record<string, string> = {
   reference: "Reference",
 };
 
-export type Editing = { mode: "new"; initialBody?: string } | { mode: "edit"; note: NoteRow };
+export type Editing = { mode: "new"; initialBody?: string; initialProjectId?: string } | { mode: "edit"; note: NoteRow };
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -109,7 +109,9 @@ export function NoteEditor({
   );
   const [noteType, setNoteType] = useState<string>(initial?.note_type ?? "note");
   const [projectId, setProjectId] = useState<string>(
-    (initial?.detail?.project_id as string | undefined) ?? "",
+    editing.mode === "new"
+      ? (editing.initialProjectId ?? "")
+      : ((initial?.detail?.project_id as string | undefined) ?? ""),
   );
   const [objectiveIds, setObjectiveIds] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
