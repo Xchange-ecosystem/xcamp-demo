@@ -3,8 +3,10 @@
 import { supabase } from "@/lib/supabase";
 import { useAltitudeStore } from "@/store/altitudeStore";
 import type { AICard } from "@xchange/client";
-import { confirm, commit } from "./organiser-api";
+import { confirm, commit, type CommitResultItem } from "./organiser-api";
 import { voxFetch } from "@/integrations/vox/client";
+
+export type { CommitResultItem };
 
 const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? '').replace(/\/$/, '');
 
@@ -166,6 +168,7 @@ export interface CommitResult {
   succeeded: number;
   failures: { proposal_id?: string; title?: string; error?: string }[];
   suggested_task_cards?: AICard[];
+  results?: CommitResultItem[];
 }
 
 /** Delegates to organiser-api.confirm to avoid duplicate request logic. */
