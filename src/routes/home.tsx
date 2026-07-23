@@ -16,6 +16,7 @@ import type { AICard } from "@xchange/client";
 import { executeProposal } from "@xchange/client";
 import { toast } from "sonner";
 import { EntityPanel } from "@/components/EntityPanel";
+import { buildContextCardProposal, type EntityType } from "@/components/JournalFlow";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -275,30 +276,26 @@ function CompanionHomePage() {
     if (project) void handleProjectSelect(project, false);
   }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCardConfirm = useCallback(async (card: AICard) => {
+  const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
+    const modifiedProposal = buildContextCardProposal(card, selectedType) ?? card.proposal;
     try {
       const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
       const result = await executeProposal(
-        card.proposal,
+        modifiedProposal,
         () => Promise.resolve(token || null),
         (import.meta.env.VITE_BACKEND_URL as string) ?? '',
       );
       if (result.ok) {
-        const proposal = card.proposal;
-        const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
+        const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
         const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
         const objectiveId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
-        const entityType = ((): 'note' | 'task' | 'objective' => {
-          switch (proposal.tool) {
-            case 'create_task': case 'complete_task': return 'task';
-            case 'set_objective_fields': return 'objective';
-            default: return 'note';
-          }
-        })();
+        const panelType: PanelTarget['type'] =
+          selectedType === 'objective' ? 'objective' :
+          selectedType === 'task' ? 'task' : 'note';
         setDismissedCardIds((prev) => new Set([...prev, card.id]));
         setPanelTarget({
-          type: entityType,
+          type: panelType,
           id: result.committed_id ?? objectiveId ?? '',
           objectiveId,
           prefillText: card.body,

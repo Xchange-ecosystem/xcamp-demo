@@ -174,7 +174,7 @@ export interface CommitResult {
 /** Delegates to organiser-api.confirm to avoid duplicate request logic. */
 export async function confirmSession(
   sessionId: string,
-  approvals: { proposal_id: string; approved: boolean }[],
+  approvals: { proposal_id: string; approved: boolean; proposal_type?: string; note_type?: string }[],
 ): Promise<void> {
   return confirm(sessionId, approvals);
 }

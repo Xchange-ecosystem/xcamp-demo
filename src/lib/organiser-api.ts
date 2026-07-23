@@ -124,7 +124,7 @@ export async function propose(args: {
 
 export async function confirm(
   sessionId: string,
-  approvals: { proposal_id: string; approved: boolean }[],
+  approvals: { proposal_id: string; approved: boolean; proposal_type?: string; note_type?: string }[],
 ): Promise<void> {
   await request("/api/organiser/confirm", {
     method: "POST",
