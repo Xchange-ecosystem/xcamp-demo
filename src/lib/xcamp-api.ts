@@ -1,6 +1,7 @@
 // Xcamp Journal data access — direct Supabase table access only.
 // No RPCs. Journal only writes `notes` with note_type='note'.
 import { supabase } from "@/lib/supabase";
+import { voxFetch } from "@/integrations/vox/client";
 import type { Json } from "@/integrations/supabase/types";
 import type { NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
 
@@ -311,4 +312,40 @@ export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> 
     .select("note_id")
     .in("note_id", noteIds);
   return new Set((data ?? []).map((r) => r.note_id as string));
+}
+
+/**
+ * Calls the backend auto-tag endpoint, then patches the note's tags in Supabase.
+ * Only runs when the note has no manually-set tags. Fire-and-forget safe.
+ */
+export async function autoTagNote(
+  user: XcampUser,
+  noteId: string,
+  title: string,
+  bodyHtml: string,
+): Promise<string[]> {
+  const bodyText = bodyHtml
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 800);
+
+  const res = await voxFetch("/api/notes/auto-tag", {
+    method: "POST",
+    body: JSON.stringify({ title, body: bodyText }),
+  });
+  if (!res.ok) throw new Error(`[auto-tag] ${res.status}`);
+
+  const { tags } = (await res.json()) as { tags: string[] };
+  if (!tags?.length) return [];
+
+  await supabase
+    .from("notes")
+    .update({ tags, updated_at: new Date().toISOString() })
+    .eq("id", noteId)
+    .eq("owner_central_id", user.centralId);
+
+  return tags;
 }
