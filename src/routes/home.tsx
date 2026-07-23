@@ -41,12 +41,6 @@ export const Route = createFileRoute("/home")({
   component: CompanionHomePage,
 });
 
-// Clear project selection on every page load so the companion — not localStorage —
-// controls which project is active. Runs before ActiveProjectContext hydrates.
-if (typeof window !== "undefined") {
-  localStorage.removeItem("xcamp-active-project");
-}
-
 // ─── Conversation controller step ─────────────────────────────────────────────
 type ConvStep = "welcome" | "project-select" | "inside-project";
 

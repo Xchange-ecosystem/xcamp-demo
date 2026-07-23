@@ -106,6 +106,7 @@ export async function analyse(args: {
   text: string;
   userId: string;
   tenantId: string;
+  projectId?: string;
 }): Promise<JournalTopic[]> {
   const res = await request<Record<string, unknown>>("/api/journal/analyse", {
     method: "POST",
@@ -113,6 +114,7 @@ export async function analyse(args: {
       text: args.text,
       user_id: args.userId,
       tenant_id: args.tenantId,
+      project_id: args.projectId,
     }),
   });
   const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;

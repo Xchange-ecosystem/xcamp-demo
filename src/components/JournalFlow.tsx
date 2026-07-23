@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createNote } from "@/lib/xcamp-api";
 import { supabase } from "@/lib/supabase";
@@ -78,6 +79,7 @@ export function JournalFlow({
   draft?: { text: string; key: number } | null;
 }) {
   const { user, loading } = useAuth();
+  const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
 
   const [screen, setScreen] = useState<Screen>("input");
@@ -111,8 +113,8 @@ export function JournalFlow({
     setAnalysing(true);
     try {
       const [analysisResult, contextResult] = await Promise.allSettled([
-        analyse({ text, userId: user.centralId, tenantId: user.tenantId }),
-        answerWithContext({ question: text, tenantId: user.tenantId }),
+        analyse({ text, userId: user.centralId, tenantId: user.tenantId, projectId: activeProjectId ?? undefined }),
+        answerWithContext({ question: text, tenantId: user.tenantId, projectId: activeProjectId ?? undefined }),
       ]);
 
       const newTopics = analysisResult.status === "fulfilled" ? analysisResult.value : [];
@@ -415,6 +417,7 @@ export function JournalFlow({
           {screen === "editor" && editingTopic && (
             <NoteEditorPane
               topic={editingTopic}
+              projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
               onSaved={() => {
                 setTopics((prev) => prev.filter((t) => t.id !== editingTopic.id));
@@ -612,10 +615,12 @@ function AICardView({
 
 function NoteEditorPane({
   topic,
+  projectId,
   onBack,
   onSaved,
 }: {
   topic: JournalTopic;
+  projectId?: string;
   onBack: () => void;
   onSaved: () => void;
 }) {
@@ -631,8 +636,8 @@ function NoteEditorPane({
     setEnriching(true);
     answerWithContext({
       question: `${topic.title}: ${topic.summary}`,
-      topK: 5,
       tenantId: user!.tenantId,
+      projectId,
     })
       .then((res) => {
         if (!active) return;
