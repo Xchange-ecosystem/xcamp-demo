@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useBrand } from '@/lib/brand';
 
 interface AppLogoProps {
@@ -9,19 +10,23 @@ export function AppLogo({ collapsed }: AppLogoProps) {
 
   if (collapsed) {
     return (
-      <img
-        src={iconUrl}
-        alt={name}
-        style={{ height: 32, width: 32, objectFit: 'contain' }}
-      />
+      <Link to="/home" aria-label="Go to Companion">
+        <img
+          src={iconUrl}
+          alt={name}
+          style={{ height: 32, width: 32, objectFit: 'contain' }}
+        />
+      </Link>
     );
   }
 
   return (
-    <img
-      src={logoUrl}
-      alt={name}
-      style={{ height: 28, objectFit: 'contain' }}
-    />
+    <Link to="/home" aria-label="Go to Companion">
+      <img
+        src={logoUrl}
+        alt={name}
+        style={{ height: 28, objectFit: 'contain' }}
+      />
+    </Link>
   );
 }

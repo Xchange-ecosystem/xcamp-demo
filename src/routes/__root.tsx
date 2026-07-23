@@ -11,7 +11,6 @@ import { useEffect } from "react";
 import { AuthProvider } from "../contexts/auth";
 import { ActiveProjectProvider } from "../contexts/active-project";
 import { Toaster } from "../components/ui/sonner";
-import { FloatingAltitudeDial } from "../components/altitude/FloatingAltitudeDial";
 import "../lib/i18n";
 
 function NotFoundComponent() {
@@ -114,7 +113,6 @@ function RootComponent() {
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <Toaster />
-          <FloatingAltitudeDial />
         </ActiveProjectProvider>
       </AuthProvider>
     </QueryClientProvider>
