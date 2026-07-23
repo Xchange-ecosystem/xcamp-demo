@@ -430,8 +430,11 @@ export function JournalFlow({
               topic={editingTopic}
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-              onSaved={() => {
+              onSaved={(suggestedCards) => {
                 setSavedTopicIds((prev) => new Set([...prev, editingTopic!.id]));
+                if (suggestedCards && suggestedCards.length > 0) {
+                  setCards((prev) => [...prev, ...suggestedCards]);
+                }
                 setEditingTopic(null);
                 setScreen("cards");
                 sessionsQuery.refetch();
@@ -668,7 +671,7 @@ function NoteEditorPane({
   topic: JournalTopic;
   projectId?: string;
   onBack: () => void;
-  onSaved: () => void;
+  onSaved: (suggestedCards?: AICard[]) => void;
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState(topic.title);
@@ -702,6 +705,7 @@ function NoteEditorPane({
     setSaving(true);
     try {
       const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
+      let suggestedCards: AICard[] | undefined;
       if (hasProposals && topic.organiser_session_id) {
         await confirmSession(
           topic.organiser_session_id,
@@ -709,13 +713,14 @@ function NoteEditorPane({
             .filter((p) => p.proposal_id)
             .map((p) => ({ proposal_id: p.proposal_id!, approved: true })),
         );
-        await commitSession(topic.organiser_session_id);
+        const commitResult = await commitSession(topic.organiser_session_id);
+        suggestedCards = commitResult.suggested_task_cards;
         toast.success("Note saved and linked");
       } else {
         await createNote(user, { title, bodyHtml, noteType: topic.suggested_note_type });
         toast.success("Note saved");
       }
-      onSaved();
+      onSaved(suggestedCards);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

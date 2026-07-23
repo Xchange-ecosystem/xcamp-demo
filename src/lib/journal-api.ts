@@ -165,6 +165,7 @@ export async function answerWithContext(args: {
 export interface CommitResult {
   succeeded: number;
   failures: { proposal_id?: string; title?: string; error?: string }[];
+  suggested_task_cards?: AICard[];
 }
 
 /** Delegates to organiser-api.confirm to avoid duplicate request logic. */
