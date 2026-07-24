@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Compass, Menu } from "lucide-react";
+import { Compass } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { useSidebar } from "@/components/ui/sidebar";
+import { PageHeroShell } from "@/components/PageHeroShell";
 import { useQuickRoad } from "@/hooks/useQuickRoad";
 import { StepIndicator } from "@/components/quickroad/StepIndicator";
 import { InputStep } from "@/components/quickroad/InputStep";
@@ -20,21 +20,6 @@ export const Route = createFileRoute("/project-builder")({
   component: ProjectBuilderPage,
 });
 
-function MenuButton() {
-  const { toggleSidebar } = useSidebar();
-  return (
-    <button
-      type="button"
-      onClick={toggleSidebar}
-      className="mb-2 flex items-center justify-center rounded-md p-1.5"
-      aria-label="Toggle menu"
-      style={{ color: "var(--skin-ink-soft)", background: "transparent", border: "none", cursor: "pointer" }}
-    >
-      <Menu size={18} />
-    </button>
-  );
-}
-
 function ProjectBuilderPage() {
   const qr = useQuickRoad();
   const { state } = qr;
@@ -42,42 +27,28 @@ function ProjectBuilderPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
-        <MenuButton />
-        <header className="text-center mb-2">
-          <div
-            className="mx-auto mb-3 flex items-center justify-center rounded-2xl"
-            style={{ width: 48, height: 48, background: "color-mix(in srgb, var(--skin-accent) 12%, transparent)" }}
-          >
-            <Compass size={24} style={{ color: "var(--skin-accent)" }} />
+      <PageHeroShell
+        seed="project-builder"
+        logo={<Compass size={22} style={{ color: "var(--skin-accent)" }} />}
+        title="Project Builder"
+        subtitle="Feeling stuck? Tell me your goal and I'll shape a gentle first plan."
+      >
+        <div className="px-4 sm:px-5 pb-5 pt-2">
+          {!showSuccess && <StepIndicator current={state.step} />}
+          <div className="mt-2">
+            {showSuccess ? (
+              <SuccessScreen qr={qr} />
+            ) : (
+              <>
+                {state.step === "input" && <InputStep qr={qr} />}
+                {state.step === "interpret" && <InterpretStep qr={qr} />}
+                {state.step === "generate" && <GenerateStep qr={qr} />}
+              </>
+            )}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--skin-ink)" }}>
-            Project Builder
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--skin-ink-soft)" }}>
-            Feeling stuck? Tell me your goal and I'll shape a gentle first plan.
-          </p>
-        </header>
-
-        {!showSuccess && <StepIndicator current={state.step} />}
-
-        <div
-          className="rounded-2xl p-4 sm:p-6 mt-2"
-          style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)" }}
-        >
-          {showSuccess ? (
-            <SuccessScreen qr={qr} />
-          ) : (
-            <>
-              {state.step === "input" && <InputStep qr={qr} />}
-              {state.step === "interpret" && <InterpretStep qr={qr} />}
-              {state.step === "generate" && <GenerateStep qr={qr} />}
-            </>
-          )}
+          {!showSuccess && import.meta.env.DEV && <WorkflowDiagnostics qr={qr} />}
         </div>
-
-        {!showSuccess && import.meta.env.DEV && <WorkflowDiagnostics qr={qr} />}
-      </div>
+      </PageHeroShell>
     </AppShell>
   );
 }
