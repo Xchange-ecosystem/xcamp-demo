@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+
+export type EntityType = 'objective' | 'task' | 'note' | 'resource';
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,14 +37,88 @@ import { EntityPanel } from "@/components/EntityPanel";
 
 type Screen = "input" | "cards" | "editor";
 
-const NOTE_TYPE_BADGE: Record<string, string> = {
-  note: "Note",
-  task: "Task",
-  resource: "Resource",
-};
+function defaultTopicEntityType(topic: JournalTopic): EntityType {
+  if (topic.organiser_proposals.some(p => p.proposal_type === 'new_objective')) return 'objective';
+  switch (topic.suggested_note_type) {
+    case 'task': return 'task';
+    case 'resource': return 'resource';
+    default: return 'note';
+  }
+}
 
-function badgeLabel(t: string) {
-  return NOTE_TYPE_BADGE[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
+function defaultCardEntityType(kind: string): EntityType {
+  if (kind === 'task' || kind === 'action_item') return 'task';
+  return 'note';
+}
+
+function resolveApprovalOverrides(
+  entityType: EntityType,
+  existingProposalType: string,
+): { proposal_type?: string; note_type?: string } {
+  switch (entityType) {
+    case 'objective':
+      return existingProposalType === 'new_objective' ? {} : { proposal_type: 'new_objective' };
+    case 'task':
+      return { proposal_type: 'add_note', note_type: 'task' };
+    case 'resource':
+      return { proposal_type: 'add_note', note_type: 'reference' };
+    case 'note':
+    default:
+      if (existingProposalType === 'link_to_objective') return {};
+      return { proposal_type: 'add_note', note_type: 'note' };
+  }
+}
+
+export function buildContextCardProposal(
+  card: AICard,
+  entityType: EntityType,
+): AICard['proposal'] | undefined {
+  const original = card.proposal;
+  if (!original) return undefined;
+  const orig = original as unknown as { tool: string; payload?: Record<string, unknown> };
+  const basePayload: Record<string, unknown> = orig.payload ?? {};
+  const title = typeof basePayload.title === 'string' ? basePayload.title : card.title;
+  switch (entityType) {
+    case 'objective':
+      return { tool: 'create_objective', payload: { title, project_id: basePayload.project_id } } as unknown as AICard['proposal'];
+    case 'task':
+      return { tool: 'create_task', payload: { ...basePayload, title } } as unknown as AICard['proposal'];
+    case 'resource':
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'reference' } } as unknown as AICard['proposal'];
+    case 'note':
+    default:
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'note' } } as unknown as AICard['proposal'];
+  }
+}
+
+export function EntityTypeSelector({ selected, onChange }: { selected: EntityType; onChange: (type: EntityType) => void }) {
+  const types: { value: EntityType; label: string }[] = [
+    { value: 'objective', label: 'Objective' },
+    { value: 'task', label: 'Task' },
+    { value: 'note', label: 'Note' },
+    { value: 'resource', label: 'Resource' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      {types.map(({ value, label }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChange(value)}
+          style={{
+            fontSize: 12, fontWeight: 500,
+            padding: '4px 12px', borderRadius: 999,
+            border: selected === value ? '1px solid var(--skin-accent)' : '1px solid var(--skin-line)',
+            background: selected === value ? 'color-mix(in srgb, var(--skin-accent) 12%, transparent)' : 'transparent',
+            color: selected === value ? 'var(--skin-accent)' : 'var(--skin-ink-soft)',
+            cursor: 'pointer',
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function resolvedPlacement(p: JournalProposal): string {
@@ -99,6 +175,10 @@ export function JournalFlow({
   // suggestedCards: topic.id → cards spawned by that topic's objective commit.
   // Kept separate from context cards so rendering doesn't cross-reference two Maps.
   const [suggestedCards, setSuggestedCards] = useState<Map<string, AICard[]>>(new Map());
+  // User-selected entity type per topic (overrides AI suggestion)
+  const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
+  // Entity type selected for the topic currently in the editor
+  const [editingTopicType, setEditingTopicType] = useState<EntityType>('note');
 
   useEffect(() => {
     if (!draft) return;
@@ -137,6 +217,9 @@ export function JournalFlow({
       setSavedTopicIds(new Set());
       setSavedTopicTargets(new Map());
       setSuggestedCards(new Map());
+      const initialTypes = new Map<string, EntityType>();
+      for (const t of newTopics) initialTypes.set(t.id, defaultTopicEntityType(t));
+      setTopicTypes(initialTypes);
       setScreen("cards");
 
       if (newTopics.length === 0 && newCards.length === 0) {
@@ -166,31 +249,28 @@ export function JournalFlow({
     }
   };
 
-  const handleAcceptCard = async (card: AICard) => {
-    if (!card.proposal) return;
+  const handleAcceptCard = async (card: AICard, selectedType: EntityType) => {
     setAccepting(card.id);
+    const modifiedProposal = buildContextCardProposal(card, selectedType);
+    if (!modifiedProposal) { setAccepting(null); return; }
+
     const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
     const result = await executeProposal(
-      card.proposal,
+      modifiedProposal,
       () => Promise.resolve(token || null),
       (import.meta.env.VITE_BACKEND_URL as string) ?? '',
     );
     setAccepting(null);
 
     if (result.ok) {
-      const proposal = card.proposal!;
-      const rawPayload = (proposal as unknown as { payload: Record<string, unknown> }).payload;
+      const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
       const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
-      const objectiveId = typeof rawPayload.objective_id === 'string' ? rawPayload.objective_id : undefined;
-      const entityType = ((): 'note' | 'task' | 'objective' => {
-        switch (proposal.tool) {
-          case 'create_task': case 'complete_task': return 'task';
-          case 'set_objective_fields': return 'objective';
-          default: return 'note';
-        }
-      })();
+      const objectiveId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
+      const panelType: PanelTarget['type'] =
+        selectedType === 'objective' ? 'objective' :
+        selectedType === 'task' ? 'task' : 'note';
       const target: PanelTarget = {
-        type: entityType,
+        type: panelType,
         id: result.committed_id ?? objectiveId ?? '',
         objectiveId,
         prefillText: card.body,
@@ -224,6 +304,7 @@ export function JournalFlow({
     setSavedTopicIds(new Set());
     setSavedTopicTargets(new Map());
     setSuggestedCards(new Map());
+    setTopicTypes(new Map());
     setScreen("input");
   };
 
@@ -421,7 +502,13 @@ export function JournalFlow({
                           topic={topic}
                           saved={savedTopicIds.has(topic.id)}
                           target={savedTopicTargets.get(topic.id)}
-                          onAccept={() => { setEditingTopic(topic); setScreen("editor"); }}
+                          selectedType={topicTypes.get(topic.id) ?? defaultTopicEntityType(topic)}
+                          onTypeChange={(type) => setTopicTypes(prev => new Map(prev).set(topic.id, type))}
+                          onAccept={() => {
+                            setEditingTopic(topic);
+                            setEditingTopicType(topicTypes.get(topic.id) ?? defaultTopicEntityType(topic));
+                            setScreen("editor");
+                          }}
                           onDismiss={() => handleDismissTopic(topic)}
                           onGoTo={(t) => setPanelTarget(t)}
                         />
@@ -440,7 +527,7 @@ export function JournalFlow({
                               error={cardErrors[card.id]}
                               applied={appliedCards.has(card.id)}
                               onGoTo={appliedCards.has(card.id) ? () => setPanelTarget(appliedCards.get(card.id)!) : undefined}
-                              onAccept={() => handleAcceptCard(card)}
+                              onAccept={(type) => handleAcceptCard(card, type)}
                               onDismiss={() => handleDismissCard(card)}
                             />
                           </div>
@@ -456,7 +543,7 @@ export function JournalFlow({
                       error={cardErrors[card.id]}
                       applied={appliedCards.has(card.id)}
                       onGoTo={appliedCards.has(card.id) ? () => setPanelTarget(appliedCards.get(card.id)!) : undefined}
-                      onAccept={() => handleAcceptCard(card)}
+                      onAccept={(type) => handleAcceptCard(card, type)}
                       onDismiss={() => handleDismissCard(card)}
                     />
                   ))}
@@ -468,6 +555,7 @@ export function JournalFlow({
           {screen === "editor" && editingTopic && (
             <NoteEditorPane
               topic={editingTopic}
+              selectedType={editingTopicType}
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
               onSaved={(newSuggestedCards, newTarget) => {
@@ -534,6 +622,8 @@ function TopicCard({
   saved = false,
   target,
   onGoTo,
+  selectedType,
+  onTypeChange,
 }: {
   topic: JournalTopic;
   onAccept: () => void;
@@ -541,6 +631,8 @@ function TopicCard({
   saved?: boolean;
   target?: PanelTarget;
   onGoTo?: (target: PanelTarget) => void;
+  selectedType: EntityType;
+  onTypeChange: (type: EntityType) => void;
 }) {
   return (
     <div
@@ -554,19 +646,12 @@ function TopicCard({
         <h3 className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 16 }}>
           {topic.title}
         </h3>
-        <span
-          style={{
-            fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
-            background: "color-mix(in srgb, var(--skin-accent) 16%, transparent)", color: "var(--skin-accent)",
-          }}
-        >
-          {badgeLabel(topic.suggested_note_type)}
-        </span>
       </div>
       {topic.summary && (
         <p style={{ color: "var(--skin-ink-soft)", fontSize: 14, lineHeight: 1.55 }}>{topic.summary}</p>
       )}
       {topic.organiser_proposals.length > 0 && <PlacementPills proposals={topic.organiser_proposals} />}
+      {!saved && <EntityTypeSelector selected={selectedType} onChange={onTypeChange} />}
       <div className="flex items-center gap-2 mt-1">
         {saved ? (
           <>
@@ -618,11 +703,13 @@ function AICardView({
   card: AICard;
   accepting: boolean;
   error?: string;
-  onAccept: () => void;
+  onAccept: (selectedType: EntityType) => void;
   onDismiss: () => void;
   applied?: boolean;
   onGoTo?: () => void;
 }) {
+  const [selectedType, setSelectedType] = useState<EntityType>(() => defaultCardEntityType(card.kind));
+
   const kindLabel: Record<string, string> = {
     task: "Task",
     action_item: "Action",
@@ -696,31 +783,36 @@ function AICardView({
         </div>
       ) : (
         (card.confirmable || card.dismissible) && (
-          <div className="flex items-center gap-2 mt-1">
-            {card.confirmable && (
-              <button
-                className="x-btn-primary"
-                style={{ width: "auto", paddingInline: 20 }}
-                onClick={onAccept}
-                disabled={accepting || !card.proposal}
-              >
-                {accepting ? (
-                  <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
-                ) : "Accept"}
-              </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {card.confirmable && card.proposal && (
+              <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
             )}
-            {card.dismissible && (
-              <button
-                onClick={onDismiss}
-                disabled={accepting}
-                style={{
-                  background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
-                  color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
-                }}
-              >
-                Dismiss
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {card.confirmable && (
+                <button
+                  className="x-btn-primary"
+                  style={{ width: "auto", paddingInline: 20 }}
+                  onClick={() => onAccept(selectedType)}
+                  disabled={accepting || !card.proposal}
+                >
+                  {accepting ? (
+                    <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
+                  ) : "Create"}
+                </button>
+              )}
+              {card.dismissible && (
+                <button
+                  onClick={onDismiss}
+                  disabled={accepting}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+                    color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+                  }}
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
           </div>
         )
       )}
@@ -730,11 +822,13 @@ function AICardView({
 
 function NoteEditorPane({
   topic,
+  selectedType,
   projectId,
   onBack,
   onSaved,
 }: {
   topic: JournalTopic;
+  selectedType: EntityType;
   projectId?: string;
   onBack: () => void;
   onSaved: (suggestedCards?: AICard[], panelTarget?: PanelTarget) => void;
@@ -778,23 +872,39 @@ function NoteEditorPane({
           topic.organiser_session_id,
           topic.organiser_proposals
             .filter((p) => p.proposal_id)
-            .map((p) => ({ proposal_id: p.proposal_id!, approved: true })),
+            .map((p) => ({
+              proposal_id: p.proposal_id!,
+              approved: true,
+              ...resolveApprovalOverrides(selectedType, p.proposal_type),
+            })),
         );
         const commitResult = await commitSession(topic.organiser_session_id);
         suggestedCards = commitResult.suggested_task_cards;
+        if (commitResult.failures && commitResult.failures.length > 0 && (!commitResult.results || commitResult.results.length === 0)) {
+          const firstError = commitResult.failures[0].error ?? 'Commit failed';
+          throw new Error(firstError);
+        }
         if (commitResult.results && commitResult.results.length > 0) {
           const first = commitResult.results[0];
-          if (first.proposal_type === 'new_objective') {
+          if (selectedType === 'objective' || first.proposal_type === 'new_objective') {
             panelTarget = { type: 'objective', id: first.id };
-          } else if (first.proposal_type === 'add_note') {
-            panelTarget = { type: 'note', id: first.id };
+          } else if (selectedType === 'task') {
+            panelTarget = { type: 'task', id: first.id, objectiveId: first.objective_id };
           } else if (first.proposal_type === 'link_to_objective') {
             panelTarget = { type: 'note', id: first.id, objectiveId: first.objective_id };
+          } else {
+            panelTarget = { type: 'note', id: first.id };
           }
         }
         toast.success("Note saved and linked");
       } else {
-        await createNote(user, { title, bodyHtml, noteType: topic.suggested_note_type });
+        const noteTypeMap: Record<EntityType, string> = {
+          objective: 'note',
+          task: 'task',
+          note: 'note',
+          resource: 'reference',
+        };
+        await createNote(user, { title, bodyHtml, noteType: noteTypeMap[selectedType] ?? 'note' });
         toast.success("Note saved");
       }
       onSaved(suggestedCards, panelTarget);

@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import type { ProjectFull } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import { ProjectCard } from "@/shared/ui/ProjectCard";
 import { CreateProjectTile } from "@/shared/ui/CreateProjectTile";
+import { EntityTypeSelector, type EntityType } from "@/components/JournalFlow";
 
 // ─── Message types ────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ interface ChatThreadProps {
   projects?: ProjectFull[];
   typingMessageId?: string;
   isLoading?: boolean;
-  onCardConfirm?: (card: AICard) => void;
+  onCardConfirm?: (card: AICard, selectedType: EntityType) => void;
   onCardDismiss?: (card: AICard) => void;
   hiddenCardIds?: Set<string>;
 }
@@ -213,7 +214,7 @@ interface ComponentMessageProps {
   onProjectSelect?: (project: ProjectFull) => void;
   onCreateProject?: () => void;
   msgRef: (el: HTMLDivElement | null) => void;
-  onCardConfirm?: (card: AICard) => void;
+  onCardConfirm?: (card: AICard, selectedType: EntityType) => void;
   onCardDismiss?: (card: AICard) => void;
   hiddenCardIds?: Set<string>;
 }
@@ -338,6 +339,108 @@ const KIND_CONFIG: Record<string, { label: string; applyLabel: string }> = {
 };
 const DEFAULT_KIND_CONFIG = { label: "Item", applyLabel: "Apply" };
 
+function ActionCardItem({
+  card,
+  onConfirm,
+  onDismiss,
+}: {
+  card: AICard;
+  onConfirm?: (card: AICard, selectedType: EntityType) => void;
+  onDismiss?: (card: AICard) => void;
+}) {
+  const defaultType: EntityType = card.kind === 'task' || card.kind === 'action_item' ? 'task' : 'note';
+  const [selectedType, setSelectedType] = useState<EntityType>(defaultType);
+  const config = KIND_CONFIG[card.kind] ?? DEFAULT_KIND_CONFIG;
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+        borderRadius: "var(--skin-radius, 10px)",
+        padding: 12,
+        background: "var(--skin-surface, rgba(255,255,255,0.06))",
+        marginBottom: 8,
+      }}
+    >
+      <div
+        style={{
+          fontSize: "0.7em",
+          color: "var(--skin-ink-faint)",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 4,
+        }}
+      >
+        {config.label}
+      </div>
+      <div
+        style={{
+          fontWeight: 600,
+          color: "var(--skin-ink, rgba(255,255,255,0.92))",
+          marginBottom: 4,
+          fontSize: 13,
+        }}
+      >
+        {card.title || config.label}
+      </div>
+      {card.body && (
+        <div
+          style={{
+            color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+            fontSize: "0.9em",
+            marginBottom: 8,
+            lineHeight: 1.4,
+          }}
+        >
+          {card.body}
+        </div>
+      )}
+      {card.confirmable && card.proposal && (
+        <div style={{ marginBottom: 8 }}>
+          <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
+        </div>
+      )}
+      {(card.dismissible || card.confirmable) && (
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+          {card.dismissible && (
+            <button
+              onClick={() => onDismiss?.(card)}
+              style={{
+                background: "transparent",
+                color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
+                border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
+                borderRadius: "var(--skin-radius, 10px)",
+                padding: "4px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+              }}
+            >
+              Dismiss
+            </button>
+          )}
+          {card.confirmable && (
+            <button
+              onClick={() => onConfirm?.(card, selectedType)}
+              style={{
+                background: "var(--skin-accent, #7c3aed)",
+                color: "var(--skin-bg, #fff)",
+                border: "none",
+                borderRadius: "var(--skin-radius, 10px)",
+                padding: "4px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Create
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ActionCards({
   cards,
   onConfirm,
@@ -345,7 +448,7 @@ function ActionCards({
   hiddenCardIds,
 }: {
   cards: AICard[];
-  onConfirm?: (card: AICard) => void;
+  onConfirm?: (card: AICard, selectedType: EntityType) => void;
   onDismiss?: (card: AICard) => void;
   hiddenCardIds?: Set<string>;
 }) {
@@ -353,103 +456,14 @@ function ActionCards({
   if (visibleCards.length === 0) return null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {visibleCards.map((card) => {
-        const config = KIND_CONFIG[card.kind] ?? DEFAULT_KIND_CONFIG;
-        return (
-          <div
-            key={card.id}
-            style={{
-              border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
-              borderRadius: "var(--skin-radius, 10px)",
-              padding: 12,
-              background: "var(--skin-surface, rgba(255,255,255,0.06))",
-              marginBottom: 8,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.7em",
-                color: "var(--skin-ink-faint)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: 4,
-              }}
-            >
-              {config.label}
-            </div>
-            <div
-              style={{
-                fontWeight: 600,
-                color: "var(--skin-ink, rgba(255,255,255,0.92))",
-                marginBottom: 4,
-                fontSize: 13,
-              }}
-            >
-              {card.title || config.label}
-            </div>
-            {card.body && (
-              <div
-                style={{
-                  color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
-                  fontSize: "0.9em",
-                  marginBottom: 8,
-                  lineHeight: 1.4,
-                }}
-              >
-                {card.body}
-              </div>
-            )}
-            {card.kind === "action_item" && card.proposal && (
-              <div
-                style={{
-                  fontSize: "0.7em",
-                  color: "var(--skin-ink-faint)",
-                  marginTop: 4,
-                }}
-              >
-                {card.proposal.tool.replace(/_/g, " ")}
-              </div>
-            )}
-            {(card.dismissible || card.confirmable) && (
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-                {card.dismissible && (
-                  <button
-                    onClick={() => onDismiss?.(card)}
-                    style={{
-                      background: "transparent",
-                      color: "var(--skin-ink-soft, rgba(255,255,255,0.6))",
-                      border: "1px solid var(--skin-line, rgba(255,255,255,0.15))",
-                      borderRadius: "var(--skin-radius, 10px)",
-                      padding: "4px 12px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                    }}
-                  >
-                    Dismiss
-                  </button>
-                )}
-                {card.confirmable && (
-                  <button
-                    onClick={() => onConfirm?.(card)}
-                    style={{
-                      background: "var(--skin-accent, #7c3aed)",
-                      color: "var(--skin-bg, #fff)",
-                      border: "none",
-                      borderRadius: "var(--skin-radius, 10px)",
-                      padding: "4px 12px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {config.applyLabel}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {visibleCards.map((card) => (
+        <ActionCardItem
+          key={card.id}
+          card={card}
+          onConfirm={onConfirm}
+          onDismiss={onDismiss}
+        />
+      ))}
     </div>
   );
 }
