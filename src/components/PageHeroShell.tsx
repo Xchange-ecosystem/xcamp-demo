@@ -83,6 +83,14 @@ export function PageHeroShell({
           />
         )}
 
+        {/*
+          OPEN DECISION: the two overlay gradients below are hardcoded to
+          light-mode teal accent values (rgba(52,172,191,...) and
+          rgba(77,224,193,...)) and do not shift in dark mode. The question of
+          whether the hero gradient should go purple in dark mode, or stay teal
+          always, has not been resolved. Do not change these values here —
+          defer to the design-system migration (xcamp-foundation token port).
+        */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"

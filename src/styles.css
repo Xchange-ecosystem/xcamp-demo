@@ -135,6 +135,29 @@
 
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  /* ── Skin tokens not previously declared (only used via fallback) ──────── */
+  --skin-danger:       hsl(0, 72%, 50%);
+  --skin-on-accent:    hsl(222, 47%, 11%);
+
+  /* ── Glass-panel tokens (Companion page / home.tsx + ChatThread.tsx) ─────
+   * Light values use a white-frost appearance; dark values mirror the
+   * existing dark-glass aesthetic. Never inline these as rgba() literals
+   * in components — reference the token instead.
+   * ──────────────────────────────────────────────────────────────────────── */
+  --glass-bg:            rgba(255,255,255,0.72);
+  --glass-border-color:  rgba(0,0,0,0.12);
+  --glass-shadow:        0 8px 40px rgba(0,0,0,0.18);
+  --glass-text:          rgba(0,0,0,0.87);
+  --glass-text-soft:     rgba(0,0,0,0.55);
+  --glass-bubble-bg:     rgba(0,0,0,0.06);
+  --glass-chrome-bg:     rgba(0,0,0,0.12);
+  --glass-chrome-border: rgba(0,0,0,0.18);
+  --glass-pill-bg:       rgba(255,255,255,0.82);
+  --glass-pill-border:   rgba(0,0,0,0.12);
+  --glass-input-bg:      rgba(0,0,0,0.06);
+  --glass-input-border:  rgba(0,0,0,0.18);
+  --glass-divider:       rgba(0,0,0,0.1);
 }
 
 .dark {
@@ -186,6 +209,25 @@
 
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+
+  /* ── Skin tokens — dark overrides ── */
+  --skin-danger:       hsl(0, 84%, 65%);
+  --skin-on-accent:    #fff;
+
+  /* ── Glass-panel tokens — dark overrides ── */
+  --glass-bg:            rgba(18,10,30,0.55);
+  --glass-border-color:  rgba(255,255,255,0.18);
+  --glass-shadow:        0 8px 40px rgba(0,0,0,0.28);
+  --glass-text:          rgba(255,255,255,0.92);
+  --glass-text-soft:     rgba(255,255,255,0.6);
+  --glass-bubble-bg:     rgba(255,255,255,0.1);
+  --glass-chrome-bg:     rgba(255,255,255,0.15);
+  --glass-chrome-border: rgba(255,255,255,0.2);
+  --glass-pill-bg:       rgba(18,10,30,0.6);
+  --glass-pill-border:   rgba(255,255,255,0.18);
+  --glass-input-bg:      rgba(255,255,255,0.1);
+  --glass-input-border:  rgba(255,255,255,0.18);
+  --glass-divider:       rgba(255,255,255,0.1);
 }
 
 /*

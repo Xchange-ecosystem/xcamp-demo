@@ -47,7 +47,7 @@ function ProjectBuilderPage() {
         <header className="text-center mb-2">
           <div
             className="mx-auto mb-3 flex items-center justify-center rounded-2xl"
-            style={{ width: 48, height: 48, background: "rgba(22,184,154,0.12)" }}
+            style={{ width: 48, height: 48, background: "color-mix(in srgb, var(--skin-accent) 12%, transparent)" }}
           >
             <Compass size={24} style={{ color: "var(--skin-accent)" }} />
           </div>

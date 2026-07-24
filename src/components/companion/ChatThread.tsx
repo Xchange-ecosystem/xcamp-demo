@@ -123,12 +123,12 @@ function ChiMessage({ message, isTyping, msgRef }: { message: ChiMsg; isTyping: 
       </div>
       <div
         style={{
-          background: "rgba(255,255,255,0.1)",
+          background: "var(--glass-bubble-bg)",
           borderRadius: "12px 12px 12px 4px",
           padding: "10px 14px",
           fontSize: 14,
           lineHeight: 1.5,
-          color: "rgba(255,255,255,0.92)",
+          color: "var(--glass-text)",
           maxWidth: "85%",
           minHeight: 20,
         }}
@@ -191,12 +191,12 @@ function LoadingBubble() {
       </div>
       <div
         style={{
-          background: "rgba(255,255,255,0.1)",
+          background: "var(--glass-bubble-bg)",
           borderRadius: "12px 12px 12px 4px",
           padding: "10px 14px",
           fontSize: 14,
           lineHeight: 1.5,
-          color: "rgba(255,255,255,0.55)",
+          color: "var(--glass-text-soft)",
           minHeight: 20,
         }}
       >
@@ -278,7 +278,7 @@ function ProjectGridComponent({
           ))}
         </div>
       ) : (
-        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--glass-text-soft)" }}>
           No projects yet.
         </p>
       )}
@@ -293,9 +293,9 @@ function StubComponent({ label }: { label: string }) {
       style={{
         padding: "12px 16px",
         borderRadius: 10,
-        border: "1px dashed rgba(255,255,255,0.25)",
+        border: "1px dashed var(--glass-border-color)",
         fontSize: 13,
-        color: "rgba(255,255,255,0.55)",
+        color: "var(--glass-text-soft)",
         fontStyle: "italic",
       }}
     >
@@ -314,10 +314,10 @@ function ActionCardsStub() {
           style={{
             padding: "10px 14px",
             borderRadius: 8,
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
+            background: "var(--glass-bubble-bg)",
+            border: "1px solid var(--glass-border-color)",
             fontSize: 13,
-            color: "rgba(255,255,255,0.8)",
+            color: "var(--glass-text)",
           }}
         >
           {item}
@@ -422,7 +422,7 @@ function ActionCardItem({
             <button
               onClick={() => onConfirm?.(card, selectedType)}
               style={{
-                background: "var(--skin-accent, #7c3aed)",
+                background: "var(--skin-accent, #4de0c1)",
                 color: "var(--skin-bg, #fff)",
                 border: "none",
                 borderRadius: "var(--skin-radius, 10px)",
