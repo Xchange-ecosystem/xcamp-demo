@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquarePlus, RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { MessageSquarePlus, RefreshCw, Volume2, VolumeX, X } from "lucide-react";
 import { CompanionShell } from "@/components/CompanionShell";
 import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
@@ -69,7 +69,8 @@ function CompanionHomePage() {
     step === "inside-project" && activeProject?.feature_image
       ? activeProject.feature_image
       : null;
-  const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage("companion");
+  // Item 3: no seed → Math.random() selection on each fresh mount (random hero per load)
+  const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage();
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
   // Apply background image directly on <html> — bypasses all React layer stacking
@@ -242,6 +243,31 @@ function CompanionHomePage() {
     },
     [session, vox, authUser, altitude, setActiveProjectId], // eslint-disable-line react-hooks/exhaustive-deps
   );
+
+  // Item 1: Explicit deselect — clears localStorage AND nulls the Supabase
+  // conversation project_id so the project is NOT restored on hard reload.
+  const handleProjectDeselect = useCallback(async () => {
+    setActiveProject(null);
+    setActiveProjectId(null);
+
+    if (session.conversationId) {
+      supabase
+        .from("jarvix_conversations")
+        .update({ project_id: null })
+        .eq("id", session.conversationId)
+        .then();
+    }
+
+    const msg = "Project unlinked — you're in general chat mode. Pick a project from the grid, or just ask me anything.";
+    const msgId = await session.appendChiMessage(msg);
+    setTypingMessageId(msgId);
+    await waitForTyping(msg);
+    setTypingMessageId(null);
+
+    const gridId = await session.appendComponentMessage("project-grid");
+    gridMsgIdRef.current = gridId;
+    setStep("project-select");
+  }, [session, setActiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const branchFiredRef = useRef(false);
   useEffect(() => {
@@ -447,13 +473,15 @@ function CompanionHomePage() {
           }}
         />
 
-        {/* Top chrome */}
+        {/* Top chrome — Item 4: icons use --skin-ink-soft (theme-aware skin token) */}
         <TopChrome
           ttsEnabled={ttsEnabled}
           onTtsToggle={() => setTtsEnabled((v) => !v)}
           onReload={reloadHero}
           canReload={canReload}
           onNewSession={handleNewSession}
+          activeProject={activeProject}
+          onDeselectProject={handleProjectDeselect}
         />
 
         {/* Glass panel — light/dark appearance driven by --glass-* tokens in styles.css */}
@@ -557,14 +585,18 @@ function CompanionHomePage() {
                   flexShrink: 0,
                 }}
               >
-                ➤
+                &#x27a4;
               </button>
             </div>
           </div>
         </div>
 
-        {/* Shortcut pill bar */}
-        <ShortcutPillBar onShortcut={handleShortcut} />
+        {/* Item 2: ShortcutPillBar hidden — non-functional, visually overlaps the
+            input container. Wrapped in display:none to keep handleShortcut and the
+            component definition available for future reinstatement. */}
+        <div style={{ display: "none" }}>
+          <ShortcutPillBar onShortcut={handleShortcut} />
+        </div>
       </CompanionShell>
 
       {panelTarget && (
@@ -590,12 +622,16 @@ function TopChrome({
   onReload,
   canReload,
   onNewSession,
+  activeProject,
+  onDeselectProject,
 }: {
   ttsEnabled: boolean;
   onTtsToggle: () => void;
   onReload: () => void;
   canReload: boolean;
   onNewSession: () => void;
+  activeProject: ProjectFull | null;
+  onDeselectProject: () => void;
 }) {
   return (
     <div
@@ -611,6 +647,34 @@ function TopChrome({
         pointerEvents: "auto",
       }}
     >
+      {/* Item 1: Project pill — click × to deselect and return to general-chat mode */}
+      {activeProject && (
+        <button
+          onClick={onDeselectProject}
+          title="Return to general mode"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 8px 4px 12px",
+            borderRadius: "var(--xr-pill, 999px)",
+            background: "var(--glass-chrome-bg)",
+            border: "1px solid var(--glass-chrome-border)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            color: "var(--skin-ink-soft)",
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 500,
+            maxWidth: 200,
+          }}
+        >
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {activeProject.name}
+          </span>
+          <X size={12} style={{ flexShrink: 0 }} />
+        </button>
+      )}
       <ChromeButton onClick={onNewSession} title="New conversation">
         <MessageSquarePlus size={15} />
       </ChromeButton>
@@ -650,7 +714,9 @@ function ChromeButton({
         border: "1px solid var(--glass-chrome-border)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        color: "var(--glass-text)",
+        // Item 4: --skin-ink-soft adapts with light/dark theme (dark grey in light
+        // mode, light grey in dark mode) matching the Batch 6 token convention.
+        color: "var(--skin-ink-soft)",
         cursor: "pointer",
       }}
     >
@@ -660,6 +726,7 @@ function ChromeButton({
 }
 
 // ─── Shortcut pill bar ────────────────────────────────────────────────────────
+// Item 2: Component and handler retained for future use; not rendered in JSX.
 function ShortcutPillBar({ onShortcut }: { onShortcut: (id: string) => void }) {
   return (
     <div
