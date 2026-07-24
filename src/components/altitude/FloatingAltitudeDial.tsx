@@ -11,10 +11,12 @@ export function FloatingAltitudeDial() {
     setAltitude(next);
   };
 
+  // Each state uses a slightly darker shade in light mode (better contrast on
+  // light backgrounds) and the standard shade in dark mode.
   const colors: Record<Altitude, string> = {
-    0: 'bg-emerald-500',
-    1: 'bg-teal-500',
-    2: 'bg-blue-500',
+    0: 'bg-emerald-600 dark:bg-emerald-500',
+    1: 'bg-teal-600 dark:bg-teal-500',
+    2: 'bg-blue-600 dark:bg-blue-500',
   };
 
   return (

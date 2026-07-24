@@ -19,12 +19,10 @@ import { EntityPanel } from "@/components/EntityPanel";
 import { buildContextCardProposal, type EntityType } from "@/components/JournalFlow";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
+// Only --glass-blur is set inline; all other glass tokens are defined in
+// styles.css (:root for light, .dark for dark) so they respond to the theme.
 const GLASS_STYLE: React.CSSProperties = {
   "--glass-blur": "18px",
-  "--glass-bg-light": "rgba(255,255,255,0.55)",
-  "--glass-bg-dark": "rgba(18,10,30,0.55)",
-  "--glass-border": "rgba(255,255,255,0.18)",
-  "--glass-shadow": "0 8px 40px rgba(0,0,0,0.28)",
 } as React.CSSProperties;
 
 const SHORTCUT_PILLS = [
@@ -418,7 +416,8 @@ function CompanionHomePage() {
   return (
     <>
       <CompanionShell>
-        {/* Scrim — sits above the <html> background image */}
+        {/* Scrim — sits above the <html> background image; always dark so it
+            works regardless of light/dark mode (the photo is behind it). */}
         <div
           style={{
             position: "fixed",
@@ -438,7 +437,7 @@ function CompanionHomePage() {
           onNewSession={handleNewSession}
         />
 
-        {/* Glass panel */}
+        {/* Glass panel — light/dark appearance driven by --glass-* tokens in styles.css */}
         <div
           style={{
             position: "fixed",
@@ -461,12 +460,12 @@ function CompanionHomePage() {
               display: "flex",
               flexDirection: "column",
               borderRadius: 20,
-              background: "var(--glass-bg-dark, rgba(18,10,30,0.55))",
-              border: "1px solid var(--glass-border, rgba(255,255,255,0.18))",
-              boxShadow: "var(--glass-shadow, 0 8px 40px rgba(0,0,0,0.28))",
+              background: "var(--glass-bg)",
+              border: "1px solid var(--glass-border-color)",
+              boxShadow: "var(--glass-shadow)",
               backdropFilter: "blur(var(--glass-blur, 18px))",
               WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-              color: "white",
+              color: "var(--glass-text)",
               overflow: "hidden",
             }}
           >
@@ -487,7 +486,7 @@ function CompanionHomePage() {
             <div
               style={{
                 flexShrink: 0,
-                borderTop: "1px solid rgba(255,255,255,0.1)",
+                borderTop: "1px solid var(--glass-divider)",
                 padding: "10px 14px 12px",
                 display: "flex",
                 gap: 8,
@@ -509,10 +508,10 @@ function CompanionHomePage() {
                 style={{
                   flex: 1,
                   resize: "none",
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "var(--glass-input-bg)",
+                  border: "1px solid var(--glass-input-border)",
                   borderRadius: 10,
-                  color: "white",
+                  color: "var(--glass-text)",
                   fontSize: 14,
                   padding: "8px 12px",
                   outline: "none",
@@ -627,11 +626,11 @@ function ChromeButton({
         width: 34,
         height: 34,
         borderRadius: "50%",
-        background: "rgba(255,255,255,0.15)",
-        border: "1px solid rgba(255,255,255,0.2)",
+        background: "var(--glass-chrome-bg)",
+        border: "1px solid var(--glass-chrome-border)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        color: "white",
+        color: "var(--glass-text)",
         cursor: "pointer",
       }}
     >
@@ -654,8 +653,8 @@ function ShortcutPillBar({ onShortcut }: { onShortcut: (id: string) => void }) {
         gap: 8,
         padding: "8px 16px",
         borderRadius: "var(--xr-pill, 999px)",
-        background: "rgba(18,10,30,0.6)",
-        border: "1px solid rgba(255,255,255,0.18)",
+        background: "var(--glass-pill-bg)",
+        border: "1px solid var(--glass-pill-border)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
         boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
@@ -672,8 +671,8 @@ function ShortcutPillBar({ onShortcut }: { onShortcut: (id: string) => void }) {
             borderRadius: "var(--xr-pill, 999px)",
             fontSize: 13,
             fontWeight: 500,
-            color: "rgba(255,255,255,0.85)",
-            background: "rgba(255,255,255,0.1)",
+            color: "var(--glass-text)",
+            background: "var(--glass-bubble-bg)",
           }}
         >
           {pill.label}
