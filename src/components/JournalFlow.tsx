@@ -880,6 +880,10 @@ function NoteEditorPane({
         );
         const commitResult = await commitSession(topic.organiser_session_id);
         suggestedCards = commitResult.suggested_task_cards;
+        if (commitResult.failures && commitResult.failures.length > 0 && (!commitResult.results || commitResult.results.length === 0)) {
+          const firstError = commitResult.failures[0].error ?? 'Commit failed';
+          throw new Error(firstError);
+        }
         if (commitResult.results && commitResult.results.length > 0) {
           const first = commitResult.results[0];
           if (selectedType === 'objective' || first.proposal_type === 'new_objective') {
