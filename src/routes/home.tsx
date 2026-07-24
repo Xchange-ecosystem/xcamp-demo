@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
@@ -56,6 +56,7 @@ interface PanelTarget {
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
   const { activeProjectId, setActiveProjectId } = useActiveProject();
+  const navigate = useNavigate();
 
   const session = useCompanionSession(authUser);
 
@@ -320,8 +321,20 @@ function CompanionHomePage() {
     }
   }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleCreateProject = useCallback(() => {
+    void navigate({ to: '/project-builder' });
+  }, [navigate]);
+
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
+
+    // Navigate proposals are purely client-side — route without creating an entity
+    if (card.proposal.tool === 'navigate') {
+      const payload = card.proposal.payload as { url?: string };
+      if (payload.url) void navigate({ to: payload.url });
+      setDismissedCardIds((prev) => new Set([...prev, card.id]));
+      return;
+    }
 
     if (selectedType === 'objective') {
       // Objective creation — existing proposal/execute path, untouched
@@ -372,7 +385,7 @@ function CompanionHomePage() {
       console.error('[Chi] createNote failed:', err);
       toast.error((err as Error).message ?? 'Could not create note.');
     }
-  }, [authUser]);
+  }, [authUser, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCardDismiss = useCallback((card: AICard) => {
     setDismissedCardIds((prev) => new Set([...prev, card.id]));
@@ -541,7 +554,7 @@ function CompanionHomePage() {
                 messages={session.messages}
                 projects={projects}
                 onProjectSelect={handleProjectSelect}
-                onCreateProject={() => {/* CC-3 scope */}}
+                onCreateProject={handleCreateProject}
                 typingMessageId={typingMessageId ?? undefined}
                 isLoading={isLoading}
                 onCardConfirm={handleCardConfirm}
