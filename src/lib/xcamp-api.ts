@@ -170,7 +170,7 @@ export async function updateNote(
 }
 
 // Replace the objective_notes links for a note with the provided objective ids.
-async function syncObjectiveLinks(user: XcampUser, noteId: string, objectiveIds: string[]) {
+export async function syncObjectiveLinks(user: XcampUser, noteId: string, objectiveIds: string[]) {
   const { data: existing } = await supabase
     .from("objective_notes")
     .select("id, objective_id")

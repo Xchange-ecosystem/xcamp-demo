@@ -251,36 +251,56 @@ export function JournalFlow({
 
   const handleAcceptCard = async (card: AICard, selectedType: EntityType) => {
     setAccepting(card.id);
-    const modifiedProposal = buildContextCardProposal(card, selectedType);
-    if (!modifiedProposal) { setAccepting(null); return; }
 
-    const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
-    const result = await executeProposal(
-      modifiedProposal,
-      () => Promise.resolve(token || null),
-      (import.meta.env.VITE_BACKEND_URL as string) ?? '',
-    );
-    setAccepting(null);
+    if (selectedType === 'objective') {
+      // Objective creation — existing proposal/execute path, untouched
+      const modifiedProposal = buildContextCardProposal(card, selectedType);
+      if (!modifiedProposal) { setAccepting(null); return; }
+      const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
+      const result = await executeProposal(
+        modifiedProposal,
+        () => Promise.resolve(token || null),
+        (import.meta.env.VITE_BACKEND_URL as string) ?? '',
+      );
+      setAccepting(null);
+      if (result.ok) {
+        const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
+        const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
+        const objId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
+        const target: PanelTarget = { type: 'objective', id: result.committed_id ?? objId ?? '', prefillText: card.body, initialTitle: payloadTitle };
+        setAppliedCards((prev) => new Map(prev).set(card.id, target));
+        setPanelTarget(target);
+        toast.success('Applied');
+      } else {
+        setCardErrors((prev) => ({ ...prev, [card.id]: result.error ?? 'Unknown error' }));
+      }
+      return;
+    }
 
-    if (result.ok) {
-      const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
-      const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
-      const objectiveId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
-      const panelType: PanelTarget['type'] =
-        selectedType === 'objective' ? 'objective' :
-        selectedType === 'task' ? 'task' : 'note';
-      const target: PanelTarget = {
-        type: panelType,
-        id: result.committed_id ?? objectiveId ?? '',
-        objectiveId,
-        prefillText: card.body,
-        initialTitle: payloadTitle,
-      };
+    // Note, Task, Resource — createNote() directly; no objective required
+    const noteType = selectedType === 'task' ? 'task' : selectedType === 'resource' ? 'reference' : 'note';
+    const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> } | undefined;
+    const basePayload = rawProposal?.payload ?? {};
+    const title = typeof basePayload.title === 'string' ? basePayload.title : (card.title ?? 'Untitled');
+
+    try {
+      const note = await createNote(user!, {
+        title,
+        bodyHtml: '',
+        noteType,
+        projectId: null,
+        objectiveIds: [],
+        tags: [],
+      });
+      setAccepting(null);
+      const panelType: PanelTarget['type'] = selectedType === 'task' ? 'task' : 'note';
+      const target: PanelTarget = { type: panelType, id: note.id, prefillText: card.body, initialTitle: title };
       setAppliedCards((prev) => new Map(prev).set(card.id, target));
       setPanelTarget(target);
       toast.success('Applied');
-    } else {
-      setCardErrors((prev) => ({ ...prev, [card.id]: result.error ?? 'Unknown error' }));
+    } catch (err) {
+      setAccepting(null);
+      setCardErrors((prev) => ({ ...prev, [card.id]: (err as Error).message ?? 'Unknown error' }));
     }
   };
 
@@ -590,6 +610,7 @@ export function JournalFlow({
           objectiveId={panelTarget.objectiveId}
           prefillText={panelTarget.prefillText}
           initialTitle={panelTarget.initialTitle}
+          user={user ?? undefined}
         />
       )}
     </>

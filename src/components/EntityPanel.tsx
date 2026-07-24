@@ -8,6 +8,14 @@ import {
 } from "@/components/ui/sheet";
 import { supabase } from "@/lib/supabase";
 import { useDebounce } from "@/hooks/useDebounce";
+import {
+  listProjects,
+  listObjectives,
+  syncObjectiveLinks,
+  getNoteObjectiveIds,
+} from "@/lib/xcamp-api";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
+import type { XcampUser } from "@/types/xcamp";
 
 export interface EntityPanelProps {
   open: boolean;
@@ -17,10 +25,14 @@ export interface EntityPanelProps {
   objectiveId?: string;
   prefillText?: string;
   initialTitle?: string;
+  /** Provide to enable post-creation project/objective assignment on standalone notes */
+  user?: XcampUser;
 }
 
-export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText, initialTitle }: EntityPanelProps) {
+export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText, initialTitle, user }: EntityPanelProps) {
   const isNoteOrTask = type === 'note' || type === 'task';
+  // Show assignment UI for standalone notes where user is available
+  const showAssignment = isNoteOrTask && !!user && !objectiveId;
 
   const [title, setTitle] = useState(initialTitle ?? '');
   const [body, setBody] = useState('');
@@ -34,8 +46,26 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
   // spurious saves on mount when debounced values settle to their initial state.
   const [savedContent, setSavedContent] = useState<{ title: string; body: string } | null>(null);
 
-  // Fetch existing note/task from the 'notes' table (confirmed table name via
-  // pg_get_functiondef on upsert_objective_note) then append prefillText to it.
+  // Assignment state — only active when showAssignment is true
+  const [assignedProjectId, setAssignedProjectId] = useState('');
+  const [assignedObjectiveIds, setAssignedObjectiveIds] = useState<string[]>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [objectives, setObjectives] = useState<Array<{ id: string; title: string }>>([]);
+  const [noteDetail, setNoteDetail] = useState<Record<string, unknown>>({});
+
+  // Load projects for the assignment selector
+  useEffect(() => {
+    if (!user) return;
+    listProjects(user).then(setProjects).catch(console.error);
+  }, [user?.centralId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load objectives when project selection changes
+  useEffect(() => {
+    if (!user || !assignedProjectId) { setObjectives([]); return; }
+    listObjectives(user, assignedProjectId).then(setObjectives).catch(console.error);
+  }, [user?.centralId, assignedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch existing note/task from the 'notes' table then append prefillText to it.
   // Objectives don't need this — set_objective_fields semantically sets fields,
   // not prose; manual Save button handles them.
   useEffect(() => {
@@ -50,25 +80,24 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
     setFetchLoading(true);
     setSavedContent(null); // prevent autosave firing on stale content during fetch
 
+    const selectCols = showAssignment ? 'body_markdown, title, detail' : 'body_markdown, title';
+
     supabase
       .from('notes')
-      .select('body_markdown, title')
+      .select(selectCols)
       .eq('id', id)
       .single()
-      .then(({ data, error: fetchErr }) => {
+      .then(async ({ data, error: fetchErr }) => {
         if (cancelled) return;
 
         if (fetchErr) {
           console.error('EntityPanel: failed to fetch existing note content', fetchErr);
-          // Fall back to prefillText only — still functional
           setBody(prefillText ?? '');
           setTitle(initialTitle ?? '');
           setSavedContent({ title: initialTitle ?? '', body: prefillText ?? '' });
         } else {
           const fetchedTitle = data?.title ?? initialTitle ?? '';
-          const existing = data?.body_markdown ?? '';
-          // Append AI-augmented text to existing content, separated by a divider.
-          // If the note was just created (empty body), use prefillText directly.
+          const existing = (data as Record<string, unknown>)?.body_markdown as string ?? '';
           const appended = existing
             ? `${existing}\n\n---\n\n${prefillText ?? ''}`
             : (prefillText ?? '');
@@ -76,6 +105,18 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
           setBody(appended);
           setTitle(fetchedTitle);
           setSavedContent({ title: fetchedTitle, body: appended });
+
+          // Pre-populate assignment fields if showing assignment UI
+          if (showAssignment && data) {
+            const detail = ((data as Record<string, unknown>)?.detail ?? {}) as Record<string, unknown>;
+            setNoteDetail(detail);
+            if (typeof detail.project_id === 'string' && detail.project_id) {
+              setAssignedProjectId(detail.project_id);
+            }
+            // Load existing objective links
+            const existingObjIds = await getNoteObjectiveIds(id);
+            if (!cancelled) setAssignedObjectiveIds(existingObjIds);
+          }
         }
 
         setFetchLoading(false);
@@ -84,7 +125,7 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
     return () => { cancelled = true; };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 1500ms debounce — mirrors the NoteEditor autosave delay from Session 3.
+  // 1500ms debounce — mirrors the NoteEditor autosave delay.
   const debouncedTitle = useDebounce(title, 1500);
   const debouncedBody = useDebounce(body, 1500);
 
@@ -98,15 +139,34 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
       setError(null);
       try {
         const bodyHtml = `<p>${debouncedBody.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')}</p>`;
-        const { error: rpcError } = await supabase.rpc('upsert_objective_note', {
-          p_objective_id: objectiveId ?? '',
-          p_note_id: id,
-          p_note_type: type,
-          p_title: debouncedTitle || 'Untitled',
-          p_body_markdown: debouncedBody,
-          p_body_html: bodyHtml,
-        });
-        if (rpcError) throw rpcError;
+
+        if (objectiveId) {
+          // Objective-linked note — use the RPC (existing path, unchanged)
+          const { error: rpcError } = await supabase.rpc('upsert_objective_note', {
+            p_objective_id: objectiveId,
+            p_note_id: id,
+            p_note_type: type,
+            p_title: debouncedTitle || 'Untitled',
+            p_body_markdown: debouncedBody,
+            p_body_html: bodyHtml,
+          });
+          if (rpcError) throw rpcError;
+        } else {
+          // Standalone note — direct table update, no objective required
+          const { error: updateError } = await supabase
+            .from('notes')
+            .update({
+              title: debouncedTitle || 'Untitled',
+              body_markdown: debouncedBody,
+              body_html: bodyHtml,
+              body_text: debouncedBody.replace(/\n/g, ' '),
+              note_type: type,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', id);
+          if (updateError) throw updateError;
+        }
+
         setSavedContent({ title: debouncedTitle, body: debouncedBody });
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -137,6 +197,37 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Assignment handlers — project and objective links updated immediately on change
+  const handleProjectChange = async (newProjectId: string) => {
+    setAssignedProjectId(newProjectId);
+    setAssignedObjectiveIds([]);
+    if (!id || !user) return;
+    try {
+      const updatedDetail = { ...noteDetail };
+      if (newProjectId) updatedDetail.project_id = newProjectId;
+      else delete updatedDetail.project_id;
+      await supabase
+        .from('notes')
+        .update({ detail: updatedDetail as Record<string, unknown>, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      setNoteDetail(updatedDetail);
+      // Clear all objective links when project changes
+      await syncObjectiveLinks(user, id, []);
+    } catch (err) {
+      console.error('EntityPanel: failed to update project assignment', err);
+    }
+  };
+
+  const handleObjectivesChange = async (newIds: string[]) => {
+    setAssignedObjectiveIds(newIds);
+    if (!id || !user) return;
+    try {
+      await syncObjectiveLinks(user, id, newIds);
+    } catch (err) {
+      console.error('EntityPanel: failed to sync objective links', err);
     }
   };
 
@@ -184,6 +275,31 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                 />
+              )}
+
+              {showAssignment && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4, borderTop: '1px solid var(--skin-line)' }}>
+                  <p style={{ fontSize: 12, color: 'var(--skin-ink-faint)', margin: 0, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Assign (optional)
+                  </p>
+                  <MultiSelectDropdown
+                    label="Project"
+                    placeholder="No project"
+                    single
+                    options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                    selected={assignedProjectId ? [assignedProjectId] : []}
+                    onChange={(vals) => { void handleProjectChange(vals[0] ?? ''); }}
+                  />
+                  {assignedProjectId && (
+                    <MultiSelectDropdown
+                      label="Objectives (optional)"
+                      placeholder="Select objectives…"
+                      options={objectives.map((o) => ({ value: o.id, label: o.title }))}
+                      selected={assignedObjectiveIds}
+                      onChange={(vals) => { void handleObjectivesChange(vals); }}
+                    />
+                  )}
+                </div>
               )}
 
               {error && (
