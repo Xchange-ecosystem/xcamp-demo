@@ -8,7 +8,7 @@ import { CompanionShell } from "@/components/CompanionShell";
 import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
-import { listProjectsFull } from "@/lib/xcamp-api";
+import { createNote, listProjectsFull } from "@/lib/xcamp-api";
 import { useCompanionSession } from "@/lib/useCompanionSession";
 import { useVox } from "@/hooks/useVox";
 import type { ProjectFull } from "@/types/xcamp";
@@ -276,38 +276,57 @@ function CompanionHomePage() {
 
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
-    const modifiedProposal = buildContextCardProposal(card, selectedType) ?? card.proposal;
-    try {
-      const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
-      const result = await executeProposal(
-        modifiedProposal,
-        () => Promise.resolve(token || null),
-        (import.meta.env.VITE_BACKEND_URL as string) ?? '',
-      );
-      if (result.ok) {
-        const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
-        const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
-        const objectiveId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
-        const panelType: PanelTarget['type'] =
-          selectedType === 'objective' ? 'objective' :
-          selectedType === 'task' ? 'task' : 'note';
-        setDismissedCardIds((prev) => new Set([...prev, card.id]));
-        setPanelTarget({
-          type: panelType,
-          id: result.committed_id ?? objectiveId ?? '',
-          objectiveId,
-          prefillText: card.body,
-          initialTitle: payloadTitle,
-        });
-        toast.success('Done — card applied.');
-      } else {
-        toast.error(result.error ?? 'Could not apply card.');
+
+    if (selectedType === 'objective') {
+      // Objective creation — existing proposal/execute path, untouched
+      const modifiedProposal = buildContextCardProposal(card, selectedType) ?? card.proposal;
+      try {
+        const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
+        const result = await executeProposal(
+          modifiedProposal,
+          () => Promise.resolve(token || null),
+          (import.meta.env.VITE_BACKEND_URL as string) ?? '',
+        );
+        if (result.ok) {
+          const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
+          const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
+          const objId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
+          setDismissedCardIds((prev) => new Set([...prev, card.id]));
+          setPanelTarget({ type: 'objective', id: result.committed_id ?? objId ?? '', prefillText: card.body, initialTitle: payloadTitle });
+          toast.success('Done — card applied.');
+        } else {
+          toast.error(result.error ?? 'Could not apply card.');
+        }
+      } catch (err) {
+        console.error('[Chi] objective proposal failed:', err);
+        toast.error('Something went wrong applying the card.');
       }
-    } catch (err) {
-      console.error('[Chi] proposal failed:', err);
-      toast.error('Something went wrong applying the card.');
+      return;
     }
-  }, []);
+
+    // Note, Task, Resource — createNote() directly; no objective required
+    const noteType = selectedType === 'task' ? 'task' : selectedType === 'resource' ? 'reference' : 'note';
+    const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> };
+    const title = typeof rawProposal?.payload?.title === 'string' ? rawProposal.payload.title : (card.title ?? 'Untitled');
+
+    try {
+      const note = await createNote(authUser!, {
+        title,
+        bodyHtml: '',
+        noteType,
+        projectId: null,
+        objectiveIds: [],
+        tags: [],
+      });
+      const panelType: PanelTarget['type'] = selectedType === 'task' ? 'task' : 'note';
+      setDismissedCardIds((prev) => new Set([...prev, card.id]));
+      setPanelTarget({ type: panelType, id: note.id, prefillText: card.body, initialTitle: title });
+      toast.success('Done — card applied.');
+    } catch (err) {
+      console.error('[Chi] createNote failed:', err);
+      toast.error((err as Error).message ?? 'Could not create note.');
+    }
+  }, [authUser]);
 
   const handleCardDismiss = useCallback((card: AICard) => {
     setDismissedCardIds((prev) => new Set([...prev, card.id]));
@@ -557,6 +576,7 @@ function CompanionHomePage() {
           objectiveId={panelTarget.objectiveId}
           prefillText={panelTarget.prefillText}
           initialTitle={panelTarget.initialTitle}
+          user={authUser ?? undefined}
         />
       )}
     </>

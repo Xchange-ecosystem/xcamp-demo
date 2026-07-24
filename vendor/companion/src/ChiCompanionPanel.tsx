@@ -45,6 +45,13 @@ export interface ChiCompanionPanelProps {
   onCardAccept?: (card: AICard, result: ProposalResult) => void;
   onCardDismiss?: (card: AICard) => void;
 
+  /**
+   * Override the default card-confirmation logic (executeProposal → upsert_objective_note).
+   * When provided, called instead of executeProposal for all confirmable cards.
+   * Use this to route note/task/resource cards through createNote() when no objective is in scope.
+   */
+  onConfirmProposal?: (card: AICard) => Promise<{ ok: boolean; committed_id?: string; error?: string }>;
+
   className?: string;
   style?: React.CSSProperties;
 }
@@ -329,6 +336,7 @@ export function ChiCompanionPanel({
   onAltitudeChange,
   onCardAccept,
   onCardDismiss,
+  onConfirmProposal,
   className,
   style,
 }: ChiCompanionPanelProps) {
@@ -441,8 +449,9 @@ export function ChiCompanionPanel({
       }
     ));
 
-    // TODO: pass Supabase session JWT — wire via prop or context
-    const result = await executeProposal(card.proposal, getSessionToken, '');
+    const result = onConfirmProposal
+      ? await onConfirmProposal(card)
+      : await executeProposal(card.proposal, getSessionToken, '');
 
     setMessages(prev => prev.map(m =>
       m.id !== msgId ? m : {
