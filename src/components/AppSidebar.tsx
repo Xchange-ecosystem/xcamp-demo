@@ -81,6 +81,7 @@ export function AppSidebar() {
                   setActiveProjectId(id);
                 }}
               >
+                <option value="">— General —</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
