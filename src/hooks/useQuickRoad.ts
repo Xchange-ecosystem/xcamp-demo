@@ -66,6 +66,8 @@ type Action =
   | { type: "patch"; payload: Partial<QuickRoadState> }
   | { type: "toggleNode"; id: string }
   | { type: "appendChild"; parentId: string; child: OutputNode }
+  | { type: "removeNode"; id: string }
+  | { type: "updateNode"; id: string; changes: { title?: string; description?: string } }
   | {
       type: "setStage";
       stage: WorkflowStage;
@@ -86,6 +88,24 @@ function appendChildToTree(tree: OutputTree, parentId: string, child: OutputNode
   return { ...tree, root_nodes: walk(tree.root_nodes) };
 }
 
+function removeNodeFromTree(tree: OutputTree, id: string): OutputTree {
+  const walk = (nodes: OutputNode[]): OutputNode[] =>
+    nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: walk(n.children ?? []) }));
+  return { ...tree, root_nodes: walk(tree.root_nodes) };
+}
+
+function updateNodeInTree(
+  tree: OutputTree,
+  id: string,
+  changes: { title?: string; description?: string },
+): OutputTree {
+  const walk = (nodes: OutputNode[]): OutputNode[] =>
+    nodes.map((n) =>
+      n.id === id ? { ...n, ...changes } : { ...n, children: walk(n.children ?? []) },
+    );
+  return { ...tree, root_nodes: walk(tree.root_nodes) };
+}
+
 function reducer(state: QuickRoadState, action: Action): QuickRoadState {
   switch (action.type) {
     case "patch":
@@ -101,6 +121,15 @@ function reducer(state: QuickRoadState, action: Action): QuickRoadState {
       return {
         ...state,
         outputTree: appendChildToTree(state.outputTree, action.parentId, action.child),
+      };
+    case "removeNode":
+      if (!state.outputTree) return state;
+      return { ...state, outputTree: removeNodeFromTree(state.outputTree, action.id) };
+    case "updateNode":
+      if (!state.outputTree) return state;
+      return {
+        ...state,
+        outputTree: updateNodeInTree(state.outputTree, action.id, action.changes),
       };
     case "setStage":
       return {
@@ -131,6 +160,12 @@ export function useQuickRoad() {
     (parentId: string, child: OutputNode) => dispatch({ type: "appendChild", parentId, child }),
     [],
   );
+  const removeNode = useCallback((id: string) => dispatch({ type: "removeNode", id }), []);
+  const updateNode = useCallback(
+    (id: string, changes: { title?: string; description?: string }) =>
+      dispatch({ type: "updateNode", id, changes }),
+    [],
+  );
   const setStage = useCallback(
     (
       stage: WorkflowStage,
@@ -141,5 +176,5 @@ export function useQuickRoad() {
   );
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
-  return { state, patch, toggleNode, appendChild, setStage, reset };
+  return { state, patch, toggleNode, appendChild, removeNode, updateNode, setStage, reset };
 }

@@ -7,7 +7,7 @@ import { NetworkBuildAnimation } from "./NetworkBuildAnimation";
 import { useHeroImage } from "@/lib/useHeroImage";
 
 export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
-  const { state, patch, toggleNode, appendChild, setStage } = qr;
+  const { state, patch, toggleNode, appendChild, removeNode, updateNode, setStage } = qr;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fillingId, setFillingId] = useState<string | null>(null);
@@ -283,6 +283,8 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
             onToggle={() => toggleNode(node.id)}
             onFill={() => handleFill(node.id)}
             filling={fillingId === node.id}
+            onRemove={() => removeNode(node.id)}
+            onUpdate={(changes) => updateNode(node.id, changes)}
           />
         ))}
       </div>
