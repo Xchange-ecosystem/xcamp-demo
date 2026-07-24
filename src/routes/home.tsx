@@ -115,6 +115,7 @@ function CompanionHomePage() {
 
   const projectRestoredRef = useRef(false);
   const welcomeFiredRef = useRef(false);
+  const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
   useEffect(() => {
     if (session.loading || welcomeFiredRef.current) return;
     if (projects.length === 0) return; // wait for projects to load
@@ -299,6 +300,25 @@ function CompanionHomePage() {
     const project = projects.find((p) => p.id === activeProjectId);
     if (project) void handleProjectSelect(project, false);
   }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sidebar "General" deselect: when activeProjectId is cleared externally, mirror
+  // the clear into companion UI state and persist project_id=null to Supabase so the
+  // deselect survives a hard reload (prevents the restore path from re-activating it).
+  useEffect(() => {
+    const prev = prevActiveProjectIdRef.current;
+    prevActiveProjectIdRef.current = activeProjectId;
+
+    if (prev !== null && activeProjectId === null) {
+      setActiveProject(null);
+      if (session.conversationId) {
+        supabase
+          .from("jarvix_conversations")
+          .update({ project_id: null })
+          .eq("id", session.conversationId)
+          .then();
+      }
+    }
+  }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
