@@ -114,6 +114,16 @@ function CompanionHomePage() {
     return sessionDate !== today;
   };
 
+  // Close the session when the user logs out so the next login starts fresh.
+  const prevAuthUserRef = useRef(authUser);
+  useEffect(() => {
+    const prev = prevAuthUserRef.current;
+    prevAuthUserRef.current = authUser;
+    if (prev !== null && authUser === null) {
+      void session.closeSession();
+    }
+  }, [authUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const projectRestoredRef = useRef(false);
   const welcomeFiredRef = useRef(false);
   const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
@@ -226,7 +236,7 @@ function CompanionHomePage() {
           aiPersona: "guide",
           context_scope: "project",
         });
-        reply = res.reply_markdown;
+        reply = res.reply_markdown || reply;
         cards = res.cards ?? [];
       } catch (err) {
         console.error("[Chi] Vox call failed:", err);
@@ -409,7 +419,6 @@ function CompanionHomePage() {
   }, []);
 
   const handleNewSession = useCallback(async () => {
-    if (!confirm("Start a new conversation?")) return;
     await session.newSession();
     setStep("welcome");
     setActiveProject(null);

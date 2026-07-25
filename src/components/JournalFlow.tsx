@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   PanelLeftClose,
@@ -1001,42 +1001,114 @@ function NoteEditorPane({
 }
 
 
+interface HistoryPanelTarget {
+  type: 'note' | 'task' | 'objective';
+  id: string;
+  objectiveId?: string;
+}
+
 function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: () => void }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["session-proposals", sessionId],
     queryFn: () => getSessionProposals(sessionId),
   });
+  const [panelTarget, setPanelTarget] = useState<HistoryPanelTarget | null>(null);
   const proposals = data ?? [];
+
+  const handleAccept = async (proposalId: string) => {
+    try {
+      await confirmSession(sessionId, [{ proposal_id: proposalId, approved: true }]);
+      await commitSession(sessionId);
+      await queryClient.invalidateQueries({ queryKey: ["session-proposals", sessionId] });
+      toast.success('Card applied.');
+    } catch {
+      toast.error('Could not apply card.');
+    }
+  };
+
+  const handleDismiss = async (proposalId: string) => {
+    try {
+      await confirmSession(sessionId, [{ proposal_id: proposalId, approved: false }]);
+      await queryClient.invalidateQueries({ queryKey: ["session-proposals", sessionId] });
+      toast.success('Card dismissed.');
+    } catch {
+      toast.error('Could not dismiss card.');
+    }
+  };
+
+  const handleGoTo = (proposal: typeof proposals[number]) => {
+    const committedId = proposal.payload.committed_entity_id as string | undefined;
+    const committedType = proposal.payload.committed_entity_type as string | undefined;
+    if (!committedId) return;
+    const type: HistoryPanelTarget['type'] =
+      committedType === 'objective' ? 'objective'
+      : committedType === 'task' ? 'task'
+      : 'note';
+    const objectiveId = proposal.payload.objective_id as string | undefined;
+    setPanelTarget({ type, id: committedId, objectiveId });
+  };
+
   return (
-    <div className="max-w-2xl">
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          className="x-btn-secondary"
-          style={{ width: "auto", paddingInline: 14 }}
-          onClick={onBack}
-        >
-          <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
-        </button>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
-          Session cards
-        </h2>
+    <>
+      <div className="max-w-2xl">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            className="x-btn-secondary"
+            style={{ width: "auto", paddingInline: 14 }}
+            onClick={onBack}
+          >
+            <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
+          </button>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+            Session cards
+          </h2>
+        </div>
+        {isLoading && (
+          <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
+        )}
+        {!isLoading && proposals.length === 0 && (
+          <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>No proposals in this session.</div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {proposals.map((p) => (
+            <HistoricalProposalCard
+              key={p.id}
+              proposal={p}
+              onAccept={handleAccept}
+              onDismiss={handleDismiss}
+              onGoTo={handleGoTo}
+            />
+          ))}
+        </div>
       </div>
-      {isLoading && (
-        <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
+      {panelTarget && (
+        <EntityPanel
+          open
+          onClose={() => setPanelTarget(null)}
+          type={panelTarget.type}
+          id={panelTarget.id}
+          objectiveId={panelTarget.objectiveId}
+          user={user ?? undefined}
+        />
       )}
-      {!isLoading && proposals.length === 0 && (
-        <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>No proposals in this session.</div>
-      )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {proposals.map((p) => (
-          <HistoricalProposalCard key={p.id} proposal={p} />
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
 
-function HistoricalProposalCard({ proposal }: { proposal: HistoricalProposal }) {
+function HistoricalProposalCard({
+  proposal,
+  onAccept,
+  onDismiss,
+  onGoTo,
+}: {
+  proposal: HistoricalProposal;
+  onAccept: (id: string) => Promise<void>;
+  onDismiss: (id: string) => Promise<void>;
+  onGoTo: (proposal: HistoricalProposal) => void;
+}) {
+  const [busy, setBusy] = useState(false);
   const statusConfig = {
     committed: { label: "Applied ✓", bg: "color-mix(in srgb, var(--skin-accent) 12%, transparent)", fg: "var(--skin-accent)" },
     approved:  { label: "Approved",  bg: "color-mix(in srgb, #22c55e 12%, transparent)",             fg: "#22c55e" },
@@ -1048,6 +1120,13 @@ function HistoricalProposalCard({ proposal }: { proposal: HistoricalProposal }) 
   const body = (proposal.payload.body_markdown as string | undefined) ?? (proposal.payload.description as string | undefined);
   const objectiveTitle = proposal.payload.objective_title as string | undefined;
   const typeLabel = proposal.proposal_type.replace(/_/g, " ");
+  const hasGoTo = proposal.status === "committed" && !!proposal.payload.committed_entity_id;
+
+  const btnBase: React.CSSProperties = {
+    border: "1px solid var(--skin-line)", borderRadius: 8, padding: "4px 12px",
+    cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 500,
+    opacity: busy ? 0.5 : 1,
+  };
 
   return (
     <div
@@ -1088,6 +1167,36 @@ function HistoricalProposalCard({ proposal }: { proposal: HistoricalProposal }) 
       )}
       {objectiveTitle && (
         <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", margin: 0 }}>→ {objectiveTitle}</p>
+      )}
+      {(proposal.status === "pending" || hasGoTo) && (
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+          {proposal.status === "pending" && (
+            <>
+              <button
+                disabled={busy}
+                onClick={async () => { setBusy(true); await onDismiss(proposal.id); setBusy(false); }}
+                style={{ ...btnBase, background: "transparent", color: "var(--skin-ink-soft)" }}
+              >
+                Dismiss
+              </button>
+              <button
+                disabled={busy}
+                onClick={async () => { setBusy(true); await onAccept(proposal.id); setBusy(false); }}
+                style={{ ...btnBase, background: "var(--skin-accent, #4de0c1)", color: "var(--skin-bg, #fff)", border: "none" }}
+              >
+                Accept
+              </button>
+            </>
+          )}
+          {hasGoTo && (
+            <button
+              onClick={() => onGoTo(proposal)}
+              style={{ ...btnBase, background: "transparent", color: "var(--skin-accent)" }}
+            >
+              Go to →
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

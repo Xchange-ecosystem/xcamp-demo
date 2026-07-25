@@ -395,12 +395,12 @@ function ActionCardItem({
           {card.body}
         </div>
       )}
-      {card.confirmable && card.proposal && (
+      {card.confirmable && card.proposal && (card.proposal as unknown as { tool?: string })?.tool !== 'navigate' && (
         <div style={{ marginBottom: 8 }}>
           <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
         </div>
       )}
-      {(card.dismissible || card.confirmable) && (
+      {(card.dismissible || card.confirmable || (card.proposal as unknown as { tool?: string })?.tool === 'navigate') && (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
           {card.dismissible && (
             <button
@@ -418,7 +418,23 @@ function ActionCardItem({
               Dismiss
             </button>
           )}
-          {card.confirmable && (
+          {(card.proposal as unknown as { tool?: string })?.tool === 'navigate' ? (
+            <button
+              onClick={() => onConfirm?.(card, selectedType)}
+              style={{
+                background: "var(--skin-accent, #4de0c1)",
+                color: "var(--skin-bg, #fff)",
+                border: "none",
+                borderRadius: "var(--skin-radius, 10px)",
+                padding: "4px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Go to →
+            </button>
+          ) : card.confirmable ? (
             <button
               onClick={() => onConfirm?.(card, selectedType)}
               style={{
@@ -434,7 +450,7 @@ function ActionCardItem({
             >
               Create
             </button>
-          )}
+          ) : null}
         </div>
       )}
     </div>
