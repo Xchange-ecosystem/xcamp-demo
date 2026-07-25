@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
+import { useTheme } from "@/lib/theme";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -13,24 +16,31 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+type AuthMode = "signin" | "register" | "forgot";
+
 function AuthPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
-  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const { resolved, setMode: setThemeMode } = useTheme();
+
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    const action = mode === "register" ? "Register" : "Sign in";
+    const action = mode === "register" ? "Register" : mode === "forgot" ? "Reset password" : "Sign in";
     document.title = `${action} — ${brand.name} App`;
   }, [mode, brand.name]);
 
@@ -38,10 +48,18 @@ function AuthPage() {
     e.preventDefault();
     setFormError(null);
     setConfirmationSent(false);
+    setResetSent(false);
     setSubmitting(true);
 
     try {
-      if (mode === "register") {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        if (error) throw error;
+        setResetSent(true);
+        setEmail("");
+      } else if (mode === "register") {
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match.");
         }
@@ -65,14 +83,36 @@ function AuthPage() {
     }
   };
 
-  const toggleMode = () => {
-    setMode((m) => (m === "signin" ? "register" : "signin"));
+  const switchMode = (next: AuthMode) => {
+    setMode(next);
     setFormError(null);
     setConfirmationSent(false);
+    setResetSent(false);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
+  const switchLabel = resolved === "dark" ? "Switch to Xcamp" : "Switch to Nox";
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "var(--skin-surface)" }}>
+    <div
+      className="relative flex min-h-screen items-center justify-center px-4"
+      style={{ background: "var(--skin-surface)" }}
+    >
+      {/* Mode switcher pill */}
+      <button
+        type="button"
+        onClick={() => setThemeMode(resolved === "dark" ? "light" : "dark")}
+        className="absolute right-4 top-4 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+        style={{
+          background: "var(--skin-surface2)",
+          color: "var(--skin-ink-soft)",
+          border: "1px solid var(--skin-line)",
+        }}
+      >
+        {switchLabel}
+      </button>
+
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <img
@@ -84,7 +124,11 @@ function AuthPage() {
             {brand.name} App
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--skin-ink-soft)" }}>
-            {mode === "signin" ? "Sign in to capture your notes." : "Create your account to get started."}
+            {mode === "signin"
+              ? "Sign in to capture your notes."
+              : mode === "register"
+              ? "Create your account to get started."
+              : "Enter your email to receive a password reset link."}
           </p>
         </div>
 
@@ -94,6 +138,15 @@ function AuthPage() {
             style={{ background: "var(--skin-accent-soft)", color: "var(--skin-ink)" }}
           >
             Registration successful. Please check your email to confirm your account before signing in.
+          </div>
+        )}
+
+        {resetSent && (
+          <div
+            className="mb-4 rounded-md px-4 py-3 text-sm"
+            style={{ background: "var(--skin-accent-soft)", color: "var(--skin-ink)" }}
+          >
+            Reset link sent. Check your email and follow the link to set a new password.
           </div>
         )}
 
@@ -112,35 +165,79 @@ function AuthPage() {
               autoComplete="email"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              className="x-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete={mode === "register" ? "new-password" : "current-password"}
-            />
-          </div>
+
+          {mode !== "forgot" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+                  Password
+                </label>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="text-xs"
+                    style={{ color: "var(--skin-accent)" }}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="x-input pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--skin-ink-faint)" }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {mode === "register" && (
+                <p className="text-xs" style={{ color: "var(--skin-ink-faint)" }}>
+                  Minimum 6 characters.
+                </p>
+              )}
+            </div>
+          )}
 
           {mode === "register" && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
                 Confirm password
               </label>
-              <input
-                type="password"
-                required
-                className="x-input"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  className="x-input pr-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--skin-ink-faint)" }}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           )}
 
@@ -151,7 +248,17 @@ function AuthPage() {
           )}
 
           <button type="submit" className="x-btn-primary w-full" disabled={submitting}>
-            {submitting ? (mode === "register" ? "Creating account…" : "Signing in…") : mode === "register" ? "Create account" : "Sign in"}
+            {submitting
+              ? mode === "register"
+                ? "Creating account…"
+                : mode === "forgot"
+                ? "Sending…"
+                : "Signing in…"
+              : mode === "register"
+              ? "Create account"
+              : mode === "forgot"
+              ? "Send reset link"
+              : "Sign in"}
           </button>
         </form>
 
@@ -159,14 +266,24 @@ function AuthPage() {
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
-              <button type="button" onClick={toggleMode} className="font-medium underline" style={{ color: "var(--skin-accent)" }}>
+              <button
+                type="button"
+                onClick={() => switchMode("register")}
+                className="font-medium underline"
+                style={{ color: "var(--skin-accent)" }}
+              >
                 Register
               </button>
             </>
           ) : (
             <>
-              Already have an account?{" "}
-              <button type="button" onClick={toggleMode} className="font-medium underline" style={{ color: "var(--skin-accent)" }}>
+              {mode === "register" ? "Already have an account?" : "Remembered it?"}{" "}
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="font-medium underline"
+                style={{ color: "var(--skin-accent)" }}
+              >
                 Sign in
               </button>
             </>
