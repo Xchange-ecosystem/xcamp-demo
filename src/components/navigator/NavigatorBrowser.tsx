@@ -40,7 +40,7 @@ const DEFAULT_TOOLBAR: ToolbarState = {
   groupBy: "none",
 };
 
-export function NavigatorBrowser() {
+export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) {
   const { user } = useAuth();
   const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
@@ -132,7 +132,7 @@ export function NavigatorBrowser() {
     );
   }
 
-  const header = (
+  const header = hideHeader ? null : (
     <div
       className="flex items-center gap-2 px-4 py-3"
       style={{ borderBottom: "1px solid var(--skin-line)", background: "var(--skin-surface)" }}
@@ -147,7 +147,7 @@ export function NavigatorBrowser() {
   // Mobile: one column at a time
   if (isMobile) {
     return (
-      <div style={{ background: "var(--skin-bg)", height: "100vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "var(--skin-bg)", height: hideHeader ? "100%" : "100vh", display: "flex", flexDirection: "column" }}>
         {header}
         <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
         <div style={{ flex: 1, minHeight: 0 }}>
@@ -188,7 +188,7 @@ export function NavigatorBrowser() {
 
   // Desktop: two resizable panes
   return (
-    <div style={{ background: "var(--skin-bg)", height: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: "var(--skin-bg)", height: hideHeader ? "100%" : "100vh", display: "flex", flexDirection: "column" }}>
       {header}
       <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
       <div style={{ flex: 1, minHeight: 0 }}>

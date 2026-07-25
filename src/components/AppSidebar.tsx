@@ -1,5 +1,20 @@
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, Compass, Home, LogOut, Map, NotebookPen, PanelLeftClose, PanelLeftOpen, StickyNote, User } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Compass,
+  Home,
+  LayoutList,
+  LogOut,
+  Map,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Share2,
+  StickyNote,
+  User,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -12,6 +27,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
@@ -19,11 +37,10 @@ import { useActiveProject } from "@/contexts/active-project";
 import { listProjects } from "@/lib/xcamp-api";
 import { AppLogo } from "@/components/AppLogo";
 
-const items = [
+const flatItems = [
   { title: "home",           url: "/home",           icon: Home,        labelKey: "nav.home" },
   { title: "notes",          url: "/notes",          icon: StickyNote,  labelKey: "nav.notes" },
   { title: "journalApp",     url: "/journal",        icon: NotebookPen, labelKey: "nav.journalApp" },
-  { title: "navigator",      url: "/navigator",      icon: Map,         labelKey: "nav.navigator" },
   { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
 ];
 
@@ -32,8 +49,13 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const location = useRouterState({ select: (r) => r.location });
+  const pathname = location.pathname;
+  const searchView = (location.search as Record<string, string>)?.view ?? "";
   const { activeProjectId, setActiveProjectId } = useActiveProject();
+
+  const onNavigator = pathname.startsWith("/navigator");
+  const [navigatorOpen, setNavigatorOpen] = useState(onNavigator);
 
   const handleSignOut = async () => {
     setActiveProjectId(null);
@@ -51,6 +73,9 @@ export function AppSidebar() {
     if (url === "/home") return pathname === "/" || pathname.startsWith("/home");
     return pathname.startsWith(url);
   };
+
+  const isNavSubActive = (view: string) =>
+    onNavigator && (searchView === view || (view === "browser" && searchView === ""));
 
   return (
     <Sidebar collapsible="icon">
@@ -104,7 +129,8 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {/* Flat items */}
+              {flatItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={t(item.labelKey)}>
                     <Link to={item.url} className="flex items-center gap-2">
@@ -114,6 +140,73 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Navigator — expandable */}
+              <SidebarMenuItem>
+                {collapsed ? (
+                  /* Collapsed: single icon linking to browser view */
+                  <SidebarMenuButton
+                    asChild
+                    isActive={onNavigator}
+                    tooltip={t("nav.navigator")}
+                  >
+                    <Link to="/navigator" search={{ view: "browser" }} className="flex items-center gap-2">
+                      <Map className="h-4 w-4" />
+                      <span>{t("nav.navigator")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                ) : (
+                  /* Expanded: collapsible group */
+                  <>
+                    <SidebarMenuButton
+                      isActive={onNavigator}
+                      onClick={() => setNavigatorOpen((v) => !v)}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      <Map className="h-4 w-4" />
+                      <span className="flex-1">{t("nav.navigator")}</span>
+                      {navigatorOpen
+                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                    </SidebarMenuButton>
+
+                    {navigatorOpen && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isNavSubActive("browser")}
+                          >
+                            <Link
+                              to="/navigator"
+                              search={{ view: "browser" }}
+                              className="flex items-center gap-2"
+                            >
+                              <LayoutList className="h-3.5 w-3.5" />
+                              <span>Browser</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isNavSubActive("network")}
+                          >
+                            <Link
+                              to="/navigator"
+                              search={{ view: "network" }}
+                              className="flex items-center gap-2"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Network</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
+                  </>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
