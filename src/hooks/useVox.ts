@@ -1,8 +1,10 @@
 import { voxFetch } from "@/integrations/vox/client";
 import type { AnswerWithContextRequest, AnswerWithContextResponse } from "@xchange/client";
 
+type VoxCallRequest = AnswerWithContextRequest & { referenced_entity_ids?: string[] };
+
 export function useVox() {
-  const call = async (req: AnswerWithContextRequest): Promise<AnswerWithContextResponse> => {
+  const call = async (req: VoxCallRequest): Promise<AnswerWithContextResponse> => {
     const res = await voxFetch("/api/answer-with-context", {
       method: "POST",
       body: JSON.stringify(req),
