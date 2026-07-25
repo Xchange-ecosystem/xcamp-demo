@@ -52,14 +52,15 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
     Promise.all([
       supabase
         .from('notes')
-        .select('id, title, body_html, note_type, tags, detail, tenant_id, created_by, created_at, updated_at')
+        .select('id, title, body_html, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at')
         .eq('id', id)
         .single(),
       listProjects(user!),
     ]).then(([{ data }, projs]) => {
       if (cancelled) return;
       if (data) {
-        const row = data as unknown as NoteRow;
+        const raw = data as unknown as Record<string, unknown>;
+        const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
         // Inject prefillText as initial body if note has no content yet
         const existingBody = row.body_html || '';
         const safeText = prefillText
