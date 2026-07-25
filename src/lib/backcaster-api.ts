@@ -63,6 +63,13 @@ async function authHeaders(): Promise<HeadersInit> {
   };
 }
 
+async function authToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new BackcasterError("You need to be signed in.", 401);
+  return token;
+}
+
 function asReadable(value: unknown): string | null {
   if (value == null) return null;
   if (typeof value === "string") return value.trim() || null;
@@ -222,6 +229,62 @@ export async function interpret(body: {
     if (typeof root.data.suggested_title === "string") suggestedTitle = root.data.suggested_title;
   } else if (typeof root.interpretation === "string") {
     interpretation = root.interpretation;
+  } else if (typeof root.interpreted === "string") {
+    try {
+      const parsed = JSON.parse(root.interpreted) as {
+        interpretation_paragraph?: string;
+        suggested_title?: string;
+      };
+      interpretation = parsed.interpretation_paragraph ?? "";
+      suggestedTitle = parsed.suggested_title;
+    } catch {
+      interpretation = root.interpreted;
+    }
+  }
+
+  return { interpretation, suggestedTitle };
+}
+
+export async function interpretFile(body: {
+  file: File;
+  session_id: string;
+  mode_id?: string;
+  context?: string;
+}): Promise<{ interpretation: string; suggestedTitle?: string }> {
+  const token = await authToken();
+  const form = new FormData();
+  form.append("file", body.file, body.file.name);
+  form.append("session_id", body.session_id);
+  if (body.mode_id) form.append("mode_id", body.mode_id);
+  if (body.context?.trim()) form.append("context", body.context.trim());
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/interpret-file`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  } catch {
+    throw new BackcasterError("Network error reaching the planner. Please try again.", 0);
+  }
+
+  if (!res.ok) {
+    const rawText = await res.text().catch(() => "");
+    throw new BackcasterError(extractErrorMessage(rawText, res.status), res.status);
+  }
+
+  const root = (await res.json()) as {
+    interpreted?: unknown;
+    data?: { interpretation_paragraph?: unknown; suggested_title?: unknown };
+  };
+
+  let interpretation = "";
+  let suggestedTitle: string | undefined;
+
+  if (root.data && typeof root.data.interpretation_paragraph === "string") {
+    interpretation = root.data.interpretation_paragraph;
+    if (typeof root.data.suggested_title === "string") suggestedTitle = root.data.suggested_title;
   } else if (typeof root.interpreted === "string") {
     try {
       const parsed = JSON.parse(root.interpreted) as {

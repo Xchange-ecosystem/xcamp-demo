@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Paperclip } from "lucide-react";
-import { createSession, interpret, listModes } from "@/lib/backcaster-api";
+import { Loader2, Paperclip, X } from "lucide-react";
+import { createSession, interpretFile, interpret, listModes } from "@/lib/backcaster-api";
 import type { useQuickRoad } from "@/hooks/useQuickRoad";
-import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 const ACCEPTED_EXTS = ["txt", "md", "pdf", "docx", "pptx", "xlsx", "csv"];
 const ACCEPT_ATTR = [
@@ -22,115 +21,6 @@ const ACCEPT_ATTR = [
   "text/csv",
 ].join(",");
 
-// ─── File content extraction utilities (all lazily loaded) ───────────────────
-
-function readAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve((e.target?.result as string) ?? "");
-    reader.onerror = () => reject(new Error("Could not read the file."));
-    reader.readAsText(file);
-  });
-}
-
-function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-    reader.onerror = () => reject(new Error("Could not read the file."));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-async function extractPdf(file: File): Promise<string> {
-  const buffer = await readAsArrayBuffer(file);
-  const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-  const pages: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const text = content.items
-      .map((item) => ("str" in item ? (item as { str: string }).str : ""))
-      .join(" ")
-      .trim();
-    if (text) pages.push(text);
-  }
-  return pages.join("\n\n");
-}
-
-async function extractDocx(file: File): Promise<string> {
-  const buffer = await readAsArrayBuffer(file);
-  const mammoth = await import("mammoth");
-  const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-  return result.value;
-}
-
-function decodeXmlEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"');
-}
-
-async function extractPptx(file: File): Promise<string> {
-  const buffer = await readAsArrayBuffer(file);
-  const { default: JSZip } = await import("jszip");
-  const zip = await JSZip.loadAsync(buffer);
-
-  const slideNames = Object.keys(zip.files)
-    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
-    .sort((a, b) => {
-      const aNum = parseInt(a.match(/(\d+)\.xml$/)?.[1] ?? "0");
-      const bNum = parseInt(b.match(/(\d+)\.xml$/)?.[1] ?? "0");
-      return aNum - bNum;
-    });
-
-  const slideTexts: string[] = [];
-  for (const name of slideNames) {
-    const xml = await zip.files[name].async("text");
-    const text = [...xml.matchAll(/<a:t[^>]*>([^<]+)<\/a:t>/g)]
-      .map((m) => decodeXmlEntities(m[1]))
-      .filter((t) => t.trim())
-      .join(" ");
-    if (text.trim()) slideTexts.push(text);
-  }
-  return slideTexts.join("\n\n");
-}
-
-async function extractXlsx(file: File): Promise<string> {
-  const buffer = await readAsArrayBuffer(file);
-  const XLSX = await import("xlsx");
-  const wb = XLSX.read(buffer, { type: "array" });
-  return wb.SheetNames.map((name) => {
-    const ws = wb.Sheets[name];
-    const csv = XLSX.utils.sheet_to_csv(ws);
-    return wb.SheetNames.length > 1 ? `[Sheet: ${name}]\n${csv}` : csv;
-  }).join("\n\n");
-}
-
-async function extractContent(file: File, ext: string): Promise<string> {
-  switch (ext) {
-    case "txt":
-    case "md":
-    case "csv":
-      return readAsText(file);
-    case "pdf":
-      return extractPdf(file);
-    case "docx":
-      return extractDocx(file);
-    case "pptx":
-      return extractPptx(file);
-    case "xlsx":
-      return extractXlsx(file);
-    default:
-      throw new Error(`Unsupported file type: .${ext}`);
-  }
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
@@ -140,7 +30,7 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   const [modesLoading, setModesLoading] = useState(!state.selectedModeId);
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [fileLoading, setFileLoading] = useState(false);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Silently fetch modes and auto-pick the required BPMO framework mode.
@@ -186,7 +76,7 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const readFile = async (file: File) => {
+  const stageFile = (file: File) => {
     const ext = file.name.toLowerCase().split(".").pop() ?? "";
     if (!ACCEPTED_EXTS.includes(ext)) {
       setFileError(
@@ -195,19 +85,13 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       return;
     }
     setFileError(null);
-    setFileLoading(true);
-    try {
-      const content = await extractContent(file, ext);
-      if (content.trim()) {
-        patch({ rawInput: content });
-      } else {
-        setFileError("The file appears to be empty or its text content couldn't be extracted.");
-      }
-    } catch (e) {
-      setFileError(`Could not read "${file.name}": ${(e as Error).message}`);
-    } finally {
-      setFileLoading(false);
-    }
+    setStagedFile(file);
+  };
+
+  const clearFile = () => {
+    setStagedFile(null);
+    setFileError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -216,7 +100,6 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear when leaving the zone itself, not a child element
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragging(false);
     }
@@ -226,17 +109,20 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) void readFile(file);
+    if (file) stageFile(file);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) void readFile(file);
+    if (file) stageFile(file);
     e.target.value = "";
   };
 
+  const canSubmit = stagedFile
+    ? !modesLoading
+    : Boolean(state.rawInput.trim()) && !modesLoading;
+
   const submit = async () => {
-    if (!state.rawInput.trim()) return;
     if (!state.selectedModeId || modesLoading) {
       setError("Still getting ready — please try again in a moment.");
       return;
@@ -244,21 +130,37 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     setSubmitting(true);
     setError(null);
     try {
+      // Session creation — raw_input is the filename if a file is staged,
+      // otherwise the typed text.
+      const rawInputForSession = stagedFile ? stagedFile.name : state.rawInput;
       setStage("session", "running", { endpoint: "POST /sessions", error: null });
       const session = await createSession({
         mode_id: state.selectedModeId,
-        raw_input: state.rawInput,
+        raw_input: rawInputForSession,
       });
       if (!session?.id) {
         throw new Error("No session id was returned by the server.");
       }
       setStage("session", "ok");
 
-      setStage("interpret", "running", { endpoint: "POST /interpret" });
-      const result = await interpret({
-        session_id: session.id,
-        raw_input: state.rawInput,
-      });
+      const interpretEndpoint = stagedFile ? "POST /interpret-file" : "POST /interpret";
+      setStage("interpret", "running", { endpoint: interpretEndpoint });
+
+      let result: { interpretation: string; suggestedTitle?: string };
+      if (stagedFile) {
+        result = await interpretFile({
+          file: stagedFile,
+          session_id: session.id,
+          mode_id: state.selectedModeId,
+          context: state.rawInput || undefined,
+        });
+      } else {
+        result = await interpret({
+          session_id: session.id,
+          raw_input: state.rawInput,
+        });
+      }
+
       setStage("interpret", "ok");
       patch({
         sessionId: session.id,
@@ -269,7 +171,6 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     } catch (e) {
       const msg = (e as Error).message;
       setError(msg);
-      // Mark whichever stage was running as failed.
       if (state.diag.stages.session === "running") setStage("session", "failed", { error: msg });
       else setStage("interpret", "failed", { error: msg });
     } finally {
@@ -287,48 +188,72 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           value={state.rawInput}
           onChange={(e) => patch({ rawInput: e.target.value })}
           rows={8}
-          placeholder="Describe your goal in your own words…"
+          placeholder={
+            stagedFile
+              ? "Optional: add context or focus instructions for the AI…"
+              : "Describe your goal in your own words…"
+          }
           className="w-full rounded-xl p-3 text-sm outline-none resize-y"
           style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
         />
       </div>
 
-      {/* File drop zone */}
+      {/* File drop zone / staged file pill */}
       <div>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Drop a file to fill the goal field"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => !fileLoading && fileInputRef.current?.click()}
-          onKeyDown={(e) => e.key === "Enter" && !fileLoading && fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-4 text-sm cursor-pointer transition-colors select-none"
-          style={{
-            border: `2px dashed ${isDragging ? "var(--skin-accent)" : "var(--skin-line)"}`,
-            background: isDragging
-              ? "color-mix(in srgb, var(--skin-accent) 8%, transparent)"
-              : "var(--skin-surface)",
-            color: isDragging ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-          }}
-        >
-          {fileLoading ? (
-            <Loader2 size={18} className="animate-spin" style={{ color: "var(--skin-accent)" }} />
-          ) : (
+        {stagedFile ? (
+          <div
+            className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
+            style={{ border: "2px solid var(--skin-accent)", background: "color-mix(in srgb, var(--skin-accent) 8%, transparent)" }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Paperclip size={16} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
+              <span className="truncate font-medium" style={{ color: "var(--skin-ink)" }}>
+                {stagedFile.name}
+              </span>
+              <span className="text-xs flex-shrink-0" style={{ color: "var(--skin-ink-soft)" }}>
+                ({(stagedFile.size / 1024).toFixed(0)} KB)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={clearFile}
+              aria-label="Remove file"
+              className="ml-2 flex-shrink-0 rounded p-0.5 transition-opacity hover:opacity-70"
+              style={{ color: "var(--skin-ink-soft)" }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Drop a file for AI interpretation"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-4 text-sm cursor-pointer transition-colors select-none"
+            style={{
+              border: `2px dashed ${isDragging ? "var(--skin-accent)" : "var(--skin-line)"}`,
+              background: isDragging
+                ? "color-mix(in srgb, var(--skin-accent) 8%, transparent)"
+                : "var(--skin-surface)",
+              color: isDragging ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+            }}
+          >
             <Paperclip
               size={18}
               style={{ color: isDragging ? "var(--skin-accent)" : "var(--skin-ink-soft)" }}
             />
-          )}
-          <span>
-            {fileLoading
-              ? "Extracting file contents…"
-              : isDragging
-                ? "Drop to load file contents"
+            <span>
+              {isDragging
+                ? "Drop to send file to AI"
                 : "Drop a file (.txt, .md, .pdf, .docx, .pptx, .xlsx, .csv) or click to browse"}
-          </span>
-        </div>
+            </span>
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -351,13 +276,13 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
 
       <button
         type="button"
-        disabled={submitting || modesLoading || !state.rawInput.trim()}
+        disabled={submitting || modesLoading || !canSubmit}
         onClick={submit}
         className="w-full rounded-xl py-3 font-semibold inline-flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
         style={{ background: "var(--skin-accent)", color: "#fff" }}
       >
         {(submitting || modesLoading) && <Loader2 className="animate-spin" size={16} />}
-        {modesLoading ? "Preparing BPMO mode" : "Continue"}
+        {modesLoading ? "Preparing BPMO mode" : submitting ? "Analysing…" : "Continue"}
       </button>
     </div>
   );
