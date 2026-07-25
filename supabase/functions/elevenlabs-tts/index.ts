@@ -4,29 +4,45 @@
 // Returns 204 when ELEVENLABS_API_KEY is not configured so the client can
 // silently fall back to typewriter-only.
 //
-// Deploy: supabase functions deploy elevenlabs-tts --no-verify-jwt --project-ref ueebzuleyrnsrxbowdfa
-// Required env: ELEVENLABS_API_KEY (set as a Supabase function secret)
+// Deploy: supabase functions deploy elevenlabs-tts --project-ref <your-project-ref>
+// Required secrets (set via `supabase secrets set`):
+//   ELEVENLABS_API_KEY  — ElevenLabs API key
+//   ALLOWED_ORIGIN      — exact app origin, e.g. https://app.example.com
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Restrict CORS to the configured app origin only.
+// An absent / empty ALLOWED_ORIGIN means no cross-origin requests are allowed.
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? ''
+
+function corsHeaders(origin: string): Record<string, string> {
+  if (!ALLOWED_ORIGIN || origin !== ALLOWED_ORIGIN) {
+    // No match — return no CORS headers; browser will block the preflight/request.
+    return {}
+  }
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 const DEFAULT_VOICE = 'JBFqnCBsd6RMkjVDRZzb' // George
 const DEFAULT_MODEL = 'eleven_flash_v2_5'    // ~75ms server-side synthesis
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  const origin = req.headers.get('origin') ?? ''
+  const ch = corsHeaders(origin)
+
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: ch })
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...ch, 'Content-Type': 'application/json' },
     })
   }
 
   const apiKey = Deno.env.get('ELEVENLABS_API_KEY')
-  if (!apiKey) return new Response(null, { status: 204, headers: corsHeaders })
+  if (!apiKey) return new Response(null, { status: 204, headers: ch })
 
   let body: { text?: string; voiceId?: string; modelId?: string }
   try {
@@ -34,7 +50,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: 'invalid_json' }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...ch, 'Content-Type': 'application/json' },
     })
   }
 
@@ -42,13 +58,13 @@ Deno.serve(async (req) => {
   if (!text) {
     return new Response(JSON.stringify({ error: 'missing_text' }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...ch, 'Content-Type': 'application/json' },
     })
   }
   if (text.length > 4000) {
     return new Response(JSON.stringify({ error: 'text_too_long' }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...ch, 'Content-Type': 'application/json' },
     })
   }
 
@@ -73,21 +89,21 @@ Deno.serve(async (req) => {
       const errText = await res.text()
       return new Response(errText || 'tts_failed', {
         status: res.status,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { ...ch, 'Content-Type': 'text/plain' },
       })
     }
 
     if (!res.body) {
       return new Response('tts_no_body', {
         status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { ...ch, 'Content-Type': 'text/plain' },
       })
     }
 
     return new Response(res.body, {
       status: 200,
       headers: {
-        ...corsHeaders,
+        ...ch,
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'no-store',
         'X-Accel-Buffering': 'no',
@@ -95,11 +111,11 @@ Deno.serve(async (req) => {
     })
   } catch (e) {
     if (req.signal.aborted) {
-      return new Response('aborted', { status: 499, headers: corsHeaders })
+      return new Response('aborted', { status: 499, headers: ch })
     }
     return new Response((e as Error).message || 'tts_failed', {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      headers: { ...ch, 'Content-Type': 'text/plain' },
     })
   }
 })
