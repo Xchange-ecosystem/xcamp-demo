@@ -272,6 +272,7 @@ function CompanionHomePage() {
   }, [session, setActiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const branchFiredRef = useRef(false);
+  const switchingProjectRef = useRef(false);
   useEffect(() => {
     if (step !== "project-select") return;
     if (session.loading) return;
@@ -285,7 +286,9 @@ function CompanionHomePage() {
     }
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync sidebar project selection into the companion flow
+  // Sync sidebar project selection into the companion flow.
+  // When there are existing messages (mid-conversation project change via sidebar),
+  // start a fresh session so no duplicate project-grid appears in the chat.
   useEffect(() => {
     if (!activeProjectId) return;
     if (activeProject?.id === activeProjectId) return;
@@ -298,8 +301,22 @@ function CompanionHomePage() {
       projectRestoredRef.current = false;
       return;
     }
+    // Prevent double-fire while newSession() is in flight
+    if (switchingProjectRef.current) return;
     const project = projects.find((p) => p.id === activeProjectId);
-    if (project) void handleProjectSelect(project, false);
+    if (!project) return;
+    if (session.messages.length > 0) {
+      // Mid-conversation sidebar change: start a new session for the new project
+      switchingProjectRef.current = true;
+      void session.newSession().then(() => {
+        switchingProjectRef.current = false;
+        gridMsgIdRef.current = null;
+        branchFiredRef.current = false;
+        void handleProjectSelect(project, false);
+      });
+    } else {
+      void handleProjectSelect(project, false);
+    }
   }, [activeProjectId, session.loading, session.messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sidebar "General" deselect: when activeProjectId is cleared externally, mirror
@@ -396,10 +413,11 @@ function CompanionHomePage() {
     await session.newSession();
     setStep("welcome");
     setActiveProject(null);
+    setActiveProjectId(null);
     welcomeFiredRef.current = false;
     branchFiredRef.current = false;
     gridMsgIdRef.current = null;
-  }, [session]);
+  }, [session, setActiveProjectId]);
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
