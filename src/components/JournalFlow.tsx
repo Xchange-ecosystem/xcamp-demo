@@ -173,12 +173,8 @@ export function JournalFlow({
   const [appliedCards, setAppliedCards] = useState<Map<string, PanelTarget>>(new Map());
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
   const [savedTopicTargets, setSavedTopicTargets] = useState<Map<string, PanelTarget>>(new Map());
-  // suggestedCards: topic.id → cards spawned by that topic's objective commit.
-  // Kept separate from context cards so rendering doesn't cross-reference two Maps.
   const [suggestedCards, setSuggestedCards] = useState<Map<string, AICard[]>>(new Map());
-  // User-selected entity type per topic (overrides AI suggestion)
   const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
-  // Entity type selected for the topic currently in the editor
   const [editingTopicType, setEditingTopicType] = useState<EntityType>('note');
 
   useEffect(() => {
@@ -254,7 +250,6 @@ export function JournalFlow({
     setAccepting(card.id);
 
     if (selectedType === 'objective') {
-      // Objective creation — existing proposal/execute path, untouched
       const modifiedProposal = buildContextCardProposal(card, selectedType);
       if (!modifiedProposal) { setAccepting(null); return; }
       const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
@@ -278,7 +273,6 @@ export function JournalFlow({
       return;
     }
 
-    // Note, Task, Resource — createNote() directly; no objective required
     const noteType = selectedType === 'task' ? 'task' : selectedType === 'resource' ? 'reference' : 'note';
     const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> } | undefined;
     const basePayload = rawProposal?.payload ?? {};
@@ -896,7 +890,15 @@ function NoteEditorPane({
       const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
       let suggestedCards: AICard[] | undefined;
       let panelTarget: PanelTarget | undefined;
-      if (hasProposals && topic.organiser_session_id) {
+      const noteTypeMap: Record<EntityType, string> = {
+        objective: 'note',
+        task: 'task',
+        note: 'note',
+        resource: 'reference',
+      };
+      const allProposalsAreNewObjective = topic.organiser_proposals.every(p => p.proposal_type === 'new_objective');
+      const wouldFailWithoutObjective = hasProposals && allProposalsAreNewObjective && selectedType !== 'objective';
+      if (hasProposals && topic.organiser_session_id && !wouldFailWithoutObjective) {
         await confirmSession(
           topic.organiser_session_id,
           topic.organiser_proposals
@@ -927,12 +929,12 @@ function NoteEditorPane({
         }
         toast.success("Note saved and linked");
       } else {
-        const noteTypeMap: Record<EntityType, string> = {
-          objective: 'note',
-          task: 'task',
-          note: 'note',
-          resource: 'reference',
-        };
+        if (hasProposals && topic.organiser_session_id && wouldFailWithoutObjective) {
+          await confirmSession(
+            topic.organiser_session_id,
+            topic.organiser_proposals.filter(p => p.proposal_id).map(p => ({ proposal_id: p.proposal_id!, approved: false })),
+          ).catch(() => {});
+        }
         await createNote(user, { title, bodyHtml, noteType: noteTypeMap[selectedType] ?? 'note' });
         toast.success("Note saved");
       }

@@ -12,7 +12,6 @@ import {
   Mic,
   MicOff,
   Paperclip,
-  Plus,
   BookOpen,
   Navigation,
   StickyNote,
@@ -31,6 +30,8 @@ import type { AICard } from "@xchange/client";
 import { executeProposal } from "@xchange/client";
 import { toast } from "sonner";
 import { EntityPanel } from "@/components/EntityPanel";
+import { MentionMenu } from "@/components/MentionMenu";
+import type { MentionEntity } from "@/components/MentionMenu";
 import { buildContextCardProposal, type EntityType } from "@/components/JournalFlow";
 import {
   speak,
@@ -44,7 +45,6 @@ import {
 } from "@/lib/ttsClient";
 import { getVoiceId, setVoiceId, subscribeVoice, VOICE_OPTIONS } from "@/lib/voicePreference";
 import { installAudioUnlock } from "@/lib/audio-unlock";
-import { propose, confirm, commit } from "@/lib/organiser-api";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -104,11 +104,11 @@ function CompanionHomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
 
-  // ── Add-entity mini-form ───────────────────────────────────────────────────
-  const [showAddEntity, setShowAddEntity] = useState(false);
-  const [addEntityTitle, setAddEntityTitle] = useState("");
-  const [addEntityType, setAddEntityType] = useState<"note" | "task" | "objective">("note");
-  const [addEntityLoading, setAddEntityLoading] = useState(false);
+  // ── @-mention state ────────────────────────────────────────────────────────
+  const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionAtIndex, setMentionAtIndex] = useState(0);
+  const [mentionedEntities, setMentionedEntities] = useState<MentionEntity[]>([]);
 
   const projectBgUrl =
     step === "inside-project" && activeProject?.feature_image
@@ -471,6 +471,21 @@ function CompanionHomePage() {
     setStep("welcome");
   }, [session, setActiveProjectId]);
 
+  // ── @-mention selection ────────────────────────────────────────────────────
+  const handleMentionSelect = useCallback((entity: MentionEntity) => {
+    setDraft(prev => {
+      const beforeAt = prev.slice(0, mentionAtIndex);
+      const afterQuery = prev.slice(mentionAtIndex + 1 + mentionQuery.length);
+      return beforeAt + afterQuery;
+    });
+    setMentionMenuOpen(false);
+    setMentionQuery("");
+    setMentionedEntities(prev => {
+      if (prev.some(e => e.id === entity.id)) return prev;
+      return [...prev, entity];
+    });
+  }, [mentionAtIndex, mentionQuery]);
+
   const handleSend = useCallback(async () => {
     const text = draft.trim();
     if (!text || isLoading) return;
@@ -478,6 +493,9 @@ function CompanionHomePage() {
     setDraft("");
     voice.setTranscript("");
     setAttachment(null);
+    const referencedIds = mentionedEntities.map(e => e.id);
+    setMentionedEntities([]);
+    setMentionMenuOpen(false);
     await session.appendUserMessage(text);
 
     let reply = "Got it — I'll help with that soon.";
@@ -492,6 +510,7 @@ function CompanionHomePage() {
         tenant_id: authUser!.tenantId,
         altitude,
         aiPersona: "guide",
+        ...(referencedIds.length > 0 ? { referenced_entity_ids: referencedIds } : {}),
       });
       reply = res.reply_markdown;
       cards = res.cards ?? [];
@@ -510,56 +529,7 @@ function CompanionHomePage() {
     if (cards.length > 0) {
       await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
     }
-  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Add-entity: create note/task directly; objective via organiser API ─────
-  const handleAddEntity = useCallback(async () => {
-    const title = addEntityTitle.trim();
-    if (!title || !authUser) return;
-    setAddEntityLoading(true);
-    try {
-      if (addEntityType === "objective") {
-        const { session_id, proposals } = await propose({
-          userId: authUser.centralId,
-          tenantId: authUser.tenantId,
-          projectId: activeProject?.id,
-          goal: title,
-        });
-        if (proposals.length === 0) {
-          toast.error("Could not create objective — no proposals returned.");
-          return;
-        }
-        const p = proposals[0];
-        await confirm(session_id, [{ proposal_id: p.proposal_id, approved: true, proposal_type: p.proposal_type }]);
-        const result = await commit(session_id);
-        const createdId = result.results?.[0]?.id ?? "";
-        if (createdId) {
-          setPanelTarget({ type: "objective", id: createdId, initialTitle: title });
-          toast.success("Objective created.");
-        } else {
-          toast.error(result.failures?.[0]?.error ?? "Could not create objective.");
-          return;
-        }
-      } else {
-        const note = await createNote(authUser, {
-          title,
-          bodyHtml: "",
-          noteType: addEntityType,
-          projectId: activeProject?.id ?? null,
-          objectiveIds: [],
-        });
-        setPanelTarget({ type: addEntityType, id: note.id, initialTitle: title });
-        toast.success(`${addEntityType === "task" ? "Task" : "Note"} created.`);
-      }
-      setShowAddEntity(false);
-      setAddEntityTitle("");
-      setAddEntityType("note");
-    } catch (err) {
-      toast.error((err as Error).message ?? "Could not create entity.");
-    } finally {
-      setAddEntityLoading(false);
-    }
-  }, [authUser, addEntityTitle, addEntityType, activeProject]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice, mentionedEntities]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -677,32 +647,18 @@ function CompanionHomePage() {
                 padding: "8px 14px 12px",
               }}
             >
-              {/* Nav pill bar — positioned in-flow above the textarea, no overlap */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  marginBottom: 8,
-                  flexWrap: "wrap",
-                }}
-              >
+              {/* Nav pill bar */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
                 {NAV_PILLS.map((pill) => (
                   <button
                     key={pill.id}
                     onClick={() => void navigate({ to: pill.to })}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "4px 10px",
-                      borderRadius: "var(--xr-pill, 999px)",
+                      display: "flex", alignItems: "center", gap: 4,
+                      padding: "4px 10px", borderRadius: "var(--xr-pill, 999px)",
                       border: "1px solid var(--glass-border-color)",
-                      background: "var(--glass-bubble-bg)",
-                      color: "var(--glass-text)",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
+                      background: "var(--glass-bubble-bg)", color: "var(--glass-text)",
+                      cursor: "pointer", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
                     }}
                   >
                     <pill.icon size={11} />
@@ -711,248 +667,105 @@ function CompanionHomePage() {
                 ))}
               </div>
 
-              {/* Add-entity form (shown when + is active) */}
-              {showAddEntity && (
-                <div
-                  style={{
-                    marginBottom: 8,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: "var(--glass-bubble-bg)",
-                    border: "1px solid var(--glass-border-color)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  {/* Type selector */}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {(["note", "task", "objective"] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setAddEntityType(t)}
+              {/* Input row wrapper — relative so MentionMenu can float above */}
+              <div style={{ position: "relative" }}>
+                {/* @-mention floating menu */}
+                <MentionMenu
+                  isOpen={mentionMenuOpen}
+                  query={mentionQuery}
+                  projectId={activeProject?.id}
+                  onSelect={handleMentionSelect}
+                  onClose={() => setMentionMenuOpen(false)}
+                />
+
+                {/* Input row */}
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <div style={{ display: "flex", gap: 2, paddingBottom: 4, flexShrink: 0 }}>
+                    <InputActionButton title="Attach file" onClick={() => fileInputRef.current?.click()}><Paperclip size={13} /></InputActionButton>
+                    <InputActionButton title={!voice.supported ? "Voice input not supported in this browser" : voice.isListening ? "Stop recording" : "Voice input"} onClick={() => (voice.isListening ? voice.stop() : voice.start())} disabled={!voice.supported} active={voice.isListening}>{voice.isListening ? <MicOff size={13} /> : <Mic size={13} />}</InputActionButton>
+                  </div>
+                  <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={(e) => { const file = e.target.files?.[0] ?? null; setAttachment(file); if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`); e.target.value = ""; }} />
+                  <textarea
+                    value={draft}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDraft(val);
+                      // Detect @-mention trigger
+                      const cursor = e.target.selectionStart ?? val.length;
+                      const beforeCursor = val.slice(0, cursor);
+                      const atIdx = beforeCursor.lastIndexOf('@');
+                      if (atIdx !== -1) {
+                        const afterAt = beforeCursor.slice(atIdx + 1);
+                        if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
+                          setMentionAtIndex(atIdx);
+                          setMentionQuery(afterAt);
+                          setMentionMenuOpen(true);
+                        } else {
+                          setMentionMenuOpen(false);
+                        }
+                      } else {
+                        setMentionMenuOpen(false);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); }
+                      if (e.key === "Escape" && mentionMenuOpen) { e.preventDefault(); setMentionMenuOpen(false); }
+                    }}
+                    rows={2}
+                    placeholder={voice.isListening ? "Listening…" : isLoading ? "Chi is thinking…" : "Ask Chi anything… (type @ to reference an entity)"}
+                    disabled={isLoading}
+                    style={{ flex: 1, resize: "none", background: "var(--glass-input-bg)", border: voice.isListening ? "1px solid var(--skin-accent, #4de0c1)" : "1px solid var(--glass-input-border)", borderRadius: 10, color: "var(--glass-text)", fontSize: 14, padding: "8px 12px", outline: "none", fontFamily: "inherit", opacity: isLoading ? 0.5 : 1, transition: "border-color 0.2s" }}
+                  />
+                  <button onClick={() => void handleSend()} disabled={!draft.trim() || isLoading} style={{ width: 36, height: 36, borderRadius: 10, background: "var(--skin-accent-gradient)", border: "none", color: "white", cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed", opacity: draft.trim() && !isLoading ? 1 : 0.4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>&#x27a4;</button>
+                </div>
+
+                {/* Mentioned entity chips */}
+                {mentionedEntities.length > 0 && (
+                  <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {mentionedEntities.map(entity => (
+                      <div
+                        key={entity.id}
                         style={{
-                          padding: "3px 10px",
-                          borderRadius: "var(--xr-pill, 999px)",
-                          border: "1px solid var(--glass-border-color)",
-                          background: addEntityType === t ? "var(--skin-accent, #4de0c1)" : "transparent",
-                          color: addEntityType === t ? "var(--skin-bg, #fff)" : "var(--glass-text)",
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: 500,
-                          textTransform: "capitalize",
+                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "2px 6px 2px 10px", borderRadius: 999,
+                          background: "var(--glass-bubble-bg)",
+                          border: "1px solid var(--skin-accent, #4de0c1)",
+                          fontSize: 11, color: "var(--glass-text)",
                         }}
                       >
-                        {t}
-                      </button>
+                        <span style={{ opacity: 0.6, fontSize: 10, textTransform: "capitalize", marginRight: 2 }}>{entity.type}</span>
+                        <span style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entity.title}</span>
+                        <button
+                          onClick={() => setMentionedEntities(prev => prev.filter(e => e.id !== entity.id))}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--glass-text)", fontSize: 14, padding: "0 2px", lineHeight: 1, marginLeft: 2 }}
+                          aria-label={`Remove ${entity.title} from context`}
+                        >×</button>
+                      </div>
                     ))}
                   </div>
-                  {/* Title input + Create */}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      autoFocus
-                      type="text"
-                      value={addEntityTitle}
-                      onChange={(e) => setAddEntityTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void handleAddEntity();
-                        if (e.key === "Escape") { setShowAddEntity(false); setAddEntityTitle(""); }
-                      }}
-                      placeholder={`${addEntityType === "objective" ? "Objective" : addEntityType === "task" ? "Task" : "Note"} title…`}
-                      style={{
-                        flex: 1,
-                        background: "var(--glass-input-bg)",
-                        border: "1px solid var(--glass-input-border)",
-                        borderRadius: 8,
-                        color: "var(--glass-text)",
-                        fontSize: 13,
-                        padding: "6px 10px",
-                        outline: "none",
-                        fontFamily: "inherit",
-                      }}
-                    />
-                    <button
-                      onClick={() => void handleAddEntity()}
-                      disabled={!addEntityTitle.trim() || addEntityLoading}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        background: "var(--skin-accent-gradient)",
-                        border: "none",
-                        color: "white",
-                        cursor: addEntityTitle.trim() && !addEntityLoading ? "pointer" : "not-allowed",
-                        opacity: addEntityTitle.trim() && !addEntityLoading ? 1 : 0.5,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {addEntityLoading ? "…" : "Create"}
-                    </button>
+                )}
+
+                {attachment && (
+                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--glass-text-soft)" }}>
+                    <Paperclip size={10} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{attachment.name}</span>
+                    <button onClick={() => setAttachment(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }} aria-label="Remove attachment">×</button>
                   </div>
-                </div>
-              )}
-
-              {/* Input row: action buttons + textarea + send */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "flex-end",
-                }}
-              >
-                {/* Left action buttons */}
-                <div style={{ display: "flex", gap: 2, paddingBottom: 4, flexShrink: 0 }}>
-                  {/* Upload */}
-                  <InputActionButton
-                    title="Attach file"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Paperclip size={13} />
-                  </InputActionButton>
-                  {/* Add entity */}
-                  <InputActionButton
-                    title="New note / task / objective"
-                    onClick={() => { setShowAddEntity((v) => !v); setAddEntityTitle(""); }}
-                    active={showAddEntity}
-                  >
-                    <Plus size={13} />
-                  </InputActionButton>
-                  {/* Voice mic */}
-                  <InputActionButton
-                    title={
-                      !voice.supported
-                        ? "Voice input not supported in this browser"
-                        : voice.isListening
-                        ? "Stop recording"
-                        : "Voice input"
-                    }
-                    onClick={() => (voice.isListening ? voice.stop() : voice.start())}
-                    disabled={!voice.supported}
-                    active={voice.isListening}
-                  >
-                    {voice.isListening ? <MicOff size={13} /> : <Mic size={13} />}
-                  </InputActionButton>
-                </div>
-
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    setAttachment(file);
-                    if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`);
-                    e.target.value = "";
-                  }}
-                />
-
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void handleSend();
-                    }
-                  }}
-                  rows={2}
-                  placeholder={
-                    voice.isListening
-                      ? "Listening…"
-                      : isLoading
-                      ? "Chi is thinking…"
-                      : "Ask Chi anything…"
-                  }
-                  disabled={isLoading}
-                  style={{
-                    flex: 1,
-                    resize: "none",
-                    background: "var(--glass-input-bg)",
-                    border: voice.isListening
-                      ? "1px solid var(--skin-accent, #4de0c1)"
-                      : "1px solid var(--glass-input-border)",
-                    borderRadius: 10,
-                    color: "var(--glass-text)",
-                    fontSize: 14,
-                    padding: "8px 12px",
-                    outline: "none",
-                    fontFamily: "inherit",
-                    opacity: isLoading ? 0.5 : 1,
-                    transition: "border-color 0.2s",
-                  }}
-                />
-                <button
-                  onClick={() => void handleSend()}
-                  disabled={!draft.trim() || isLoading}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "var(--skin-accent-gradient)",
-                    border: "none",
-                    color: "white",
-                    cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
-                    opacity: draft.trim() && !isLoading ? 1 : 0.4,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 16,
-                    flexShrink: 0,
-                  }}
-                >
-                  &#x27a4;
-                </button>
+                )}
               </div>
-
-              {/* Attachment badge */}
-              {attachment && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 11,
-                    color: "var(--glass-text-soft)",
-                  }}
-                >
-                  <Paperclip size={10} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
-                    {attachment.name}
-                  </span>
-                  <button
-                    onClick={() => setAttachment(null)}
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }}
-                    aria-label="Remove attachment"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </CompanionShell>
 
       {panelTarget && (
-        <EntityPanel
-          open
-          onClose={() => setPanelTarget(null)}
-          type={panelTarget.type}
-          id={panelTarget.id}
-          objectiveId={panelTarget.objectiveId}
-          prefillText={panelTarget.prefillText}
-          initialTitle={panelTarget.initialTitle}
-          user={authUser ?? undefined}
-        />
+        <EntityPanel open onClose={() => setPanelTarget(null)} type={panelTarget.type} id={panelTarget.id} objectiveId={panelTarget.objectiveId} prefillText={panelTarget.prefillText} initialTitle={panelTarget.initialTitle} user={authUser ?? undefined} />
       )}
     </>
   );
 }
 
-// ─── Top chrome ───────────────────────────────────────────────────────────────
+// ─── TopChrome ─────────────────────────────────────────────────────────────────
 function TopChrome({
   muted,
   voiceId,
@@ -979,83 +792,75 @@ function TopChrome({
       style={{
         position: "fixed",
         top: 0,
+        left: 0,
         right: 0,
         zIndex: 20,
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        padding: "12px 16px",
-        pointerEvents: "auto",
+        justifyContent: "space-between",
+        padding: "10px 18px",
+        background: "rgba(0,0,0,0.18)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
       }}
     >
-      {activeProject && (
-        <button
-          onClick={onDeselectProject}
-          title="Return to general mode"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "4px 8px 4px 12px",
-            borderRadius: "var(--xr-pill, 999px)",
-            background: "var(--glass-chrome-bg)",
-            border: "1px solid var(--glass-chrome-border)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            color: "var(--skin-ink-soft)",
-            cursor: "pointer",
-            fontSize: 12,
-            fontWeight: 500,
-            maxWidth: 200,
-          }}
-        >
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {activeProject.name}
-          </span>
-          <X size={12} style={{ flexShrink: 0 }} />
-        </button>
-      )}
-      <ChromeButton onClick={onNewSession} title="New conversation">
-        <MessageSquarePlus size={15} />
-      </ChromeButton>
-      {canReload && (
-        <ChromeButton onClick={onReload} title="Reload background">
-          <RefreshCw size={15} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ color: "rgba(255,255,255,0.9)", fontWeight: 700, fontSize: 15, letterSpacing: "0.01em" }}>
+          Chi
+        </span>
+        {activeProject && (
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "3px 10px 3px 8px", borderRadius: 999,
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
+          >
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {activeProject.name}
+            </span>
+            <button
+              onClick={onDeselectProject}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 14, padding: "0 2px", display: "flex", alignItems: "center" }}
+              aria-label="Unlink project"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <ChromeButton title="New session" onClick={onNewSession}><MessageSquarePlus size={15} /></ChromeButton>
+        {canReload && (
+          <ChromeButton title="New background" onClick={onReload}><RefreshCw size={15} /></ChromeButton>
+        )}
+        <ChromeButton title={muted ? "Unmute voice" : "Mute voice"} onClick={onMuteToggle} active={!muted}>
+          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </ChromeButton>
-      )}
-      {/* Voice selector */}
-      <select
-        value={voiceId}
-        onChange={(e) => onVoiceChange(e.target.value)}
-        aria-label="Select voice"
-        title="Voice"
-        style={{
-          height: 34,
-          borderRadius: "var(--xr-pill, 999px)",
-          background: "var(--glass-chrome-bg)",
-          border: "1px solid var(--glass-chrome-border)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          color: "var(--skin-ink-soft)",
-          fontSize: 12,
-          padding: "0 10px",
-          cursor: "pointer",
-          outline: "none",
-        }}
-      >
-        {VOICE_OPTIONS.map((v) => (
-          <option key={v.id} value={v.id}>
-            {v.label}
-          </option>
-        ))}
-      </select>
-      {/* Mute toggle */}
-      <ChromeButton
-        onClick={onMuteToggle}
-        title={muted ? "Enable voice output" : "Mute voice output"}
-      >
-        {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-      </ChromeButton>
+        <select
+          value={voiceId}
+          onChange={(e) => onVoiceChange(e.target.value)}
+          style={{
+            background: "rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 8,
+            color: "rgba(255,255,255,0.8)",
+            fontSize: 11,
+            padding: "4px 6px",
+            cursor: "pointer",
+            maxWidth: 100,
+          }}
+          aria-label="Voice selection"
+        >
+          {VOICE_OPTIONS.map((v) => (
+            <option key={v.id} value={v.id} style={{ background: "#1a1a2e" }}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -1064,28 +869,28 @@ function ChromeButton({
   children,
   onClick,
   title,
+  active = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title?: string;
+  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: active ? "rgba(77,224,193,0.2)" : "rgba(255,255,255,0.1)",
+        border: active ? "1px solid rgba(77,224,193,0.4)" : "1px solid rgba(255,255,255,0.15)",
+        color: active ? "rgba(77,224,193,0.9)" : "rgba(255,255,255,0.7)",
+        cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 34,
-        height: 34,
-        borderRadius: "50%",
-        background: "var(--glass-chrome-bg)",
-        border: "1px solid var(--glass-chrome-border)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        color: "var(--skin-ink-soft)",
-        cursor: "pointer",
       }}
     >
       {children}
@@ -1093,19 +898,18 @@ function ChromeButton({
   );
 }
 
-// ─── Input action button ───────────────────────────────────────────────────────
 function InputActionButton({
   children,
   onClick,
   title,
-  disabled,
-  active,
+  active = false,
+  disabled = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title?: string;
-  disabled?: boolean;
   active?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -1113,18 +917,17 @@ function InputActionButton({
       title={title}
       disabled={disabled}
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         width: 28,
         height: 28,
         borderRadius: 7,
-        border: "1px solid var(--glass-border-color)",
-        background: active ? "var(--skin-accent, #4de0c1)" : "transparent",
-        color: active ? "var(--skin-bg, #fff)" : "var(--glass-text-soft)",
+        background: active ? "rgba(77,224,193,0.15)" : "transparent",
+        border: active ? "1px solid rgba(77,224,193,0.35)" : "1px solid var(--glass-border-color)",
+        color: active ? "rgba(77,224,193,0.9)" : "var(--glass-text)",
         cursor: disabled ? "not-allowed" : "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         opacity: disabled ? 0.4 : 1,
-        transition: "background 0.15s, color 0.15s",
       }}
     >
       {children}
