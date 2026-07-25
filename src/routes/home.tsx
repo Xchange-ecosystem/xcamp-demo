@@ -419,13 +419,13 @@ function CompanionHomePage() {
   }, []);
 
   const handleNewSession = useCallback(async () => {
-    await session.newSession();
-    setStep("welcome");
-    setActiveProject(null);
-    setActiveProjectId(null);
     welcomeFiredRef.current = false;
     branchFiredRef.current = false;
     gridMsgIdRef.current = null;
+    setActiveProject(null);
+    setActiveProjectId(null);
+    await session.newSession();
+    setStep("welcome");
   }, [session, setActiveProjectId]);
 
   const handleSend = useCallback(async () => {

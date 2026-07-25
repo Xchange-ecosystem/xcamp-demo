@@ -78,29 +78,36 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
     async function init() {
       setLoading(true);
       try {
-        // Find most recent active conversation
-        // Cast through unknown early: generated types are stale and missing status column
-        type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
-        const { data: convRows } = await (supabase
-          .from("jarvix_conversations")
-          .select("id, status, created_at, project_id") as unknown as ConvQuery)
-          .eq("owner_central_id", user!.centralId)
-          .eq("tenant_id", user!.tenantId)
-          .neq("status", "closed")
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (cancelled) return;
-
         let convId: string;
         let convCreatedAt: string | null = null;
         let convProjectId: string | null = null;
-        if (convRows && convRows.length > 0) {
-          convId = convRows[0].id;
-          convCreatedAt = convRows[0].created_at;
-          convProjectId = convRows[0].project_id ?? null;
-        } else {
+
+        const forceNew = typeof sessionStorage !== "undefined" && sessionStorage.getItem("xcamp-force-new-session");
+        if (forceNew) {
+          if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("xcamp-force-new-session");
           convId = await createConversation(user!);
+        } else {
+          // Find most recent active conversation
+          // Cast through unknown early: generated types are stale and missing status column
+          type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
+          const { data: convRows } = await (supabase
+            .from("jarvix_conversations")
+            .select("id, status, created_at, project_id") as unknown as ConvQuery)
+            .eq("owner_central_id", user!.centralId)
+            .eq("tenant_id", user!.tenantId)
+            .neq("status", "closed")
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (cancelled) return;
+
+          if (convRows && convRows.length > 0) {
+            convId = convRows[0].id;
+            convCreatedAt = convRows[0].created_at;
+            convProjectId = convRows[0].project_id ?? null;
+          } else {
+            convId = await createConversation(user!);
+          }
         }
 
         // Load messages
@@ -190,17 +197,23 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close current conversation without creating a new one (used on logout).
+  // Clears local state immediately so the UI shows empty chat right away.
+  // Sets a sessionStorage flag so the next init creates a fresh conversation
+  // rather than finding the one we're closing (handles the race where re-login
+  // happens before the DB update completes).
   const closeSession = useCallback(async () => {
     const convId = conversationIdRef.current;
     if (!convId) return;
-    await (supabase.from("jarvix_conversations") as unknown as {
-      update: (row: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> };
-    }).update({ status: "closed" }).eq("id", convId);
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem("xcamp-force-new-session", "1");
     conversationIdRef.current = null;
     setConversationId(null);
     setConversationCreatedAt(null);
     setConversationProjectId(null);
     setMessages([]);
+    // Fire-and-forget — UI is already cleared; DB close races don't matter
+    void (supabase.from("jarvix_conversations") as unknown as {
+      update: (row: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> };
+    }).update({ status: "closed" }).eq("id", convId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession, closeSession };
