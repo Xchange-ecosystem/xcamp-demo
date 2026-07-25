@@ -36,8 +36,8 @@ const MOCK_CENTRAL_USER = {
 const SUPABASE_SESSION = {
   access_token: ACCESS_TOKEN,
   token_type: "bearer",
-  expires_in: 3600,
-  expires_at: 1784841335,
+  expires_in: 157680000,
+  expires_at: 1942617600,
   refresh_token: REFRESH_TOKEN,
   user: {
     id: "b4c5d6e7-f890-4bcd-8ef1-234567890abc",
@@ -69,6 +69,14 @@ test.describe("Backcaster QuickRoad E2E", () => {
     // ── Mock Supabase REST/Storage ─────────────────────────────────────────
     // IMPORTANT: Playwright uses LIFO route matching (last-registered wins).
     // Register catch-alls FIRST so specific routes take precedence.
+
+    // Mock external assets that would hang in the proxy and block JS execution
+    await page.route("**fonts.googleapis.com/**", (route) => {
+      route.fulfill({ status: 200, contentType: "text/css", body: "/* fonts mocked */" });
+    });
+    await page.route("**fonts.gstatic.com/**", (route) => {
+      route.fulfill({ status: 200, contentType: "font/woff2", body: "" });
+    });
 
     // Catch-all for any Supabase REST call not explicitly handled
     await page.route("**/rest/v1/**", (route) => {
