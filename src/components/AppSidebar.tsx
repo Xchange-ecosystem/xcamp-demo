@@ -35,6 +35,11 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { activeProjectId, setActiveProjectId } = useActiveProject();
 
+  const handleSignOut = async () => {
+    setActiveProjectId(null);
+    await signOut();
+  };
+
   const projectsQuery = useQuery({
     queryKey: ["projects", user?.tenantId],
     queryFn: () => listProjects(user!),
@@ -125,7 +130,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => signOut()} tooltip={t("nav.signOut")}>
+            <SidebarMenuButton onClick={() => void handleSignOut()} tooltip={t("nav.signOut")}>
               <LogOut className="h-4 w-4" />
               <span>{t("nav.signOut")}</span>
             </SidebarMenuButton>

@@ -25,17 +25,18 @@ import {
   confirmSession,
   commitSession,
   listJournalSessions,
-  getSessionNoteTitles,
+  getSessionProposals,
   placementLabel,
   type JournalTopic,
   type JournalProposal,
   type SessionStatus,
+  type HistoricalProposal,
 } from "@/lib/journal-api";
 import { executeProposal } from "@xchange/client";
 import type { AICard } from "@xchange/client";
 import { EntityPanel } from "@/components/EntityPanel";
 
-type Screen = "input" | "cards" | "editor";
+type Screen = "input" | "cards" | "editor" | "history";
 
 function defaultTopicEntityType(topic: JournalTopic): EntityType {
   if (topic.organiser_proposals.some(p => p.proposal_type === 'new_objective')) return 'objective';
@@ -424,31 +425,31 @@ export function JournalFlow({
                 )}
                 {sessions.map((s) => {
                   const c = statusColors(s.status);
-                  const isOpen = openSession === s.id;
+                  const isSelected = openSession === s.id;
                   return (
-                    <div key={s.id}>
-                      <button
-                        onClick={() => setOpenSession(isOpen ? null : s.id)}
-                        style={{
-                          width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
-                          background: isOpen ? "var(--skin-surface2)" : "transparent",
-                          borderRadius: 8, padding: "8px 10px", cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                          <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
-                            {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                          </span>
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
-                            {s.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
-                          {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
-                        </div>
-                      </button>
-                      {isOpen && <SessionNoteTitles sessionId={s.id} />}
-                    </div>
+                    <button
+                      key={s.id}
+                      onClick={() => { setOpenSession(s.id); setScreen("history"); }}
+                      style={{
+                        width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
+                        background: isSelected ? "var(--skin-surface2)" : "transparent",
+                        borderRadius: 8, padding: "8px 10px", cursor: "pointer",
+                        outline: isSelected ? "2px solid var(--skin-accent)" : "none",
+                        outlineOffset: -1,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
+                          {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
+                        {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -596,6 +597,13 @@ export function JournalFlow({
                 setScreen("cards");
                 sessionsQuery.refetch();
               }}
+            />
+          )}
+
+          {screen === "history" && openSession && (
+            <SessionHistoryView
+              sessionId={openSession}
+              onBack={() => { setOpenSession(null); setScreen("input"); }}
             />
           )}
         </div>
@@ -992,24 +1000,94 @@ function NoteEditorPane({
   );
 }
 
-function SessionNoteTitles({ sessionId }: { sessionId: string }) {
+
+function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: () => void }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["journal-session-notes", sessionId],
-    queryFn: () => getSessionNoteTitles(sessionId),
+    queryKey: ["session-proposals", sessionId],
+    queryFn: () => getSessionProposals(sessionId),
   });
-  const titles = data ?? [];
+  const proposals = data ?? [];
   return (
-    <div style={{ padding: "6px 10px 2px 12px" }}>
-      {isLoading ? (
-        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>Loading…</div>
-      ) : titles.length === 0 ? (
-        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>No committed notes.</div>
-      ) : (
-        <ul style={{ listStyle: "disc", paddingLeft: 16, margin: 0 }}>
-          {titles.map((t, i) => (
-            <li key={i} style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginBottom: 2 }}>{t}</li>
-          ))}
-        </ul>
+    <div className="max-w-2xl">
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          className="x-btn-secondary"
+          style={{ width: "auto", paddingInline: 14 }}
+          onClick={onBack}
+        >
+          <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
+        </button>
+        <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+          Session cards
+        </h2>
+      </div>
+      {isLoading && (
+        <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
+      )}
+      {!isLoading && proposals.length === 0 && (
+        <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>No proposals in this session.</div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {proposals.map((p) => (
+          <HistoricalProposalCard key={p.id} proposal={p} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistoricalProposalCard({ proposal }: { proposal: HistoricalProposal }) {
+  const statusConfig = {
+    committed: { label: "Applied ✓", bg: "color-mix(in srgb, var(--skin-accent) 12%, transparent)", fg: "var(--skin-accent)" },
+    approved:  { label: "Approved",  bg: "color-mix(in srgb, #22c55e 12%, transparent)",             fg: "#22c55e" },
+    pending:   { label: "Pending",   bg: "color-mix(in srgb, var(--skin-ink-faint) 12%, transparent)", fg: "var(--skin-ink-faint)" },
+    rejected:  { label: "Dismissed", bg: "color-mix(in srgb, var(--skin-danger, #d4524e) 10%, transparent)", fg: "var(--skin-danger, #d4524e)" },
+  } as const;
+  const cfg = statusConfig[proposal.status as keyof typeof statusConfig] ?? statusConfig.pending;
+  const title = proposal.title ?? (proposal.payload.title as string | undefined) ?? "Untitled";
+  const body = (proposal.payload.body_markdown as string | undefined) ?? (proposal.payload.description as string | undefined);
+  const objectiveTitle = proposal.payload.objective_title as string | undefined;
+  const typeLabel = proposal.proposal_type.replace(/_/g, " ");
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
+        background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 8,
+        opacity: proposal.status === "rejected" ? 0.6 : 1,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          {proposal.status === "committed" && (
+            <CheckCircle2 size={14} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
+          )}
+          {proposal.status === "rejected" && (
+            <XCircle size={14} style={{ color: "var(--skin-danger, #d4524e)", flexShrink: 0 }} />
+          )}
+          <h3 className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>{title}</h3>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 999,
+            background: "color-mix(in srgb, var(--skin-ink-faint) 10%, transparent)",
+            color: "var(--skin-ink-faint)", textTransform: "capitalize",
+          }}>
+            {typeLabel}
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 999,
+            background: cfg.bg, color: cfg.fg,
+          }}>
+            {cfg.label}
+          </span>
+        </div>
+      </div>
+      {body && (
+        <p style={{ color: "var(--skin-ink-soft)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>{body}</p>
+      )}
+      {objectiveTitle && (
+        <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", margin: 0 }}>→ {objectiveTitle}</p>
       )}
     </div>
   );

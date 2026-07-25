@@ -184,9 +184,23 @@ export async function commitSession(sessionId: string): Promise<CommitResult> {
   return commit(sessionId);
 }
 
-// ---- History (direct Supabase) ----
+// ---- History ----
 
 export type SessionStatus = "pending" | "committed" | "partial" | (string & {});
+
+export interface HistoricalProposal {
+  id: string;
+  proposal_type: string;
+  status: "pending" | "approved" | "rejected" | "committed";
+  title: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+}
+
+export async function getSessionProposals(sessionId: string): Promise<HistoricalProposal[]> {
+  const res = await request<{ proposals: HistoricalProposal[] }>(`/api/organiser/sessions/${sessionId}/proposals`);
+  return res.proposals;
+}
 
 export interface JournalSession {
   id: string;
