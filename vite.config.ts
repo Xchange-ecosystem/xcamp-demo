@@ -19,6 +19,11 @@ export default defineConfig({
       "@xchange/ui": path.resolve(__dirname, "vendor/ui/src/index.ts"),
     },
   },
+  optimizeDeps: {
+    // pdfjs-dist must not be pre-bundled — it spawns a Web Worker from its own
+    // file and that breaks when Vite inlines it into the main bundle.
+    exclude: ["pdfjs-dist"],
+  },
   build: {
     outDir: "dist",
     rollupOptions: {
