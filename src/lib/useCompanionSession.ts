@@ -55,6 +55,7 @@ export interface CompanionSession {
   appendComponentMessage: (type: ComponentMessageType, payload?: Record<string, unknown>) => Promise<string>;
   resolveComponent: (messageId: string) => void;
   newSession: () => Promise<void>;
+  closeSession: () => Promise<void>;
 }
 
 export function useCompanionSession(user: XcampUser | null): CompanionSession {
@@ -188,7 +189,21 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
     setMessages([]);
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession };
+  // Close current conversation without creating a new one (used on logout).
+  const closeSession = useCallback(async () => {
+    const convId = conversationIdRef.current;
+    if (!convId) return;
+    await (supabase.from("jarvix_conversations") as unknown as {
+      update: (row: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> };
+    }).update({ status: "closed" }).eq("id", convId);
+    conversationIdRef.current = null;
+    setConversationId(null);
+    setConversationCreatedAt(null);
+    setConversationProjectId(null);
+    setMessages([]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession, closeSession };
 }
 
 async function createConversation(user: XcampUser): Promise<string> {
