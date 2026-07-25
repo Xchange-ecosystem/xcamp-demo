@@ -205,7 +205,7 @@ function ProjectNode({ data }: NodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        style={{ width: 8, height: 8, background: "#fff", border: "2px solid var(--skin-accent)" }}
       />
       <span style={{ lineHeight: 1.2, wordBreak: "break-word" }}>{label}</span>
     </div>
@@ -247,12 +247,12 @@ function ObjectiveNode({ data }: NodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        style={{ width: 8, height: 8, background: color, border: "2px solid var(--skin-surface)" }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        style={{ width: 8, height: 8, background: color, border: "2px solid var(--skin-surface)" }}
       />
 
       {/* + button */}
@@ -341,12 +341,12 @@ function TaskNode({ data }: NodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        style={{ width: 6, height: 6, background: "var(--skin-line)", border: "1px solid var(--skin-surface)" }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        style={{ width: 6, height: 6, background: "var(--skin-line)", border: "1px solid var(--skin-surface)" }}
       />
 
       {task.done ? (
@@ -418,6 +418,13 @@ export function NavigatorGraph() {
     })),
   });
 
+  // taskQueries returns a new array reference every render; use a stable string fingerprint
+  // so tasksByObjective (Map) only recreates when task IDs / done status actually change.
+  // String primitives are compared by value in Object.is, breaking the infinite-loop.
+  const taskFingerprint = taskQueries
+    .map((q, i) => `${objectives[i]?.id ?? ""}:${(q.data ?? []).map((t) => `${t.id}:${String(t.done)}`).join(",")}`)
+    .join("|");
+
   const tasksByObjective = useMemo(() => {
     const map = new Map<string, NavTask[]>();
     objectives.forEach((obj, i) => {
@@ -425,7 +432,7 @@ export function NavigatorGraph() {
     });
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectives, taskQueries]);
+  }, [taskFingerprint]); // stable: only updates when task data actually changes
 
   /* Entity panel ─────────────────────────────────────────────────── */
 
@@ -482,17 +489,8 @@ export function NavigatorGraph() {
     }));
     setNodes(merged);
     setEdges(newEdges);
-  }, [
-    activeProjectId,
-    projectName,
-    objectives,
-    tasksByObjective,
-    isLoading,
-    onOpenNode,
-    onAddTask,
-    setNodes,
-    setEdges,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId, projectName, objectives, tasksByObjective, isLoading, onOpenNode, onAddTask]);
 
   /* Handlers ──────────────────────────────────────────────────────── */
 
