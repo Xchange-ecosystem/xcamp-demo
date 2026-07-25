@@ -21,7 +21,7 @@ function corsHeaders(origin: string): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Vary': 'Origin',
   }
 }
@@ -34,6 +34,41 @@ Deno.serve(async (req) => {
   const ch = corsHeaders(origin)
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: ch })
+
+  // GET /voices — list available ElevenLabs voices
+  if (req.method === 'GET') {
+    const apiKey = Deno.env.get('ELEVENLABS_API_KEY')
+    if (!apiKey) {
+      return new Response(JSON.stringify({ voices: [] }), {
+        status: 200,
+        headers: { ...ch, 'Content-Type': 'application/json' },
+      })
+    }
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': apiKey },
+        signal: req.signal,
+      })
+      if (!res.ok) {
+        return new Response(JSON.stringify({ voices: [] }), {
+          status: 200,
+          headers: { ...ch, 'Content-Type': 'application/json' },
+        })
+      }
+      const data: { voices?: Array<{ voice_id: string; name: string; category?: string }> } = await res.json()
+      const voices = (data.voices ?? []).map((v) => ({ id: v.voice_id, label: v.name }))
+      return new Response(JSON.stringify({ voices }), {
+        status: 200,
+        headers: { ...ch, 'Content-Type': 'application/json' },
+      })
+    } catch {
+      return new Response(JSON.stringify({ voices: [] }), {
+        status: 200,
+        headers: { ...ch, 'Content-Type': 'application/json' },
+      })
+    }
+  }
+
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
       status: 405,

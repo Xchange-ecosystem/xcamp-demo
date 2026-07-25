@@ -12,6 +12,7 @@ import {
   Mic,
   MicOff,
   Paperclip,
+  Plus,
   BookOpen,
   Navigation,
   StickyNote,
@@ -43,7 +44,7 @@ import {
   clearTTSError,
   type TTSErrorInfo,
 } from "@/lib/ttsClient";
-import { getVoiceId, setVoiceId, subscribeVoice, VOICE_OPTIONS } from "@/lib/voicePreference";
+import { getVoiceId, setVoiceId, subscribeVoice, VOICE_OPTIONS, fetchVoices, type VoiceOption } from "@/lib/voicePreference";
 import { installAudioUnlock } from "@/lib/audio-unlock";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
@@ -58,6 +59,7 @@ const NAV_PILLS = [
   { id: "notes",      label: "New Note",          icon: StickyNote, to: "/notes" },
   { id: "backcaster", label: "Start Project",      icon: Zap,        to: "/project-builder" },
 ] as const;
+
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -102,6 +104,7 @@ function CompanionHomePage() {
 
   // ── File attachment ────────────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
 
   // ── @-mention state ────────────────────────────────────────────────────────
@@ -109,6 +112,9 @@ function CompanionHomePage() {
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionAtIndex, setMentionAtIndex] = useState(0);
   const [mentionedEntities, setMentionedEntities] = useState<MentionEntity[]>([]);
+
+  // ── Dynamic voice list (fetched from ElevenLabs via edge function) ─────────
+  const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>(VOICE_OPTIONS);
 
   const projectBgUrl =
     step === "inside-project" && activeProject?.feature_image
@@ -140,6 +146,13 @@ function CompanionHomePage() {
   }), []);
   // Stop TTS when navigating away
   useEffect(() => () => { stopSpeaking(); }, []);
+
+  // Fetch real ElevenLabs voice list; fall back to static list on error
+  useEffect(() => {
+    fetchVoices().then((voices) => {
+      if (voices.length > 0) setAvailableVoices(voices);
+    }).catch(() => {});
+  }, []);
 
   // ── Wire voice transcript into draft ───────────────────────────────────────
   const [draft, setDraft] = useState("");
@@ -545,18 +558,6 @@ function CompanionHomePage() {
           }}
         />
 
-        <TopChrome
-          muted={muted}
-          voiceId={voiceId}
-          onMuteToggle={() => setMuted(!muted)}
-          onVoiceChange={(id) => { stopSpeaking(); setVoiceId(id); }}
-          onReload={reloadHero}
-          canReload={canReload}
-          onNewSession={handleNewSession}
-          activeProject={activeProject}
-          onDeselectProject={handleProjectDeselect}
-        />
-
         {/* Glass panel */}
         <div
           style={{
@@ -647,24 +648,122 @@ function CompanionHomePage() {
                 padding: "8px 14px 12px",
               }}
             >
-              {/* Nav pill bar */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                {NAV_PILLS.map((pill) => (
+              {/* Nav pill bar + chrome controls — single row, pills scroll, controls right-aligned */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginBottom: 8,
+                  minWidth: 0,
+                }}
+              >
+                {/* Active project chip (left anchor) */}
+                {activeProject && (
                   <button
-                    key={pill.id}
-                    onClick={() => void navigate({ to: pill.to })}
+                    onClick={handleProjectDeselect}
+                    title="Return to general mode"
                     style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: "var(--xr-pill, 999px)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "4px 8px",
+                      borderRadius: "var(--xr-pill, 999px)",
                       border: "1px solid var(--glass-border-color)",
-                      background: "var(--glass-bubble-bg)", color: "var(--glass-text)",
-                      cursor: "pointer", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
+                      background: "var(--glass-bubble-bg)",
+                      color: "var(--glass-text-soft)",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      flexShrink: 0,
+                      maxWidth: 120,
                     }}
                   >
-                    <pill.icon size={11} />
-                    {pill.label}
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {activeProject.name}
+                    </span>
+                    <X size={10} style={{ flexShrink: 0 }} />
                   </button>
-                ))}
+                )}
+
+                {/* Horizontally scrollable nav pills */}
+                <div
+                  style={{
+                    flex: 1,
+                    overflowX: "auto",
+                    display: "flex",
+                    gap: 6,
+                    minWidth: 0,
+                    scrollbarWidth: "none",
+                  }}
+                >
+                  {NAV_PILLS.map((pill) => (
+                    <button
+                      key={pill.id}
+                      onClick={() => void navigate({ to: pill.to })}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "4px 10px",
+                        borderRadius: "var(--xr-pill, 999px)",
+                        border: "1px solid var(--glass-border-color)",
+                        background: "var(--glass-bubble-bg)",
+                        color: "var(--glass-text)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 500,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <pill.icon size={11} />
+                      {pill.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Right-aligned chrome controls (moved from TopChrome header) */}
+                <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+                  <ControlButton onClick={handleNewSession} title="New conversation">
+                    <MessageSquarePlus size={13} />
+                  </ControlButton>
+                  {canReload && (
+                    <ControlButton onClick={reloadHero} title="Reload background">
+                      <RefreshCw size={13} />
+                    </ControlButton>
+                  )}
+                  <select
+                    value={voiceId}
+                    onChange={(e) => { stopSpeaking(); setVoiceId(e.target.value); }}
+                    aria-label="Select voice"
+                    title="Voice"
+                    style={{
+                      height: 26,
+                      borderRadius: "var(--xr-pill, 999px)",
+                      background: "var(--glass-bubble-bg)",
+                      border: "1px solid var(--glass-border-color)",
+                      color: "var(--glass-text-soft)",
+                      fontSize: 11,
+                      padding: "0 8px",
+                      cursor: "pointer",
+                      outline: "none",
+                      maxWidth: 90,
+                    }}
+                  >
+                    {availableVoices.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ControlButton
+                    onClick={() => setMuted(!muted)}
+                    title={muted ? "Enable voice output" : "Mute voice output"}
+                  >
+                    {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                  </ControlButton>
+                </div>
               </div>
 
               {/* Input row wrapper — relative so MentionMenu can float above */}
@@ -682,15 +781,17 @@ function CompanionHomePage() {
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <div style={{ display: "flex", gap: 2, paddingBottom: 4, flexShrink: 0 }}>
                     <InputActionButton title="Attach file" onClick={() => fileInputRef.current?.click()}><Paperclip size={13} /></InputActionButton>
+                    {/* "+" button — second trigger for the floating @-mention menu */}
+                    <InputActionButton title="Mention entity (@)" onClick={() => setMentionMenuOpen((v) => !v)} active={mentionMenuOpen}><Plus size={13} /></InputActionButton>
                     <InputActionButton title={!voice.supported ? "Voice input not supported in this browser" : voice.isListening ? "Stop recording" : "Voice input"} onClick={() => (voice.isListening ? voice.stop() : voice.start())} disabled={!voice.supported} active={voice.isListening}>{voice.isListening ? <MicOff size={13} /> : <Mic size={13} />}</InputActionButton>
                   </div>
                   <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={(e) => { const file = e.target.files?.[0] ?? null; setAttachment(file); if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`); e.target.value = ""; }} />
                   <textarea
+                    ref={textareaRef}
                     value={draft}
                     onChange={(e) => {
                       const val = e.target.value;
                       setDraft(val);
-                      // Detect @-mention trigger
                       const cursor = e.target.selectionStart ?? val.length;
                       const beforeCursor = val.slice(0, cursor);
                       const atIdx = beforeCursor.lastIndexOf('@');
@@ -765,107 +866,8 @@ function CompanionHomePage() {
   );
 }
 
-// ─── TopChrome ─────────────────────────────────────────────────────────────────
-function TopChrome({
-  muted,
-  voiceId,
-  onMuteToggle,
-  onVoiceChange,
-  onReload,
-  canReload,
-  onNewSession,
-  activeProject,
-  onDeselectProject,
-}: {
-  muted: boolean;
-  voiceId: string;
-  onMuteToggle: () => void;
-  onVoiceChange: (id: string) => void;
-  onReload: () => void;
-  canReload: boolean;
-  onNewSession: () => void;
-  activeProject: ProjectFull | null;
-  onDeselectProject: () => void;
-}) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 20,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 18px",
-        background: "rgba(0,0,0,0.18)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ color: "rgba(255,255,255,0.9)", fontWeight: 700, fontSize: 15, letterSpacing: "0.01em" }}>
-          Chi
-        </span>
-        {activeProject && (
-          <div
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "3px 10px 3px 8px", borderRadius: 999,
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.15)",
-            }}
-          >
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {activeProject.name}
-            </span>
-            <button
-              onClick={onDeselectProject}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 14, padding: "0 2px", display: "flex", alignItems: "center" }}
-              aria-label="Unlink project"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        )}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <ChromeButton title="New session" onClick={onNewSession}><MessageSquarePlus size={15} /></ChromeButton>
-        {canReload && (
-          <ChromeButton title="New background" onClick={onReload}><RefreshCw size={15} /></ChromeButton>
-        )}
-        <ChromeButton title={muted ? "Unmute voice" : "Mute voice"} onClick={onMuteToggle} active={!muted}>
-          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-        </ChromeButton>
-        <select
-          value={voiceId}
-          onChange={(e) => onVoiceChange(e.target.value)}
-          style={{
-            background: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            color: "rgba(255,255,255,0.8)",
-            fontSize: 11,
-            padding: "4px 6px",
-            cursor: "pointer",
-            maxWidth: 100,
-          }}
-          aria-label="Voice selection"
-        >
-          {VOICE_OPTIONS.map((v) => (
-            <option key={v.id} value={v.id} style={{ background: "#1a1a2e" }}>
-              {v.name}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
-
-function ChromeButton({
+// ─── Control button (pill-bar row icon buttons) ────────────────────────────────
+function ControlButton({
   children,
   onClick,
   title,
@@ -881,12 +883,12 @@ function ChromeButton({
       onClick={onClick}
       title={title}
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: active ? "rgba(77,224,193,0.2)" : "rgba(255,255,255,0.1)",
-        border: active ? "1px solid rgba(77,224,193,0.4)" : "1px solid rgba(255,255,255,0.15)",
-        color: active ? "rgba(77,224,193,0.9)" : "rgba(255,255,255,0.7)",
+        width: 26,
+        height: 26,
+        borderRadius: 7,
+        background: active ? "rgba(77,224,193,0.2)" : "transparent",
+        border: active ? "1px solid rgba(77,224,193,0.4)" : "1px solid var(--glass-border-color)",
+        color: active ? "rgba(77,224,193,0.9)" : "var(--glass-text-soft)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",

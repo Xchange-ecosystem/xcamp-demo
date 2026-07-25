@@ -1,4 +1,6 @@
 // User-selected ElevenLabs voice, persisted in localStorage.
+// fetchVoices() calls the elevenlabs-tts edge function's GET route to get the
+// real voice list from ElevenLabs, falling back to VOICE_OPTIONS on any error.
 
 export interface VoiceOption {
   id: string
@@ -39,4 +41,26 @@ export function setVoiceId(id: string): void {
 export function subscribeVoice(cb: (id: string) => void): () => void {
   listeners.add(cb)
   return () => { listeners.delete(cb) }
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
+const VOICES_URL = `${SUPABASE_URL}/functions/v1/elevenlabs-tts`
+
+export async function fetchVoices(): Promise<VoiceOption[]> {
+  if (typeof window === 'undefined' || !SUPABASE_URL) return VOICE_OPTIONS
+  try {
+    const res = await fetch(VOICES_URL, {
+      method: 'GET',
+      headers: SUPABASE_ANON_KEY
+        ? { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+        : {},
+    })
+    if (!res.ok) return VOICE_OPTIONS
+    const data = (await res.json()) as { voices?: Array<{ id: string; label: string }> }
+    const voices = data.voices ?? []
+    return voices.length > 0 ? voices : VOICE_OPTIONS
+  } catch {
+    return VOICE_OPTIONS
+  }
 }
