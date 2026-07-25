@@ -1121,6 +1121,7 @@ function HistoricalProposalCard({
   const objectiveTitle = proposal.payload.objective_title as string | undefined;
   const typeLabel = proposal.proposal_type.replace(/_/g, " ");
   const hasGoTo = proposal.status === "committed" && !!proposal.payload.committed_entity_id;
+  const showActions = proposal.status === "pending" || proposal.status === "approved" || hasGoTo;
 
   const btnBase: React.CSSProperties = {
     border: "1px solid var(--skin-line)", borderRadius: 8, padding: "4px 12px",
@@ -1168,25 +1169,25 @@ function HistoricalProposalCard({
       {objectiveTitle && (
         <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", margin: 0 }}>→ {objectiveTitle}</p>
       )}
-      {(proposal.status === "pending" || hasGoTo) && (
+      {showActions && (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
           {proposal.status === "pending" && (
-            <>
-              <button
-                disabled={busy}
-                onClick={async () => { setBusy(true); await onDismiss(proposal.id); setBusy(false); }}
-                style={{ ...btnBase, background: "transparent", color: "var(--skin-ink-soft)" }}
-              >
-                Dismiss
-              </button>
-              <button
-                disabled={busy}
-                onClick={async () => { setBusy(true); await onAccept(proposal.id); setBusy(false); }}
-                style={{ ...btnBase, background: "var(--skin-accent, #4de0c1)", color: "var(--skin-bg, #fff)", border: "none" }}
-              >
-                Accept
-              </button>
-            </>
+            <button
+              disabled={busy}
+              onClick={async () => { setBusy(true); await onDismiss(proposal.id); setBusy(false); }}
+              style={{ ...btnBase, background: "transparent", color: "var(--skin-ink-soft)" }}
+            >
+              Dismiss
+            </button>
+          )}
+          {(proposal.status === "pending" || proposal.status === "approved") && (
+            <button
+              disabled={busy}
+              onClick={async () => { setBusy(true); await onAccept(proposal.id); setBusy(false); }}
+              style={{ ...btnBase, background: "var(--skin-accent, #4de0c1)", color: "var(--skin-bg, #fff)", border: "none" }}
+            >
+              {busy ? "Applying…" : proposal.status === "approved" ? "Apply" : "Accept"}
+            </button>
           )}
           {hasGoTo && (
             <button
