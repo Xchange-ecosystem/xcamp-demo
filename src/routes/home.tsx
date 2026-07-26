@@ -31,8 +31,6 @@ import type { AICard } from "@xchange/client";
 import { executeProposal } from "@xchange/client";
 import { toast } from "sonner";
 import { EntityPanel } from "@/components/EntityPanel";
-import { MentionMenu } from "@/components/MentionMenu";
-import type { MentionEntity } from "@/components/MentionMenu";
 import { buildContextCardProposal, type EntityType } from "@/components/JournalFlow";
 import {
   speak,
@@ -44,22 +42,29 @@ import {
   clearTTSError,
   type TTSErrorInfo,
 } from "@/lib/ttsClient";
-import { getVoiceId, setVoiceId, subscribeVoice, VOICE_OPTIONS, fetchVoices, type VoiceOption } from "@/lib/voicePreference";
+import {
+  getVoiceId,
+  setVoiceId,
+  subscribeVoice,
+  VOICE_OPTIONS,
+  fetchVoices,
+  type VoiceOption,
+} from "@/lib/voicePreference";
 import { installAudioUnlock } from "@/lib/audio-unlock";
+import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
   "--glass-blur": "18px",
 } as React.CSSProperties;
 
-// Navigation pills shown above the input — simple route shortcuts, no AI.
+// Navigation pills shown below the glass panel — simple route shortcuts.
 const NAV_PILLS = [
-  { id: "journal",    label: "Journal",          icon: BookOpen,   to: "/journal" },
-  { id: "navigator",  label: "Navigate Project",  icon: Navigation, to: "/navigator" },
-  { id: "notes",      label: "New Note",          icon: StickyNote, to: "/notes" },
-  { id: "backcaster", label: "Start Project",      icon: Zap,        to: "/project-builder" },
+  { id: "journal",    label: "My Journal",    icon: BookOpen,   to: "/journal" },
+  { id: "notes",      label: "My Notes",      icon: StickyNote, to: "/notes" },
+  { id: "navigator",  label: "Navigator",     icon: Navigation, to: "/navigator" },
+  { id: "backcaster", label: "Start Project", icon: Zap,        to: "/project-builder" },
 ] as const;
-
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -93,9 +98,10 @@ function CompanionHomePage() {
   const [activeProject, setActiveProject] = useState<ProjectFull | null>(null);
   const gridMsgIdRef = useRef<string | null>(null);
 
-  // ── TTS state (real, backed by ttsClient) ─────────────────────────────────
+  // ── TTS state ─────────────────────────────────────────────────────────────
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const [voiceId, setVoiceIdState] = useState<string>(() => getVoiceId());
+  const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>(VOICE_OPTIONS);
   const [ttsError, setTtsError] = useState<TTSErrorInfo | null>(null);
   const [dismissedTtsError, setDismissedTtsError] = useState(false);
 
@@ -104,23 +110,20 @@ function CompanionHomePage() {
 
   // ── File attachment ────────────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
 
-  // ── @-mention state ────────────────────────────────────────────────────────
+  // ── Mention menu state ────────────────────────────────────────────────────
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
-  const [mentionAtIndex, setMentionAtIndex] = useState(0);
+  const [mentionAtIndex, setMentionAtIndex] = useState(-1);
   const [mentionedEntities, setMentionedEntities] = useState<MentionEntity[]>([]);
-
-  // ── Dynamic voice list (fetched from ElevenLabs via edge function) ─────────
-  const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>(VOICE_OPTIONS);
 
   const projectBgUrl =
     step === "inside-project" && activeProject?.feature_image
       ? activeProject.feature_image
       : null;
-  const { url: heroBgUrl, reload: reloadHero, canReload } = useHeroImage();
+  const { url: heroBgUrl, reload: reloadHero } = useHeroImage();
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
   // Apply background image directly on <html>
@@ -144,14 +147,11 @@ function CompanionHomePage() {
     setTtsError(err);
     if (err) setDismissedTtsError(false);
   }), []);
-  // Stop TTS when navigating away
   useEffect(() => () => { stopSpeaking(); }, []);
 
-  // Fetch real ElevenLabs voice list; fall back to static list on error
+  // ── Load available voices from ElevenLabs on mount ────────────────────────
   useEffect(() => {
-    fetchVoices().then((voices) => {
-      if (voices.length > 0) setAvailableVoices(voices);
-    }).catch(() => {});
+    fetchVoices().then(setAvailableVoices).catch(() => {});
   }, []);
 
   // ── Wire voice transcript into draft ───────────────────────────────────────
@@ -484,20 +484,43 @@ function CompanionHomePage() {
     setStep("welcome");
   }, [session, setActiveProjectId]);
 
-  // ── @-mention selection ────────────────────────────────────────────────────
-  const handleMentionSelect = useCallback((entity: MentionEntity) => {
-    setDraft(prev => {
-      const beforeAt = prev.slice(0, mentionAtIndex);
-      const afterQuery = prev.slice(mentionAtIndex + 1 + mentionQuery.length);
-      return beforeAt + afterQuery;
-    });
-    setMentionMenuOpen(false);
-    setMentionQuery("");
-    setMentionedEntities(prev => {
-      if (prev.some(e => e.id === entity.id)) return prev;
-      return [...prev, entity];
-    });
-  }, [mentionAtIndex, mentionQuery]);
+  // ── Draft change — detects @ to open MentionMenu ───────────────────────────
+  const handleDraftChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setDraft(val);
+    const cursor = e.target.selectionStart ?? val.length;
+    const textBefore = val.slice(0, cursor);
+    const atMatch = textBefore.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionMenuOpen(true);
+      setMentionQuery(atMatch[1]);
+      setMentionAtIndex(textBefore.lastIndexOf("@"));
+    } else {
+      setMentionMenuOpen(false);
+      setMentionQuery("");
+      setMentionAtIndex(-1);
+    }
+  }, []);
+
+  // ── Insert mention from MentionMenu ───────────────────────────────────────
+  const handleMentionSelect = useCallback(
+    (entity: MentionEntity) => {
+      setMentionedEntities((prev) => {
+        if (prev.some((e) => e.id === entity.id)) return prev;
+        return [...prev, entity];
+      });
+      if (mentionAtIndex >= 0) {
+        const before = draft.slice(0, mentionAtIndex);
+        const after = draft.slice(mentionAtIndex + 1 + mentionQuery.length);
+        setDraft(before + `@${entity.title} ` + after);
+      }
+      setMentionMenuOpen(false);
+      setMentionQuery("");
+      setMentionAtIndex(-1);
+      textareaRef.current?.focus();
+    },
+    [draft, mentionAtIndex, mentionQuery],
+  );
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
@@ -506,7 +529,6 @@ function CompanionHomePage() {
     setDraft("");
     voice.setTranscript("");
     setAttachment(null);
-    const referencedIds = mentionedEntities.map(e => e.id);
     setMentionedEntities([]);
     setMentionMenuOpen(false);
     await session.appendUserMessage(text);
@@ -523,7 +545,6 @@ function CompanionHomePage() {
         tenant_id: authUser!.tenantId,
         altitude,
         aiPersona: "guide",
-        ...(referencedIds.length > 0 ? { referenced_entity_ids: referencedIds } : {}),
       });
       reply = res.reply_markdown;
       cards = res.cards ?? [];
@@ -542,7 +563,7 @@ function CompanionHomePage() {
     if (cards.length > 0) {
       await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
     }
-  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice, mentionedEntities]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -558,7 +579,20 @@ function CompanionHomePage() {
           }}
         />
 
-        {/* Glass panel */}
+        {/* Header row — scoped to right of sidebar */}
+        <TopChrome
+          muted={muted}
+          voiceId={voiceId}
+          availableVoices={availableVoices}
+          onMuteToggle={() => setMuted(!muted)}
+          onVoiceChange={(id) => { stopSpeaking(); setVoiceId(id); }}
+          onReload={reloadHero}
+          onNewSession={handleNewSession}
+          activeProject={activeProject}
+          onDeselectProject={handleProjectDeselect}
+        />
+
+        {/* Centered column: glass panel + pill bar below */}
         <div
           style={{
             position: "fixed",
@@ -567,332 +601,489 @@ function CompanionHomePage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            paddingTop: "2vh",
-            paddingBottom: "2vh",
+            padding: "60px 0 16px",
             pointerEvents: "none",
           }}
         >
           <div
             style={{
-              ...GLASS_STYLE,
-              pointerEvents: "auto",
-              width: "min(580px, 92vw)",
-              height: "min(92vh, 860px)",
               display: "flex",
               flexDirection: "column",
-              borderRadius: 20,
-              background: "var(--glass-bg)",
-              border: "1px solid var(--glass-border-color)",
-              boxShadow: "var(--glass-shadow)",
-              backdropFilter: "blur(var(--glass-blur, 18px))",
-              WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-              color: "var(--glass-text)",
-              overflow: "hidden",
+              alignItems: "center",
+              gap: 10,
+              width: "min(580px, 92vw)",
+              height: "100%",
+              pointerEvents: "auto",
             }}
           >
-            {/* Chat thread scroll area */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
-              <ChatThread
-                messages={session.messages}
-                projects={projects}
-                onProjectSelect={handleProjectSelect}
-                onCreateProject={handleCreateProject}
-                typingMessageId={typingMessageId ?? undefined}
-                isLoading={isLoading}
-                onCardConfirm={handleCardConfirm}
-                onCardDismiss={handleCardDismiss}
-                hiddenCardIds={dismissedCardIds}
-              />
-            </div>
-
-            {/* TTS error banner */}
-            {ttsError && !dismissedTtsError && !muted && (
-              <div
-                role="alert"
-                style={{
-                  margin: "0 14px",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(239,68,68,0.4)",
-                  background: "rgba(239,68,68,0.1)",
-                  fontSize: 12,
-                  color: "rgba(239,68,68,0.9)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                }}
-              >
-                <span>
-                  {ttsError.kind === "missing_key"
-                    ? "Voice off — ElevenLabs key not configured"
-                    : ttsError.kind === "network_error"
-                    ? "Voice off — TTS function unreachable"
-                    : `Voice error (${ttsError.status ?? "unknown"})`}
-                </span>
-                <button
-                  onClick={() => { setDismissedTtsError(true); clearTTSError(); }}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 14, padding: "0 2px" }}
-                  aria-label="Dismiss"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            {/* Input section — pill bar + action row */}
+            {/* Glass panel */}
             <div
               style={{
-                flexShrink: 0,
-                borderTop: "1px solid var(--glass-divider)",
-                padding: "8px 14px 12px",
+                ...GLASS_STYLE,
+                flex: 1,
+                minHeight: 0,
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 20,
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "var(--glass-shadow)",
+                backdropFilter: "blur(var(--glass-blur, 18px))",
+                WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
+                color: "var(--glass-text)",
+                overflow: "hidden",
               }}
             >
-              {/* Nav pill bar + chrome controls — single row, pills scroll, controls right-aligned */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 8,
-                  minWidth: 0,
-                }}
-              >
-                {/* Active project chip (left anchor) */}
-                {activeProject && (
-                  <button
-                    onClick={handleProjectDeselect}
-                    title="Return to general mode"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "4px 8px",
-                      borderRadius: "var(--xr-pill, 999px)",
-                      border: "1px solid var(--glass-border-color)",
-                      background: "var(--glass-bubble-bg)",
-                      color: "var(--glass-text-soft)",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      flexShrink: 0,
-                      maxWidth: 120,
-                    }}
-                  >
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {activeProject.name}
-                    </span>
-                    <X size={10} style={{ flexShrink: 0 }} />
-                  </button>
-                )}
+              {/* Chat thread scroll area */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
+                <ChatThread
+                  messages={session.messages}
+                  projects={projects}
+                  onProjectSelect={handleProjectSelect}
+                  onCreateProject={handleCreateProject}
+                  typingMessageId={typingMessageId ?? undefined}
+                  isLoading={isLoading}
+                  onCardConfirm={handleCardConfirm}
+                  onCardDismiss={handleCardDismiss}
+                  hiddenCardIds={dismissedCardIds}
+                />
+              </div>
 
-                {/* Horizontally scrollable nav pills */}
+              {/* TTS error banner */}
+              {ttsError && !dismissedTtsError && !muted && (
                 <div
+                  role="alert"
                   style={{
-                    flex: 1,
-                    overflowX: "auto",
+                    margin: "0 14px",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(239,68,68,0.4)",
+                    background: "rgba(239,68,68,0.1)",
+                    fontSize: 12,
+                    color: "rgba(239,68,68,0.9)",
                     display: "flex",
-                    gap: 6,
-                    minWidth: 0,
-                    scrollbarWidth: "none",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
                   }}
                 >
-                  {NAV_PILLS.map((pill) => (
-                    <button
-                      key={pill.id}
-                      onClick={() => void navigate({ to: pill.to })}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "4px 10px",
-                        borderRadius: "var(--xr-pill, 999px)",
-                        border: "1px solid var(--glass-border-color)",
-                        background: "var(--glass-bubble-bg)",
-                        color: "var(--glass-text)",
-                        cursor: "pointer",
-                        fontSize: 12,
-                        fontWeight: 500,
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <pill.icon size={11} />
-                      {pill.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Right-aligned chrome controls (moved from TopChrome header) */}
-                <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-                  <ControlButton onClick={handleNewSession} title="New conversation">
-                    <MessageSquarePlus size={13} />
-                  </ControlButton>
-                  {canReload && (
-                    <ControlButton onClick={reloadHero} title="Reload background">
-                      <RefreshCw size={13} />
-                    </ControlButton>
-                  )}
-                  <select
-                    value={voiceId}
-                    onChange={(e) => { stopSpeaking(); setVoiceId(e.target.value); }}
-                    aria-label="Select voice"
-                    title="Voice"
-                    style={{
-                      height: 26,
-                      borderRadius: "var(--xr-pill, 999px)",
-                      background: "var(--glass-bubble-bg)",
-                      border: "1px solid var(--glass-border-color)",
-                      color: "var(--glass-text-soft)",
-                      fontSize: 11,
-                      padding: "0 8px",
-                      cursor: "pointer",
-                      outline: "none",
-                      maxWidth: 90,
-                    }}
+                  <span>
+                    {ttsError.kind === "missing_key"
+                      ? "Voice off — ElevenLabs key not configured"
+                      : ttsError.kind === "network_error"
+                      ? "Voice off — TTS function unreachable"
+                      : `Voice error (${ttsError.status ?? "unknown"})`}
+                  </span>
+                  <button
+                    onClick={() => { setDismissedTtsError(true); clearTTSError(); }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 14, padding: "0 2px" }}
+                    aria-label="Dismiss"
                   >
-                    {availableVoices.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ControlButton
-                    onClick={() => setMuted(!muted)}
-                    title={muted ? "Enable voice output" : "Mute voice output"}
-                  >
-                    {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                  </ControlButton>
+                    ×
+                  </button>
                 </div>
-              </div>
+              )}
 
-              {/* Input row wrapper — relative so MentionMenu can float above */}
-              <div style={{ position: "relative" }}>
-                {/* @-mention floating menu */}
-                <MentionMenu
-                  isOpen={mentionMenuOpen}
-                  query={mentionQuery}
-                  projectId={activeProject?.id}
-                  onSelect={handleMentionSelect}
-                  onClose={() => setMentionMenuOpen(false)}
-                />
-
-                {/* Input row */}
-                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-                  <div style={{ display: "flex", gap: 2, paddingBottom: 4, flexShrink: 0 }}>
-                    <InputActionButton title="Attach file" onClick={() => fileInputRef.current?.click()}><Paperclip size={13} /></InputActionButton>
-                    {/* "+" button — second trigger for the floating @-mention menu */}
-                    <InputActionButton title="Mention entity (@)" onClick={() => setMentionMenuOpen((v) => !v)} active={mentionMenuOpen}><Plus size={13} /></InputActionButton>
-                    <InputActionButton title={!voice.supported ? "Voice input not supported in this browser" : voice.isListening ? "Stop recording" : "Voice input"} onClick={() => (voice.isListening ? voice.stop() : voice.start())} disabled={!voice.supported} active={voice.isListening}>{voice.isListening ? <MicOff size={13} /> : <Mic size={13} />}</InputActionButton>
-                  </div>
-                  <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={(e) => { const file = e.target.files?.[0] ?? null; setAttachment(file); if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`); e.target.value = ""; }} />
-                  <textarea
-                    ref={textareaRef}
-                    value={draft}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setDraft(val);
-                      const cursor = e.target.selectionStart ?? val.length;
-                      const beforeCursor = val.slice(0, cursor);
-                      const atIdx = beforeCursor.lastIndexOf('@');
-                      if (atIdx !== -1) {
-                        const afterAt = beforeCursor.slice(atIdx + 1);
-                        if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
-                          setMentionAtIndex(atIdx);
-                          setMentionQuery(afterAt);
-                          setMentionMenuOpen(true);
-                        } else {
-                          setMentionMenuOpen(false);
-                        }
-                      } else {
-                        setMentionMenuOpen(false);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); }
-                      if (e.key === "Escape" && mentionMenuOpen) { e.preventDefault(); setMentionMenuOpen(false); }
-                    }}
-                    rows={2}
-                    placeholder={voice.isListening ? "Listening…" : isLoading ? "Chi is thinking…" : "Ask Chi anything… (type @ to reference an entity)"}
-                    disabled={isLoading}
-                    style={{ flex: 1, resize: "none", background: "var(--glass-input-bg)", border: voice.isListening ? "1px solid var(--skin-accent, #4de0c1)" : "1px solid var(--glass-input-border)", borderRadius: 10, color: "var(--glass-text)", fontSize: 14, padding: "8px 12px", outline: "none", fontFamily: "inherit", opacity: isLoading ? 0.5 : 1, transition: "border-color 0.2s" }}
-                  />
-                  <button onClick={() => void handleSend()} disabled={!draft.trim() || isLoading} style={{ width: 36, height: 36, borderRadius: 10, background: "var(--skin-accent-gradient)", border: "none", color: "white", cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed", opacity: draft.trim() && !isLoading ? 1 : 0.4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>&#x27a4;</button>
-                </div>
-
+              {/* Input section */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  borderTop: "1px solid var(--glass-divider)",
+                  padding: "10px 14px 12px",
+                }}
+              >
                 {/* Mentioned entity chips */}
                 {mentionedEntities.length > 0 && (
-                  <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                    {mentionedEntities.map(entity => (
-                      <div
-                        key={entity.id}
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+                    {mentionedEntities.map((e) => (
+                      <span
+                        key={e.id}
                         style={{
-                          display: "flex", alignItems: "center", gap: 4,
-                          padding: "2px 6px 2px 10px", borderRadius: 999,
-                          background: "var(--glass-bubble-bg)",
-                          border: "1px solid var(--skin-accent, #4de0c1)",
-                          fontSize: 11, color: "var(--glass-text)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "var(--skin-accent, #4de0c1)",
+                          color: "var(--skin-bg, #fff)",
+                          fontSize: 11,
+                          fontWeight: 500,
                         }}
                       >
-                        <span style={{ opacity: 0.6, fontSize: 10, textTransform: "capitalize", marginRight: 2 }}>{entity.type}</span>
-                        <span style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entity.title}</span>
+                        @{e.title}
                         <button
-                          onClick={() => setMentionedEntities(prev => prev.filter(e => e.id !== entity.id))}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--glass-text)", fontSize: 14, padding: "0 2px", lineHeight: 1, marginLeft: 2 }}
-                          aria-label={`Remove ${entity.title} from context`}
-                        >×</button>
-                      </div>
+                          onClick={() => setMentionedEntities((prev) => prev.filter((x) => x.id !== e.id))}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 13, lineHeight: 1 }}
+                          aria-label={`Remove ${e.title}`}
+                        >
+                          ×
+                        </button>
+                      </span>
                     ))}
                   </div>
                 )}
 
+                {/* Input row: large textarea + vertical icon stack to the right */}
+                <div style={{ position: "relative" }}>
+                  <MentionMenu
+                    isOpen={mentionMenuOpen}
+                    query={mentionQuery}
+                    projectId={activeProject?.id}
+                    onSelect={handleMentionSelect}
+                    onClose={() => {
+                      setMentionMenuOpen(false);
+                      setMentionQuery("");
+                      setMentionAtIndex(-1);
+                    }}
+                  />
+
+                  <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        setAttachment(file);
+                        if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`);
+                        e.target.value = "";
+                      }}
+                    />
+
+                    <textarea
+                      ref={textareaRef}
+                      value={draft}
+                      onChange={handleDraftChange}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setMentionMenuOpen(false);
+                          return;
+                        }
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSend();
+                        }
+                      }}
+                      rows={4}
+                      placeholder={
+                        voice.isListening
+                          ? "Listening…"
+                          : isLoading
+                          ? "Chi is thinking…"
+                          : "Ask Chi anything… (type @ to mention)"
+                      }
+                      disabled={isLoading}
+                      style={{
+                        flex: 1,
+                        resize: "none",
+                        background: "var(--glass-input-bg)",
+                        border: voice.isListening
+                          ? "1px solid var(--skin-accent, #4de0c1)"
+                          : "1px solid var(--glass-input-border)",
+                        borderRadius: 10,
+                        color: "var(--glass-text)",
+                        fontSize: 14,
+                        padding: "8px 12px",
+                        outline: "none",
+                        fontFamily: "inherit",
+                        opacity: isLoading ? 0.5 : 1,
+                        transition: "border-color 0.2s",
+                      }}
+                    />
+
+                    {/* Vertical icon stack — top to bottom: + Paperclip Mic Send */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                        flexShrink: 0,
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <InputActionButton
+                        title="Add entity (@mention)"
+                        onClick={() => {
+                          setMentionMenuOpen((v) => !v);
+                          setMentionQuery("");
+                        }}
+                        active={mentionMenuOpen}
+                      >
+                        <Plus size={14} />
+                      </InputActionButton>
+                      <InputActionButton
+                        title="Attach file"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Paperclip size={14} />
+                      </InputActionButton>
+                      <InputActionButton
+                        title={
+                          !voice.supported
+                            ? "Voice input not supported in this browser"
+                            : voice.isListening
+                            ? "Stop recording"
+                            : "Voice input"
+                        }
+                        onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+                        disabled={!voice.supported}
+                        active={voice.isListening}
+                      >
+                        {voice.isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                      </InputActionButton>
+                      <button
+                        onClick={() => void handleSend()}
+                        disabled={!draft.trim() || isLoading}
+                        title="Send"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: "var(--skin-accent-gradient)",
+                          border: "none",
+                          color: "white",
+                          cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
+                          opacity: draft.trim() && !isLoading ? 1 : 0.4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 15,
+                          flexShrink: 0,
+                        }}
+                      >
+                        &#x27a4;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attachment badge */}
                 {attachment && (
-                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--glass-text-soft)" }}>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 11,
+                      color: "var(--glass-text-soft)",
+                    }}
+                  >
                     <Paperclip size={10} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{attachment.name}</span>
-                    <button onClick={() => setAttachment(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }} aria-label="Remove attachment">×</button>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
+                      {attachment.name}
+                    </span>
+                    <button
+                      onClick={() => setAttachment(null)}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }}
+                      aria-label="Remove attachment"
+                    >
+                      ×
+                    </button>
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Pill bar — outside and below the glass panel */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                width: "100%",
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                flexShrink: 0,
+                paddingBottom: 4,
+              }}
+            >
+              {NAV_PILLS.map((pill) => (
+                <button
+                  key={pill.id}
+                  onClick={() => void navigate({ to: pill.to })}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 14px",
+                    borderRadius: "var(--xr-pill, 999px)",
+                    border: "1px solid var(--glass-border-color)",
+                    background: "var(--glass-chrome-bg)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    color: "var(--glass-text)",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  <pill.icon size={12} />
+                  {pill.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </CompanionShell>
 
       {panelTarget && (
-        <EntityPanel open onClose={() => setPanelTarget(null)} type={panelTarget.type} id={panelTarget.id} objectiveId={panelTarget.objectiveId} prefillText={panelTarget.prefillText} initialTitle={panelTarget.initialTitle} user={authUser ?? undefined} />
+        <EntityPanel
+          open
+          onClose={() => setPanelTarget(null)}
+          type={panelTarget.type}
+          id={panelTarget.id}
+          objectiveId={panelTarget.objectiveId}
+          prefillText={panelTarget.prefillText}
+          initialTitle={panelTarget.initialTitle}
+          user={authUser ?? undefined}
+        />
       )}
     </>
   );
 }
 
-// ─── Control button (pill-bar row icon buttons) ────────────────────────────────
-function ControlButton({
+// ─── Top chrome — scoped to right of sidebar ──────────────────────────────────
+function TopChrome({
+  muted,
+  voiceId,
+  availableVoices,
+  onMuteToggle,
+  onVoiceChange,
+  onReload,
+  onNewSession,
+  activeProject,
+  onDeselectProject,
+}: {
+  muted: boolean;
+  voiceId: string;
+  availableVoices: VoiceOption[];
+  onMuteToggle: () => void;
+  onVoiceChange: (id: string) => void;
+  onReload: () => void;
+  onNewSession: () => void;
+  activeProject: ProjectFull | null;
+  onDeselectProject: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        right: 0,
+        left: "var(--sidebar-width, 240px)",
+        zIndex: 20,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        gap: 8,
+        padding: "12px 16px",
+        pointerEvents: "none",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "auto" }}>
+        {activeProject && (
+          <button
+            onClick={onDeselectProject}
+            title="Return to general mode"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 8px 4px 12px",
+              borderRadius: "var(--xr-pill, 999px)",
+              background: "var(--glass-chrome-bg)",
+              border: "1px solid var(--glass-chrome-border)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              color: "var(--skin-ink-soft)",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 500,
+              maxWidth: 200,
+            }}
+          >
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {activeProject.name}
+            </span>
+            <X size={12} style={{ flexShrink: 0 }} />
+          </button>
+        )}
+        {/* 1. New chat */}
+        <ChromeButton onClick={onNewSession} title="New conversation">
+          <MessageSquarePlus size={15} />
+        </ChromeButton>
+        {/* 2. Reload background */}
+        <ChromeButton onClick={onReload} title="Reload background">
+          <RefreshCw size={15} />
+        </ChromeButton>
+        {/* 3. Voice selector */}
+        <select
+          value={voiceId}
+          onChange={(e) => onVoiceChange(e.target.value)}
+          aria-label="Select voice"
+          title="Voice"
+          style={{
+            height: 34,
+            borderRadius: "var(--xr-pill, 999px)",
+            background: "var(--glass-chrome-bg)",
+            border: "1px solid var(--glass-chrome-border)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            color: "var(--skin-ink-soft)",
+            fontSize: 12,
+            padding: "0 10px",
+            cursor: "pointer",
+            outline: "none",
+          }}
+        >
+          {availableVoices.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.label}
+            </option>
+          ))}
+        </select>
+        {/* 4. TTS mute toggle */}
+        <ChromeButton
+          onClick={onMuteToggle}
+          title={muted ? "Enable voice output" : "Mute voice output"}
+        >
+          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        </ChromeButton>
+      </div>
+    </div>
+  );
+}
+
+function ChromeButton({
   children,
   onClick,
   title,
-  active = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title?: string;
-  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
-        width: 26,
-        height: 26,
-        borderRadius: 7,
-        background: active ? "rgba(77,224,193,0.2)" : "transparent",
-        border: active ? "1px solid rgba(77,224,193,0.4)" : "1px solid var(--glass-border-color)",
-        color: active ? "rgba(77,224,193,0.9)" : "var(--glass-text-soft)",
-        cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "var(--glass-chrome-bg)",
+        border: "1px solid var(--glass-chrome-border)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--skin-ink-soft)",
+        cursor: "pointer",
       }}
     >
       {children}
@@ -900,18 +1091,19 @@ function ControlButton({
   );
 }
 
+// ─── Input action button ───────────────────────────────────────────────────────
 function InputActionButton({
   children,
   onClick,
   title,
-  active = false,
-  disabled = false,
+  disabled,
+  active,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title?: string;
-  active?: boolean;
   disabled?: boolean;
+  active?: boolean;
 }) {
   return (
     <button
@@ -919,17 +1111,18 @@ function InputActionButton({
       title={title}
       disabled={disabled}
       style={{
-        width: 28,
-        height: 28,
-        borderRadius: 7,
-        background: active ? "rgba(77,224,193,0.15)" : "transparent",
-        border: active ? "1px solid rgba(77,224,193,0.35)" : "1px solid var(--glass-border-color)",
-        color: active ? "rgba(77,224,193,0.9)" : "var(--glass-text)",
-        cursor: disabled ? "not-allowed" : "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        width: 32,
+        height: 32,
+        borderRadius: 7,
+        border: "1px solid var(--glass-border-color)",
+        background: active ? "var(--skin-accent, #4de0c1)" : "transparent",
+        color: active ? "var(--skin-bg, #fff)" : "var(--glass-text-soft)",
+        cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.4 : 1,
+        transition: "background 0.15s, color 0.15s",
       }}
     >
       {children}
