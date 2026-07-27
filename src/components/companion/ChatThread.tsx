@@ -2,13 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import type { ProjectFull } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
+import { ComponentRenderer } from "@xchange/companion";
+import type { ComponentPayload } from "@xchange/companion";
 import { ProjectCard } from "@/shared/ui/ProjectCard";
 import { CreateProjectTile } from "@/shared/ui/CreateProjectTile";
 import { EntityTypeSelector, type EntityType } from "@/components/JournalFlow";
 
 // ─── Message types ────────────────────────────────────────────────────────────
 
-export type ComponentMessageType = "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
+// Legacy inline component types
+type LegacyComponentType = "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
+// Spec-contracted inline component types (CC_SPEC_inline_component_contract)
+type SpecComponentType = "line_chart" | "bar_chart" | "data_table" | "kpi_card" | "rubric_mini";
+
+export type ComponentMessageType = LegacyComponentType | SpecComponentType;
+
+const SPEC_COMPONENT_TYPES = new Set<string>([
+  "line_chart", "bar_chart", "data_table", "kpi_card", "rubric_mini",
+]);
 
 export interface ChiMsg {
   id: string;
@@ -26,7 +37,8 @@ export interface ComponentMsg {
   id: string;
   kind: "component";
   type: ComponentMessageType;
-  payload?: Record<string, unknown>;
+  payload?: ComponentPayload | Record<string, unknown>;
+  fallback_text?: string;
   resolved?: boolean;
 }
 
@@ -229,26 +241,36 @@ function ComponentMessage({ message, projects, onProjectSelect, onCreateProject,
         pointerEvents: message.resolved ? "none" : undefined,
       }}
     >
-      {message.type === "project-grid" && (
-        <ProjectGridComponent
-          projects={projects}
-          onSelect={onProjectSelect}
-          onCreateProject={onCreateProject}
-        />
-      )}
-      {message.type === "backcaster-stub" && (
-        <StubComponent label="Backcaster flow — coming in CC-3" />
-      )}
-      {message.type === "action-cards-stub" && (
-        <ActionCardsStub />
-      )}
-      {message.type === "action-cards" && (
-        <ActionCards
-          cards={(message.payload?.cards ?? []) as AICard[]}
-          onConfirm={onCardConfirm}
-          onDismiss={onCardDismiss}
-          hiddenCardIds={hiddenCardIds}
-        />
+      {SPEC_COMPONENT_TYPES.has(message.type) ? (
+        message.payload ? (
+          <ComponentRenderer payload={message.payload as ComponentPayload} />
+        ) : (
+          <span style={{ fontSize: 13, color: "var(--skin-ink-soft)" }}>
+            {message.fallback_text ?? "Component unavailable"}
+          </span>
+        )
+      ) : (
+        <>
+          {message.type === "project-grid" && (
+            <ProjectGridComponent
+              projects={projects}
+              onSelect={onProjectSelect}
+              onCreateProject={onCreateProject}
+            />
+          )}
+          {message.type === "backcaster-stub" && (
+            <StubComponent label="Backcaster flow — coming in CC-3" />
+          )}
+          {message.type === "action-cards-stub" && <ActionCardsStub />}
+          {message.type === "action-cards" && (
+            <ActionCards
+              cards={(message.payload as { cards?: AICard[] })?.cards ?? []}
+              onConfirm={onCardConfirm}
+              onDismiss={onCardDismiss}
+              hiddenCardIds={hiddenCardIds}
+            />
+          )}
+        </>
       )}
     </div>
   );
