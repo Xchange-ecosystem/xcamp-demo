@@ -17,6 +17,7 @@ import {
   Navigation,
   StickyNote,
   Zap,
+  ChevronDown,
 } from "lucide-react";
 import { CompanionShell } from "@/components/CompanionShell";
 import { ChatThread } from "@/components/companion/ChatThread";
@@ -1021,31 +1022,45 @@ function TopChrome({
           <RefreshCw size={15} />
         </ChromeButton>
         {/* 3. Voice selector */}
-        <select
-          value={voiceId}
-          onChange={(e) => onVoiceChange(e.target.value)}
-          aria-label="Select voice"
-          title="Voice"
-          style={{
-            height: 34,
-            borderRadius: "var(--xr-pill, 999px)",
-            background: "var(--glass-pill-bg)",
-            border: "1px solid var(--glass-pill-border)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            color: "var(--glass-text)",
-            fontSize: 12,
-            padding: "0 28px 0 12px",
-            cursor: "pointer",
-            outline: "none",
-          }}
-        >
-          {availableVoices.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-        </select>
+        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+          <select
+            value={voiceId}
+            onChange={(e) => onVoiceChange(e.target.value)}
+            aria-label="Select voice"
+            title="Voice"
+            style={{
+              height: 34,
+              borderRadius: "var(--xr-pill, 999px)",
+              background: "var(--glass-pill-bg)",
+              border: "1px solid var(--glass-pill-border)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              color: "var(--glass-text)",
+              fontSize: 12,
+              padding: "0 32px 0 12px",
+              cursor: "pointer",
+              outline: "none",
+              appearance: "none",
+              WebkitAppearance: "none",
+            }}
+          >
+            {availableVoices.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={13}
+            style={{
+              position: "absolute",
+              right: 10,
+              pointerEvents: "none",
+              color: "var(--glass-text)",
+              flexShrink: 0,
+            }}
+          />
+        </div>
         {/* 4. TTS mute toggle */}
         <ChromeButton
           onClick={onMuteToggle}
