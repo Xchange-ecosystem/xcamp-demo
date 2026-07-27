@@ -1,9 +1,31 @@
 import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
+
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="md:hidden fixed top-4 left-4 z-30 flex items-center justify-center rounded-full p-2.5 cursor-pointer"
+      style={{
+        background: "var(--glass-pill-bg)",
+        border: "1px solid var(--glass-pill-border)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--glass-text)",
+      }}
+      aria-label="Open menu"
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
 
 function CollapseOnMount() {
   const { state, toggleSidebar } = useSidebar();
@@ -47,6 +69,7 @@ export function CompanionShell({ children }: { children: ReactNode }) {
       } as React.CSSProperties}
     >
       <CollapseOnMount />
+      <MobileMenuButton />
       <div
         className="flex min-h-screen w-full"
         style={{ background: "transparent" }}

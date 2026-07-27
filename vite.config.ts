@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 export default defineConfig({
@@ -11,6 +12,49 @@ export default defineConfig({
     react(),
     tailwindcss(),
     tsConfigPaths(),
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      manifest: {
+        name: "Nox by Xcamp",
+        short_name: "Nox",
+        description:
+          "Your AI founder companion for building extraordinary companies",
+        theme_color: "#4de0c1",
+        background_color: "#0d1117",
+        display: "standalone",
+        start_url: "/",
+        scope: "/",
+        lang: "en",
+        icons: [
+          {
+            src: "icons/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        // Precache all static assets — app-shell only, no API caching
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        navigateFallback: "/index.html",
+        // Don't intercept API navigation (belt-and-suspenders; APIs are cross-origin anyway)
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+      },
+    }),
   ],
   resolve: {
     alias: {

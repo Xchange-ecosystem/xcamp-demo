@@ -1,11 +1,33 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
+
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="md:hidden fixed top-4 left-4 z-30 flex items-center justify-center rounded-full p-2.5 cursor-pointer"
+      style={{
+        background: "var(--glass-pill-bg)",
+        border: "1px solid var(--glass-pill-border)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--glass-text)",
+      }}
+      aria-label="Open menu"
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
 
 function SidebarResizeHandle({
   sidebarWidth,
@@ -37,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try {
@@ -96,6 +119,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider
       style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
     >
+      {!pathname.startsWith("/profile") && <MobileMenuButton />}
       <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
         <AppSidebar />
         <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
