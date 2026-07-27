@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -52,6 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try {
@@ -111,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider
       style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
     >
-      <MobileMenuButton />
+      {!pathname.startsWith("/profile") && <MobileMenuButton />}
       <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
         <AppSidebar />
         <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
