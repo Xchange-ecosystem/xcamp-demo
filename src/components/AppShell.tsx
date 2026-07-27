@@ -14,7 +14,14 @@ function MobileMenuButton() {
     <button
       type="button"
       onClick={toggleSidebar}
-      className="md:hidden fixed top-4 left-4 z-30 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm p-2.5 text-white/90 hover:bg-black/50 transition-colors cursor-pointer"
+      className="md:hidden fixed top-4 left-4 z-30 flex items-center justify-center rounded-full p-2.5 cursor-pointer"
+      style={{
+        background: "var(--glass-pill-bg)",
+        border: "1px solid var(--glass-pill-border)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--glass-text)",
+      }}
       aria-label="Open menu"
     >
       <Menu size={18} />

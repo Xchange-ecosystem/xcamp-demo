@@ -244,6 +244,14 @@ body {
   color: var(--skin-ink);
 }
 
+/* ---------- Select baseline — chevron clearance ---------- */
+/* Reserve right-side space for the native browser chevron on every <select>.
+ * Inline styles that set shorthand padding must use paddingRight explicitly
+ * (e.g. padding: "0 28px 0 12px") — shorthand overrides this rule. */
+select {
+  padding-inline-end: 1.75rem;
+}
+
 /* ---------- Xcamp component primitives ---------- */
 @layer components {
   .x-btn-primary {
@@ -289,6 +297,11 @@ body {
     box-shadow: 0 0 0 2px var(--skin-accent-soft);
   }
   .x-input::placeholder { color: var(--skin-ink-faint); }
+
+  /* x-input on a <select>: widen right side to clear the native chevron */
+  select.x-input {
+    padding-right: 1.75rem;
+  }
 
   .x-note-card {
     background: var(--skin-surface);

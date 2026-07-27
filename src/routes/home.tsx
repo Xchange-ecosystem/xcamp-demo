@@ -1029,13 +1029,13 @@ function TopChrome({
           style={{
             height: 34,
             borderRadius: "var(--xr-pill, 999px)",
-            background: "var(--glass-chrome-bg)",
-            border: "1px solid var(--glass-chrome-border)",
+            background: "var(--glass-pill-bg)",
+            border: "1px solid var(--glass-pill-border)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
-            color: "var(--skin-ink-soft)",
+            color: "var(--glass-text)",
             fontSize: 12,
-            padding: "0 10px",
+            padding: "0 28px 0 12px",
             cursor: "pointer",
             outline: "none",
           }}
