@@ -1,11 +1,26 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
+
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      className="md:hidden fixed top-4 left-4 z-30 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm p-2.5 text-white/90 hover:bg-black/50 transition-colors cursor-pointer"
+      aria-label="Open menu"
+    >
+      <Menu size={18} />
+    </button>
+  );
+}
 
 function SidebarResizeHandle({
   sidebarWidth,
@@ -96,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider
       style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
     >
+      <MobileMenuButton />
       <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
         <AppSidebar />
         <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
