@@ -18,6 +18,7 @@ export interface ObjectiveRow {
   sort_order: number | null;
   tasksCount: number;
   completedTasksCount: number;
+  tasksGenerationStatus: string | null;
 }
 
 export interface NavTask {
@@ -54,7 +55,7 @@ export async function listObjectivesWithCounts(
 ): Promise<ObjectiveRow[]> {
   const { data: objs, error } = await supabase
     .from("objectives")
-    .select("id, title, description, status, project_id, sort_order")
+    .select("id, title, description, status, project_id, sort_order, tasks_generation_status")
     .eq("project_id", projectId)
     .eq("tenant_id", user.tenantId)
     .order("sort_order", { ascending: true });
@@ -101,6 +102,7 @@ export async function listObjectivesWithCounts(
       sort_order: (o.sort_order as number) ?? null,
       tasksCount: c.total,
       completedTasksCount: c.done,
+      tasksGenerationStatus: (o.tasks_generation_status as string) ?? null,
     };
   });
 }
@@ -248,6 +250,24 @@ export function useObjectiveTasks(objectiveId: string | null) {
     queryKey: ["nav-tasks", "objective", objectiveId],
     enabled: !!objectiveId,
     queryFn: () => listObjectiveTasks(objectiveId!),
+  });
+}
+
+async function fetchObjectiveGenerationStatus(objectiveId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("objectives")
+    .select("tasks_generation_status")
+    .eq("id", objectiveId)
+    .maybeSingle();
+  return (data as { tasks_generation_status?: string } | null)?.tasks_generation_status ?? null;
+}
+
+export function useObjectiveGenerationStatus(objectiveId: string | null) {
+  return useQuery({
+    queryKey: ["nav-objective-gen-status", objectiveId],
+    enabled: !!objectiveId,
+    queryFn: () => fetchObjectiveGenerationStatus(objectiveId!),
+    refetchInterval: (query) => query.state.data === "generating" ? 2000 : false,
   });
 }
 

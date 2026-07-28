@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Target, Inbox, Compass, ArrowLeft } from "lucide-react";
+import { Plus, Target, Inbox, Compass, ArrowLeft, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -12,6 +12,7 @@ import {
 import {
   useObjectives,
   useObjectiveTasks,
+  useObjectiveGenerationStatus,
   useUnassignedTasks,
   useCreateObjective,
   useUpdateObjective,
@@ -444,8 +445,17 @@ function TasksColumn({
   const isUnassigned = objectiveId === UNASSIGNED;
   const tasksQ = useObjectiveTasks(!isUnassigned && objectiveId ? objectiveId : null);
   const unassignedQ = useUnassignedTasks(projectId, isUnassigned);
+  const genStatusQ = useObjectiveGenerationStatus(!isUnassigned && objectiveId ? objectiveId : null);
   const tasks: NavTask[] = isUnassigned ? unassignedQ.data ?? [] : tasksQ.data ?? [];
   const isLoading = isUnassigned ? unassignedQ.isLoading : tasksQ.isLoading;
+  const isGenerating = !isUnassigned && genStatusQ.data === "generating";
+  const prevGenStatus = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (prevGenStatus.current === "generating" && genStatusQ.data !== "generating") {
+      tasksQ.refetch();
+    }
+    prevGenStatus.current = genStatusQ.data;
+  }, [genStatusQ.data]);
 
   const [draft, setDraft] = useState("");
 
@@ -497,7 +507,13 @@ function TasksColumn({
             Loading…
           </p>
         )}
-        {!isLoading && tasks.length === 0 && (
+        {!isLoading && tasks.length === 0 && isGenerating && (
+          <p style={{ padding: "24px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Sparkles size={13} className="animate-pulse" />
+            Generating tasks…
+          </p>
+        )}
+        {!isLoading && tasks.length === 0 && !isGenerating && (
           <p style={{ padding: "24px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
             No tasks yet.
           </p>
