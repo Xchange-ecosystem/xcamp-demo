@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { CompanionGlassPanelV2 } from "@/components/companion/CompanionGlassPanelV2";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
@@ -68,6 +69,9 @@ const NAV_PILLS = [
 ] as const;
 
 export const Route = createFileRoute("/home")({
+  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental" } => ({
+    ui: search.ui === "experimental" ? "experimental" : "default",
+  }),
   head: () => ({
     meta: [
       { title: "Chi Companion" },
@@ -92,6 +96,7 @@ function CompanionHomePage() {
   const { user: authUser } = useAuth();
   const { activeProjectId, setActiveProjectId } = useActiveProject();
   const navigate = useNavigate();
+  const { ui: uiVariant } = Route.useSearch();
 
   const session = useCompanionSession(authUser);
 
@@ -593,8 +598,52 @@ function CompanionHomePage() {
           onDeselectProject={handleProjectDeselect}
         />
 
+        {/* ── UI variant toggle ──────────────────────────────────────────
+            ?ui=experimental → CompanionGlassPanelV2 (right-anchored, compact)
+            ?ui=default (or omitted) → original centered column below
+        ─────────────────────────────────────────────────────────────────── */}
+        {uiVariant === "experimental" && (
+          <CompanionGlassPanelV2
+            messages={session.messages}
+            projects={projects}
+            onProjectSelect={handleProjectSelect}
+            onCreateProject={handleCreateProject}
+            typingMessageId={typingMessageId ?? undefined}
+            isLoading={isLoading}
+            onCardConfirm={handleCardConfirm}
+            onCardDismiss={handleCardDismiss}
+            hiddenCardIds={dismissedCardIds}
+            ttsError={ttsError}
+            dismissedTtsError={dismissedTtsError}
+            muted={muted}
+            onDismissTtsError={() => { setDismissedTtsError(true); clearTTSError(); }}
+            draft={draft}
+            onDraftChange={handleDraftChange}
+            onSend={() => void handleSend()}
+            voice={voice}
+            fileInputRef={fileInputRef}
+            attachment={attachment}
+            onAttachmentSet={setAttachment}
+            mentionMenuOpen={mentionMenuOpen}
+            mentionQuery={mentionQuery}
+            onMentionSelect={handleMentionSelect}
+            mentionedEntities={mentionedEntities}
+            onMentionedEntitiesChange={setMentionedEntities}
+            onMentionMenuClose={() => {
+              setMentionMenuOpen(false);
+              setMentionQuery("");
+              setMentionAtIndex(-1);
+            }}
+            onMentionToggle={() => {
+              setMentionMenuOpen((v) => !v);
+              setMentionQuery("");
+            }}
+            activeProjectId={activeProject?.id}
+          />
+        )}
+
         {/* Centered column: glass panel + pill bar below */}
-        <div
+        {uiVariant === "default" && <div
           style={{
             position: "fixed",
             inset: 0,
@@ -928,7 +977,7 @@ function CompanionHomePage() {
               ))}
             </div>
           </div>
-        </div>
+        </div>}
       </CompanionShell>
 
       {panelTarget && (
