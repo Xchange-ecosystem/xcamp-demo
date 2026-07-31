@@ -268,11 +268,25 @@ export async function bulkAssignProject(
   );
 }
 
+async function getAccessibleProjectIds(user: XcampUser): Promise<string[]> {
+  const { data } = await supabase
+    .from("object_memberships")
+    .select("object_id")
+    .eq("object_type", "project")
+    .eq("user_central_id", user.centralId)
+    .eq("status", "active");
+  return (data ?? []).map((m) => m.object_id as string);
+}
+
 export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
+  const memberIds = await getAccessibleProjectIds(user);
+  const memberFilter = memberIds.length > 0 ? `,id.in.(${memberIds.join(",")})` : "";
+
   const { data, error } = await supabase
     .from("projects")
     .select("id, title")
     .eq("tenant_id", user.tenantId)
+    .or(`owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`)
     .order("title");
 
   if (error) throw error;
@@ -282,12 +296,16 @@ export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
 }
 
 export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> {
+  const memberIds = await getAccessibleProjectIds(user);
+  const memberFilter = memberIds.length > 0 ? `,id.in.(${memberIds.join(",")})` : "";
+
   // Supabase generated types are stale — feature_image exists in DB but isn't
   // reflected yet. Cast through unknown to allow the column in the select.
   const { data, error } = await (supabase
     .from("projects")
     .select("id, title, feature_image, color, description")
     .eq("tenant_id", user.tenantId)
+    .or(`owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`)
     .order("title") as unknown as Promise<{
     data: Array<Record<string, unknown>> | null;
     error: { message: string } | null;
