@@ -349,3 +349,52 @@ export async function autoTagNote(
 
   return tags;
 }
+
+export type ProjectMetrics = Record<string, { objectives: number; tasks: number }>;
+
+/**
+ * Batch-fetch objective and task counts for a set of project IDs.
+ * 2 parallel queries total regardless of project count — no N+1.
+ *
+ * SCHEMA NOTE: Tasks (note_type='task') store their project_id inside the
+ * `detail` JSONB column (not as a top-level column), so this function fetches
+ * all user tasks and groups client-side. Tasks linked only via objective_notes
+ * (without a detail.project_id set) are NOT counted — this is a known gap that
+ * would require a schema view or RPC to close without a full-table scan.
+ */
+export async function fetchProjectMetrics(
+  user: XcampUser,
+  projectIds: string[],
+): Promise<ProjectMetrics> {
+  if (!projectIds.length) return {};
+
+  const [{ data: objRows }, { data: taskRows }] = await Promise.all([
+    supabase
+      .from("objectives")
+      .select("project_id")
+      .in("project_id", projectIds)
+      .eq("tenant_id", user.tenantId),
+    supabase
+      .from("notes")
+      .select("detail")
+      .eq("owner_central_id", user.centralId)
+      .eq("note_type", "task")
+      .or("detail->>archived.is.null,detail->>archived.eq.false"),
+  ]);
+
+  const result: ProjectMetrics = {};
+  for (const id of projectIds) result[id] = { objectives: 0, tasks: 0 };
+
+  for (const row of objRows ?? []) {
+    const pid = row.project_id as string;
+    if (result[pid]) result[pid].objectives++;
+  }
+
+  const pidSet = new Set(projectIds);
+  for (const row of taskRows ?? []) {
+    const pid = ((row.detail as Record<string, unknown>)?.project_id) as string | undefined;
+    if (pid && pidSet.has(pid) && result[pid]) result[pid].tasks++;
+  }
+
+  return result;
+}

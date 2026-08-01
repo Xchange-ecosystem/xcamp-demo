@@ -7,14 +7,49 @@
  * All state lives in home.tsx; these are purely presentational.
  */
 
-import { useRef } from "react";
-import { Mic, MicOff, NotebookPen, Paperclip, Plus, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Mic, MicOff, Paperclip, Plus, Zap } from "lucide-react";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
+import { PageHeroShell } from "@/components/PageHeroShell";
 import { ChatThread } from "@/components/companion/ChatThread";
 import type { ChatMessage } from "@/components/companion/ChatThread";
 import type { ProjectFull, XcampUser } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
+import { useTheme } from "@/lib/theme";
+import { fetchProjectMetrics, type ProjectMetrics } from "@/lib/xcamp-api";
+
+// ─── Hero background image paths ─────────────────────────────────────────────
+// PLACEHOLDER — drop the real images at these paths to activate them.
+// Swap `undefined` → the string path; no other code changes needed.
+const HERO_DARK_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-dark.jpg"
+const HERO_LIGHT_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-light.jpg"
+
+// ─── Recommendation card video paths ─────────────────────────────────────────
+const CARD_VIDEOS = {
+  journal: "/assets/cards/journal.mp4",
+  note: "/assets/cards/note.mp4",
+  project: "/assets/cards/project.mp4",
+} as const;
+
+// ─── CSS animation for the shifting-color hero overlay ───────────────────────
+// prefers-reduced-motion is handled in the style block itself.
+const HERO_ANIMATION_STYLE = `
+  @keyframes eco-hero-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .eco-hero-overlay {
+    animation: eco-hero-shift 12s ease infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eco-hero-overlay {
+      animation: none !important;
+      background-position: 0% 50%;
+    }
+  }
+`;
 
 // ─── Shared prop types ────────────────────────────────────────────────────────
 
@@ -97,6 +132,7 @@ function InputBox({
   onMentionToggle,
   activeProjectId,
   placeholder,
+  placement = "above",
 }: {
   draft: string;
   onDraftChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -115,6 +151,7 @@ function InputBox({
   onMentionToggle: () => void;
   activeProjectId?: string;
   placeholder?: string;
+  placement?: "above" | "below";
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -167,6 +204,7 @@ function InputBox({
           projectId={activeProjectId}
           onSelect={onMentionSelect}
           onClose={onMentionMenuClose}
+          placement={placement}
         />
         <textarea
           ref={textareaRef}
@@ -176,7 +214,7 @@ function InputBox({
             if (e.key === "Escape") { onMentionMenuClose(); return; }
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
-          rows={2}
+          rows={4}
           placeholder={
             voice.isListening ? "Listening…" : isLoading ? "Chi is thinking…" : (placeholder ?? "Ask Chi anything… (@ to mention)")
           }
@@ -184,6 +222,7 @@ function InputBox({
           style={{
             width: "100%",
             resize: "none",
+            overflowY: "auto",
             border: voice.isListening ? "1px solid var(--skin-accent, #4de0c1)" : "1px solid var(--skin-line)",
             borderRadius: 8,
             background: "transparent",
@@ -306,133 +345,118 @@ function firstName(user: XcampUser | null) {
   return user?.displayName?.split(" ")?.[0] ?? "there";
 }
 
-// ─── Surface wrapper ──────────────────────────────────────────────────────────
+// ─── Ecosystem hero layout (Phase 5) ─────────────────────────────────────────
+// Mirrors PageHeroShell's structural pattern (hero banner + overlapping card)
+// but adds an animated colour-shift overlay inside the hero area.
+// Light / dark image selection is done via the resolved theme.
 
-function HomeSurface({ children }: { children: React.ReactNode }) {
+function EcosystemHeroLayout({
+  heroSrc,
+  children,
+}: {
+  heroSrc: string | undefined;
+  children: React.ReactNode;
+}) {
+  const HERO_HEIGHTS = "h-[150px] sm:h-[280px] md:h-[320px]";
+  const OVERLAP = 56;
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--skin-surface)",
-        padding: "40px 40px 60px",
-        overflowY: "auto",
-      }}
-    >
-      <div style={{ maxWidth: 680, margin: "0 auto" }}>
-        {children}
+    <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
+      {/* Inject keyframe animation + prefers-reduced-motion rule */}
+      <style>{HERO_ANIMATION_STYLE}</style>
+
+      {/* Hero banner */}
+      <div
+        className={`relative w-full overflow-hidden ${HERO_HEIGHTS}`}
+        style={{ background: "var(--skin-accent-gradient)" }}
+      >
+        {/* Background image (when available) */}
+        {heroSrc && (
+          <img
+            src={heroSrc}
+            alt=""
+            aria-hidden
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+
+        {/* Accent multiply tint — same as PageHeroShell */}
+        {heroSrc && (
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "var(--skin-accent)", mixBlendMode: "multiply", opacity: 0.55 }}
+          />
+        )}
+
+        {/* Animated shifting-colour overlay — driven by theme accent tokens */}
+        <div
+          aria-hidden
+          className="eco-hero-overlay absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: [
+              "linear-gradient(270deg,",
+              "  var(--skin-accent, #4de0c1) 0%,",
+              "  color-mix(in srgb, var(--skin-accent, #4de0c1) 60%, var(--skin-bg, #fff)) 30%,",
+              "  color-mix(in srgb, var(--skin-surface, #f5f5f5) 70%, var(--skin-accent, #4de0c1)) 60%,",
+              "  var(--skin-accent, #4de0c1) 100%",
+              ")",
+            ].join(""),
+            backgroundSize: "300% 300%",
+            opacity: heroSrc ? 0.28 : 0.55,
+            mixBlendMode: heroSrc ? "screen" : "normal",
+          }}
+        />
+
+        {/* Bottom fade to surface — same as PageHeroShell */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--skin-surface) 55%, transparent) 55%, var(--skin-surface) 100%)",
+          }}
+        />
       </div>
+
+      {/* Overlapping content card */}
+      <div
+        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px]"
+        style={{ marginTop: -OVERLAP }}
+      >
+        <div
+          className="rounded-2xl shadow-xl"
+          style={{
+            background: "var(--skin-bg)",
+            border: "1px solid var(--skin-line)",
+            color: "var(--skin-ink)",
+            padding: "32px 32px 48px",
+          }}
+        >
+          {children}
+        </div>
+      </div>
+
+      <div className="h-12" />
     </div>
   );
 }
 
-// ─── Ecosystem Home (Phase 2) ─────────────────────────────────────────────────
+// ─── Project tile (Phase 8 — fully clickable, with metrics) ──────────────────
 
-export function EcosystemHomeView(props: ExperimentalHomeProps) {
-  const { projects, onProjectSelect, onCreateProject, authUser } = props;
-
+function ProjectTile({
+  project,
+  metrics,
+  onSelect,
+}: {
+  project: ProjectFull;
+  metrics?: { objectives: number; tasks: number };
+  onSelect: (p: ProjectFull) => void;
+}) {
   return (
-    <HomeSurface>
-      {/* Greeting */}
-      <h1
-        style={{
-          fontSize: 26,
-          fontWeight: 700,
-          color: "var(--skin-ink)",
-          marginBottom: 4,
-          letterSpacing: "-0.01em",
-        }}
-      >
-        {timeGreeting()}, {firstName(authUser)}.
-      </h1>
-      <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
-        {projects.length > 0
-          ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
-          : "What do you want to work on today?"}
-      </p>
-
-      {/* Input */}
-      <div style={{ marginBottom: 40 }}>
-        <InputBox
-          {...props}
-          activeProjectId={undefined}
-          placeholder="Ask Chi anything, or jot down what's on your mind…"
-        />
-      </div>
-
-      {/* Project tiles */}
-      {projects.length > 0 && (
-        <section style={{ marginBottom: 36 }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--skin-ink-faint)",
-              marginBottom: 12,
-            }}
-          >
-            Jump into a project
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              overflowX: "auto",
-              paddingBottom: 4,
-              scrollbarWidth: "none",
-            }}
-          >
-            {projects.map((p) => (
-              <ProjectTile key={p.id} project={p} onSelect={onProjectSelect} />
-            ))}
-            <NewProjectTile onSelect={onCreateProject} />
-          </div>
-        </section>
-      )}
-
-      {/* Recommendation cards */}
-      <section>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--skin-ink-faint)",
-            marginBottom: 12,
-          }}
-        >
-          Here's what I recommend
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <RecommendCard
-            title="Daily journal"
-            description="Reflect on today and capture what matters."
-            icon={<NotebookPen size={16} />}
-            to="/journal"
-          />
-          <RecommendCard
-            title="Quick note"
-            description="Capture a thought before it slips away."
-            icon={<Paperclip size={16} />}
-            to="/notes"
-          />
-          <RecommendCard
-            title="Start a project"
-            description="Launch a new initiative with Backcaster."
-            icon={<Zap size={16} />}
-            to="/project-builder"
-          />
-        </div>
-      </section>
-    </HomeSurface>
-  );
-}
-
-function ProjectTile({ project, onSelect }: { project: ProjectFull; onSelect: (p: ProjectFull) => void }) {
-  return (
-    <div
+    <button
+      onClick={() => onSelect(project)}
       style={{
         flexShrink: 0,
         width: 200,
@@ -440,6 +464,18 @@ function ProjectTile({ project, onSelect }: { project: ProjectFull; onSelect: (p
         borderRadius: 10,
         overflow: "hidden",
         background: "var(--skin-card, var(--skin-surface))",
+        cursor: "pointer",
+        textAlign: "left",
+        padding: 0,
+        transition: "box-shadow 0.15s, border-color 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--skin-accent, #4de0c1)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = "none";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--skin-line)";
       }}
     >
       {project.feature_image ? (
@@ -474,22 +510,36 @@ function ProjectTile({ project, onSelect }: { project: ProjectFull; onSelect: (p
         >
           {project.name}
         </div>
-        <button
-          onClick={() => onSelect(project)}
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--skin-accent, #4de0c1)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          Go to →
-        </button>
+        {metrics && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <MetricPill label="obj" count={metrics.objectives} />
+            <MetricPill label="tasks" count={metrics.tasks} />
+          </div>
+        )}
       </div>
-    </div>
+    </button>
+  );
+}
+
+function MetricPill({ label, count }: { label: string; count: number }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        fontSize: 10,
+        fontWeight: 600,
+        color: "var(--skin-ink-faint)",
+        background: "var(--skin-surface)",
+        border: "1px solid var(--skin-line)",
+        borderRadius: 4,
+        padding: "1px 5px",
+      }}
+    >
+      <span style={{ fontVariantNumeric: "tabular-nums" }}>{count}</span>
+      <span style={{ fontWeight: 400 }}>{label}</span>
+    </span>
   );
 }
 
@@ -519,45 +569,74 @@ function NewProjectTile({ onSelect }: { onSelect: () => void }) {
   );
 }
 
+// ─── Recommendation card with hover-play video (Phase 9) ─────────────────────
+
 function RecommendCard({
   title,
   description,
-  icon,
+  videoSrc,
   to,
 }: {
   title: string;
   description: string;
-  icon: React.ReactNode;
+  videoSrc: string;
   to: string;
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  function handleMouseEnter() {
+    videoRef.current?.play().catch(() => undefined);
+  }
+  function handleMouseLeave() {
+    const v = videoRef.current;
+    if (!v) return;
+    v.pause();
+    v.currentTime = 0;
+  }
+
   return (
     <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         border: "1px solid var(--skin-line)",
         borderRadius: 10,
-        padding: "12px 14px",
+        overflow: "hidden",
         background: "var(--skin-card, var(--skin-surface))",
+        cursor: "default",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ color: "var(--skin-ink-soft)" }}>{icon}</span>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
-          <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
-        </div>
+      {/* Video thumbnail */}
+      <div style={{ flexShrink: 0, width: 72, height: 56, overflow: "hidden", background: "var(--skin-surface)" }}>
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          muted
+          preload="metadata"
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
       </div>
+
+      {/* Text */}
+      <div style={{ flex: 1, padding: "10px 14px" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
+        <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
+      </div>
+
+      {/* Go to link */}
       <a
         href={to}
         style={{
+          flexShrink: 0,
           fontSize: 12,
           fontWeight: 600,
           color: "var(--skin-accent, #4de0c1)",
           textDecoration: "none",
-          flexShrink: 0,
-          marginLeft: 12,
+          padding: "0 16px 0 0",
         }}
       >
         Go to →
@@ -566,43 +645,95 @@ function RecommendCard({
   );
 }
 
-// ─── Project Home (Phase 3) ───────────────────────────────────────────────────
+// ─── Ecosystem Home (Phase 5) ─────────────────────────────────────────────────
 
-export function ProjectHomeView(props: ExperimentalHomeProps) {
-  const { activeProject, authUser } = props;
+export function EcosystemHomeView(props: ExperimentalHomeProps) {
+  const { projects, onProjectSelect, onCreateProject, authUser } = props;
+  const { resolved: theme } = useTheme();
+
+  // Select background image per theme — PLACEHOLDER until real images are provided.
+  // To activate: set HERO_DARK_SRC and HERO_LIGHT_SRC constants at the top of this file.
+  const heroSrc = theme === "dark" ? HERO_DARK_SRC : HERO_LIGHT_SRC;
+
+  // Phase 8: batch-fetch objective + task counts for all visible projects
+  const [metrics, setMetrics] = useState<ProjectMetrics>({});
+  useEffect(() => {
+    if (!authUser || !projects.length) return;
+    let cancelled = false;
+    fetchProjectMetrics(authUser, projects.map((p) => p.id))
+      .then((m) => { if (!cancelled) setMetrics(m); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [authUser, projects]);
 
   return (
-    <HomeSurface>
+    <EcosystemHeroLayout heroSrc={heroSrc}>
       {/* Greeting */}
       <h1
         style={{
           fontSize: 26,
           fontWeight: 700,
           color: "var(--skin-ink)",
-          marginBottom: 2,
+          marginBottom: 4,
           letterSpacing: "-0.01em",
         }}
       >
         {timeGreeting()}, {firstName(authUser)}.
       </h1>
       <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
-        {activeProject ? (
-          <>Working in <strong style={{ color: "var(--skin-ink)" }}>{activeProject.name}</strong>.</>
-        ) : (
-          "Working in project mode."
-        )}
+        {projects.length > 0
+          ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
+          : "What do you want to work on today?"}
       </p>
 
-      {/* Input */}
-      <div style={{ marginBottom: 36 }}>
+      {/* Input — menu opens below (Phase 7) */}
+      <div style={{ marginBottom: 40 }}>
         <InputBox
           {...props}
-          activeProjectId={activeProject?.id}
-          placeholder="Ask Chi about your project, or jot something down…"
+          activeProjectId={undefined}
+          placeholder="Ask Chi anything, or jot down what's on your mind…"
+          placement="below"
         />
       </div>
 
-      {/* Suggested next steps — placeholder */}
+      {/* Project tiles (Phase 8 — fully clickable, with metrics) */}
+      {projects.length > 0 && (
+        <section style={{ marginBottom: 36 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--skin-ink-faint)",
+              marginBottom: 12,
+            }}
+          >
+            Jump into a project
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+            }}
+          >
+            {projects.map((p) => (
+              <ProjectTile
+                key={p.id}
+                project={p}
+                metrics={metrics[p.id]}
+                onSelect={onProjectSelect}
+              />
+            ))}
+            <NewProjectTile onSelect={onCreateProject} />
+          </div>
+        </section>
+      )}
+
+      {/* Recommendation cards with videos (Phase 9) */}
       <section>
         <div
           style={{
@@ -614,22 +745,103 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
             marginBottom: 12,
           }}
         >
-          Suggested next steps
+          Here's what I recommend
         </div>
-        <div
-          style={{
-            border: "1.5px dashed var(--skin-line)",
-            borderRadius: 10,
-            padding: "24px 20px",
-            color: "var(--skin-ink-faint)",
-            fontSize: 13,
-            textAlign: "center",
-          }}
-        >
-          Backcaster-generated suggestions — coming soon.
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <RecommendCard
+            title="Daily journal"
+            description="Reflect on today and capture what matters."
+            videoSrc={CARD_VIDEOS.journal}
+            to="/journal"
+          />
+          <RecommendCard
+            title="Quick note"
+            description="Capture a thought before it slips away."
+            videoSrc={CARD_VIDEOS.note}
+            to="/notes"
+          />
+          <RecommendCard
+            title="Start a project"
+            description="Launch a new initiative with Backcaster."
+            videoSrc={CARD_VIDEOS.project}
+            to="/project-builder"
+          />
         </div>
       </section>
-    </HomeSurface>
+    </EcosystemHeroLayout>
+  );
+}
+
+// ─── Project Home (Phase 6) ───────────────────────────────────────────────────
+
+export function ProjectHomeView(props: ExperimentalHomeProps) {
+  const { activeProject, authUser } = props;
+
+  return (
+    <PageHeroShell
+      image={activeProject?.feature_image ?? undefined}
+      showImageReload={false}
+    >
+      {/* Card content rendered inside PageHeroShell's overlapping card */}
+      <div style={{ padding: "32px 32px 48px" }}>
+        {/* Greeting */}
+        <h1
+          style={{
+            fontSize: 26,
+            fontWeight: 700,
+            color: "var(--skin-ink)",
+            marginBottom: 2,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {timeGreeting()}, {firstName(authUser)}.
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
+          {activeProject ? (
+            <>Working in <strong style={{ color: "var(--skin-ink)" }}>{activeProject.name}</strong>.</>
+          ) : (
+            "Working in project mode."
+          )}
+        </p>
+
+        {/* Input */}
+        <div style={{ marginBottom: 36 }}>
+          <InputBox
+            {...props}
+            activeProjectId={activeProject?.id}
+            placeholder="Ask Chi about your project, or jot something down…"
+          />
+        </div>
+
+        {/* Suggested next steps — placeholder for Backcaster integration */}
+        <section>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--skin-ink-faint)",
+              marginBottom: 12,
+            }}
+          >
+            Suggested next steps
+          </div>
+          <div
+            style={{
+              border: "1.5px dashed var(--skin-line)",
+              borderRadius: 10,
+              padding: "24px 20px",
+              color: "var(--skin-ink-faint)",
+              fontSize: 13,
+              textAlign: "center",
+            }}
+          >
+            Backcaster-generated suggestions — coming soon.
+          </div>
+        </section>
+      </div>
+    </PageHeroShell>
   );
 }
 
@@ -715,7 +927,7 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
         </div>
       </div>
 
-      {/* Input */}
+      {/* Input footer */}
       <div
         style={{
           flexShrink: 0,
