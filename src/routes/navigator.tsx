@@ -13,8 +13,9 @@ export const Route = createFileRoute("/navigator")({
       { name: "description", content: "Browse project objectives and tasks and open them to edit details." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { view: NavigatorView } => ({
+  validateSearch: (search: Record<string, unknown>): { view: NavigatorView; nav?: "experimental" } => ({
     view: search.view === "network" ? "network" : "browser",
+    ...(search.nav === "experimental" ? { nav: "experimental" as const } : {}),
   }),
   component: NavigatorPage,
 });
@@ -24,7 +25,7 @@ function NavigatorPage() {
   const navigate = useNavigate({ from: "/navigator" });
 
   const setView = (v: NavigatorView) => {
-    void navigate({ search: { view: v }, replace: true });
+    void navigate({ search: (prev) => ({ ...prev, view: v }), replace: true });
   };
 
   return (

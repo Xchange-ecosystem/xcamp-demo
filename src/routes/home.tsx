@@ -70,8 +70,9 @@ const NAV_PILLS = [
 ] as const;
 
 export const Route = createFileRoute("/home")({
-  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental" } => ({
+  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental"; nav?: "experimental" } => ({
     ui: search.ui === "experimental" ? "experimental" : "default",
+    ...(search.nav === "experimental" ? { nav: "experimental" as const } : {}),
   }),
   head: () => ({
     meta: [

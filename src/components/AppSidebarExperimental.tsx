@@ -25,6 +25,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Settings2,
   Target,
   User,
 } from "lucide-react";
@@ -65,11 +66,12 @@ const ECOSYSTEM_NAV: NavItem[] = [
 ];
 
 const PROJECT_NAV: NavItem[] = [
-  { title: "home",      url: "/home",            icon: Home,          label: "Home" },
-  { title: "companion", url: "/home",            icon: MessageCircle, label: "Companion" },
-  { title: "journal",   url: "/journal",         icon: NotebookPen,   label: "Journal" },
-  { title: "navigator", url: "/navigator",       icon: Map,           label: "Project Navigator" },
-  { title: "goals",     url: "",                 icon: Target,        label: "My Goals", parameterised: true },
+  { title: "home",            url: "/home",            icon: Home,          label: "Home" },
+  { title: "companion",       url: "/home",            icon: MessageCircle, label: "Companion" },
+  { title: "journal",         url: "/journal",         icon: NotebookPen,   label: "Journal" },
+  { title: "navigator",       url: "/navigator",       icon: Map,           label: "Project Navigator" },
+  { title: "goals",           url: "",                 icon: Target,        label: "My Goals", parameterised: true },
+  { title: "project-details", url: "/project-details", icon: Settings2,     label: "Project Details" },
 ];
 
 export function AppSidebarExperimental() {
@@ -356,7 +358,7 @@ export function AppSidebarExperimental() {
                       asChild={false}
                       isActive={active}
                       tooltip={item.label}
-                      onClick={() => void navigate({ to: url as never })}
+                      onClick={() => void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev }) })}
                       className="flex items-center gap-2 w-full"
                     >
                       <item.icon className="h-4 w-4" />
