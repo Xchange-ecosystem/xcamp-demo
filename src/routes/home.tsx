@@ -445,11 +445,6 @@ function CompanionHomePage() {
     [setActiveProjectId, setNavMode],
   );
 
-  const handleSendFromHome = useCallback(() => {
-    setExperimentalView("chat");
-    void handleSend();
-  }, [handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
 
@@ -604,6 +599,11 @@ function CompanionHomePage() {
       await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
     }
   }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSendFromHome = useCallback(() => {
+    setExperimentalView("chat");
+    void handleSend();
+  }, [handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
