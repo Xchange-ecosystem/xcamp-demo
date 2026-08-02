@@ -8,7 +8,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Paperclip, Plus, Zap } from "lucide-react";
+import { Mic, MicOff, Paperclip, Plus, Send, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useActiveProject } from "@/contexts/active-project";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { ChatThread } from "@/components/companion/ChatThread";
@@ -22,8 +24,8 @@ import { fetchProjectMetrics, type ProjectMetrics } from "@/lib/xcamp-api";
 // ─── Hero background image paths ─────────────────────────────────────────────
 // PLACEHOLDER — drop the real images at these paths to activate them.
 // Swap `undefined` → the string path; no other code changes needed.
-const HERO_DARK_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-dark.jpg"
-const HERO_LIGHT_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-light.jpg"
+const HERO_DARK_SRC: string | undefined = "/assets/hero-ecosystem-dark.jpg";
+const HERO_LIGHT_SRC: string | undefined = "/assets/hero-ecosystem-light.jpg";
 
 // ─── Recommendation card video paths ─────────────────────────────────────────
 const CARD_VIDEOS = {
@@ -569,18 +571,195 @@ function NewProjectTile({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-// ─── Recommendation card with hover-play video (Phase 9) ─────────────────────
+// ─── Tool tile for Project Home (Phase 14) ───────────────────────────────────
+// Whole-tile-clickable; video plays on hover, resets on mouse-leave.
+// videoSrc omitted → placeholder slot for pending asset.
+
+function ToolTile({
+  title,
+  videoSrc,
+  to,
+}: {
+  title: string;
+  videoSrc?: string;
+  to: string;
+}) {
+  const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  return (
+    <button
+      onClick={() =>
+        void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never })
+      }
+      onMouseEnter={(e) => {
+        (e.currentTarget).style.borderColor = "var(--skin-accent, #4de0c1)";
+        videoRef.current?.play().catch(() => undefined);
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget).style.borderColor = "var(--skin-line)";
+        const v = videoRef.current;
+        if (!v) return;
+        v.pause();
+        v.currentTime = 0;
+      }}
+      style={{
+        flex: 1,
+        border: "1px solid var(--skin-line)",
+        borderRadius: 10,
+        overflow: "hidden",
+        background: "var(--skin-card, var(--skin-surface))",
+        cursor: "pointer",
+        textAlign: "left",
+        padding: 0,
+        transition: "border-color 0.15s, box-shadow 0.15s",
+      }}
+    >
+      <div style={{ width: "100%", height: 96, overflow: "hidden", background: "var(--skin-surface)" }}>
+        {videoSrc ? (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            muted
+            preload="metadata"
+            playsInline
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--skin-ink-faint)",
+              fontSize: 11,
+              borderBottom: "1px solid var(--skin-line)",
+            }}
+          >
+            {/* Pending video asset */}
+            Video coming soon
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "9px 12px 12px", fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>
+        {title}
+      </div>
+    </button>
+  );
+}
+
+// ─── Project-select + Send for Ecosystem Home recommend cards (Phase 15) ─────
+
+function ProjectSelectAction({
+  projects,
+  to,
+}: {
+  projects: ProjectFull[];
+  to: string;
+}) {
+  const navigate = useNavigate();
+  const { setActiveProjectId } = useActiveProject();
+  const [selectedId, setSelectedId] = useState("");
+
+  const handleSend = () => {
+    if (!selectedId) return;
+    setActiveProjectId(selectedId);
+    void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never });
+  };
+
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+      <select
+        value={selectedId}
+        onChange={(e) => setSelectedId(e.target.value)}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: "5px 8px",
+          borderRadius: 6,
+          border: "1px solid var(--skin-line)",
+          background: "var(--skin-surface)",
+          color: selectedId ? "var(--skin-ink)" : "var(--skin-ink-faint)",
+          fontSize: 12,
+          outline: "none",
+          cursor: "pointer",
+        }}
+      >
+        <option value="">Select project to start.</option>
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={handleSend}
+        disabled={!selectedId}
+        title="Go"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: 6,
+          border: selectedId ? "none" : "1px solid var(--skin-line)",
+          background: selectedId ? "var(--skin-accent-gradient)" : "transparent",
+          color: selectedId ? "white" : "var(--skin-ink-faint)",
+          cursor: selectedId ? "pointer" : "not-allowed",
+          opacity: selectedId ? 1 : 0.45,
+          transition: "background 0.15s, opacity 0.15s",
+        } as React.CSSProperties}
+      >
+        <Send size={14} />
+      </button>
+    </div>
+  );
+}
+
+// "Get started with AI." button for the Start-a-project card (Phase 15)
+function GetStartedAction({ to }: { to: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() =>
+        void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never })
+      }
+      style={{
+        marginTop: 8,
+        padding: "5px 12px",
+        borderRadius: 6,
+        border: "none",
+        background: "var(--skin-accent-gradient)",
+        color: "white",
+        fontWeight: 600,
+        fontSize: 12,
+        cursor: "pointer",
+        display: "inline-block",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Get started with AI.
+    </button>
+  );
+}
+
+// ─── Recommendation card with hover-play video (Phase 9, redesigned Phase 15) ─
+// "Go to →" removed. Pass `action` for the per-card CTA.
 
 function RecommendCard({
   title,
   description,
   videoSrc,
-  to,
+  action,
 }: {
   title: string;
   description: string;
   videoSrc: string;
-  to: string;
+  action?: React.ReactNode;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -600,8 +779,7 @@ function RecommendCard({
       onMouseLeave={handleMouseLeave}
       style={{
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        alignItems: "flex-start",
         border: "1px solid var(--skin-line)",
         borderRadius: 10,
         overflow: "hidden",
@@ -609,8 +787,17 @@ function RecommendCard({
         cursor: "default",
       }}
     >
-      {/* Video thumbnail */}
-      <div style={{ flexShrink: 0, width: 72, height: 56, overflow: "hidden", background: "var(--skin-surface)" }}>
+      {/* Video thumbnail — stretches to card height */}
+      <div
+        style={{
+          flexShrink: 0,
+          width: 72,
+          alignSelf: "stretch",
+          minHeight: 56,
+          overflow: "hidden",
+          background: "var(--skin-surface)",
+        }}
+      >
         <video
           ref={videoRef}
           src={videoSrc}
@@ -621,26 +808,12 @@ function RecommendCard({
         />
       </div>
 
-      {/* Text */}
-      <div style={{ flex: 1, padding: "10px 14px" }}>
+      {/* Text + action */}
+      <div style={{ flex: 1, padding: "10px 14px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
         <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
+        {action}
       </div>
-
-      {/* Go to link */}
-      <a
-        href={to}
-        style={{
-          flexShrink: 0,
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--skin-accent, #4de0c1)",
-          textDecoration: "none",
-          padding: "0 16px 0 0",
-        }}
-      >
-        Go to →
-      </a>
     </div>
   );
 }
@@ -752,19 +925,19 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
             title="Daily journal"
             description="Reflect on today and capture what matters."
             videoSrc={CARD_VIDEOS.journal}
-            to="/journal"
+            action={<ProjectSelectAction projects={projects} to="/journal" />}
           />
           <RecommendCard
             title="Quick note"
             description="Capture a thought before it slips away."
             videoSrc={CARD_VIDEOS.note}
-            to="/notes"
+            action={<ProjectSelectAction projects={projects} to="/notes" />}
           />
           <RecommendCard
             title="Start a project"
             description="Launch a new initiative with Backcaster."
             videoSrc={CARD_VIDEOS.project}
-            to="/project-builder"
+            action={<GetStartedAction to="/project-builder" />}
           />
         </div>
       </section>
@@ -812,6 +985,27 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
             placeholder="Ask Chi about your project, or jot something down…"
           />
         </div>
+
+        {/* Tool tiles (Phase 14) */}
+        <section style={{ marginBottom: 36 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--skin-ink-faint)",
+              marginBottom: 12,
+            }}
+          >
+            Tools
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
+            <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
+            <ToolTile title="Project Navigator" to="/navigator" />
+          </div>
+        </section>
 
         {/* Suggested next steps — placeholder for Backcaster integration */}
         <section>

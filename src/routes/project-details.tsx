@@ -169,7 +169,7 @@ function ProjectDetailsPage() {
 
       const { error } = await (supabase
         .from("projects")
-        .update({ feature_image: publicUrl, updated_at: new Date().toISOString() })
+        .update({ feature_image: publicUrl as never, updated_at: new Date().toISOString() })
         .eq("id", activeProjectId) as unknown as Promise<{ error: { message: string } | null }>);
       if (error) throw new Error(error.message);
 
