@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Paperclip, Plus, Send, Zap } from "lucide-react";
+import { Mic, MicOff, Paperclip, Plus, Send, Volume2, VolumeX, Zap } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveProject } from "@/contexts/active-project";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
@@ -19,7 +19,20 @@ import type { ProjectFull, XcampUser } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
 import { useTheme } from "@/lib/theme";
-import { fetchProjectMetrics, type ProjectMetrics } from "@/lib/xcamp-api";
+import {
+  fetchProjectMetrics,
+  fetchProjectDetailMetrics,
+  type ProjectMetrics,
+  type ProjectDetailMetrics,
+} from "@/lib/xcamp-api";
+import { Typewriter } from "@/shared/ui/Typewriter";
+import {
+  speak,
+  stopSpeaking,
+  isMuted,
+  setMuted,
+  subscribeMuted,
+} from "@/lib/ttsClient";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
 const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
@@ -346,6 +359,44 @@ function firstName(user: XcampUser | null) {
   return user?.displayName?.split(" ")?.[0] ?? "there";
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── Voice toggle button ──────────────────────────────────────────────────────
+// Matches the ChromeButton style from home.tsx TopChrome. Fixed top-right.
+
+function VoiceToggle({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      title={muted ? "Enable voice narration" : "Mute voice narration"}
+      aria-label={muted ? "Enable voice narration" : "Mute voice narration"}
+      style={{
+        position: "fixed",
+        top: 12,
+        right: 16,
+        zIndex: 20,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "var(--glass-pill-bg, rgba(255,255,255,0.15))",
+        border: "1px solid var(--glass-pill-border, rgba(255,255,255,0.25))",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--glass-text, #fff)",
+        cursor: "pointer",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+      }}
+    >
+      {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+    </button>
+  );
+}
+
 // ─── Ecosystem hero layout (Phase 5) ─────────────────────────────────────────
 // Mirrors PageHeroShell's structural pattern (hero banner + overlapping card)
 // but adds an animated colour-shift overlay inside the hero area.
@@ -358,7 +409,7 @@ function EcosystemHeroLayout({
   heroSrc: string | undefined;
   children: React.ReactNode;
 }) {
-  const HERO_HEIGHTS = "h-[150px] sm:h-[280px] md:h-[320px]";
+  const HERO_HEIGHTS = "h-[300px] sm:h-[560px] md:h-[640px]";
   const OVERLAP = 56;
 
   return (
@@ -432,7 +483,7 @@ function EcosystemHeroLayout({
             background: "var(--skin-bg)",
             border: "1px solid var(--skin-line)",
             color: "var(--skin-ink)",
-            padding: "32px 32px 48px",
+            padding: "20px 32px 48px",
           }}
         >
           {children}
@@ -614,7 +665,7 @@ function ToolTile({
         transition: "border-color 0.15s, box-shadow 0.15s",
       }}
     >
-      <div style={{ width: "100%", height: 96, overflow: "hidden", background: "var(--skin-surface)" }}>
+      <div style={{ width: "100%", aspectRatio: "1 / 1", overflow: "hidden", background: "var(--skin-surface)" }}>
         {videoSrc ? (
           <video
             ref={videoRef}
@@ -637,7 +688,6 @@ function ToolTile({
               borderBottom: "1px solid var(--skin-line)",
             }}
           >
-            {/* Pending video asset */}
             Video coming soon
           </div>
         )}
@@ -786,13 +836,12 @@ function RecommendCard({
         cursor: "default",
       }}
     >
-      {/* Video thumbnail — stretches to card height */}
+      {/* Video thumbnail — square 1:1 */}
       <div
         style={{
           flexShrink: 0,
           width: 72,
-          alignSelf: "stretch",
-          minHeight: 56,
+          height: 72,
           overflow: "hidden",
           background: "var(--skin-surface)",
         }}
@@ -823,11 +872,63 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const { projects, onProjectSelect, onCreateProject, authUser } = props;
   const { resolved: theme } = useTheme();
 
-  // Select background image per theme — PLACEHOLDER until real images are provided.
-  // To activate: set HERO_DARK_SRC and HERO_LIGHT_SRC constants at the top of this file.
-  const heroSrc = theme === "dark" ? HERO_DARK_SRC : HERO_LIGHT_SRC;
+  // ── TTS / mute ───────────────────────────────────────────────────────────
+  const [muted, setMutedState] = useState<boolean>(() => isMuted());
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
 
-  // Phase 8: batch-fetch objective + task counts for all visible projects
+  // ── Narration phase: 0=hidden 1=heading 2=input 3=projects 4=cards ──────
+  const [phase, setPhase] = useState(0);
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
+  const authUserRef = useRef(authUser);
+  authUserRef.current = authUser;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      await delay(450);
+      if (cancelled) return;
+
+      const ps = projectsRef.current;
+      const au = authUserRef.current;
+      const greet = `${timeGreeting()}, ${firstName(au)}.`;
+      const sub = ps.length > 0
+        ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+        : "What do you want to work on today?";
+      const TEXT1 = `${greet} ${sub}`;
+      const TEXT2 = "Ask Chi anything, or jot down what's on your mind…";
+      const TEXT3 = "Or jump into a project.";
+      const TEXT4 =
+        "I have also prepared some useful tools for you. Here's what I recommend: Daily journal: Reflect on today and capture what matters. Quick note: Capture a thought before it slips away. Start a project: Launch a new initiative with the Backcaster.";
+
+      setPhase(1);
+      if (!mutedRef.current) speak(TEXT1);
+      await delay(Math.max(TEXT1.length * 38, 1200));
+      if (cancelled) return;
+
+      setPhase(2);
+      if (!mutedRef.current) speak(TEXT2);
+      await delay(Math.max(TEXT2.length * 38, 800));
+      if (cancelled) return;
+
+      setPhase(3);
+      if (!mutedRef.current) speak(TEXT3);
+      await delay(Math.max(TEXT3.length * 38, 600));
+      if (cancelled) return;
+
+      setPhase(4);
+      if (!mutedRef.current) speak(TEXT4);
+    }
+    void run();
+    return () => {
+      cancelled = true;
+      stopSpeaking();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Project metrics ──────────────────────────────────────────────────────
   const [metrics, setMetrics] = useState<ProjectMetrics>({});
   useEffect(() => {
     if (!authUser || !projects.length) return;
@@ -838,39 +939,85 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
     return () => { cancelled = true; };
   }, [authUser, projects]);
 
+  const heroSrc = theme === "dark" ? HERO_DARK_SRC : HERO_LIGHT_SRC;
+  const greetText = `${timeGreeting()}, ${firstName(authUser)}.`;
+  const sublineText = projects.length > 0
+    ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
+    : "What do you want to work on today?";
+
+  const FADE: React.CSSProperties = { transition: "opacity 0.5s ease" };
+
   return (
-    <EcosystemHeroLayout heroSrc={heroSrc}>
-      {/* Greeting */}
-      <h1
-        style={{
-          fontSize: 26,
-          fontWeight: 700,
-          color: "var(--skin-ink)",
-          marginBottom: 4,
-          letterSpacing: "-0.01em",
-        }}
-      >
-        {timeGreeting()}, {firstName(authUser)}.
-      </h1>
-      <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
-        {projects.length > 0
-          ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
-          : "What do you want to work on today?"}
-      </p>
+    <>
+      <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
+      <EcosystemHeroLayout heroSrc={heroSrc}>
+        {/* Greeting — phase 1 */}
+        <div style={{ ...FADE, opacity: phase >= 1 ? 1 : 0 }}>
+          <h1
+            style={{
+              fontSize: 26,
+              fontWeight: 700,
+              color: "var(--skin-ink)",
+              marginBottom: 4,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {phase >= 1 ? <Typewriter text={greetText} caret={false} /> : null}
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
+            {sublineText}
+          </p>
+        </div>
 
-      {/* Input — menu opens below (Phase 7) */}
-      <div style={{ marginBottom: 40 }}>
-        <InputBox
-          {...props}
-          activeProjectId={undefined}
-          placeholder="Ask Chi anything, or jot down what's on your mind…"
-          placement="below"
-        />
-      </div>
+        {/* Input — phase 2 */}
+        <div style={{ ...FADE, opacity: phase >= 2 ? 1 : 0, marginBottom: 40 }}>
+          <InputBox
+            {...props}
+            activeProjectId={undefined}
+            placeholder="Ask Chi anything, or jot down what's on your mind…"
+            placement="below"
+          />
+        </div>
 
-      {/* Project tiles (Phase 8 — fully clickable, with metrics) */}
-      {projects.length > 0 && (
-        <section style={{ marginBottom: 36 }}>
+        {/* Project tiles — phase 3 */}
+        {projects.length > 0 && (
+          <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0, marginBottom: 36 }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--skin-ink-faint)",
+                marginBottom: 12,
+              }}
+            >
+              Jump into a project
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                overflowX: "auto",
+                paddingBottom: 4,
+                scrollbarWidth: "none",
+              }}
+            >
+              {projects.map((p) => (
+                <ProjectTile
+                  key={p.id}
+                  project={p}
+                  metrics={metrics[p.id]}
+                  onSelect={onProjectSelect}
+                />
+              ))}
+              <NewProjectTile onSelect={onCreateProject} />
+            </div>
+          </section>
+        )}
+
+        {/* Recommendation cards — phase 4 */}
+        <section style={{ ...FADE, opacity: phase >= 4 ? 1 : 0 }}>
           <div
             style={{
               fontSize: 10,
@@ -881,66 +1028,31 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
               marginBottom: 12,
             }}
           >
-            Jump into a project
+            Here's what I recommend
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              overflowX: "auto",
-              paddingBottom: 4,
-              scrollbarWidth: "none",
-            }}
-          >
-            {projects.map((p) => (
-              <ProjectTile
-                key={p.id}
-                project={p}
-                metrics={metrics[p.id]}
-                onSelect={onProjectSelect}
-              />
-            ))}
-            <NewProjectTile onSelect={onCreateProject} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <RecommendCard
+              title="Daily journal"
+              description="Reflect on today and capture what matters."
+              videoSrc={CARD_VIDEOS.journal}
+              action={<ProjectSelectAction projects={projects} to="/journal" />}
+            />
+            <RecommendCard
+              title="Quick note"
+              description="Capture a thought before it slips away."
+              videoSrc={CARD_VIDEOS.note}
+              action={<ProjectSelectAction projects={projects} to="/notes" />}
+            />
+            <RecommendCard
+              title="Start a project"
+              description="Launch a new initiative with Backcaster."
+              videoSrc={CARD_VIDEOS.project}
+              action={<GetStartedAction to="/project-builder" />}
+            />
           </div>
         </section>
-      )}
-
-      {/* Recommendation cards with videos (Phase 9) */}
-      <section>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--skin-ink-faint)",
-            marginBottom: 12,
-          }}
-        >
-          Here's what I recommend
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <RecommendCard
-            title="Daily journal"
-            description="Reflect on today and capture what matters."
-            videoSrc={CARD_VIDEOS.journal}
-            action={<ProjectSelectAction projects={projects} to="/journal" />}
-          />
-          <RecommendCard
-            title="Quick note"
-            description="Capture a thought before it slips away."
-            videoSrc={CARD_VIDEOS.note}
-            action={<ProjectSelectAction projects={projects} to="/notes" />}
-          />
-          <RecommendCard
-            title="Start a project"
-            description="Launch a new initiative with Backcaster."
-            videoSrc={CARD_VIDEOS.project}
-            action={<GetStartedAction to="/project-builder" />}
-          />
-        </div>
-      </section>
-    </EcosystemHeroLayout>
+      </EcosystemHeroLayout>
+    </>
   );
 }
 
@@ -949,92 +1061,165 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 export function ProjectHomeView(props: ExperimentalHomeProps) {
   const { activeProject, authUser } = props;
 
+  // ── TTS / mute ───────────────────────────────────────────────────────────
+  const [muted, setMutedState] = useState<boolean>(() => isMuted());
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
+
+  // ── Project detail metrics (goals, total tasks, open tasks) ──────────────
+  const [detailMetrics, setDetailMetrics] = useState<ProjectDetailMetrics>({
+    objectives: 0,
+    totalTasks: 0,
+    openTasks: 0,
+  });
+  useEffect(() => {
+    if (!authUser || !activeProject) return;
+    let cancelled = false;
+    fetchProjectDetailMetrics(authUser, activeProject.id)
+      .then((m) => { if (!cancelled) setDetailMetrics(m); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [authUser, activeProject?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Narration phase: 0=hidden 1=heading 2=input 3=tools 4=suggestions ───
+  const [phase, setPhase] = useState(0);
+  const activeProjectRef = useRef(activeProject);
+  activeProjectRef.current = activeProject;
+  const detailMetricsRef = useRef(detailMetrics);
+  detailMetricsRef.current = detailMetrics;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      // Wait for metrics to load (up to 1200ms) before building narration text
+      await delay(800);
+      if (cancelled) return;
+
+      const proj = activeProjectRef.current;
+      const m = detailMetricsRef.current;
+      const projectName = proj?.name ?? "your project";
+      const TEXT1 = `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`;
+      const TEXT2 = "Ask Chi about your project, or jot something down…";
+      const TEXT3 = "Here are your tools.";
+      const TEXT4 = "Here are some suggested next steps.";
+
+      setPhase(1);
+      if (!mutedRef.current) speak(TEXT1);
+      await delay(Math.max(TEXT1.length * 38, 1400));
+      if (cancelled) return;
+
+      setPhase(2);
+      if (!mutedRef.current) speak(TEXT2);
+      await delay(Math.max(TEXT2.length * 38, 800));
+      if (cancelled) return;
+
+      setPhase(3);
+      if (!mutedRef.current) speak(TEXT3);
+      await delay(Math.max(TEXT3.length * 38, 600));
+      if (cancelled) return;
+
+      setPhase(4);
+      if (!mutedRef.current) speak(TEXT4);
+    }
+    void run();
+    return () => {
+      cancelled = true;
+      stopSpeaking();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const headingText = activeProject ? `This is your project ${activeProject.name}.` : "Project Home.";
+  const sublineText = `You have ${detailMetrics.objectives} goal${detailMetrics.objectives === 1 ? "" : "s"}, ${detailMetrics.totalTasks} task${detailMetrics.totalTasks === 1 ? "" : "s"} in total, ${detailMetrics.openTasks} task${detailMetrics.openTasks === 1 ? "" : "s"} currently open. What would you like to start with?`;
+
+  const FADE: React.CSSProperties = { transition: "opacity 0.5s ease" };
+
   return (
-    <PageHeroShell
-      image={activeProject?.feature_image ?? undefined}
-      showImageReload={false}
-    >
-      {/* Card content rendered inside PageHeroShell's overlapping card */}
-      <div style={{ padding: "32px 32px 48px" }}>
-        {/* Greeting */}
-        <h1
-          style={{
-            fontSize: 26,
-            fontWeight: 700,
-            color: "var(--skin-ink)",
-            marginBottom: 2,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {timeGreeting()}, {firstName(authUser)}.
-        </h1>
-        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
-          {activeProject ? (
-            <>Working in <strong style={{ color: "var(--skin-ink)" }}>{activeProject.name}</strong>.</>
-          ) : (
-            "Working in project mode."
-          )}
-        </p>
+    <>
+      <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
+      <PageHeroShell
+        image={activeProject?.feature_image ?? undefined}
+        showImageReload={false}
+      >
+        <div style={{ padding: "20px 32px 48px" }}>
+          {/* Heading — phase 1 */}
+          <div style={{ ...FADE, opacity: phase >= 1 ? 1 : 0 }}>
+            <h1
+              style={{
+                fontSize: 26,
+                fontWeight: 700,
+                color: "var(--skin-ink)",
+                marginBottom: 2,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {phase >= 1 ? <Typewriter text={headingText} caret={false} /> : null}
+            </h1>
+            <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
+              {sublineText}
+            </p>
+          </div>
 
-        {/* Input */}
-        <div style={{ marginBottom: 36 }}>
-          <InputBox
-            {...props}
-            activeProjectId={activeProject?.id}
-            placeholder="Ask Chi about your project, or jot something down…"
-          />
+          {/* Input — phase 2 */}
+          <div style={{ ...FADE, opacity: phase >= 2 ? 1 : 0, marginBottom: 36 }}>
+            <InputBox
+              {...props}
+              activeProjectId={activeProject?.id}
+              placeholder="Ask Chi about your project, or jot something down…"
+            />
+          </div>
+
+          {/* Tool tiles — phase 3 */}
+          <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0, marginBottom: 36 }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--skin-ink-faint)",
+                marginBottom: 12,
+              }}
+            >
+              Tools
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
+              <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
+              <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
+            </div>
+          </section>
+
+          {/* Suggested next steps — phase 4 */}
+          <section style={{ ...FADE, opacity: phase >= 4 ? 1 : 0 }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--skin-ink-faint)",
+                marginBottom: 12,
+              }}
+            >
+              Suggested next steps
+            </div>
+            <div
+              style={{
+                border: "1.5px dashed var(--skin-line)",
+                borderRadius: 10,
+                padding: "24px 20px",
+                color: "var(--skin-ink-faint)",
+                fontSize: 13,
+                textAlign: "center",
+              }}
+            >
+              Backcaster-generated suggestions — coming soon.
+            </div>
+          </section>
         </div>
-
-        {/* Tool tiles (Phase 14) */}
-        <section style={{ marginBottom: 36 }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--skin-ink-faint)",
-              marginBottom: 12,
-            }}
-          >
-            Tools
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
-            <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
-            <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
-          </div>
-        </section>
-
-        {/* Suggested next steps — placeholder for Backcaster integration */}
-        <section>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--skin-ink-faint)",
-              marginBottom: 12,
-            }}
-          >
-            Suggested next steps
-          </div>
-          <div
-            style={{
-              border: "1.5px dashed var(--skin-line)",
-              borderRadius: 10,
-              padding: "24px 20px",
-              color: "var(--skin-ink-faint)",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
-            Backcaster-generated suggestions — coming soon.
-          </div>
-        </section>
-      </div>
-    </PageHeroShell>
+      </PageHeroShell>
+    </>
   );
 }
 

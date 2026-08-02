@@ -436,3 +436,45 @@ export async function fetchProjectMetrics(
 
   return result;
 }
+
+export interface ProjectDetailMetrics {
+  objectives: number;
+  totalTasks: number;
+  openTasks: number;
+}
+
+export async function fetchProjectDetailMetrics(
+  user: XcampUser,
+  projectId: string,
+): Promise<ProjectDetailMetrics> {
+  const result: ProjectDetailMetrics = { objectives: 0, totalTasks: 0, openTasks: 0 };
+
+  const { data: objRows } = await supabase
+    .from("objectives")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("tenant_id", user.tenantId);
+
+  result.objectives = (objRows ?? []).length;
+  const objectiveIds = (objRows ?? []).map((o) => o.id as string);
+  if (!objectiveIds.length) return result;
+
+  const { data: linkRows } = await supabase
+    .from("objective_notes")
+    .select("note_id")
+    .in("objective_id", objectiveIds);
+
+  const noteIds = [...new Set((linkRows ?? []).map((l) => l.note_id as string))];
+  if (!noteIds.length) return result;
+
+  const { data: taskRows } = await supabase
+    .from("notes")
+    .select("id, done")
+    .in("id", noteIds)
+    .eq("note_type", "task");
+
+  result.totalTasks = (taskRows ?? []).length;
+  result.openTasks = (taskRows ?? []).filter((n) => !n.done).length;
+
+  return result;
+}

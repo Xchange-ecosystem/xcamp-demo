@@ -54,7 +54,7 @@ export function PageHeroShell({
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
       <div
-        className="relative w-full overflow-hidden h-[150px] sm:h-[280px] md:h-[320px]"
+        className="relative w-full overflow-hidden h-[300px] sm:h-[560px] md:h-[640px]"
         style={{ background: fallbackGradient }}
       >
         <MobileMenuButton />
