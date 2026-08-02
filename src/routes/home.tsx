@@ -70,9 +70,10 @@ const NAV_PILLS = [
 ] as const;
 
 export const Route = createFileRoute("/home")({
-  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental"; nav?: "experimental" } => ({
+  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental"; nav?: "experimental"; view?: "companion" } => ({
     ui: search.ui === "experimental" ? "experimental" : "default",
     ...(search.nav === "experimental" ? { nav: "experimental" as const } : {}),
+    ...(search.view === "companion" ? { view: "companion" as const } : {}),
   }),
   head: () => ({
     meta: [
@@ -98,15 +99,20 @@ function CompanionHomePage() {
   const { user: authUser } = useAuth();
   const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
   const navigate = useNavigate();
-  const { ui: uiVariant } = Route.useSearch();
+  const { ui: uiVariant, view: viewParam } = Route.useSearch();
 
   const location = useRouterState({ select: (r) => r.location });
   const navVariant = (location.search as Record<string, string>)?.nav === "experimental" ? "experimental" : "";
   const navVariantRef = useRef(navVariant);
   useEffect(() => { navVariantRef.current = navVariant; }, [navVariant]);
 
-  const [experimentalView, setExperimentalView] = useState<"home" | "chat">("home");
+  const [experimentalView, setExperimentalView] = useState<"home" | "chat">(() =>
+    viewParam === "companion" ? "chat" : "home"
+  );
   useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (viewParam === "companion") setExperimentalView("chat");
+  }, [viewParam]);
 
   const session = useCompanionSession(authUser);
 
