@@ -11,6 +11,7 @@ let resolveUnlock: (() => void) | null = null
 const unlockedPromise: Promise<void> = new Promise((res) => {
   resolveUnlock = res
 })
+const unlockCallbacks = new Set<() => void>()
 
 function tryPrime(): void {
   try {
@@ -32,6 +33,8 @@ function onFirstGesture(): void {
   tryPrime()
   resolveUnlock?.()
   resolveUnlock = null
+  unlockCallbacks.forEach((cb) => cb())
+  unlockCallbacks.clear()
   removeListeners()
 }
 
@@ -46,6 +49,15 @@ function removeListeners(): void {
   for (const ev of EVENTS) {
     window.removeEventListener(ev, onFirstGesture, { capture: true } as EventListenerOptions)
   }
+}
+
+export function onAudioUnlock(cb: () => void): () => void {
+  if (unlocked) {
+    cb()
+    return () => {}
+  }
+  unlockCallbacks.add(cb)
+  return () => { unlockCallbacks.delete(cb) }
 }
 
 export function installAudioUnlock(): void {
