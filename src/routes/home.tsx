@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
 import { CompanionGlassPanelV2 } from "@/components/companion/CompanionGlassPanelV2";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -69,8 +70,9 @@ const NAV_PILLS = [
 ] as const;
 
 export const Route = createFileRoute("/home")({
-  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental" } => ({
+  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental"; nav?: "experimental" } => ({
     ui: search.ui === "experimental" ? "experimental" : "default",
+    ...(search.nav === "experimental" ? { nav: "experimental" as const } : {}),
   }),
   head: () => ({
     meta: [
@@ -94,9 +96,17 @@ interface PanelTarget {
 
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
-  const { activeProjectId, setActiveProjectId } = useActiveProject();
+  const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
   const navigate = useNavigate();
   const { ui: uiVariant } = Route.useSearch();
+
+  const location = useRouterState({ select: (r) => r.location });
+  const navVariant = (location.search as Record<string, string>)?.nav === "experimental" ? "experimental" : "";
+  const navVariantRef = useRef(navVariant);
+  useEffect(() => { navVariantRef.current = navVariant; }, [navVariant]);
+
+  const [experimentalView, setExperimentalView] = useState<"home" | "chat">("home");
+  useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const session = useCompanionSession(authUser);
 
@@ -134,7 +144,7 @@ function CompanionHomePage() {
 
   // Apply background image directly on <html>
   useEffect(() => {
-    if (!bgUrl) return;
+    if (!bgUrl || navVariantRef.current === "experimental") return;
     document.documentElement.style.cssText += `; background-image: url("${bgUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
     return () => {
       document.documentElement.style.backgroundImage = "";
@@ -202,6 +212,7 @@ function CompanionHomePage() {
   const welcomeFiredRef = useRef(false);
   const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
   useEffect(() => {
+    if (navVariantRef.current === "experimental") { welcomeFiredRef.current = true; return; }
     if (session.loading || welcomeFiredRef.current) return;
     if (projects.length === 0) return;
 
@@ -359,6 +370,7 @@ function CompanionHomePage() {
   const branchFiredRef = useRef(false);
   const switchingProjectRef = useRef(false);
   useEffect(() => {
+    if (navVariantRef.current === "experimental") return;
     if (step !== "project-select") return;
     if (session.loading) return;
     if (branchFiredRef.current) return;
@@ -372,6 +384,7 @@ function CompanionHomePage() {
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (navVariantRef.current === "experimental") return;
     if (!activeProjectId) return;
     if (activeProject?.id === activeProjectId) return;
     if (session.loading) return;
@@ -415,6 +428,23 @@ function CompanionHomePage() {
   const handleCreateProject = useCallback(() => {
     void navigate({ to: "/project-builder" });
   }, [navigate]);
+
+  // ── Experimental mode: sync activeProject from context state ─────────────
+  useEffect(() => {
+    if (navVariantRef.current !== "experimental") return;
+    const found = projects.find((p) => p.id === activeProjectId) ?? null;
+    setActiveProject(found);
+  }, [activeProjectId, projects]);
+
+  const handleExperimentalProjectSelect = useCallback(
+    (project: ProjectFull) => {
+      setActiveProjectId(project.id);
+      setActiveProject(project);
+      setNavMode("project");
+      setExperimentalView("home");
+    },
+    [setActiveProjectId, setNavMode],
+  );
 
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
@@ -571,38 +601,47 @@ function CompanionHomePage() {
     }
   }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSendFromHome = useCallback(() => {
+    setExperimentalView("chat");
+    void handleSend();
+  }, [handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <CompanionShell>
         {/* Scrim — sits above the <html> background image */}
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1,
-            background: "rgba(0,0,0,0.38)",
-            pointerEvents: "none",
-          }}
-        />
+        {navVariant !== "experimental" && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1,
+              background: "rgba(0,0,0,0.38)",
+              pointerEvents: "none",
+            }}
+          />
+        )}
 
         {/* Header row — scoped to right of sidebar */}
-        <TopChrome
-          muted={muted}
-          voiceId={voiceId}
-          availableVoices={availableVoices}
-          onMuteToggle={() => setMuted(!muted)}
-          onVoiceChange={(id) => { stopSpeaking(); setVoiceId(id); }}
-          onReload={reloadHero}
-          onNewSession={handleNewSession}
-          activeProject={activeProject}
-          onDeselectProject={handleProjectDeselect}
-        />
+        {navVariant !== "experimental" && (
+          <TopChrome
+            muted={muted}
+            voiceId={voiceId}
+            availableVoices={availableVoices}
+            onMuteToggle={() => setMuted(!muted)}
+            onVoiceChange={(id) => { stopSpeaking(); setVoiceId(id); }}
+            onReload={reloadHero}
+            onNewSession={handleNewSession}
+            activeProject={activeProject}
+            onDeselectProject={handleProjectDeselect}
+          />
+        )}
 
         {/* ── UI variant toggle ──────────────────────────────────────────
             ?ui=experimental → CompanionGlassPanelV2 (right-anchored, compact)
             ?ui=default (or omitted) → original centered column below
         ─────────────────────────────────────────────────────────────────── */}
-        {uiVariant === "experimental" && (
+        {navVariant !== "experimental" && uiVariant === "experimental" && (
           <CompanionGlassPanelV2
             messages={session.messages}
             projects={projects}
@@ -643,7 +682,7 @@ function CompanionHomePage() {
         )}
 
         {/* Centered column: glass panel + pill bar below */}
-        {uiVariant === "default" && <div
+        {navVariant !== "experimental" && uiVariant === "default" && <div
           style={{
             position: "fixed",
             inset: 0,
@@ -978,6 +1017,85 @@ function CompanionHomePage() {
             </div>
           </div>
         </div>}
+
+        {/* ── Experimental nav views (Phase 2–4) ─────────────────────────── */}
+        {navVariant === "experimental" && experimentalView === "home" && navMode === "ecosystem" && (
+          <EcosystemHomeView
+            projects={projects}
+            onProjectSelect={handleExperimentalProjectSelect}
+            onCreateProject={handleCreateProject}
+            draft={draft}
+            onDraftChange={handleDraftChange}
+            onSend={handleSendFromHome}
+            isLoading={isLoading}
+            voice={voice}
+            fileInputRef={fileInputRef}
+            attachment={attachment}
+            onAttachmentSet={setAttachment}
+            mentionMenuOpen={mentionMenuOpen}
+            mentionQuery={mentionQuery}
+            onMentionSelect={handleMentionSelect}
+            mentionedEntities={mentionedEntities}
+            onMentionedEntitiesChange={setMentionedEntities}
+            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
+            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            activeProject={activeProject}
+            authUser={authUser}
+          />
+        )}
+        {navVariant === "experimental" && experimentalView === "home" && navMode === "project" && (
+          <ProjectHomeView
+            projects={projects}
+            onProjectSelect={handleExperimentalProjectSelect}
+            onCreateProject={handleCreateProject}
+            draft={draft}
+            onDraftChange={handleDraftChange}
+            onSend={handleSendFromHome}
+            isLoading={isLoading}
+            voice={voice}
+            fileInputRef={fileInputRef}
+            attachment={attachment}
+            onAttachmentSet={setAttachment}
+            mentionMenuOpen={mentionMenuOpen}
+            mentionQuery={mentionQuery}
+            onMentionSelect={handleMentionSelect}
+            mentionedEntities={mentionedEntities}
+            onMentionedEntitiesChange={setMentionedEntities}
+            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
+            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            activeProject={activeProject}
+            authUser={authUser}
+          />
+        )}
+        {navVariant === "experimental" && experimentalView === "chat" && (
+          <ExperimentalChatView
+            messages={session.messages}
+            typingMessageId={typingMessageId ?? undefined}
+            isLoading={isLoading}
+            projects={projects}
+            onProjectSelect={handleExperimentalProjectSelect}
+            onCreateProject={handleCreateProject}
+            onCardConfirm={handleCardConfirm}
+            onCardDismiss={handleCardDismiss}
+            hiddenCardIds={dismissedCardIds}
+            draft={draft}
+            onDraftChange={handleDraftChange}
+            onSend={() => void handleSend()}
+            voice={voice}
+            fileInputRef={fileInputRef}
+            attachment={attachment}
+            onAttachmentSet={setAttachment}
+            mentionMenuOpen={mentionMenuOpen}
+            mentionQuery={mentionQuery}
+            onMentionSelect={handleMentionSelect}
+            mentionedEntities={mentionedEntities}
+            onMentionedEntitiesChange={setMentionedEntities}
+            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
+            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            activeProject={activeProject}
+            onBack={() => setExperimentalView("home")}
+          />
+        )}
       </CompanionShell>
 
       {panelTarget && (

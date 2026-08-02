@@ -367,3 +367,72 @@ export async function autoTagNote(
 
   return tags;
 }
+
+export type ProjectMetrics = Record<string, { objectives: number; tasks: number }>;
+
+/**
+ * Batch-fetch objective and task counts for a set of project IDs.
+ * Uses the relational path objectives → objective_notes → notes(note_type='task').
+ * 3 sequential queries, no N+1 — scales with project count regardless of size.
+ */
+export async function fetchProjectMetrics(
+  user: XcampUser,
+  projectIds: string[],
+): Promise<ProjectMetrics> {
+  if (!projectIds.length) return {};
+
+  const result: ProjectMetrics = {};
+  for (const id of projectIds) result[id] = { objectives: 0, tasks: 0 };
+
+  // Q1: all objectives for these projects
+  const { data: objRows } = await supabase
+    .from("objectives")
+    .select("id, project_id")
+    .in("project_id", projectIds)
+    .eq("tenant_id", user.tenantId);
+
+  const objToProject: Record<string, string> = {};
+  for (const obj of objRows ?? []) {
+    const pid = obj.project_id as string;
+    if (result[pid]) {
+      result[pid].objectives++;
+      objToProject[obj.id as string] = pid;
+    }
+  }
+
+  const objectiveIds = Object.keys(objToProject);
+  if (!objectiveIds.length) return result;
+
+  // Q2: links from those objectives to notes
+  const { data: linkRows } = await supabase
+    .from("objective_notes")
+    .select("objective_id, note_id")
+    .in("objective_id", objectiveIds);
+
+  const noteIds = [...new Set((linkRows ?? []).map((l) => l.note_id as string))];
+  if (!noteIds.length) return result;
+
+  // Q3: filter note IDs down to task notes only
+  const { data: taskNoteRows } = await supabase
+    .from("notes")
+    .select("id")
+    .in("id", noteIds)
+    .eq("note_type", "task");
+
+  const taskNoteIds = new Set((taskNoteRows ?? []).map((n) => n.id as string));
+
+  // Count unique task notes per project (a note linked to multiple objectives in the
+  // same project counts once; a note shared across projects is counted per-project)
+  const tasksByProject: Record<string, Set<string>> = {};
+  for (const id of projectIds) tasksByProject[id] = new Set();
+
+  for (const link of linkRows ?? []) {
+    const noteId = link.note_id as string;
+    const pid = objToProject[link.objective_id as string];
+    if (pid && taskNoteIds.has(noteId)) tasksByProject[pid].add(noteId);
+  }
+
+  for (const id of projectIds) result[id].tasks = tasksByProject[id].size;
+
+  return result;
+}

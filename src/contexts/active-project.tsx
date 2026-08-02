@@ -2,9 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 const STORAGE_KEY = "xcamp-active-project";
 
+type NavMode = "ecosystem" | "project";
+
 interface ActiveProjectValue {
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
+  navMode: NavMode;
+  setNavMode: (mode: NavMode) => void;
 }
 
 const ActiveProjectContext = createContext<ActiveProjectValue | undefined>(undefined);
@@ -14,6 +18,12 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(STORAGE_KEY);
   });
+
+  // navMode is independently toggleable — not derived from activeProjectId at runtime.
+  // Initializes from whether a project was previously selected (so reload restores expected mode).
+  const [navMode, setNavMode] = useState<NavMode>(() =>
+    typeof window !== "undefined" && !!localStorage.getItem(STORAGE_KEY) ? "project" : "ecosystem"
+  );
 
   const setActiveProjectId = (id: string | null) => {
     setActiveProjectIdState(id);
@@ -32,7 +42,10 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const value = useMemo(() => ({ activeProjectId, setActiveProjectId }), [activeProjectId]);
+  const value = useMemo(
+    () => ({ activeProjectId, setActiveProjectId, navMode, setNavMode }),
+    [activeProjectId, navMode], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   return <ActiveProjectContext.Provider value={value}>{children}</ActiveProjectContext.Provider>;
 }

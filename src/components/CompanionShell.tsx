@@ -1,8 +1,9 @@
 import { useEffect, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 
@@ -41,6 +42,8 @@ export function CompanionShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
+  const navSearch = useRouterState({ select: (r) => r.location.search as Record<string, string> });
+  const navVariant = navSearch?.nav ?? "";
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -74,7 +77,7 @@ export function CompanionShell({ children }: { children: ReactNode }) {
         className="flex min-h-screen w-full"
         style={{ background: "transparent" }}
       >
-        <AppSidebar />
+        {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
         <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
           <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
         </div>

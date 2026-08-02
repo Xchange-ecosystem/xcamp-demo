@@ -16,6 +16,7 @@ interface Props {
   projectId?: string;
   onSelect: (entity: MentionEntity) => void;
   onClose: () => void;
+  placement?: "above" | "below";
 }
 
 const CATEGORIES: { value: MentionCategory; label: string }[] = [
@@ -25,7 +26,7 @@ const CATEGORIES: { value: MentionCategory; label: string }[] = [
   { value: 'task', label: 'Tasks' },
 ];
 
-export function MentionMenu({ isOpen, query, projectId, onSelect, onClose }: Props) {
+export function MentionMenu({ isOpen, query, projectId, onSelect, onClose, placement = "above" }: Props) {
   const { user } = useAuth();
   const [category, setCategory] = useState<MentionCategory>(() =>
     projectId ? 'objective' : 'project'
@@ -88,10 +89,11 @@ export function MentionMenu({ isOpen, query, projectId, onSelect, onClose }: Pro
     <div
       style={{
         position: 'absolute',
-        bottom: '100%',
+        ...(placement === "below"
+          ? { top: '100%', marginTop: 6 }
+          : { bottom: '100%', marginBottom: 6 }),
         left: 0,
         right: 0,
-        marginBottom: 6,
         borderRadius: 12,
         background: 'var(--glass-bubble-bg, rgba(18,18,28,0.92))',
         border: '1px solid var(--glass-border-color)',
