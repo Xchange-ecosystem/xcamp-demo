@@ -1140,6 +1140,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
       <PageHeroShell
         image={activeProject?.feature_image ?? undefined}
         showImageReload={false}
+        heroHeightClass="h-[300px] sm:h-[560px] md:h-[640px]"
       >
         <div style={{ padding: "20px 32px 48px" }}>
           {/* Heading — phase 1 */}

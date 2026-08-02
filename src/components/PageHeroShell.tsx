@@ -8,6 +8,7 @@ type Props = {
   image?: string;
   children: ReactNode;
   heroHeight?: number;
+  heroHeightClass?: string;
   overlap?: number;
   eyebrow?: ReactNode;
   title?: ReactNode;
@@ -37,6 +38,7 @@ export function PageHeroShell({
   image,
   children,
   overlap = 56,
+  heroHeightClass = "h-[150px] sm:h-[280px] md:h-[320px]",
   eyebrow,
   title,
   subtitle,
@@ -54,7 +56,7 @@ export function PageHeroShell({
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
       <div
-        className="relative w-full overflow-hidden h-[300px] sm:h-[560px] md:h-[640px]"
+        className={`relative w-full overflow-hidden ${heroHeightClass}`}
         style={{ background: fallbackGradient }}
       >
         <MobileMenuButton />
