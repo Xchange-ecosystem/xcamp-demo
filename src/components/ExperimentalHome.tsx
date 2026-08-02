@@ -727,7 +727,7 @@ function ProjectSelectAction({
         style={{
           flex: 1,
           minWidth: 0,
-          padding: "5px 28px 5px 8px",
+          padding: "5px 32px 5px 8px",
           borderRadius: 6,
           border: "1px solid var(--skin-line)",
           background: "var(--skin-surface)",
@@ -735,6 +735,12 @@ function ProjectSelectAction({
           fontSize: 12,
           outline: "none",
           cursor: "pointer",
+          appearance: "none",
+          WebkitAppearance: "none",
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right 10px center",
+          backgroundSize: "0.8rem",
         }}
       >
         <option value="">Select project to start.</option>

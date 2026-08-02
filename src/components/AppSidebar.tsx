@@ -104,7 +104,7 @@ export function AppSidebar() {
             <div className="relative">
               <select
                 className="x-input w-full appearance-none"
-                style={{ height: 32, fontSize: 13, paddingRight: 28 }}
+                style={{ height: 32, fontSize: 13, paddingRight: 28, backgroundImage: "none" }}
                 value={activeProjectId ?? ""}
                 onChange={(e) => {
                   const id = e.target.value || null;
