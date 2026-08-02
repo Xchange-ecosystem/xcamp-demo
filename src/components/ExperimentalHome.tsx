@@ -22,10 +22,8 @@ import { useTheme } from "@/lib/theme";
 import { fetchProjectMetrics, type ProjectMetrics } from "@/lib/xcamp-api";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
-// PLACEHOLDER — drop the real images at these paths to activate them.
-// Swap `undefined` → the string path; no other code changes needed.
-const HERO_DARK_SRC: string | undefined = "/assets/hero-ecosystem-dark.jpg";
-const HERO_LIGHT_SRC: string | undefined = "/assets/hero-ecosystem-light.jpg";
+const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
+const HERO_LIGHT_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Light.png";
 
 // ─── Recommendation card video paths ─────────────────────────────────────────
 const CARD_VIDEOS = {
