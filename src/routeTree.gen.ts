@@ -16,7 +16,9 @@ import { Route as NotesRouteImport } from './routes/notes'
 import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AiPlanRouteImport } from './routes/ai-plan'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
@@ -57,9 +59,19 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EcosystemNavigatorRoute = EcosystemNavigatorRouteImport.update({
+  id: '/ecosystem-navigator',
+  path: '/ecosystem-navigator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiPlanRoute = AiPlanRouteImport.update({
+  id: '/ai-plan',
+  path: '/ai-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -85,7 +97,9 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
@@ -99,7 +113,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
@@ -113,7 +129,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
@@ -129,7 +147,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai-plan'
     | '/auth'
+    | '/ecosystem-navigator'
     | '/home'
     | '/journal'
     | '/navigator'
@@ -143,7 +163,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai-plan'
     | '/auth'
+    | '/ecosystem-navigator'
     | '/home'
     | '/journal'
     | '/navigator'
@@ -156,7 +178,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/ai-plan'
     | '/auth'
+    | '/ecosystem-navigator'
     | '/home'
     | '/journal'
     | '/navigator'
@@ -171,7 +195,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiPlanRoute: typeof AiPlanRoute
   AuthRoute: typeof AuthRoute
+  EcosystemNavigatorRoute: typeof EcosystemNavigatorRoute
   HomeRoute: typeof HomeRoute
   JournalRoute: typeof JournalRoute
   NavigatorRoute: typeof NavigatorRoute
@@ -233,11 +259,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ecosystem-navigator': {
+      id: '/ecosystem-navigator'
+      path: '/ecosystem-navigator'
+      fullPath: '/ecosystem-navigator'
+      preLoaderRoute: typeof EcosystemNavigatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-plan': {
+      id: '/ai-plan'
+      path: '/ai-plan'
+      fullPath: '/ai-plan'
+      preLoaderRoute: typeof AiPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -286,7 +326,9 @@ const ProfileRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiPlanRoute: AiPlanRoute,
   AuthRoute: AuthRoute,
+  EcosystemNavigatorRoute: EcosystemNavigatorRoute,
   HomeRoute: HomeRoute,
   JournalRoute: JournalRoute,
   NavigatorRoute: NavigatorRoute,

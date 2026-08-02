@@ -73,6 +73,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   });
 
+  const [sidebarDefaultOpen] = useState<boolean>(() => {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)sidebar_state=([^;]*)/);
+      return match ? match[1] !== "false" : true;
+    } catch {
+      return true;
+    }
+  });
+
   const currentWidth = useRef(sidebarWidth);
   useEffect(() => {
     currentWidth.current = sidebarWidth;
@@ -120,6 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider
+      defaultOpen={sidebarDefaultOpen}
       style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
     >
       {!pathname.startsWith("/profile") && <MobileMenuButton />}

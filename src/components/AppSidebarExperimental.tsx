@@ -9,6 +9,7 @@
  *  - Click behaviour per spec: Ecosystem always switches mode; project segment opens
  *    the switcher (when in Project mode) or switches directly (when a project is remembered)
  *  - Mode-specific nav lists: Ecosystem has 4 items, Project has 5 items
+ *  - Project Navigator expands to subitems: Browser, Network, AI Plan, All Notes
  */
 
 import { useRef, useState } from "react";
@@ -16,8 +17,10 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   Compass,
   Home,
+  LayoutList,
   LogOut,
   Map,
   MessageCircle,
@@ -26,6 +29,9 @@ import {
   PanelLeftOpen,
   Search,
   Settings2,
+  Share2,
+  Sparkles,
+  StickyNote,
   Target,
   User,
 } from "lucide-react";
@@ -41,6 +47,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth";
@@ -59,19 +68,19 @@ type NavItem = {
 };
 
 const ECOSYSTEM_NAV: NavItem[] = [
-  { title: "home",      url: "/home",            icon: Home,          label: "Home" },
-  { title: "companion", url: "/home",            icon: MessageCircle, label: "Companion" },
-  { title: "navigator", url: "/navigator",       icon: Map,           label: "Ecosystem Navigator" },
-  { title: "builder",   url: "/project-builder", icon: Compass,       label: "Project Builder" },
+  { title: "home",      url: "/home",                 icon: Home,          label: "Home" },
+  { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
+  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator" },
+  { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder" },
 ];
 
 const PROJECT_NAV: NavItem[] = [
-  { title: "home",            url: "/home",            icon: Home,          label: "Home" },
-  { title: "companion",       url: "/home",            icon: MessageCircle, label: "Companion" },
-  { title: "journal",         url: "/journal",         icon: NotebookPen,   label: "Journal" },
-  { title: "navigator",       url: "/navigator",       icon: Map,           label: "Project Navigator" },
-  { title: "goals",           url: "",                 icon: Target,        label: "My Goals", parameterised: true },
-  { title: "project-details", url: "/project-details", icon: Settings2,     label: "Project Details" },
+  { title: "home",            url: "/home",             icon: Home,          label: "Home" },
+  { title: "companion",       url: "/home",             icon: MessageCircle, label: "Companion" },
+  { title: "journal",         url: "/journal",          icon: NotebookPen,   label: "Journal" },
+  { title: "goals",           url: "",                  icon: Target,        label: "My Goals", parameterised: true },
+  { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator" },
+  { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details" },
 ];
 
 export function AppSidebarExperimental() {
@@ -81,12 +90,18 @@ export function AppSidebarExperimental() {
   const { t } = useTranslation();
   const location = useRouterState({ select: (r) => r.location });
   const pathname = location.pathname;
+  const searchView = (location.search as Record<string, string>)?.view ?? "";
   const navigate = useNavigate();
 
   const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
 
+  const onNavigator = pathname.startsWith("/navigator");
+  const onNotes = pathname.startsWith("/notes");
+  const onAiPlan = pathname.startsWith("/ai-plan");
+
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switcherQuery, setSwitcherQuery] = useState("");
+  const [navigatorOpen, setNavigatorOpen] = useState(onNavigator || onNotes || onAiPlan);
   const switcherRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
@@ -148,6 +163,9 @@ export function AppSidebarExperimental() {
     if (url === "/home" || url === "") return pathname === "/" || pathname.startsWith("/home");
     return pathname.startsWith(url);
   };
+
+  const isNavSubActive = (view: string) =>
+    onNavigator && (searchView === view || (view === "browser" && searchView === ""));
 
   return (
     <Sidebar collapsible="icon">
@@ -360,6 +378,108 @@ export function AppSidebarExperimental() {
                   }
                 };
 
+                // Project Navigator: expandable with subitems
+                if (item.title === "navigator" && navMode === "project") {
+                  const navigatorActive = onNavigator || onNotes || onAiPlan;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed ? (
+                        // Collapsed: direct icon click goes to browser view
+                        <SidebarMenuButton
+                          isActive={navigatorActive}
+                          tooltip={item.label}
+                          onClick={() =>
+                            void navigate({
+                              to: "/navigator" as never,
+                              search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                            })
+                          }
+                          className="flex items-center gap-2 w-full"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      ) : (
+                        <>
+                          <SidebarMenuButton
+                            isActive={navigatorActive}
+                            onClick={() => setNavigatorOpen((v) => !v)}
+                            className="flex items-center gap-2 w-full"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span className="flex-1">{item.label}</span>
+                            {navigatorOpen
+                              ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                              : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                          </SidebarMenuButton>
+
+                          {navigatorOpen && (
+                            <SidebarMenuSub>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={isNavSubActive("browser")}
+                                  onClick={() =>
+                                    void navigate({
+                                      to: "/navigator" as never,
+                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                                    })
+                                  }
+                                >
+                                  <LayoutList className="h-3.5 w-3.5" />
+                                  <span>Browser</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={isNavSubActive("network")}
+                                  onClick={() =>
+                                    void navigate({
+                                      to: "/navigator" as never,
+                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "network" }),
+                                    })
+                                  }
+                                >
+                                  <Share2 className="h-3.5 w-3.5" />
+                                  <span>Network</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={onAiPlan}
+                                  onClick={() =>
+                                    void navigate({
+                                      to: "/ai-plan" as never,
+                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
+                                    })
+                                  }
+                                >
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                  <span>AI Plan</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={onNotes}
+                                  onClick={() =>
+                                    void navigate({
+                                      to: "/notes" as never,
+                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
+                                    })
+                                  }
+                                >
+                                  <StickyNote className="h-3.5 w-3.5" />
+                                  <span>All Notes</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            </SidebarMenuSub>
+                          )}
+                        </>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
+                // All other items: flat nav button
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
