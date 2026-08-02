@@ -7,6 +7,8 @@ import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 
+const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
+
 function MobileMenuButton() {
   const { toggleSidebar } = useSidebar();
   return (
@@ -28,13 +30,13 @@ function MobileMenuButton() {
   );
 }
 
-function CollapseOnMount() {
-  const { state, toggleSidebar } = useSidebar();
+function SidebarStatePersist() {
+  const { state } = useSidebar();
   useEffect(() => {
-    if (state === "expanded") toggleSidebar();
-    // Only run on mount — intentional single-fire
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, state === "collapsed" ? "true" : "false");
+    } catch {}
+  }, [state]);
   return null;
 }
 
@@ -63,15 +65,24 @@ export function CompanionShell({ children }: { children: ReactNode }) {
     );
   }
 
+  const sidebarDefaultOpen = (() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      return stored !== null ? stored !== "true" : false;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <SidebarProvider
-      defaultOpen={false}
+      defaultOpen={sidebarDefaultOpen}
       style={{
         "--sidebar-width": "256px",
         background: "transparent",
       } as React.CSSProperties}
     >
-      <CollapseOnMount />
+      <SidebarStatePersist />
       <MobileMenuButton />
       <div
         className="flex min-h-screen w-full"

@@ -7,6 +7,18 @@ import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 
+const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
+
+function SidebarStatePersist() {
+  const { state } = useSidebar();
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, state === "collapsed" ? "true" : "false");
+    } catch {}
+  }, [state]);
+  return null;
+}
+
 const DEFAULT_SIDEBAR_WIDTH = 256;
 
 function MobileMenuButton() {
@@ -75,6 +87,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const [sidebarDefaultOpen] = useState<boolean>(() => {
     try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored !== null) return stored !== "true";
+      // Fallback: honour the shadcn cookie if localStorage has never been written
       const match = document.cookie.match(/(?:^|;\s*)sidebar_state=([^;]*)/);
       return match ? match[1] !== "false" : true;
     } catch {
@@ -132,6 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       defaultOpen={sidebarDefaultOpen}
       style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
     >
+      <SidebarStatePersist />
       {!pathname.startsWith("/profile") && <MobileMenuButton />}
       <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
         {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
