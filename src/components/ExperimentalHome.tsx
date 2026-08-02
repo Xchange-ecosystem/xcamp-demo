@@ -411,7 +411,7 @@ function EcosystemHeroLayout({
   children: React.ReactNode;
 }) {
   const HERO_HEIGHTS = "h-[300px] sm:h-[560px] md:h-[640px]";
-  const OVERLAP = 112;
+  const OVERLAP = 500;
 
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
@@ -1181,7 +1181,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
         image={activeProject?.feature_image ?? undefined}
         showImageReload={false}
         heroHeightClass="h-[300px] sm:h-[560px] md:h-[640px]"
-        overlap={112}
+        overlap={500}
       >
         <div style={{ padding: "32px 32px 48px" }}>
           {/* Heading — phase 1 */}
