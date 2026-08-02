@@ -32,6 +32,7 @@ import {
   isMuted,
   setMuted,
   subscribeMuted,
+  prefetchTTS,
 } from "@/lib/ttsClient";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
@@ -878,6 +879,22 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   mutedRef.current = muted;
   useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
 
+  // ── Prefetch all narration audio immediately on mount ───────────────────
+  useEffect(() => {
+    const ps = projects;
+    const au = authUser;
+    const greet = `${timeGreeting()}, ${firstName(au)}.`;
+    const sub = ps.length > 0
+      ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+      : "What do you want to work on today?";
+    prefetchTTS(`${greet} ${sub}`);
+    prefetchTTS("Ask Chi anything, or jot down what's on your mind…");
+    prefetchTTS("Or jump into a project.");
+    prefetchTTS(
+      "I have also prepared some useful tools for you. Here's what I recommend: Daily journal: Reflect on today and capture what matters. Quick note: Capture a thought before it slips away. Start a project: Launch a new initiative with the Backcaster.",
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Narration phase: 0=hidden 1=heading 2=input 3=projects 4=cards ──────
   const [phase, setPhase] = useState(0);
   const projectsRef = useRef(projects);
@@ -1067,6 +1084,13 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   mutedRef.current = muted;
   useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
 
+  // ── Prefetch static narration texts immediately; TEXT1 prefetched on metrics load ──
+  useEffect(() => {
+    prefetchTTS("Ask Chi about your project, or jot something down…");
+    prefetchTTS("Here are your tools.");
+    prefetchTTS("Here are some suggested next steps.");
+  }, []);
+
   // ── Project detail metrics (goals, total tasks, open tasks) ──────────────
   const [detailMetrics, setDetailMetrics] = useState<ProjectDetailMetrics>({
     objectives: 0,
@@ -1076,8 +1100,18 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   useEffect(() => {
     if (!authUser || !activeProject) return;
     let cancelled = false;
+    const projectName = activeProject.name;
     fetchProjectDetailMetrics(authUser, activeProject.id)
-      .then((m) => { if (!cancelled) setDetailMetrics(m); })
+      .then((m) => {
+        if (!cancelled) {
+          setDetailMetrics(m);
+          // Prefetch TEXT1 now that real metrics are available — gives ~400ms
+          // of lead time before the narration sequence reaches phase 1
+          prefetchTTS(
+            `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`,
+          );
+        }
+      })
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, [authUser, activeProject?.id]); // eslint-disable-line react-hooks/exhaustive-deps
