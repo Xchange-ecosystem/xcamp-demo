@@ -675,7 +675,7 @@ function ProjectSelectAction({
         style={{
           flex: 1,
           minWidth: 0,
-          padding: "5px 8px",
+          padding: "5px 28px 5px 8px",
           borderRadius: 6,
           border: "1px solid var(--skin-line)",
           background: "var(--skin-surface)",

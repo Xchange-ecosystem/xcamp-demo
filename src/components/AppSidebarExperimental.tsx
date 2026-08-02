@@ -352,13 +352,21 @@ export function AppSidebarExperimental() {
                 const url = resolveUrl(item);
                 const active = isActive(item.parameterised ? url : item.url);
 
+                const handleNavClick = () => {
+                  if (item.title === "companion") {
+                    void navigate({ to: "/home" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: "companion" }) });
+                  } else {
+                    void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
+                  }
+                };
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild={false}
                       isActive={active}
                       tooltip={item.label}
-                      onClick={() => void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev }) })}
+                      onClick={handleNavClick}
                       className="flex items-center gap-2 w-full"
                     >
                       <item.icon className="h-4 w-4" />
