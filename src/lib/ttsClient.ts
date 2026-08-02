@@ -5,6 +5,7 @@
 // chunk arrives.
 
 import { isAudioUnlocked, waitForAudioUnlock } from './audio-unlock'
+export { onAudioUnlock } from './audio-unlock'
 import { getVoiceId } from './voicePreference'
 
 const MUTE_KEY = 'chi.tts.muted.v1'

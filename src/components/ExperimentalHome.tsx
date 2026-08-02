@@ -33,6 +33,7 @@ import {
   setMuted,
   subscribeMuted,
   prefetchTTS,
+  onAudioUnlock,
 } from "@/lib/ttsClient";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
@@ -903,6 +904,8 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
   // ── Narration phase: 0=hidden 1=heading 2=input 3=projects 4=cards ──────
   const [phase, setPhase] = useState(0);
+  const phaseRef = useRef(0);
+  phaseRef.current = phase;
   const projectsRef = useRef(projects);
   projectsRef.current = projects;
   const authUserRef = useRef(authUser);
@@ -949,6 +952,30 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       cancelled = true;
       stopSpeaking();
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── On first browser interaction, cancel stale queued audio and re-speak
+  //    whichever phase is currently visible (phases queue up while blocked). ──
+  useEffect(() => {
+    return onAudioUnlock(() => {
+      const p = phaseRef.current;
+      if (p === 0 || mutedRef.current) return;
+      stopSpeaking();
+      const ps = projectsRef.current;
+      const au = authUserRef.current;
+      const greet = `${timeGreeting()}, ${firstName(au)}.`;
+      const sub = ps.length > 0
+        ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+        : "What do you want to work on today?";
+      const texts = [
+        `${greet} ${sub}`,
+        "Ask Chi anything, or jot down what's on your mind…",
+        "Or jump into a project.",
+        "I have also prepared some useful tools for you. Here's what I recommend: Daily journal: Reflect on today and capture what matters. Quick note: Capture a thought before it slips away. Start a project: Launch a new initiative with the Backcaster.",
+      ];
+      const text = texts[p - 1];
+      if (text) speak(text);
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Project metrics ──────────────────────────────────────────────────────
@@ -1124,6 +1151,8 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
 
   // ── Narration phase: 0=hidden 1=heading 2=input 3=tools 4=suggestions ───
   const [phase, setPhase] = useState(0);
+  const phaseRef = useRef(0);
+  phaseRef.current = phase;
   const activeProjectRef = useRef(activeProject);
   activeProjectRef.current = activeProject;
   const detailMetricsRef = useRef(detailMetrics);
@@ -1167,6 +1196,28 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
       cancelled = true;
       stopSpeaking();
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── On first browser interaction, cancel stale queued audio and re-speak
+  //    whichever phase is currently visible (phases queue up while blocked). ──
+  useEffect(() => {
+    return onAudioUnlock(() => {
+      const p = phaseRef.current;
+      if (p === 0 || mutedRef.current) return;
+      stopSpeaking();
+      const proj = activeProjectRef.current;
+      const m = detailMetricsRef.current;
+      const projectName = proj?.name ?? "your project";
+      const TEXT1 = `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`;
+      const texts = [
+        TEXT1,
+        "Ask Chi about your project, or jot something down…",
+        "Here are your tools.",
+        "Here are some suggested next steps.",
+      ];
+      const text = texts[p - 1];
+      if (text) speak(text);
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const headingText = activeProject ? `This is your project ${activeProject.name}.` : "Project Home.";
