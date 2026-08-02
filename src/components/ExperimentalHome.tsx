@@ -8,7 +8,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Paperclip, Plus, Zap } from "lucide-react";
+import { Check, ChevronDown, Mic, MicOff, Paperclip, Plus, Search, Send, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
 import { PageHeroShell } from "@/components/PageHeroShell";
 import { ChatThread } from "@/components/companion/ChatThread";
@@ -18,18 +19,21 @@ import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
 import { useTheme } from "@/lib/theme";
 import { fetchProjectMetrics, type ProjectMetrics } from "@/lib/xcamp-api";
+import { useActiveProject } from "@/contexts/active-project";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
-// PLACEHOLDER — drop the real images at these paths to activate them.
-// Swap `undefined` → the string path; no other code changes needed.
-const HERO_DARK_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-dark.jpg"
-const HERO_LIGHT_SRC: string | undefined = undefined; // "/assets/hero-ecosystem-light.jpg"
+// Phase 13: wired to real Supabase public-bucket URLs.
+const HERO_DARK_SRC =
+  "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
+const HERO_LIGHT_SRC =
+  "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Light.png";
 
-// ─── Recommendation card video paths ─────────────────────────────────────────
+// ─── Recommendation card / tool tile video paths ──────────────────────────────
 const CARD_VIDEOS = {
   journal: "/assets/cards/journal.mp4",
   note: "/assets/cards/note.mp4",
   project: "/assets/cards/project.mp4",
+  navigator: "/assets/cards/navigator.mp4",
 } as const;
 
 // ─── CSS animation for the shifting-color hero overlay ───────────────────────
@@ -346,9 +350,6 @@ function firstName(user: XcampUser | null) {
 }
 
 // ─── Ecosystem hero layout (Phase 5) ─────────────────────────────────────────
-// Mirrors PageHeroShell's structural pattern (hero banner + overlapping card)
-// but adds an animated colour-shift overlay inside the hero area.
-// Light / dark image selection is done via the resolved theme.
 
 function EcosystemHeroLayout({
   heroSrc,
@@ -362,7 +363,6 @@ function EcosystemHeroLayout({
 
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
-      {/* Inject keyframe animation + prefers-reduced-motion rule */}
       <style>{HERO_ANIMATION_STYLE}</style>
 
       {/* Hero banner */}
@@ -370,7 +370,6 @@ function EcosystemHeroLayout({
         className={`relative w-full overflow-hidden ${HERO_HEIGHTS}`}
         style={{ background: "var(--skin-accent-gradient)" }}
       >
-        {/* Background image (when available) */}
         {heroSrc && (
           <img
             src={heroSrc}
@@ -381,7 +380,6 @@ function EcosystemHeroLayout({
           />
         )}
 
-        {/* Accent multiply tint — same as PageHeroShell */}
         {heroSrc && (
           <div
             aria-hidden
@@ -390,7 +388,6 @@ function EcosystemHeroLayout({
           />
         )}
 
-        {/* Animated shifting-colour overlay — driven by theme accent tokens */}
         <div
           aria-hidden
           className="eco-hero-overlay absolute inset-0 pointer-events-none"
@@ -409,7 +406,6 @@ function EcosystemHeroLayout({
           }}
         />
 
-        {/* Bottom fade to surface — same as PageHeroShell */}
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
@@ -569,39 +565,332 @@ function NewProjectTile({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-// ─── Recommendation card with hover-play video (Phase 9) ─────────────────────
+// ─── Tool tile (Phase 14 — Project Home tool row) ─────────────────────────────
+// Whole-tile-clickable, video at top, title below, hover-play/reset.
 
-function RecommendCard({
+function ToolTile({
+  title,
+  videoSrc,
+  onClick,
+}: {
+  title: string;
+  videoSrc: string;
+  onClick: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--skin-accent, #4de0c1)";
+        videoRef.current?.play().catch(() => undefined);
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = "none";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--skin-line)";
+        const v = videoRef.current;
+        if (v) { v.pause(); v.currentTime = 0; }
+      }}
+      style={{
+        flexShrink: 0,
+        width: 180,
+        border: "1px solid var(--skin-line)",
+        borderRadius: 10,
+        overflow: "hidden",
+        background: "var(--skin-card, var(--skin-surface))",
+        cursor: "pointer",
+        textAlign: "left",
+        padding: 0,
+        transition: "box-shadow 0.15s, border-color 0.15s",
+      }}
+    >
+      <div style={{ width: "100%", height: 100, overflow: "hidden", background: "var(--skin-surface)" }}>
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          muted
+          preload="metadata"
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      </div>
+      <div style={{ padding: "10px 12px 12px" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)", lineHeight: 1.3 }}>
+          {title}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Project selector (Phase 15 — inline in recommend cards) ─────────────────
+// Reuses the same search + dropdown pattern as the sidebar's project switcher.
+
+function ProjectSelectInline({
+  projects,
+  selected,
+  onSelect,
+}: {
+  projects: ProjectFull[];
+  selected: ProjectFull | null;
+  onSelect: (p: ProjectFull) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = query
+    ? projects.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+    : projects;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => { setOpen((o) => !o); setQuery(""); }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          width: "100%",
+          padding: "4px 8px",
+          border: "1px solid var(--skin-line)",
+          borderRadius: 6,
+          background: "var(--skin-surface)",
+          color: selected ? "var(--skin-ink)" : "var(--skin-ink-faint)",
+          fontSize: 12,
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selected ? selected.name : "Select project to start."}
+        </span>
+        <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
+      </button>
+
+      {open && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 49 }}
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 4px)",
+              left: 0,
+              right: 0,
+              background: "var(--skin-surface)",
+              border: "1px solid var(--skin-line)",
+              borderRadius: 8,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+              zIndex: 50,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 8px",
+                borderBottom: "1px solid var(--skin-line)",
+              }}
+            >
+              <Search size={12} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+              <input
+                autoFocus
+                placeholder="Search…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  fontSize: 12,
+                  color: "var(--skin-ink)",
+                }}
+              />
+            </div>
+            <div style={{ maxHeight: 160, overflowY: "auto" }}>
+              {filtered.length === 0 ? (
+                <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--skin-ink-faint)" }}>
+                  No projects found
+                </div>
+              ) : (
+                filtered.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { onSelect(p); setOpen(false); setQuery(""); }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: "6px 10px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      color: "var(--skin-ink)",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {p.name}
+                    </span>
+                    {p.id === selected?.id && (
+                      <Check size={12} style={{ color: "var(--skin-accent, #4de0c1)", flexShrink: 0 }} />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Recommend card — Journal / Note variant (Phase 15) ───────────────────────
+// Replaces "Go to →" with a project selector + Send button.
+
+function RecommendCardWithProjectSelect({
   title,
   description,
   videoSrc,
   to,
+  projects,
 }: {
   title: string;
   description: string;
   videoSrc: string;
   to: string;
+  projects: ProjectFull[];
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectFull | null>(null);
+  const { setActiveProjectId, setNavMode } = useActiveProject();
+  const navigate = useNavigate();
 
-  function handleMouseEnter() {
-    videoRef.current?.play().catch(() => undefined);
-  }
-  function handleMouseLeave() {
-    const v = videoRef.current;
-    if (!v) return;
-    v.pause();
-    v.currentTime = 0;
+  function handleSend() {
+    if (!selectedProject) return;
+    setActiveProjectId(selectedProject.id);
+    setNavMode("project");
+    void navigate({ to: to as never, search: true });
   }
 
   return (
     <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => videoRef.current?.play().catch(() => undefined)}
+      onMouseLeave={() => {
+        const v = videoRef.current;
+        if (v) { v.pause(); v.currentTime = 0; }
+      }}
+      style={{
+        display: "flex",
+        alignItems: "stretch",
+        border: "1px solid var(--skin-line)",
+        borderRadius: 10,
+        background: "var(--skin-card, var(--skin-surface))",
+        cursor: "default",
+      }}
+    >
+      {/* Video thumbnail */}
+      <div
+        style={{
+          flexShrink: 0,
+          width: 72,
+          overflow: "hidden",
+          background: "var(--skin-surface)",
+          borderRadius: "10px 0 0 10px",
+        }}
+      >
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          muted
+          preload="metadata"
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      </div>
+
+      {/* Text + project selector + send */}
+      <div style={{ flex: 1, padding: "10px 14px" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
+        <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2, marginBottom: 8 }}>
+          {description}
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div style={{ flex: 1 }}>
+            <ProjectSelectInline
+              projects={projects}
+              selected={selectedProject}
+              onSelect={setSelectedProject}
+            />
+          </div>
+          <button
+            onClick={handleSend}
+            disabled={!selectedProject}
+            title="Go"
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: "none",
+              background: selectedProject ? "var(--skin-accent-gradient)" : "transparent",
+              color: selectedProject ? "white" : "var(--skin-ink-faint)",
+              cursor: selectedProject ? "pointer" : "not-allowed",
+              opacity: selectedProject ? 1 : 0.4,
+              transition: "background 0.15s, opacity 0.15s",
+            }}
+          >
+            <Send size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Recommend card — "Start a project" variant (Phase 15) ───────────────────
+// Replaces "Go to →" with a CTA button; no project selector needed.
+
+function RecommendCardWithButton({
+  title,
+  description,
+  videoSrc,
+  buttonLabel,
+  to,
+}: {
+  title: string;
+  description: string;
+  videoSrc: string;
+  buttonLabel: string;
+  to: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
+
+  return (
+    <div
+      onMouseEnter={() => videoRef.current?.play().catch(() => undefined)}
+      onMouseLeave={() => {
+        const v = videoRef.current;
+        if (v) { v.pause(); v.currentTime = 0; }
+      }}
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         border: "1px solid var(--skin-line)",
         borderRadius: 10,
         overflow: "hidden",
@@ -627,20 +916,25 @@ function RecommendCard({
         <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
       </div>
 
-      {/* Go to link */}
-      <a
-        href={to}
+      {/* CTA button */}
+      <button
+        onClick={() => void navigate({ to: to as never, search: true })}
         style={{
           flexShrink: 0,
           fontSize: 12,
           fontWeight: 600,
-          color: "var(--skin-accent, #4de0c1)",
-          textDecoration: "none",
-          padding: "0 16px 0 0",
+          color: "white",
+          background: "var(--skin-accent-gradient)",
+          border: "none",
+          borderRadius: 6,
+          padding: "6px 12px",
+          cursor: "pointer",
+          marginRight: 16,
+          whiteSpace: "nowrap",
         }}
       >
-        Go to →
-      </a>
+        {buttonLabel}
+      </button>
     </div>
   );
 }
@@ -651,8 +945,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const { projects, onProjectSelect, onCreateProject, authUser } = props;
   const { resolved: theme } = useTheme();
 
-  // Select background image per theme — PLACEHOLDER until real images are provided.
-  // To activate: set HERO_DARK_SRC and HERO_LIGHT_SRC constants at the top of this file.
+  // Phase 13: real hero images served from Supabase public bucket.
   const heroSrc = theme === "dark" ? HERO_DARK_SRC : HERO_LIGHT_SRC;
 
   // Phase 8: batch-fetch objective + task counts for all visible projects
@@ -733,7 +1026,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
         </section>
       )}
 
-      {/* Recommendation cards with videos (Phase 9) */}
+      {/* Recommendation cards (Phase 9, redesigned Phase 15) */}
       <section>
         <div
           style={{
@@ -748,22 +1041,25 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
           Here's what I recommend
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <RecommendCard
+          <RecommendCardWithProjectSelect
             title="Daily journal"
             description="Reflect on today and capture what matters."
             videoSrc={CARD_VIDEOS.journal}
             to="/journal"
+            projects={projects}
           />
-          <RecommendCard
+          <RecommendCardWithProjectSelect
             title="Quick note"
             description="Capture a thought before it slips away."
             videoSrc={CARD_VIDEOS.note}
             to="/notes"
+            projects={projects}
           />
-          <RecommendCard
+          <RecommendCardWithButton
             title="Start a project"
             description="Launch a new initiative with Backcaster."
             videoSrc={CARD_VIDEOS.project}
+            buttonLabel="Get started with AI"
             to="/project-builder"
           />
         </div>
@@ -772,17 +1068,21 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   );
 }
 
-// ─── Project Home (Phase 6) ───────────────────────────────────────────────────
+// ─── Project Home (Phase 6 + Phase 14 tool tiles) ────────────────────────────
 
 export function ProjectHomeView(props: ExperimentalHomeProps) {
   const { activeProject, authUser } = props;
+  const navigate = useNavigate();
+
+  function nav(to: string) {
+    void navigate({ to: to as never, search: true });
+  }
 
   return (
     <PageHeroShell
       image={activeProject?.feature_image ?? undefined}
       showImageReload={false}
     >
-      {/* Card content rendered inside PageHeroShell's overlapping card */}
       <div style={{ padding: "32px 32px 48px" }}>
         {/* Greeting */}
         <h1
@@ -805,13 +1105,54 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
         </p>
 
         {/* Input */}
-        <div style={{ marginBottom: 36 }}>
+        <div style={{ marginBottom: 28 }}>
           <InputBox
             {...props}
             activeProjectId={activeProject?.id}
             placeholder="Ask Chi about your project, or jot something down…"
           />
         </div>
+
+        {/* Phase 14 — Tool tile row */}
+        <section style={{ marginBottom: 36 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--skin-ink-faint)",
+              marginBottom: 12,
+            }}
+          >
+            Jump into
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+            }}
+          >
+            <ToolTile
+              title="Project Journal"
+              videoSrc={CARD_VIDEOS.journal}
+              onClick={() => nav("/journal")}
+            />
+            <ToolTile
+              title="New Note"
+              videoSrc={CARD_VIDEOS.note}
+              onClick={() => nav("/notes")}
+            />
+            <ToolTile
+              title="Project Navigator"
+              videoSrc={CARD_VIDEOS.navigator}
+              onClick={() => nav("/navigator")}
+            />
+          </div>
+        </section>
 
         {/* Suggested next steps — placeholder for Backcaster integration */}
         <section>
