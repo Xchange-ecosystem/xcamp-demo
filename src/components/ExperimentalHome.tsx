@@ -30,6 +30,7 @@ const CARD_VIDEOS = {
   journal: "/assets/cards/journal.mp4",
   note: "/assets/cards/note.mp4",
   project: "/assets/cards/project.mp4",
+  navigator: "/assets/cards/navigator.mp4",
 } as const;
 
 // ─── CSS animation for the shifting-color hero overlay ───────────────────────
@@ -1001,7 +1002,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
           <div style={{ display: "flex", gap: 12 }}>
             <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
             <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
-            <ToolTile title="Project Navigator" to="/navigator" />
+            <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
           </div>
         </section>
 
