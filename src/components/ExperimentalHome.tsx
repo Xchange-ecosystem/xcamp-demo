@@ -412,7 +412,6 @@ function EcosystemHeroLayout({
   children: React.ReactNode;
 }) {
   const HERO_HEIGHTS = "h-[300px] sm:h-[560px] md:h-[640px]";
-  const OVERLAP = 500;
 
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
@@ -474,10 +473,9 @@ function EcosystemHeroLayout({
         />
       </div>
 
-      {/* Overlapping content card */}
+      {/* Overlapping content card — responsive: 230px mobile, 440px sm, 500px md+ */}
       <div
-        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px]"
-        style={{ marginTop: -OVERLAP }}
+        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px] -mt-[230px] sm:-mt-[440px] md:-mt-[500px]"
       >
         <div
           className="rounded-2xl shadow-xl"
@@ -1232,7 +1230,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
         image={activeProject?.feature_image ?? undefined}
         showImageReload={false}
         heroHeightClass="h-[300px] sm:h-[560px] md:h-[640px]"
-        overlap={500}
+        overlapClass="-mt-[230px] sm:-mt-[440px] md:-mt-[500px]"
       >
         <div style={{ padding: "32px 32px 48px" }}>
           {/* Heading — phase 1 */}
