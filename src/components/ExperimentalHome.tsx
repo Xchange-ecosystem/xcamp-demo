@@ -1060,6 +1060,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const startedMutedRef = useRef(isMuted());
   useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
 
   // ── Prefetch all narration audio immediately on mount ───────────────────
@@ -1095,6 +1096,8 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
     let cancelled = false;
     async function run() {
+      if (mutedRef.current) { setPhase(4); return; }
+
       await delay(450);
       if (cancelled) return;
 
@@ -1196,7 +1199,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
               letterSpacing: "-0.01em",
             }}
           >
-            {phase >= 1 ? <Typewriter text={greetText} caret={false} /> : null}
+            {phase >= 1 ? (startedMutedRef.current ? greetText : <Typewriter text={greetText} caret={false} />) : null}
           </h1>
           <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
             {sublineText}
@@ -1299,6 +1302,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const startedMutedRef = useRef(isMuted());
   useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
 
   // ── Prefetch static narration texts immediately; TEXT1 prefetched on metrics load ──
@@ -1345,6 +1349,8 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   useEffect(() => {
     let cancelled = false;
     async function run() {
+      if (mutedRef.current) { setPhase(4); return; }
+
       // Wait for metrics to load (up to 1200ms) before building narration text
       await delay(800);
       if (cancelled) return;
@@ -1430,7 +1436,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
                 letterSpacing: "-0.01em",
               }}
             >
-              {phase >= 1 ? <Typewriter text={headingText} caret={false} /> : null}
+              {phase >= 1 ? (startedMutedRef.current ? headingText : <Typewriter text={headingText} caret={false} />) : null}
             </h1>
             <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
               {sublineText}
