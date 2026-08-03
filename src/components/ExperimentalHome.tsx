@@ -35,6 +35,8 @@ import {
   prefetchTTS,
   onAudioUnlock,
 } from "@/lib/ttsClient";
+import { useBrand } from "@/lib/brand";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
 const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
@@ -66,6 +68,155 @@ const HERO_ANIMATION_STYLE = `
     }
   }
 `;
+
+// ─── Ecosystem Home intro overlay ────────────────────────────────────────────
+// Shown once per browser session (sessionStorage) on Ecosystem Home only.
+// The dismissing tap is the gesture that satisfies the browser's audio-autoplay
+// restriction, so the narration sequence that follows plays with sound
+// immediately — no silent-then-catch-up needed.
+
+const INTRO_KEY = "eco-home-intro-seen";
+
+const INTRO_OVERLAY_STYLE = `
+  @keyframes eco-intro-orb-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.055); }
+  }
+  @keyframes eco-intro-overlay-fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(1.03); }
+  }
+  .eco-intro-orb {
+    animation: eco-intro-orb-pulse 2.2s ease-in-out infinite;
+  }
+  .eco-intro-overlay-dismiss {
+    animation: eco-intro-overlay-fade-out 0.45s ease forwards;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eco-intro-orb {
+      animation: none !important;
+    }
+    .eco-intro-overlay-dismiss {
+      animation: none !important;
+      opacity: 0;
+    }
+  }
+`;
+
+// Two-stage typed text sequence: stage 1 lines 0–1, stage 2 lines 2–3, then hint.
+// No speak() calls — audio is blocked until the dismissing gesture anyway.
+const INTRO_LINES_STATIC = [
+  "I am your companion, always at your service.",
+  "Your project is ready. Are you?",
+  "Tap the orb to get started.",
+] as const;
+
+function EcoIntroOverlay({ greetLine, onDismiss }: { greetLine: string; onDismiss: () => void }) {
+  const brand = useBrand();
+  const LINES = [greetLine, ...INTRO_LINES_STATIC];
+  const lineIdxRef = useRef(0);
+  const [lineIdx, setLineIdx] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
+
+  function handleLineDone() {
+    const idx = lineIdxRef.current;
+    if (idx < LINES.length - 1) {
+      const next = idx + 1;
+      setTimeout(() => {
+        lineIdxRef.current = next;
+        setLineIdx(next);
+      }, 200);
+    } else {
+      setTimeout(() => setShowHint(true), 400);
+    }
+  }
+
+  function handleOrbTap() {
+    if (dismissing) return;
+    setDismissing(true);
+    setTimeout(onDismiss, 450);
+  }
+
+  return (
+    <>
+      <style>{INTRO_OVERLAY_STYLE}</style>
+      <div
+        className={dismissing ? "eco-intro-overlay-dismiss" : undefined}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 45,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 32,
+          background: "var(--skin-bg)",
+        }}
+      >
+        {/* Pulsing brand orb — uses real accent gradient token, CSS class for reduced-motion */}
+        <button
+          type="button"
+          onClick={handleOrbTap}
+          aria-label="Tap to begin"
+          className="eco-intro-orb rounded-full border-0 cursor-pointer flex items-center justify-center"
+          style={{
+            width: 112,
+            height: 112,
+            padding: 0,
+            background: "var(--skin-accent-gradient)",
+            boxShadow: "0 4px 28px rgba(0,0,0,0.15)",
+            outline: "none",
+          }}
+        >
+          <img
+            src={brand.iconUrl}
+            alt={brand.name}
+            style={{ width: "46%", height: "46%", objectFit: "contain" }}
+          />
+        </button>
+
+        {/* Sequential typewriter lines — two stages with visual gap between them */}
+        <div style={{ textAlign: "center", color: "var(--skin-ink)", padding: "0 28px" }}>
+          {LINES.map((line, i) =>
+            i > lineIdx ? null : (
+              <p
+                key={i}
+                style={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  lineHeight: 1.45,
+                  margin: i === 2 ? "12px 0 0" : "0",
+                }}
+              >
+                {i < lineIdx
+                  ? line
+                  : <Typewriter text={line} caret={false} onDone={handleLineDone} />}
+              </p>
+            )
+          )}
+        </div>
+
+        {/* Hint — fades in after all lines typed */}
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--skin-ink-faint)",
+            textAlign: "center",
+            maxWidth: 280,
+            padding: "0 24px",
+            opacity: showHint ? 1 : 0,
+            transition: "opacity 0.5s ease",
+          }}
+        >
+          Or use the menu to jump right in. You can always find me in the sidebar.
+        </p>
+      </div>
+    </>
+  );
+}
 
 // ─── Shared prop types ────────────────────────────────────────────────────────
 
@@ -378,7 +529,7 @@ function VoiceToggle({ muted, onToggle }: { muted: boolean; onToggle: () => void
         position: "fixed",
         top: 12,
         right: 16,
-        zIndex: 20,
+        zIndex: 50,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -834,7 +985,7 @@ function RecommendCard({
       onMouseLeave={handleMouseLeave}
       style={{
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "stretch",
         border: "1px solid var(--skin-line)",
         borderRadius: 10,
         overflow: "hidden",
@@ -842,12 +993,14 @@ function RecommendCard({
         cursor: "default",
       }}
     >
-      {/* Video thumbnail — square 1:1 */}
+      {/* Video thumbnail — square, fills card height, width derived via 1:1 aspect-ratio.
+          maxWidth caps the flex item's hypothetical main size so the <video> element's
+          300px browser-default intrinsic width cannot inflate the row height. */}
       <div
         style={{
           flexShrink: 0,
-          width: 72,
-          height: 72,
+          aspectRatio: "1 / 1",
+          maxWidth: "6rem",
           overflow: "hidden",
           background: "var(--skin-surface)",
         }}
@@ -863,7 +1016,7 @@ function RecommendCard({
       </div>
 
       {/* Text + action */}
-      <div style={{ flex: 1, padding: "10px 14px 12px" }}>
+      <div style={{ flex: 1, minWidth: 0, padding: "10px 14px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
         <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
         {action}
@@ -877,6 +1030,31 @@ function RecommendCard({
 export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const { projects, onProjectSelect, onCreateProject, authUser } = props;
   const { resolved: theme } = useTheme();
+
+  // ── Intro overlay — shown once per session, dismissed on first tap ───────
+  const [showOverlay, setShowOverlay] = useState<boolean>(() => {
+    try {
+      if (!sessionStorage.getItem(INTRO_KEY)) {
+        sessionStorage.setItem(INTRO_KEY, "1");
+        return true;
+      }
+    } catch { /* sessionStorage unavailable (e.g. private mode with blocked storage) */ }
+    return false;
+  });
+
+  // ── Sidebar — collapse during overlay, restore original preference on dismiss ──
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+  const sidebarOpenOnMount = useRef(sidebarOpen);
+  useEffect(() => {
+    if (!showOverlay) return;
+    sidebarOpenOnMount.current = sidebarOpen;
+    setSidebarOpen(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleOverlayDismiss() {
+    setSidebarOpen(sidebarOpenOnMount.current);
+    setShowOverlay(false);
+  }
 
   // ── TTS / mute ───────────────────────────────────────────────────────────
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
@@ -910,6 +1088,11 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   authUserRef.current = authUser;
 
   useEffect(() => {
+    // Wait for the intro overlay tap before starting narration — the tap is the
+    // gesture that unlocks audio, so speak() calls after this point will work
+    // immediately without needing the onAudioUnlock re-speak fallback.
+    if (showOverlay) return;
+
     let cancelled = false;
     async function run() {
       await delay(450);
@@ -950,7 +1133,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       cancelled = true;
       stopSpeaking();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── On first browser interaction, cancel stale queued audio and re-speak
   //    whichever phase is currently visible (phases queue up while blocked). ──
@@ -997,6 +1180,9 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
   return (
     <>
+      {showOverlay && (
+        <EcoIntroOverlay greetLine={greetText} onDismiss={handleOverlayDismiss} />
+      )}
       <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
       <EcosystemHeroLayout heroSrc={heroSrc}>
         {/* Greeting — phase 1 */}
