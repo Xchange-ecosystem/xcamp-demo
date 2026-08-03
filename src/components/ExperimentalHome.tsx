@@ -36,6 +36,7 @@ import {
   onAudioUnlock,
 } from "@/lib/ttsClient";
 import { useBrand } from "@/lib/brand";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
 const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
@@ -77,43 +78,72 @@ const HERO_ANIMATION_STYLE = `
 const INTRO_KEY = "eco-home-intro-seen";
 
 const INTRO_OVERLAY_STYLE = `
-  @keyframes eco-intro-orb-outer {
-    0%, 100% { transform: scale(1); opacity: 0.75; }
-    50% { transform: scale(1.18); opacity: 0.3; }
-  }
-  @keyframes eco-intro-orb-inner {
+  @keyframes eco-intro-orb-pulse {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.10); }
+    50% { transform: scale(1.055); }
   }
-  .eco-intro-orb-outer {
-    animation: eco-intro-orb-outer 1.8s ease-in-out infinite;
+  @keyframes eco-intro-overlay-fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(1.03); }
   }
-  .eco-intro-orb-inner {
-    animation: eco-intro-orb-inner 1.2s ease-in-out infinite;
+  .eco-intro-orb {
+    animation: eco-intro-orb-pulse 2.2s ease-in-out infinite;
+  }
+  .eco-intro-overlay-dismiss {
+    animation: eco-intro-overlay-fade-out 0.45s ease forwards;
+    pointer-events: none;
   }
   @media (prefers-reduced-motion: reduce) {
-    .eco-intro-orb-outer,
-    .eco-intro-orb-inner {
+    .eco-intro-orb {
       animation: none !important;
+    }
+    .eco-intro-overlay-dismiss {
+      animation: none !important;
+      opacity: 0;
     }
   }
 `;
 
-const INTRO_ORB_SIZE = 140;
+// Two-stage typed text sequence: stage 1 lines 0–1, stage 2 lines 2–3, then hint.
+// No speak() calls — audio is blocked until the dismissing gesture anyway.
+const INTRO_LINES_STATIC = [
+  "I am your companion, always at your service.",
+  "Your project is ready. Are you?",
+  "Tap the orb to get started.",
+] as const;
 
-function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
+function EcoIntroOverlay({ greetLine, onDismiss }: { greetLine: string; onDismiss: () => void }) {
   const brand = useBrand();
-  const gradientBg = brand.isNox
-    ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
-    : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)";
-  const glowColor = brand.isNox
-    ? "rgba(115,31,125,0.55)"
-    : "rgba(77,224,193,0.55)";
+  const LINES = [greetLine, ...INTRO_LINES_STATIC];
+  const lineIdxRef = useRef(0);
+  const [lineIdx, setLineIdx] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
+
+  function handleLineDone() {
+    const idx = lineIdxRef.current;
+    if (idx < LINES.length - 1) {
+      const next = idx + 1;
+      setTimeout(() => {
+        lineIdxRef.current = next;
+        setLineIdx(next);
+      }, 200);
+    } else {
+      setTimeout(() => setShowHint(true), 400);
+    }
+  }
+
+  function handleOrbTap() {
+    if (dismissing) return;
+    setDismissing(true);
+    setTimeout(onDismiss, 450);
+  }
 
   return (
     <>
       <style>{INTRO_OVERLAY_STYLE}</style>
       <div
+        className={dismissing ? "eco-intro-overlay-dismiss" : undefined}
         style={{
           position: "fixed",
           inset: 0,
@@ -122,77 +152,67 @@ function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 28,
-          background: "rgba(0,0,0,0.82)",
-          backdropFilter: "blur(4px)",
+          gap: 32,
+          background: "var(--skin-bg)",
         }}
       >
-        {/* Pulsing orb — CSS class names allow prefers-reduced-motion override */}
-        <div className="relative shrink-0" style={{ width: INTRO_ORB_SIZE, height: INTRO_ORB_SIZE }}>
-          {/* Outer glow ring */}
-          <div
-            aria-hidden
-            className="eco-intro-orb-outer pointer-events-none absolute inset-0 rounded-full"
-            style={{
-              background: gradientBg,
-              boxShadow: `0 0 ${INTRO_ORB_SIZE * 0.5}px ${INTRO_ORB_SIZE * 0.15}px ${glowColor}`,
-            }}
-          />
-          {/* Main orb button */}
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Tap to begin"
-            className="absolute inset-0 rounded-full border-0 p-0 outline-none cursor-pointer"
-            style={{
-              background: gradientBg,
-              boxShadow: `inset 0 0 ${INTRO_ORB_SIZE * 0.22}px rgba(255,255,255,0.25)`,
-            }}
-          >
-            {/* Highlight shimmer */}
-            <span
-              className="pointer-events-none absolute inset-2 rounded-full opacity-70"
-              style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%)",
-              }}
-            />
-            {/* Inner circle — independent animation layer */}
-            <span
-              className="eco-intro-orb-inner pointer-events-none absolute inset-0 flex items-center justify-center"
-            >
-              <span
-                style={{
-                  width: INTRO_ORB_SIZE * 0.55,
-                  height: INTRO_ORB_SIZE * 0.55,
-                  borderRadius: "50%",
-                  background: brand.isNox ? "var(--skin-bg)" : "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src={brand.iconUrl}
-                  alt={brand.name}
-                  style={{ width: "48%", height: "48%", objectFit: "contain" }}
-                />
-              </span>
-            </span>
-          </button>
-        </div>
-
-        {/* Typed-out prompt text — no speak() call (audio blocked before gesture) */}
-        <div
+        {/* Pulsing brand orb — uses real accent gradient token, CSS class for reduced-motion */}
+        <button
+          type="button"
+          onClick={handleOrbTap}
+          aria-label="Tap to begin"
+          className="eco-intro-orb rounded-full border-0 cursor-pointer flex items-center justify-center"
           style={{
-            textAlign: "center",
-            color: "rgba(255,255,255,0.75)",
-            fontSize: 16,
-            letterSpacing: "0.01em",
+            width: 112,
+            height: 112,
+            padding: 0,
+            background: "var(--skin-accent-gradient)",
+            boxShadow: "0 4px 28px rgba(0,0,0,0.15)",
+            outline: "none",
           }}
         >
-          <Typewriter text="Tap to begin your session." caret={false} />
+          <img
+            src={brand.iconUrl}
+            alt={brand.name}
+            style={{ width: "46%", height: "46%", objectFit: "contain" }}
+          />
+        </button>
+
+        {/* Sequential typewriter lines — two stages with visual gap between them */}
+        <div style={{ textAlign: "center", color: "var(--skin-ink)", padding: "0 28px" }}>
+          {LINES.map((line, i) =>
+            i > lineIdx ? null : (
+              <p
+                key={i}
+                style={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  lineHeight: 1.45,
+                  margin: i === 2 ? "12px 0 0" : "0",
+                }}
+              >
+                {i < lineIdx
+                  ? line
+                  : <Typewriter text={line} caret={false} onDone={handleLineDone} />}
+              </p>
+            )
+          )}
         </div>
+
+        {/* Hint — fades in after all lines typed */}
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--skin-ink-faint)",
+            textAlign: "center",
+            maxWidth: 280,
+            padding: "0 24px",
+            opacity: showHint ? 1 : 0,
+            transition: "opacity 0.5s ease",
+          }}
+        >
+          Or use the menu to jump right in. You can always find me in the sidebar.
+        </p>
       </div>
     </>
   );
@@ -509,7 +529,7 @@ function VoiceToggle({ muted, onToggle }: { muted: boolean; onToggle: () => void
         position: "fixed",
         top: 12,
         right: 16,
-        zIndex: 20,
+        zIndex: 50,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -1022,6 +1042,20 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
     return false;
   });
 
+  // ── Sidebar — collapse during overlay, restore original preference on dismiss ──
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+  const sidebarOpenOnMount = useRef(sidebarOpen);
+  useEffect(() => {
+    if (!showOverlay) return;
+    sidebarOpenOnMount.current = sidebarOpen;
+    setSidebarOpen(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleOverlayDismiss() {
+    setSidebarOpen(sidebarOpenOnMount.current);
+    setShowOverlay(false);
+  }
+
   // ── TTS / mute ───────────────────────────────────────────────────────────
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const mutedRef = useRef(muted);
@@ -1147,7 +1181,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   return (
     <>
       {showOverlay && (
-        <EcoIntroOverlay onDismiss={() => setShowOverlay(false)} />
+        <EcoIntroOverlay greetLine={greetText} onDismiss={handleOverlayDismiss} />
       )}
       <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
       <EcosystemHeroLayout heroSrc={heroSrc}>
