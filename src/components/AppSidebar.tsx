@@ -45,7 +45,7 @@ const flatItems = [
 ];
 
 export function AppSidebar() {
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
@@ -80,20 +80,22 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className={"flex items-center " + (collapsed ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}>
-          <AppLogo collapsed={collapsed} />
-          <button
-            onClick={toggleSidebar}
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
-            aria-label="Toggle sidebar"
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </button>
+        <div className={"flex items-center " + (collapsed && !isMobile ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}>
+          <AppLogo collapsed={isMobile ? false : collapsed} />
+          {!isMobile && (
+            <button
+              onClick={toggleSidebar}
+              className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
+              aria-label="Toggle sidebar"
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        {!collapsed && projects.length > 0 && (
+        {(!collapsed || isMobile) && projects.length > 0 && (
           <div className="px-2 pt-4">
             <label
               className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wider"

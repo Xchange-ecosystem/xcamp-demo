@@ -84,7 +84,7 @@ const PROJECT_NAV: NavItem[] = [
 ];
 
 export function AppSidebarExperimental() {
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
@@ -171,11 +171,11 @@ export function AppSidebarExperimental() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div
-          className={"flex items-center " + (collapsed ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}
-          style={{ borderBottom: "2px solid var(--skin-accent, #4de0c1)", marginBottom: collapsed ? 0 : 2 }}
+          className={"flex items-center " + (collapsed && !isMobile ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}
+          style={{ borderBottom: "2px solid var(--skin-accent, #4de0c1)", marginBottom: collapsed && !isMobile ? 0 : 2 }}
         >
-          <AppLogo collapsed={collapsed} />
-          {!collapsed && (
+          <AppLogo collapsed={isMobile ? false : collapsed} />
+          {(!collapsed || isMobile) && (
             <span
               style={{
                 fontSize: 9,
@@ -193,19 +193,21 @@ export function AppSidebarExperimental() {
               exp
             </span>
           )}
-          <button
-            onClick={toggleSidebar}
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
-            aria-label="Toggle sidebar"
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </button>
+          {!isMobile && (
+            <button
+              onClick={toggleSidebar}
+              className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
+              aria-label="Toggle sidebar"
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         {/* ── Segmented Ecosystem / Project control ────────────────────── */}
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <div className="px-3 pt-3 pb-1 relative" ref={switcherRef}>
             <div
               style={{
@@ -352,8 +354,8 @@ export function AppSidebarExperimental() {
           </div>
         )}
 
-        {/* Collapsed: dot indicator when in project mode */}
-        {collapsed && navMode === "project" && (
+        {/* Collapsed: dot indicator when in project mode (desktop only — mobile shows the full pill) */}
+        {collapsed && !isMobile && navMode === "project" && (
           <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
             <div
               title={activeProject?.name ?? "Project mode"}
@@ -383,8 +385,8 @@ export function AppSidebarExperimental() {
                   const navigatorActive = onNavigator || onNotes || onAiPlan;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      {collapsed ? (
-                        // Collapsed: direct icon click goes to browser view
+                      {collapsed && !isMobile ? (
+                        // Collapsed (desktop): direct icon click goes to browser view
                         <SidebarMenuButton
                           isActive={navigatorActive}
                           tooltip={item.label}
