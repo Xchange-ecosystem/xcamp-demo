@@ -986,8 +986,8 @@ function RecommendCard({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
-        display: "grid",
-        gridTemplateColumns: "auto 1fr",
+        display: "flex",
+        alignItems: "stretch",
         border: "1px solid var(--skin-line)",
         borderRadius: 10,
         overflow: "hidden",
@@ -995,10 +995,14 @@ function RecommendCard({
         cursor: "default",
       }}
     >
-      {/* Video thumbnail — square, height = card height, width derived via 1:1 aspect-ratio */}
+      {/* Video thumbnail — square, fills card height, width derived via 1:1 aspect-ratio.
+          maxWidth caps the flex item's hypothetical main size so the <video> element's
+          300px browser-default intrinsic width cannot inflate the row height. */}
       <div
         style={{
+          flexShrink: 0,
           aspectRatio: "1 / 1",
+          maxWidth: "6rem",
           overflow: "hidden",
           background: "var(--skin-surface)",
         }}
@@ -1014,7 +1018,7 @@ function RecommendCard({
       </div>
 
       {/* Text + action */}
-      <div style={{ minWidth: 0, padding: "10px 14px 12px" }}>
+      <div style={{ flex: 1, minWidth: 0, padding: "10px 14px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
         <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
         {action}
