@@ -10,6 +10,7 @@ type Props = {
   heroHeight?: number;
   heroHeightClass?: string;
   overlap?: number;
+  overlapClass?: string;
   eyebrow?: ReactNode;
   title?: ReactNode;
   subtitle?: ReactNode;
@@ -38,6 +39,7 @@ export function PageHeroShell({
   image,
   children,
   overlap = 56,
+  overlapClass,
   heroHeightClass = "h-[150px] sm:h-[280px] md:h-[320px]",
   eyebrow,
   title,
@@ -135,8 +137,8 @@ export function PageHeroShell({
       </div>
 
       <div
-        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px]"
-        style={{ marginTop: -overlap }}
+        className={`relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px]${overlapClass ? ` ${overlapClass}` : ''}`}
+        style={overlapClass ? undefined : { marginTop: -overlap }}
       >
         <div
           className="rounded-2xl shadow-xl"
