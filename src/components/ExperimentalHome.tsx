@@ -35,6 +35,7 @@ import {
   prefetchTTS,
   onAudioUnlock,
 } from "@/lib/ttsClient";
+import { useBrand } from "@/lib/brand";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
 const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
@@ -66,6 +67,136 @@ const HERO_ANIMATION_STYLE = `
     }
   }
 `;
+
+// ─── Ecosystem Home intro overlay ────────────────────────────────────────────
+// Shown once per browser session (sessionStorage) on Ecosystem Home only.
+// The dismissing tap is the gesture that satisfies the browser's audio-autoplay
+// restriction, so the narration sequence that follows plays with sound
+// immediately — no silent-then-catch-up needed.
+
+const INTRO_KEY = "eco-home-intro-seen";
+
+const INTRO_OVERLAY_STYLE = `
+  @keyframes eco-intro-orb-outer {
+    0%, 100% { transform: scale(1); opacity: 0.75; }
+    50% { transform: scale(1.18); opacity: 0.3; }
+  }
+  @keyframes eco-intro-orb-inner {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.10); }
+  }
+  .eco-intro-orb-outer {
+    animation: eco-intro-orb-outer 1.8s ease-in-out infinite;
+  }
+  .eco-intro-orb-inner {
+    animation: eco-intro-orb-inner 1.2s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eco-intro-orb-outer,
+    .eco-intro-orb-inner {
+      animation: none !important;
+    }
+  }
+`;
+
+const INTRO_ORB_SIZE = 140;
+
+function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const brand = useBrand();
+  const gradientBg = brand.isNox
+    ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
+    : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)";
+  const glowColor = brand.isNox
+    ? "rgba(115,31,125,0.55)"
+    : "rgba(77,224,193,0.55)";
+
+  return (
+    <>
+      <style>{INTRO_OVERLAY_STYLE}</style>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 45,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 28,
+          background: "rgba(0,0,0,0.82)",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        {/* Pulsing orb — CSS class names allow prefers-reduced-motion override */}
+        <div className="relative shrink-0" style={{ width: INTRO_ORB_SIZE, height: INTRO_ORB_SIZE }}>
+          {/* Outer glow ring */}
+          <div
+            aria-hidden
+            className="eco-intro-orb-outer pointer-events-none absolute inset-0 rounded-full"
+            style={{
+              background: gradientBg,
+              boxShadow: `0 0 ${INTRO_ORB_SIZE * 0.5}px ${INTRO_ORB_SIZE * 0.15}px ${glowColor}`,
+            }}
+          />
+          {/* Main orb button */}
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Tap to begin"
+            className="absolute inset-0 rounded-full border-0 p-0 outline-none cursor-pointer"
+            style={{
+              background: gradientBg,
+              boxShadow: `inset 0 0 ${INTRO_ORB_SIZE * 0.22}px rgba(255,255,255,0.25)`,
+            }}
+          >
+            {/* Highlight shimmer */}
+            <span
+              className="pointer-events-none absolute inset-2 rounded-full opacity-70"
+              style={{
+                background:
+                  "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%)",
+              }}
+            />
+            {/* Inner circle — independent animation layer */}
+            <span
+              className="eco-intro-orb-inner pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <span
+                style={{
+                  width: INTRO_ORB_SIZE * 0.55,
+                  height: INTRO_ORB_SIZE * 0.55,
+                  borderRadius: "50%",
+                  background: brand.isNox ? "var(--skin-bg)" : "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src={brand.iconUrl}
+                  alt={brand.name}
+                  style={{ width: "48%", height: "48%", objectFit: "contain" }}
+                />
+              </span>
+            </span>
+          </button>
+        </div>
+
+        {/* Typed-out prompt text — no speak() call (audio blocked before gesture) */}
+        <div
+          style={{
+            textAlign: "center",
+            color: "rgba(255,255,255,0.75)",
+            fontSize: 16,
+            letterSpacing: "0.01em",
+          }}
+        >
+          <Typewriter text="Tap to begin your session." caret={false} />
+        </div>
+      </div>
+    </>
+  );
+}
 
 // ─── Shared prop types ────────────────────────────────────────────────────────
 
@@ -880,6 +1011,17 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const { projects, onProjectSelect, onCreateProject, authUser } = props;
   const { resolved: theme } = useTheme();
 
+  // ── Intro overlay — shown once per session, dismissed on first tap ───────
+  const [showOverlay, setShowOverlay] = useState<boolean>(() => {
+    try {
+      if (!sessionStorage.getItem(INTRO_KEY)) {
+        sessionStorage.setItem(INTRO_KEY, "1");
+        return true;
+      }
+    } catch { /* sessionStorage unavailable (e.g. private mode with blocked storage) */ }
+    return false;
+  });
+
   // ── TTS / mute ───────────────────────────────────────────────────────────
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const mutedRef = useRef(muted);
@@ -912,6 +1054,11 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   authUserRef.current = authUser;
 
   useEffect(() => {
+    // Wait for the intro overlay tap before starting narration — the tap is the
+    // gesture that unlocks audio, so speak() calls after this point will work
+    // immediately without needing the onAudioUnlock re-speak fallback.
+    if (showOverlay) return;
+
     let cancelled = false;
     async function run() {
       await delay(450);
@@ -952,7 +1099,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       cancelled = true;
       stopSpeaking();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── On first browser interaction, cancel stale queued audio and re-speak
   //    whichever phase is currently visible (phases queue up while blocked). ──
@@ -999,6 +1146,9 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
   return (
     <>
+      {showOverlay && (
+        <EcoIntroOverlay onDismiss={() => setShowOverlay(false)} />
+      )}
       <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
       <EcosystemHeroLayout heroSrc={heroSrc}>
         {/* Greeting — phase 1 */}
