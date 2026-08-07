@@ -2,14 +2,12 @@ import { useState } from "react";
 import { ArrowLeft, Compass } from "lucide-react";
 import type { ObjectiveRow } from "@/lib/navigator-api";
 
-const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
+const STATUS_OPTIONS = ["inactive", "active", "completed"] as const;
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
+  inactive: "Inactive",
   active: "Active",
-  in_progress: "In progress",
-  blocked: "Blocked",
-  done: "Done",
+  completed: "Completed",
 };
 
 export interface ObjectiveEditorValues {
@@ -31,7 +29,7 @@ export function ObjectiveEditor({
 }) {
   const [title, setTitle] = useState(objective.title ?? "");
   const [description, setDescription] = useState(objective.description ?? "");
-  const [status, setStatus] = useState(objective.status ?? "draft");
+  const [status, setStatus] = useState(objective.status ?? "inactive");
 
   const canSave = title.trim().length > 0;
 
@@ -96,7 +94,7 @@ export function ObjectiveEditor({
         <select
           className="x-input"
           style={{ height: 34, fontSize: 13, width: "100%" }}
-          value={status ?? "draft"}
+          value={status ?? "inactive"}
           onChange={(e) => setStatus(e.target.value)}
         >
           {STATUS_OPTIONS.map((s) => (
