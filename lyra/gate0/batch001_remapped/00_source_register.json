@@ -1,0 +1,42 @@
+{
+  "SRC-EXTRACT": {
+    "title": "Knowledge Extraction from Lyra GPT",
+    "type": "uploaded_document",
+    "note": "Defines four extraction layers and the pipeline."
+  },
+  "SRC-LYROS-PROP": {
+    "title": "Lyros – The Living Consultancy Engine",
+    "type": "uploaded_document",
+    "note": "Defines traceable knowledge atoms, confirmation and lineage."
+  },
+  "SRC-RSOS-PITCH": {
+    "title": "SGA RSOS in 5 Slides",
+    "type": "uploaded_document",
+    "note": "Current concise RSOS framing."
+  },
+  "SRC-RSOS-BUILD": {
+    "title": "SGA RSOS – Trainingshandout Bauindustrie",
+    "type": "uploaded_document",
+    "note": "Current applied RSOS explanation."
+  },
+  "SRC-SGA-AI-001": {
+    "title": "SGA-AI-001_LYRA_draft",
+    "type": "uploaded_document",
+    "note": "Draft governance and usage guidance."
+  },
+  "SRC-SGA-STRAT-1": {
+    "title": "SGA Strategy & Operational Meeting – Session 1",
+    "type": "transcript",
+    "note": "Rüdiger's direct explanation of levels and tool limitations."
+  },
+  "SRC-LYROS-DIALOGUE": {
+    "title": "Lyros NotebookLM Podcast Source Document and v2 Addendum",
+    "type": "uploaded_document",
+    "note": "Governed feedback, source separation and human stewardship."
+  },
+  "SRC-PERSISTENT-CONTEXT": {
+    "title": "Confirmed collaboration context and durable memory",
+    "type": "memory_entry",
+    "note": "Previously confirmed collaboration rules and recurrent patterns."
+  }
+}

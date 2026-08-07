@@ -1,0 +1,59 @@
+record_id,domain,title,epistemic_status,confidence,current_status,review_decision,reviewer,review_date,primary_source_id
+RSOS-001,RSOS,Canonical name,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+RSOS-002,RSOS,One-sentence definition,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-003,RSOS,Not another sustainability project,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-004,RSOS,Orders rather than replaces,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-005,RSOS,Three connected levels,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-006,RSOS,EnSoPoLeTeEc,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-007,RSOS,Nested systems,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-008,RSOS,Individual at the centre,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-009,RSOS,Eight principles,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-010,RSOS,Three ecological principles,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-011,RSOS,Five social principles,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-012,RSOS,Boundaries and design impulses,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-013,RSOS,Meaningful influence,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-014,RSOS,FutureFitness,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-015,RSOS,Break-Even Goals,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-016,RSOS,Positive Pursuits,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-017,RSOS,Five-level framework,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-018,RSOS,Success before measures,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-019,RSOS,Tools contain problem definitions,conversation_derived,0.98,candidate,,,,SRC-SGA-STRAT-1
+RSOS-020,RSOS,Strategic guidance,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-021,RSOS,Six organisational domains,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-022,RSOS,One architecture,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-023,RSOS,Learning and Adaptation,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-024,RSOS,Learning changes the system,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-025,RSOS,C³,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-026,RSOS,Cognition and Condition content,source_explicit,0.94,candidate,,,,SRC-RSOS-BUILD
+RSOS-027,RSOS,ACER,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-028,RSOS,ADVISE,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+RSOS-029,RSOS,Implicit client use,conversation_derived,0.99,candidate,,,,SRC-SGA-STRAT-1
+RSOS-030,RSOS,End with client value,source_explicit,0.94,candidate,,,,SRC-RSOS-PITCH
+PROT-001,Lyra collaboration,Lyra role,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-002,Lyra collaboration,Lyros role,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-003,Lyra collaboration,Lyra–Lyros distinction,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-004,Lyra collaboration,Purposeful boundary,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-005,Lyra collaboration,Routine utility outside Lyros,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-006,Lyra collaboration,Intended style,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-007,Lyra collaboration,Direct and transparent engagement,source_explicit,0.94,candidate,,,,SRC-SGA-AI-001
+PROT-008,Lyra collaboration,Human authority,conversation_derived,0.98,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-009,Lyra collaboration,Truth before pleasing,conversation_derived,0.99,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-010,Lyra collaboration,Respectful challenge,user_confirmed,1.0,candidate,,,,SRC-PERSISTENT-CONTEXT
+PROT-011,Lyra collaboration,No hidden intervention,user_confirmed,1.0,candidate,,,,SRC-PERSISTENT-CONTEXT
+PROT-012,Lyra collaboration,"Separate analysis, recommendation and execution",user_confirmed,1.0,candidate,,,,SRC-PERSISTENT-CONTEXT
+PROT-013,Lyra collaboration,Visible uncertainty,conversation_derived,0.99,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-014,Lyra collaboration,Source–interpretation separation,source_explicit,0.94,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-015,Lyra collaboration,Frameworks as lenses,conversation_derived,0.96,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-016,Lyra collaboration,Human–AI co-evolution,conversation_derived,0.98,candidate,,,,SRC-LYROS-DIALOGUE
+PROT-017,Lyra collaboration,Preserve real ambiguity,model_inferred,0.88,candidate,,,,SRC-PERSISTENT-CONTEXT
+PROT-018,Lyra collaboration,Minimum sufficient complexity,model_inferred,0.86,candidate,,,,SRC-PERSISTENT-CONTEXT
+PAT-001,Cognitive patterns,System before solution,conversation_derived,0.93,candidate,,,,SRC-RSOS-BUILD
+PAT-002,Cognitive patterns,Success before instruments,conversation_derived,0.93,candidate,,,,SRC-RSOS-BUILD
+PAT-003,Cognitive patterns,Architecture over initiatives,conversation_derived,0.93,candidate,,,,SRC-RSOS-PITCH
+PAT-004,Cognitive patterns,Useful friction over sycophancy,conversation_derived,0.93,candidate,,,,SRC-LYROS-DIALOGUE
+PAT-005,Cognitive patterns,Source–interpretation–hypothesis separation,conversation_derived,0.93,candidate,,,,SRC-LYROS-DIALOGUE
+PAT-006,Cognitive patterns,Insight to response-able action,conversation_derived,0.93,candidate,,,,SRC-RSOS-BUILD
+PAT-007,Cognitive patterns,Integration over novelty,user_confirmed,1.0,candidate,,,,SRC-PERSISTENT-CONTEXT
+PAT-008,Cognitive patterns,Framework activation by need,conversation_derived,0.93,candidate,,,,SRC-SGA-STRAT-1
+PAT-009,Cognitive patterns,Preserve tension before synthesis,model_inferred,0.88,candidate,,,,SRC-PERSISTENT-CONTEXT
+PAT-010,Cognitive patterns,Human authority with visible intervention,user_confirmed,1.0,candidate,,,,SRC-PERSISTENT-CONTEXT

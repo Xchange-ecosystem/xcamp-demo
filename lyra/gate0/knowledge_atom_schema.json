@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lyra Knowledge Atom",
+  "type": "object",
+  "required": [
+    "atom_id",
+    "statement",
+    "atom_type",
+    "layer",
+    "domain",
+    "epistemic_status",
+    "review_status",
+    "provenance",
+    "version"
+  ],
+  "properties": {
+    "atom_id": {
+      "type": "string",
+      "description": "Stable unique identifier."
+    },
+    "title": {
+      "type": "string"
+    },
+    "statement": {
+      "type": "string",
+      "description": "One discrete, checkable claim, rule, relationship or question."
+    },
+    "atom_type": {
+      "type": "string",
+      "enum": [
+        "fact",
+        "definition",
+        "concept",
+        "principle",
+        "rule",
+        "decision",
+        "assumption",
+        "preference",
+        "relationship",
+        "heuristic",
+        "pattern",
+        "style_rule",
+        "open_question",
+        "contradiction",
+        "example"
+      ]
+    },
+    "layer": {
+      "type": "string",
+      "enum": [
+        "explicit",
+        "implicit",
+        "reasoning",
+        "contextual"
+      ]
+    },
+    "domain": {
+      "type": "string"
+    },
+    "subdomain": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "SGA",
+        "framework",
+        "project",
+        "client",
+        "ecosystem",
+        "external"
+      ]
+    },
+    "graph_triple": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string"
+        },
+        "predicate": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "related_atom_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_type",
+          "source_id"
+        ],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "uploaded_document",
+              "chat",
+              "memory_entry",
+              "custom_instruction",
+              "user_confirmation",
+              "external_source",
+              "model_synthesis",
+              "transcript"
+            ]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "speaker_or_author": {
+            "type": "string"
+          },
+          "excerpt_or_summary": {
+            "type": "string"
+          },
+          "confidentiality_note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "epistemic_status": {
+      "type": "string",
+      "enum": [
+        "source_explicit",
+        "user_confirmed",
+        "conversation_derived",
+        "model_inferred",
+        "disputed",
+        "deprecated",
+        "unknown"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "reviewed",
+        "confirmed",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string"
+    },
+    "validity": {
+      "type": "object",
+      "properties": {
+        "effective_from": {
+          "type": "string"
+        },
+        "effective_to": {
+          "type": "string"
+        },
+        "temporal_note": {
+          "type": "string"
+        }
+      }
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "export_targets": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "knowledge_graph",
+          "vector_store",
+          "agent_prompt",
+          "evaluation",
+          "human_reference"
+        ]
+      }
+    },
+    "version": {
+      "type": "string"
+    },
+    "supersedes_atom_id": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
