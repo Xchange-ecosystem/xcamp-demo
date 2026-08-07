@@ -116,11 +116,9 @@ export async function createObjective(projectId: string, title: string) {
   return data;
 }
 
-// NOTE: update_objective RPC has no p_status parameter — status updates are not
-// persisted until the RPC is extended. See session report for details.
 export async function updateObjective(
   objectiveId: string,
-  input: { title: string; description: string | null; status: string | null },
+  input: { title: string; description: string | null },
 ) {
   const { error } = await supabase.rpc("update_objective", {
     p_objective_id: objectiveId,
@@ -284,7 +282,6 @@ export function useUpdateObjective(user: XcampUser, projectId: string) {
       objectiveId: string;
       title: string;
       description: string | null;
-      status: string | null;
     }) => updateObjective(input.objectiveId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nav-objectives", projectId] }),
   });
