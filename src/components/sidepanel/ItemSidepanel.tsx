@@ -831,6 +831,7 @@ export function ItemSidepanel() {
     <Sheet open={isOpen} onOpenChange={(o) => !o && close()}>
       <SheetContent
         side="right"
+        noCloseButton
         style={{
           width: 480,
           maxWidth: "95vw",

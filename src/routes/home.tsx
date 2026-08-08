@@ -23,6 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { CompanionShell } from "@/components/CompanionShell";
+import { CompanionRail } from "@/components/companion/CompanionRail";
 import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
@@ -112,6 +113,8 @@ function CompanionHomePage() {
   const [experimentalView, setExperimentalView] = useState<"home" | "chat">(() =>
     viewParam === "companion" ? "chat" : "home"
   );
+
+  const [railPanelWidth, setRailPanelWidth] = useState(0);
   useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (viewParam === "companion") setExperimentalView("chat");
@@ -789,17 +792,26 @@ function CompanionHomePage() {
           />
         )}
 
+        {/* ── Right-edge rail (Detail / Role / Mood) — default companion mode ── */}
+        {navVariant !== "experimental" && (
+          <CompanionRail onPanelWidthChange={setRailPanelWidth} />
+        )}
+
         {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
         {navVariant !== "experimental" && <div
           style={{
             position: "fixed",
-            inset: 0,
+            top: 0,
+            right: railPanelWidth,
+            bottom: 0,
+            left: 0,
             zIndex: 10,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "60px 0 16px",
             pointerEvents: "none",
+            transition: "right 0.25s ease",
           }}
         >
           <div
