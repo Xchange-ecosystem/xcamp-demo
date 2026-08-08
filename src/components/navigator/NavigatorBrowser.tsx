@@ -91,7 +91,6 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
         objectiveId: input.objective.id,
         title: input.values.title,
         description: input.values.description,
-        status: input.values.status,
       }),
     onSuccess: () => setEditing(null),
   });
