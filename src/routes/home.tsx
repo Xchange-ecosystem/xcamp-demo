@@ -1233,7 +1233,6 @@ function CompanionHomePage() {
             </button>
           )}
           <EntityPanel
-            open
             onClose={() => setPanelTarget(null)}
             type={panelTarget.type}
             id={panelTarget.id}
