@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lyra Cognitive Pattern",
+  "type": "object",
+  "required": [
+    "pattern_id",
+    "name",
+    "description",
+    "pattern_type",
+    "evidence",
+    "epistemic_status",
+    "review_status",
+    "version"
+  ],
+  "properties": {
+    "pattern_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "pattern_type": {
+      "type": "string",
+      "enum": [
+        "reasoning",
+        "decision",
+        "sensemaking",
+        "design",
+        "sequencing",
+        "challenge",
+        "communication",
+        "quality_control",
+        "uncertainty_handling"
+      ]
+    },
+    "trigger": {
+      "type": "string"
+    },
+    "inputs_considered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "typical_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "typical_output": {
+      "type": "string"
+    },
+    "counter_pattern_or_failure_mode": {
+      "type": "string"
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ]
+      }
+    },
+    "epistemic_status": {
+      "type": "string",
+      "enum": [
+        "user_confirmed",
+        "conversation_derived",
+        "model_inferred",
+        "disputed"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "reviewed",
+        "confirmed",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "version": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
