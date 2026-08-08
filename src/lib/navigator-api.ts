@@ -107,36 +107,24 @@ export async function listObjectivesWithCounts(
   });
 }
 
-export async function createObjective(user: XcampUser, projectId: string, title: string) {
-  const { data, error } = await supabase
-    .from("objectives")
-    .insert({
-      project_id: projectId,
-      owner_central_id: user.centralId,
-      tenant_id: user.tenantId,
-      title,
-    })
-    .select("id, title, description, status, project_id, sort_order")
-    .single();
+export async function createObjective(projectId: string, title: string) {
+  const { data, error } = await supabase.rpc("create_objective", {
+    p_project_id: projectId,
+    p_title: title,
+  });
   if (error) throw error;
   return data;
 }
 
 export async function updateObjective(
-  user: XcampUser,
   objectiveId: string,
-  input: { title: string; description: string | null; status: string | null },
+  input: { title: string; description: string | null },
 ) {
-  const { error } = await supabase
-    .from("objectives")
-    .update({
-      title: input.title,
-      description: input.description,
-      status: input.status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", objectiveId)
-    .eq("tenant_id", user.tenantId);
+  const { error } = await supabase.rpc("update_objective", {
+    p_objective_id: objectiveId,
+    p_title: input.title,
+    p_description: input.description ?? "",
+  });
   if (error) throw error;
 }
 
@@ -282,7 +270,7 @@ export function useUnassignedTasks(projectId: string | null, enabled: boolean) {
 export function useCreateObjective(user: XcampUser, projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (title: string) => createObjective(user, projectId, title),
+    mutationFn: (title: string) => createObjective(projectId, title),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nav-objectives", projectId] }),
   });
 }
@@ -294,8 +282,7 @@ export function useUpdateObjective(user: XcampUser, projectId: string) {
       objectiveId: string;
       title: string;
       description: string | null;
-      status: string | null;
-    }) => updateObjective(user, input.objectiveId, input),
+    }) => updateObjective(input.objectiveId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nav-objectives", projectId] }),
   });
 }

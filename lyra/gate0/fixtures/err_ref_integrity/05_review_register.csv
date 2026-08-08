@@ -1,0 +1,4 @@
+record_id,domain,title,epistemic_status,confidence,current_status,review_decision,reviewer,review_date,primary_source_id
+ATOM-T-001,TestDomain,Test fact,source_explicit,,candidate,,,,SRC-DOC-A
+ATOM-T-002,TestDomain,Test definition,user_confirmed,,candidate,,,,SRC-MEM-B
+PAT-T-001,TestDomain,Test reasoning pattern,conversation_derived,,candidate,,,,SRC-DOC-A

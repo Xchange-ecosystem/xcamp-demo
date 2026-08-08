@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
-import { CompanionGlassPanelV2 } from "@/components/companion/CompanionGlassPanelV2";
+import { CompanionSidePanel } from "@/components/companion/CompanionSidePanel";
+import type { DynamixSuggestion } from "@/components/companion/ItemsTab";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
@@ -25,7 +26,8 @@ import { CompanionShell } from "@/components/CompanionShell";
 import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
-import { createNote, listProjectsFull } from "@/lib/xcamp-api";
+import { createNote, listProjectsFull, listObjectives } from "@/lib/xcamp-api";
+import { voxFetch } from "@/integrations/vox/client";
 import { useCompanionSession } from "@/lib/useCompanionSession";
 import { useVox } from "@/hooks/useVox";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
@@ -93,6 +95,7 @@ interface PanelTarget {
   objectiveId?: string;
   prefillText?: string;
   initialTitle?: string;
+  fromSidePanel?: boolean;
 }
 
 function CompanionHomePage() {
@@ -187,6 +190,14 @@ function CompanionHomePage() {
   const [panelTarget, setPanelTarget] = useState<PanelTarget | null>(null);
   const [dismissedCardIds, setDismissedCardIds] = useState<Set<string>>(new Set());
 
+  // ── Companion side-panel state ─────────────────────────────────────────────
+  const [sidePanelCards, setSidePanelCards] = useState<AICard[]>([]);
+  const [dynamixSuggestions, setDynamixSuggestions] = useState<DynamixSuggestion[]>([]);
+  const [dismissedDynamixIds, setDismissedDynamixIds] = useState<Set<string>>(new Set());
+  const [isPrefetching, setIsPrefetching] = useState(false);
+  // Stable identity-key set for kind+title dedup across chat turns
+  const seenCardKeysRef = useRef<Set<string>>(new Set());
+
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
     queryFn: () => listProjectsFull(authUser!),
@@ -213,6 +224,53 @@ function CompanionHomePage() {
       void session.closeSession();
     }
   }, [authUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── generate-for-project prefetch: fires once when active project changes ──
+  useEffect(() => {
+    if (!activeProject?.id || !authUser) return;
+    let cancelled = false;
+
+    const runPrefetch = async () => {
+      setIsPrefetching(true);
+      try {
+        const objectives = await listObjectives(authUser, activeProject.id);
+        const objectiveIds = objectives.map((o) => o.id);
+
+        await voxFetch(`/api/dynamix/generate-for-project`, {
+          method: 'POST',
+          body: JSON.stringify({
+            project_id: activeProject.id,
+            objective_ids: objectiveIds,
+            tenant_id: authUser.tenantId,
+            user_id: authUser.centralId,
+          }),
+        });
+
+        if (cancelled) return;
+
+        const { data } = await supabase
+          .from('dynamix_action_suggestions')
+          .select('id, title, suggestion_type, rationale, priority, objective_id, note_id, kind, status')
+          .eq('project_id', activeProject.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (!cancelled && data) {
+          setDynamixSuggestions(
+            (data as DynamixSuggestion[]).filter((s) => !dismissedDynamixIds.has(s.id))
+          );
+        }
+      } catch {
+        // Non-fatal — side panel just shows no project suggestions
+      } finally {
+        if (!cancelled) setIsPrefetching(false);
+      }
+    };
+
+    void runPrefetch();
+    return () => { cancelled = true; };
+  }, [activeProject?.id, authUser?.centralId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const projectRestoredRef = useRef(false);
   const welcomeFiredRef = useRef(false);
@@ -515,6 +573,122 @@ function CompanionHomePage() {
     setDismissedCardIds((prev) => new Set([...prev, card.id]));
   }, []);
 
+  // ── Side-panel card handlers ───────────────────────────────────────────────
+
+  const handleSidePanelCardDismiss = useCallback((card: AICard) => {
+    setSidePanelCards((prev) => prev.filter((c) => c !== card));
+  }, []);
+
+  const handleSidePanelCardOpen = useCallback((card: AICard) => {
+    // Create cards: create a new note and open EntityPanel (rich path — confirmed working)
+    if (card.kind === 'action_item' || card.kind === 'task') {
+      if (!authUser) return;
+      const title = card.title || 'Untitled';
+      void createNote(authUser, {
+        title,
+        bodyHtml: '',
+        noteType: card.kind === 'task' ? 'task' : 'note',
+        projectId: activeProject?.id ?? null,
+        objectiveIds: [],
+        tags: [],
+      }).then((note) => {
+        setSidePanelCards((prev) => prev.filter((c) => c !== card));
+        setPanelTarget({ type: card.kind === 'task' ? 'task' : 'note', id: note.id, prefillText: card.body, initialTitle: title, fromSidePanel: true });
+      }).catch((err: unknown) => {
+        console.error('[CompanionPanel] createNote failed:', err);
+        toast.error('Could not create note.');
+      });
+      return;
+    }
+
+    // Update cards: open existing record via legacy path (no user prop) to get append behavior.
+    // NOTE: rich editor path (EntityPanel.tsx:69) uses existingBody||safeText and silently drops
+    // prefillText when the note has existing content. Legacy path appends correctly via --- separator.
+    // This is a known Phase 1 limitation; fix requires changing || to append logic in EntityPanel.tsx.
+    if (card.kind === 'update') {
+      // Extract entity ID from proposal payload if available
+      const payload = (card.proposal as unknown as { payload?: { note_id?: string; task_note_id?: string; objective_id?: string } } | undefined)?.payload;
+      const entityId = payload?.note_id ?? payload?.task_note_id ?? payload?.objective_id;
+      if (entityId) {
+        setPanelTarget({ type: 'note', id: entityId, prefillText: card.body, fromSidePanel: true });
+      }
+      return;
+    }
+  }, [authUser, activeProject]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDynamixOpen = useCallback((s: DynamixSuggestion) => {
+    const targetId = s.note_id ?? s.objective_id;
+    if (!targetId) return;
+    const type = s.objective_id && !s.note_id ? 'objective' : 'note';
+    // Use legacy path (no user prop) so prefillText (rationale) appends below existing content
+    setPanelTarget({ type, id: targetId, prefillText: s.rationale ?? undefined, fromSidePanel: true });
+  }, []);
+
+  const handleDynamixDismiss = useCallback((id: string) => {
+    setDismissedDynamixIds((prev) => new Set([...prev, id]));
+    setDynamixSuggestions((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    const text = draft.trim();
+    if (!text || isLoading) return;
+    stopSpeaking();
+    setDraft("");
+    voice.setTranscript("");
+    setAttachment(null);
+    setMentionedEntities([]);
+    setMentionMenuOpen(false);
+    await session.appendUserMessage(text);
+
+    let reply = "Got it — I'll help with that soon.";
+    let cards: AICard[] = [];
+
+    setIsLoading(true);
+    try {
+      const res = await vox.call({
+        message: text,
+        project_id: activeProject?.id || undefined,
+        objective_id: "",
+        tenant_id: authUser!.tenantId,
+        altitude,
+        aiPersona: "guide",
+      });
+      reply = res.reply_markdown;
+      cards = res.cards ?? [];
+    } catch (err) {
+      console.error("[Chi] Vox call failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+
+    const chiId = await session.appendChiMessage(reply);
+    speak(reply);
+    setTypingMessageId(chiId);
+    await waitForTyping(reply);
+    setTypingMessageId(null);
+
+    if (cards.length > 0) {
+      await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
+
+      // Route cards to the side panel with kind+title dedup across turns
+      const fresh = cards.filter((c) => {
+        const key = `${c.kind}::${c.title}`;
+        if (seenCardKeysRef.current.has(key)) return false;
+        seenCardKeysRef.current.add(key);
+        return true;
+      });
+      if (fresh.length > 0) {
+        setSidePanelCards((prev) => [...prev, ...fresh]);
+      }
+    }
+  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSuggestMore = useCallback(() => {
+    if (!draft.trim()) {
+      void handleSend();
+    }
+  }, [draft, handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleNewSession = useCallback(async () => {
     stopSpeaking();
     welcomeFiredRef.current = false;
@@ -564,49 +738,6 @@ function CompanionHomePage() {
     [draft, mentionAtIndex, mentionQuery],
   );
 
-  const handleSend = useCallback(async () => {
-    const text = draft.trim();
-    if (!text || isLoading) return;
-    stopSpeaking();
-    setDraft("");
-    voice.setTranscript("");
-    setAttachment(null);
-    setMentionedEntities([]);
-    setMentionMenuOpen(false);
-    await session.appendUserMessage(text);
-
-    let reply = "Got it — I'll help with that soon.";
-    let cards: AICard[] = [];
-
-    setIsLoading(true);
-    try {
-      const res = await vox.call({
-        message: text,
-        project_id: activeProject?.id || undefined,
-        objective_id: "",
-        tenant_id: authUser!.tenantId,
-        altitude,
-        aiPersona: "guide",
-      });
-      reply = res.reply_markdown;
-      cards = res.cards ?? [];
-    } catch (err) {
-      console.error("[Chi] Vox call failed:", err);
-    } finally {
-      setIsLoading(false);
-    }
-
-    const chiId = await session.appendChiMessage(reply);
-    speak(reply);
-    setTypingMessageId(chiId);
-    await waitForTyping(reply);
-    setTypingMessageId(null);
-
-    if (cards.length > 0) {
-      await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
-    }
-  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleSendFromHome = useCallback(() => {
     setExperimentalView("chat");
     void handleSend();
@@ -643,52 +774,23 @@ function CompanionHomePage() {
           />
         )}
 
-        {/* ── UI variant toggle ──────────────────────────────────────────
-            ?ui=experimental → CompanionGlassPanelV2 (right-anchored, compact)
-            ?ui=default (or omitted) → original centered column below
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* ── Companion side panel — right-edge surface, experimental mode only ── */}
         {navVariant !== "experimental" && uiVariant === "experimental" && (
-          <CompanionGlassPanelV2
-            messages={session.messages}
-            projects={projects}
-            onProjectSelect={handleProjectSelect}
-            onCreateProject={handleCreateProject}
-            typingMessageId={typingMessageId ?? undefined}
-            isLoading={isLoading}
-            onCardConfirm={handleCardConfirm}
-            onCardDismiss={handleCardDismiss}
-            hiddenCardIds={dismissedCardIds}
-            ttsError={ttsError}
-            dismissedTtsError={dismissedTtsError}
-            muted={muted}
-            onDismissTtsError={() => { setDismissedTtsError(true); clearTTSError(); }}
-            draft={draft}
-            onDraftChange={handleDraftChange}
-            onSend={() => void handleSend()}
-            voice={voice}
-            fileInputRef={fileInputRef}
-            attachment={attachment}
-            onAttachmentSet={setAttachment}
-            mentionMenuOpen={mentionMenuOpen}
-            mentionQuery={mentionQuery}
-            onMentionSelect={handleMentionSelect}
-            mentionedEntities={mentionedEntities}
-            onMentionedEntitiesChange={setMentionedEntities}
-            onMentionMenuClose={() => {
-              setMentionMenuOpen(false);
-              setMentionQuery("");
-              setMentionAtIndex(-1);
-            }}
-            onMentionToggle={() => {
-              setMentionMenuOpen((v) => !v);
-              setMentionQuery("");
-            }}
-            activeProjectId={activeProject?.id}
+          <CompanionSidePanel
+            cards={sidePanelCards}
+            dynamixSuggestions={dynamixSuggestions}
+            isAnswering={isLoading}
+            isPrefetching={isPrefetching}
+            onSuggestMore={handleSuggestMore}
+            onCardOpen={handleSidePanelCardOpen}
+            onCardDismiss={handleSidePanelCardDismiss}
+            onDynamixOpen={handleDynamixOpen}
+            onDynamixDismiss={handleDynamixDismiss}
           />
         )}
 
-        {/* Centered column: glass panel + pill bar below */}
-        {navVariant !== "experimental" && uiVariant === "default" && <div
+        {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
+        {navVariant !== "experimental" && <div
           style={{
             position: "fixed",
             inset: 0,
@@ -1105,16 +1207,42 @@ function CompanionHomePage() {
       </CompanionShell>
 
       {panelTarget && (
-        <EntityPanel
-          open
-          onClose={() => setPanelTarget(null)}
-          type={panelTarget.type}
-          id={panelTarget.id}
-          objectiveId={panelTarget.objectiveId}
-          prefillText={panelTarget.prefillText}
-          initialTitle={panelTarget.initialTitle}
-          user={authUser ?? undefined}
-        />
+        <div style={{ position: 'relative' }}>
+          {panelTarget.fromSidePanel && (
+            <button
+              onClick={() => setPanelTarget(null)}
+              style={{
+                position: 'fixed',
+                zIndex: 51,
+                top: 12,
+                right: 'calc(min(390px, 94vw) + 12px)',
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'var(--glass-bg, rgba(20,24,32,0.85))',
+                border: '1px solid var(--glass-border-color, rgba(255,255,255,0.12))',
+                borderRadius: 8,
+                padding: '5px 10px',
+                color: 'var(--glass-text-soft)',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                backdropFilter: 'blur(12px)',
+              }}
+              aria-label="Back to companion"
+            >
+              ← Back to companion
+            </button>
+          )}
+          <EntityPanel
+            open
+            onClose={() => setPanelTarget(null)}
+            type={panelTarget.type}
+            id={panelTarget.id}
+            objectiveId={panelTarget.objectiveId}
+            prefillText={panelTarget.prefillText}
+            initialTitle={panelTarget.initialTitle}
+            user={panelTarget.fromSidePanel ? undefined : (authUser ?? undefined)}
+          />
+        </div>
       )}
     </>
   );

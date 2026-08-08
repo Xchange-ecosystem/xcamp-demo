@@ -2,20 +2,15 @@ import { useState } from "react";
 import { ArrowLeft, Compass } from "lucide-react";
 import type { ObjectiveRow } from "@/lib/navigator-api";
 
-const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
-
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
+  inactive: "Inactive",
   active: "Active",
-  in_progress: "In progress",
-  blocked: "Blocked",
-  done: "Done",
+  completed: "Completed",
 };
 
 export interface ObjectiveEditorValues {
   title: string;
   description: string | null;
-  status: string | null;
 }
 
 export function ObjectiveEditor({
@@ -31,7 +26,6 @@ export function ObjectiveEditor({
 }) {
   const [title, setTitle] = useState(objective.title ?? "");
   const [description, setDescription] = useState(objective.description ?? "");
-  const [status, setStatus] = useState(objective.status ?? "draft");
 
   const canSave = title.trim().length > 0;
 
@@ -39,7 +33,6 @@ export function ObjectiveEditor({
     onSave({
       title: title.trim() || "Untitled objective",
       description: description.trim() ? description.trim() : null,
-      status,
     });
 
   return (
@@ -93,18 +86,9 @@ export function ObjectiveEditor({
         <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
           Status
         </label>
-        <select
-          className="x-input"
-          style={{ height: 34, fontSize: 13, width: "100%" }}
-          value={status ?? "draft"}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s] ?? s}
-            </option>
-          ))}
-        </select>
+        <div style={{ height: 34, fontSize: 13, display: "flex", alignItems: "center", color: "var(--skin-ink-soft)" }}>
+          {STATUS_LABELS[objective.status ?? "inactive"] ?? (objective.status ?? "Inactive")}
+        </div>
       </div>
 
       <div className="mb-4">

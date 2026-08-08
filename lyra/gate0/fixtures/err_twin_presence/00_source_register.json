@@ -1,0 +1,12 @@
+{
+  "SRC-DOC-A": {
+    "title": "Test Document A",
+    "type": "uploaded_document",
+    "note": "Fixture source — uploaded document."
+  },
+  "SRC-MEM-B": {
+    "title": "Test Persistent Context B",
+    "type": "memory_entry",
+    "note": "Fixture source — confirmed memory entry."
+  }
+}
