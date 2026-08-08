@@ -4,11 +4,13 @@ import {
   ChevronDown,
   ChevronRight,
   Compass,
+  FilePlus,
   Home,
   LayoutList,
   LogOut,
   Map,
   NotebookPen,
+  NotebookText,
   PanelLeftClose,
   PanelLeftOpen,
   Share2,
@@ -38,10 +40,8 @@ import { listProjects } from "@/lib/xcamp-api";
 import { AppLogo } from "@/components/AppLogo";
 
 const flatItems = [
-  { title: "home",           url: "/home",           icon: Home,        labelKey: "nav.home" },
-  { title: "notes",          url: "/notes",          icon: StickyNote,  labelKey: "nav.notes" },
-  { title: "journalApp",     url: "/journal",        icon: NotebookPen, labelKey: "nav.journalApp" },
-  { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
+  { title: "home",           url: "/home",           icon: Home,    labelKey: "nav.home" },
+  { title: "projectBuilder", url: "/project-builder",icon: Compass, labelKey: "nav.projectBuilder" },
 ];
 
 export function AppSidebar() {
@@ -55,7 +55,11 @@ export function AppSidebar() {
   const { activeProjectId, setActiveProjectId } = useActiveProject();
 
   const onNavigator = pathname.startsWith("/navigator");
+  const onNotes = pathname.startsWith("/notes");
+  const onJournal = pathname.startsWith("/journal");
   const [navigatorOpen, setNavigatorOpen] = useState(onNavigator);
+  const [notesOpen, setNotesOpen] = useState(onNotes);
+  const [journalOpen, setJournalOpen] = useState(onJournal);
 
   const handleSignOut = async () => {
     setActiveProjectId(null);
@@ -142,6 +146,98 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Notes — expandable */}
+              <SidebarMenuItem>
+                {collapsed ? (
+                  <SidebarMenuButton asChild isActive={onNotes} tooltip={t("nav.notes")}>
+                    <Link to="/notes" className="flex items-center gap-2">
+                      <StickyNote className="h-4 w-4" />
+                      <span>{t("nav.notes")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                ) : (
+                  <>
+                    <SidebarMenuButton
+                      isActive={onNotes}
+                      onClick={() => setNotesOpen((v) => !v)}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      <StickyNote className="h-4 w-4" />
+                      <span className="flex-1">{t("nav.notes")}</span>
+                      {notesOpen
+                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                    </SidebarMenuButton>
+                    {notesOpen && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={onNotes && !((location.search as Record<string, string>)?.new)}>
+                            <Link to="/notes" className="flex items-center gap-2">
+                              <LayoutList className="h-3.5 w-3.5" />
+                              <span>My Notes</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}>
+                            <Link to="/notes" search={{ new: "1" }} className="flex items-center gap-2">
+                              <FilePlus className="h-3.5 w-3.5" />
+                              <span>+ New Note</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
+                  </>
+                )}
+              </SidebarMenuItem>
+
+              {/* Journal — expandable */}
+              <SidebarMenuItem>
+                {collapsed ? (
+                  <SidebarMenuButton asChild isActive={onJournal} tooltip={t("nav.journalApp")}>
+                    <Link to="/journal" className="flex items-center gap-2">
+                      <NotebookPen className="h-4 w-4" />
+                      <span>{t("nav.journalApp")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                ) : (
+                  <>
+                    <SidebarMenuButton
+                      isActive={onJournal}
+                      onClick={() => setJournalOpen((v) => !v)}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      <NotebookPen className="h-4 w-4" />
+                      <span className="flex-1">{t("nav.journalApp")}</span>
+                      {journalOpen
+                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                    </SidebarMenuButton>
+                    {journalOpen && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={onJournal && !(location.search as Record<string, string>)?.new}>
+                            <Link to="/journal" className="flex items-center gap-2">
+                              <NotebookText className="h-3.5 w-3.5" />
+                              <span>My Journal</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onJournal}>
+                            <Link to="/journal" search={{ new: "1" }} className="flex items-center gap-2">
+                              <FilePlus className="h-3.5 w-3.5" />
+                              <span>+ New Journal Entry</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
+                  </>
+                )}
+              </SidebarMenuItem>
 
               {/* Navigator — expandable */}
               <SidebarMenuItem>

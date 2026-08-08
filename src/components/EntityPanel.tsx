@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { supabase } from "@/lib/supabase";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
@@ -21,7 +15,6 @@ import { useActiveProject } from "@/contexts/active-project";
 import type { NoteRow, ProjectRow, XcampUser } from "@/types/xcamp";
 
 export interface EntityPanelProps {
-  open: boolean;
   onClose: () => void;
   type: 'note' | 'task' | 'objective';
   id: string;
@@ -32,7 +25,7 @@ export interface EntityPanelProps {
   user?: XcampUser;
 }
 
-export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText, initialTitle, user }: EntityPanelProps) {
+export function EntityPanel({ onClose, type, id, objectiveId, prefillText, initialTitle, user }: EntityPanelProps) {
   const isNoteOrTask = type === 'note' || type === 'task';
   const useRichEditor = isNoteOrTask && !!user;
 
@@ -44,7 +37,7 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!useRichEditor || !open || !id) return;
+    if (!useRichEditor || !id) return;
     let cancelled = false;
     setFetchLoading(true);
     setNoteRow(null);
@@ -61,13 +54,14 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
       if (data) {
         const raw = data as unknown as Record<string, unknown>;
         const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
-        // Inject prefillText as initial body if note has no content yet
+        // Append prefillText to existing body with a separator so existing content is preserved
         const existingBody = row.body_html || '';
         const safeText = prefillText
           ? prefillText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
           : '';
-        const effectiveBodyHtml = existingBody || (safeText ? `<p>${safeText}</p>` : '');
-        // Prefill project from context if note has no project assigned
+        const effectiveBodyHtml = existingBody
+          ? (safeText ? `${existingBody}\n\n---\n\n<p>${safeText}</p>` : existingBody)
+          : (safeText ? `<p>${safeText}</p>` : '');
         const existingProjectId = (row.detail as Record<string, unknown>)?.project_id as string | undefined;
         const effectiveDetail = {
           ...((row.detail as Record<string, unknown>) ?? {}),
@@ -80,7 +74,7 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
     }).catch(() => { if (!cancelled) setFetchLoading(false); });
 
     return () => { cancelled = true; };
-  }, [id, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async (v: NoteEditorValues) => {
     if (!user || !noteRow) return;
@@ -96,37 +90,31 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
 
   if (useRichEditor) {
     return (
-      <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent
-          side="right"
-          style={{ width: 480, maxWidth: '95vw', display: 'flex', flexDirection: 'column', gap: 0, padding: 0, overflowY: 'auto' }}
-        >
-          {fetchLoading || !noteRow ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 20px', color: 'var(--skin-ink-soft)', fontSize: 13, minHeight: 120 }}>
-              <Loader2 size={16} className="animate-spin" /> Loading…
-            </div>
-          ) : (
-            <div style={{ padding: '20px' }}>
-              <NoteEditor
-                editing={{ mode: "edit", note: noteRow }}
-                projects={projects}
-                user={user!}
-                saving={saving}
-                archiving={false}
-                onSave={handleSave}
-                onCancel={onClose}
-              />
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+        {fetchLoading || !noteRow ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 20px', color: 'var(--skin-ink-soft)', fontSize: 13, minHeight: 120 }}>
+            <Loader2 size={16} className="animate-spin" /> Loading…
+          </div>
+        ) : (
+          <div style={{ padding: '20px' }}>
+            <NoteEditor
+              editing={{ mode: "edit", note: noteRow }}
+              projects={projects}
+              user={user!}
+              saving={saving}
+              archiving={false}
+              onSave={handleSave}
+              onCancel={onClose}
+            />
+          </div>
+        )}
+      </div>
     );
   }
 
   // ─── Legacy path (objectives, or notes/tasks without user) ───────────────
   return (
     <ObjectiveLegacyPanel
-      open={open}
       onClose={onClose}
       type={type}
       id={id}
@@ -139,7 +127,7 @@ export function EntityPanel({ open, onClose, type, id, objectiveId, prefillText,
 }
 
 // Retained for objectives and fallback; notes/tasks with user use NoteEditor above.
-function ObjectiveLegacyPanel({ open, onClose, type, id, objectiveId, prefillText, initialTitle, user }: EntityPanelProps) {
+function ObjectiveLegacyPanel({ onClose, type, id, objectiveId, prefillText, initialTitle, user }: EntityPanelProps) {
   const isNoteOrTask = type === 'note' || type === 'task';
   const showAssignment = isNoteOrTask && !!user && !objectiveId;
 
@@ -325,103 +313,101 @@ function ObjectiveLegacyPanel({ open, onClose, type, id, objectiveId, prefillTex
   const typeLabel = type === 'task' ? 'Task' : type === 'note' ? 'Note' : 'Objective';
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent
-        side="right"
-        style={{ width: 400, maxWidth: '95vw', display: 'flex', flexDirection: 'column', gap: 0, padding: 0 }}
-      >
-        <SheetHeader style={{ padding: '20px 20px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <SheetTitle style={{ fontSize: 14, fontWeight: 600, color: 'var(--skin-ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {typeLabel} created
-            </SheetTitle>
-            {isNoteOrTask && (
-              <span style={{ fontSize: 12, color: saving ? 'var(--skin-ink-soft)' : 'var(--skin-accent)', opacity: saving || saved ? 1 : 0, transition: 'opacity 0.2s' }}>
-                {saving ? 'Saving…' : 'Saved'}
-              </span>
-            )}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--skin-ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {typeLabel} created
+          </span>
+          {isNoteOrTask && (
+            <span style={{ fontSize: 12, color: saving ? 'var(--skin-ink-soft)' : 'var(--skin-accent)', opacity: saving || saved ? 1 : 0, transition: 'opacity 0.2s' }}>
+              {saving ? 'Saving…' : 'Saved'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {fetchLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--skin-ink-soft)', fontSize: 13, padding: '24px 0' }}>
+            <Loader2 size={16} className="animate-spin" /> Loading…
           </div>
-        </SheetHeader>
+        ) : (
+          <>
+            <input
+              className="x-input"
+              style={{ width: '100%', fontSize: 17, fontWeight: 600, padding: '8px 10px' }}
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {fetchLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--skin-ink-soft)', fontSize: 13, padding: '24px 0' }}>
-              <Loader2 size={16} className="animate-spin" /> Loading…
-            </div>
-          ) : (
-            <>
-              <input
+            {isNoteOrTask && (
+              <textarea
                 className="x-input"
-                style={{ width: '100%', fontSize: 17, fontWeight: 600, padding: '8px 10px' }}
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                style={{ width: '100%', minHeight: 200, padding: '10px 12px', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
+                placeholder="Content"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
               />
+            )}
 
-              {isNoteOrTask && (
-                <textarea
-                  className="x-input"
-                  style={{ width: '100%', minHeight: 200, padding: '10px 12px', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
-                  placeholder="Content"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
+            {showAssignment && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4, borderTop: '1px solid var(--skin-line)' }}>
+                <p style={{ fontSize: 12, color: 'var(--skin-ink-faint)', margin: 0, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Assign (optional)
+                </p>
+                <MultiSelectDropdown
+                  label="Project"
+                  placeholder="No project"
+                  single
+                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                  selected={assignedProjectId ? [assignedProjectId] : []}
+                  onChange={(vals) => { void handleProjectChange(vals[0] ?? ''); }}
                 />
-              )}
-
-              {showAssignment && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4, borderTop: '1px solid var(--skin-line)' }}>
-                  <p style={{ fontSize: 12, color: 'var(--skin-ink-faint)', margin: 0, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Assign (optional)
-                  </p>
+                {assignedProjectId && (
                   <MultiSelectDropdown
-                    label="Project"
-                    placeholder="No project"
-                    single
-                    options={projects.map((p) => ({ value: p.id, label: p.name }))}
-                    selected={assignedProjectId ? [assignedProjectId] : []}
-                    onChange={(vals) => { void handleProjectChange(vals[0] ?? ''); }}
+                    label="Objectives (optional)"
+                    placeholder="Select objectives…"
+                    options={objectives.map((o) => ({ value: o.id, label: o.title }))}
+                    selected={assignedObjectiveIds}
+                    onChange={(vals) => { void handleObjectivesChange(vals); }}
                   />
-                  {assignedProjectId && (
-                    <MultiSelectDropdown
-                      label="Objectives (optional)"
-                      placeholder="Select objectives…"
-                      options={objectives.map((o) => ({ value: o.id, label: o.title }))}
-                      selected={assignedObjectiveIds}
-                      onChange={(vals) => { void handleObjectivesChange(vals); }}
-                    />
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {error && (
-                <p style={{ fontSize: 13, color: 'var(--skin-danger, #d4524e)', margin: 0 }}>{error}</p>
-              )}
-            </>
-          )}
-        </div>
+            {error && (
+              <p style={{ fontSize: 13, color: 'var(--skin-danger, #d4524e)', margin: 0 }}>{error}</p>
+            )}
+          </>
+        )}
+      </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--skin-line)', display: 'flex', gap: 8 }}>
-          {!isNoteOrTask && (
-            <button
-              className="x-btn-primary"
-              style={{ flex: 1 }}
-              onClick={handleManualSave}
-              disabled={saving || fetchLoading}
-            >
-              {saving ? (
-                <><Loader2 size={14} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} />Saving…</>
-              ) : saved ? 'Saved ✓' : 'Save'}
-            </button>
-          )}
+      {/* Footer */}
+      <div style={{ padding: '12px 20px', borderTop: '1px solid var(--skin-line)', display: 'flex', gap: 8, flexShrink: 0 }}>
+        {!isNoteOrTask && (
           <button
-            className="x-btn-secondary"
-            style={{ flex: isNoteOrTask ? 1 : undefined }}
-            onClick={onClose}
+            className="x-btn-primary"
+            style={{ flex: 1 }}
+            onClick={handleManualSave}
+            disabled={saving || fetchLoading}
           >
-            Close
+            {saving ? (
+              <><Loader2 size={14} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} />Saving…</>
+            ) : saved ? 'Saved ✓' : 'Save'}
           </button>
-        </div>
-      </SheetContent>
-    </Sheet>
+        )}
+        <button
+          className="x-btn-secondary"
+          style={{ flex: isNoteOrTask ? 1 : undefined }}
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+    </div>
   );
 }

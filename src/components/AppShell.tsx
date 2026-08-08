@@ -6,8 +6,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
-import { SidepanelProvider } from "@/contexts/sidepanel";
+import { SidepanelProvider, useSidepanel } from "@/contexts/sidepanel";
+import { RightPanelProvider, useRightPanel } from "@/contexts/right-panel";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
+import { EntityPanel } from "@/components/EntityPanel";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -70,6 +72,49 @@ function SidebarResizeHandle({
   );
 }
 
+// ── Right panel slot ──────────────────────────────────────────────────────────
+// Renders as a layout aside that animates open/closed — no overlay/Sheet.
+
+const RIGHT_PANEL_WIDTH = 480;
+
+function RightPanelSlot() {
+  const { isOpen: sidepanelOpen } = useSidepanel();
+  const { entityTarget, closeEntity } = useRightPanel();
+  const { user } = useAuth();
+  const isVisible = sidepanelOpen || entityTarget !== null;
+
+  return (
+    <aside
+      style={{
+        width: isVisible ? RIGHT_PANEL_WIDTH : 0,
+        flexShrink: 0,
+        overflow: "hidden",
+        transition: "width 220ms ease",
+        borderLeft: isVisible ? "1px solid var(--skin-line)" : "none",
+        background: "var(--skin-surface)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {entityTarget !== null ? (
+        <EntityPanel
+          onClose={closeEntity}
+          type={entityTarget.type}
+          id={entityTarget.id}
+          objectiveId={entityTarget.objectiveId}
+          prefillText={entityTarget.prefillText}
+          initialTitle={entityTarget.initialTitle}
+          user={user ?? undefined}
+        />
+      ) : sidepanelOpen ? (
+        <ItemSidepanel />
+      ) : null}
+    </aside>
+  );
+}
+
+// ── AppShell ──────────────────────────────────────────────────────────────────
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -91,7 +136,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
       if (stored !== null) return stored !== "true";
-      // Fallback: honour the shadcn cookie if localStorage has never been written
       const match = document.cookie.match(/(?:^|;\s*)sidebar_state=([^;]*)/);
       return match ? match[1] !== "false" : true;
     } catch {
@@ -146,21 +190,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidepanelProvider>
-      <SidebarProvider
-        defaultOpen={sidebarDefaultOpen}
-        style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
-      >
-        <SidebarStatePersist />
-        {!pathname.startsWith("/profile") && <MobileMenuButton />}
-        <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
-          {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
-          <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
-          <div className="flex-1 flex flex-col min-w-0">
-            <main className="flex-1 min-w-0">{children}</main>
+      <RightPanelProvider>
+        <SidebarProvider
+          defaultOpen={sidebarDefaultOpen}
+          style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
+        >
+          <SidebarStatePersist />
+          {!pathname.startsWith("/profile") && <MobileMenuButton />}
+          <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
+            {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
+            <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
+            <div className="flex-1 flex flex-col min-w-0">
+              <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+                <main className="flex-1 min-w-0" style={{ overflowY: "auto" }}>{children}</main>
+                <RightPanelSlot />
+              </div>
+            </div>
           </div>
-        </div>
-        <ItemSidepanel />
-      </SidebarProvider>
+        </SidebarProvider>
+      </RightPanelProvider>
     </SidepanelProvider>
   );
 }

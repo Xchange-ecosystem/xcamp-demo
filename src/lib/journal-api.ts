@@ -207,6 +207,7 @@ export interface JournalSession {
   created_at: string;
   status: SessionStatus;
   proposalCount: number;
+  committedCount: number;
   context: Record<string, unknown>;
 }
 
@@ -228,12 +229,16 @@ export async function listJournalSessions(userId: string): Promise<JournalSessio
   const ids = sessions.map((s) => s.id as string);
   const { data: props } = await supabase
     .from("organiser_proposals")
-    .select("session_id")
+    .select("session_id, status")
     .in("session_id", ids);
   const counts = new Map<string, number>();
+  const committedCounts = new Map<string, number>();
   for (const p of (props ?? []) as Record<string, unknown>[]) {
     const sid = p.session_id as string;
     counts.set(sid, (counts.get(sid) ?? 0) + 1);
+    if (p.status === "committed") {
+      committedCounts.set(sid, (committedCounts.get(sid) ?? 0) + 1);
+    }
   }
 
   return sessions.map((s) => ({
@@ -241,6 +246,7 @@ export async function listJournalSessions(userId: string): Promise<JournalSessio
     created_at: (s.created_at as string) ?? new Date().toISOString(),
     status: (s.status as SessionStatus) ?? "pending",
     proposalCount: counts.get(s.id as string) ?? 0,
+    committedCount: committedCounts.get(s.id as string) ?? 0,
     context:
       s.context && typeof s.context === "object" ? (s.context as Record<string, unknown>) : {},
   }));
