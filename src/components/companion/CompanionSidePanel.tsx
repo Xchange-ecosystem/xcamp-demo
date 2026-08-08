@@ -7,7 +7,6 @@ import { ActionsTab } from "@/components/companion/ActionsTab";
 import type { AICard } from "@xchange/client";
 import type { PanelTab } from "@/store/companionPanelStore";
 
-const CHAT_PANEL_WIDTH = "min(390px, 94vw)";
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 540;
 
@@ -80,7 +79,7 @@ export function CompanionSidePanel({
           position: 'fixed',
           top: 0,
           bottom: 0,
-          right: `calc(${CHAT_PANEL_WIDTH})`,
+          right: 0,
           width: 36,
           zIndex: 9,
           background: 'var(--glass-bg)',
@@ -129,7 +128,7 @@ export function CompanionSidePanel({
         position: 'fixed',
         top: 0,
         bottom: 0,
-        right: `calc(${CHAT_PANEL_WIDTH})`,
+        right: 0,
         width,
         zIndex: 9,
         display: 'flex',

@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
-import { CompanionGlassPanelV2 } from "@/components/companion/CompanionGlassPanelV2";
 import { CompanionSidePanel } from "@/components/companion/CompanionSidePanel";
 import type { DynamixSuggestion } from "@/components/companion/ItemsTab";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -775,51 +774,7 @@ function CompanionHomePage() {
           />
         )}
 
-        {/* ── UI variant toggle ──────────────────────────────────────────
-            ?ui=experimental → CompanionGlassPanelV2 (right-anchored, compact)
-            ?ui=default (or omitted) → original centered column below
-        ─────────────────────────────────────────────────────────────────── */}
-        {navVariant !== "experimental" && uiVariant === "experimental" && (
-          <CompanionGlassPanelV2
-            messages={session.messages}
-            projects={projects}
-            onProjectSelect={handleProjectSelect}
-            onCreateProject={handleCreateProject}
-            typingMessageId={typingMessageId ?? undefined}
-            isLoading={isLoading}
-            onCardConfirm={handleCardConfirm}
-            onCardDismiss={handleCardDismiss}
-            hiddenCardIds={dismissedCardIds}
-            ttsError={ttsError}
-            dismissedTtsError={dismissedTtsError}
-            muted={muted}
-            onDismissTtsError={() => { setDismissedTtsError(true); clearTTSError(); }}
-            draft={draft}
-            onDraftChange={handleDraftChange}
-            onSend={() => void handleSend()}
-            voice={voice}
-            fileInputRef={fileInputRef}
-            attachment={attachment}
-            onAttachmentSet={setAttachment}
-            mentionMenuOpen={mentionMenuOpen}
-            mentionQuery={mentionQuery}
-            onMentionSelect={handleMentionSelect}
-            mentionedEntities={mentionedEntities}
-            onMentionedEntitiesChange={setMentionedEntities}
-            onMentionMenuClose={() => {
-              setMentionMenuOpen(false);
-              setMentionQuery("");
-              setMentionAtIndex(-1);
-            }}
-            onMentionToggle={() => {
-              setMentionMenuOpen((v) => !v);
-              setMentionQuery("");
-            }}
-            activeProjectId={activeProject?.id}
-          />
-        )}
-
-        {/* ── Companion side panel — mounts alongside CompanionGlassPanelV2 ── */}
+        {/* ── Companion side panel — right-edge surface, experimental mode only ── */}
         {navVariant !== "experimental" && uiVariant === "experimental" && (
           <CompanionSidePanel
             cards={sidePanelCards}
@@ -834,8 +789,8 @@ function CompanionHomePage() {
           />
         )}
 
-        {/* Centered column: glass panel + pill bar below */}
-        {navVariant !== "experimental" && uiVariant === "default" && <div
+        {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
+        {navVariant !== "experimental" && <div
           style={{
             position: "fixed",
             inset: 0,
