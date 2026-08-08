@@ -212,6 +212,7 @@ export async function searchItems(
   kinds: ItemKind[],
   excludeIds: string[],
   tenantId: string,
+  options?: { projectId?: string | null; noteType?: string | null },
 ): Promise<LinkedItem[]> {
   if (!query.trim()) return [];
   const results: LinkedItem[] = [];
@@ -219,16 +220,29 @@ export async function searchItems(
   const includeObjectives = kinds.length === 0 || kinds.includes("objective");
 
   if (includeNotes) {
-    let q = supabase
-      .from("notes")
-      .select("id, title, note_type")
-      .ilike("title", `%${query}%`)
-      .eq("tenant_id", tenantId)
-      .limit(8);
-    if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
-    const { data } = await q;
-    for (const n of data ?? [])
-      results.push({ id: n.id as string, title: n.title as string, kind: "note", noteType: n.note_type as string });
+    let projectNoteIds: string[] | null = null;
+    if (options?.projectId) {
+      const { data: pn } = await supabase
+        .from("project_notes")
+        .select("note_id")
+        .eq("project_id", options.projectId);
+      projectNoteIds = (pn ?? []).map((r) => r.note_id);
+    }
+
+    if (projectNoteIds === null || projectNoteIds.length > 0) {
+      let q = supabase
+        .from("notes")
+        .select("id, title, note_type")
+        .ilike("title", `%${query}%`)
+        .eq("tenant_id", tenantId)
+        .limit(8);
+      if (projectNoteIds !== null) q = q.in("id", projectNoteIds);
+      if (options?.noteType) q = q.eq("note_type", options.noteType);
+      if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
+      const { data } = await q;
+      for (const n of data ?? [])
+        results.push({ id: n.id as string, title: n.title as string, kind: "note", noteType: n.note_type as string });
+    }
   }
 
   if (includeObjectives) {
@@ -237,6 +251,7 @@ export async function searchItems(
       .select("id, title, status")
       .ilike("title", `%${query}%`)
       .limit(8);
+    if (options?.projectId) q = q.eq("project_id", options.projectId);
     if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
     const { data } = await q;
     for (const o of data ?? [])

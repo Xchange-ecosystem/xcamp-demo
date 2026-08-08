@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
-import { PanelRightOpen, Rocket, Zap, X } from "lucide-react";
+import { PanelRightOpen, Rocket, Zap, X, Search, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useSidepanel } from "@/contexts/sidepanel";
+import { useAuth } from "@/contexts/auth";
+import { useActiveProject } from "@/contexts/active-project";
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchItems } from "@/lib/sidepanel-service";
+import type { ItemKind } from "@/lib/sidepanel-service";
+import { ItemBadge, ItemTypeChip } from "@/components/sidepanel/ItemBadge";
 
 type InlinePanel = "detail" | "role" | "mood";
 
@@ -186,24 +193,149 @@ function MoodPanel() {
   );
 }
 
-function DetailPanel() {
+const TYPE_CHIPS = ["all", "objective", "note", "task", "idea", "question", "decision", "reference"] as const;
+
+function DetailPanelSearch() {
+  const sidepanel = useSidepanel();
+  const { user } = useAuth();
+  const { activeProjectId } = useActiveProject();
+  const [query, setQuery] = useState("");
+  const [activeType, setActiveType] = useState<string>("all");
+  const debouncedQuery = useDebounce(query, 300);
+
+  const kindsToSearch: ItemKind[] =
+    activeType === "all" ? [] :
+    activeType === "objective" ? ["objective"] :
+    ["note"];
+
+  const noteTypeFilter: string | null =
+    activeType === "all" || activeType === "objective" || activeType === "note"
+      ? null
+      : activeType;
+
+  const tenantId = user?.tenantId ?? "";
+
+  const { data: results = [], isFetching } = useQuery({
+    queryKey: ["detail-panel-search", debouncedQuery, activeType, activeProjectId, tenantId],
+    queryFn: () =>
+      searchItems(debouncedQuery, kindsToSearch, [], tenantId, {
+        projectId: activeProjectId,
+        noteType: noteTypeFilter,
+      }),
+    enabled: debouncedQuery.trim().length > 0 && tenantId.length > 0,
+    staleTime: 30_000,
+  });
+
   return (
-    <div
-      style={{
-        padding: 24,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        gap: 12,
-        textAlign: "center",
-      }}
-    >
-      <PanelRightOpen size={28} style={{ color: "var(--skin-ink-faint)" }} />
-      <p style={{ fontSize: 13, color: "var(--skin-ink-soft)", lineHeight: 1.55, maxWidth: 200 }}>
-        Click a note, task, or objective to view its details here.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      {/* Search input */}
+      <div style={{ padding: "12px 14px 8px", flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "var(--skin-surface2)",
+            border: "1px solid var(--skin-line)",
+            borderRadius: 8,
+            padding: "7px 10px",
+          }}
+        >
+          {isFetching ? (
+            <Loader2 size={14} className="animate-spin" style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+          ) : (
+            <Search size={14} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+          )}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search notes, objectives…"
+            autoFocus
+            style={{
+              flex: 1,
+              border: "none",
+              background: "transparent",
+              outline: "none",
+              fontSize: 13,
+              color: "var(--skin-ink)",
+              caretColor: "var(--skin-accent)",
+            }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 0, display: "flex" }}
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Type filter chips */}
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          padding: "0 14px 10px",
+          flexWrap: "wrap",
+          flexShrink: 0,
+        }}
+      >
+        {TYPE_CHIPS.map((t) => (
+          <ItemTypeChip
+            key={t}
+            typeKey={t}
+            active={activeType === t}
+            onClick={() => setActiveType(t)}
+          />
+        ))}
+      </div>
+
+      {/* Results */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+        {debouncedQuery.trim().length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, textAlign: "center", paddingTop: 32 }}>
+            <PanelRightOpen size={24} style={{ color: "var(--skin-ink-faint)" }} />
+            <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", lineHeight: 1.5, maxWidth: 180 }}>
+              Type to search for a note or objective to view its details.
+            </p>
+          </div>
+        ) : results.length === 0 && !isFetching ? (
+          <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", textAlign: "center", marginTop: 24 }}>
+            No matches.
+          </p>
+        ) : (
+          results.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => sidepanel.open({ id: item.id, kind: item.kind, title: item.title })}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                width: "100%",
+                textAlign: "left",
+                background: "none",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 10px",
+                cursor: "pointer",
+                marginBottom: 2,
+                transition: "background 120ms ease",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--skin-surface2)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+            >
+              <ItemBadge kind={item.kind} noteType={item.noteType} />
+              <span style={{ flex: 1, fontSize: 13, color: "var(--skin-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.title}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -387,7 +519,7 @@ export function CompanionRail({
 
           {/* Panel body */}
           <div style={{ flex: 1, overflowY: "auto" }}>
-            {activePanel === "detail" && <DetailPanel />}
+            {activePanel === "detail" && <DetailPanelSearch />}
             {activePanel === "role" && <RolePanel />}
             {activePanel === "mood" && <MoodPanel />}
           </div>
