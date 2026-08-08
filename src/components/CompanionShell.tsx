@@ -6,6 +6,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
+import { SidepanelProvider } from "@/contexts/sidepanel";
+import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -75,24 +77,27 @@ export function CompanionShell({ children }: { children: ReactNode }) {
   })();
 
   return (
-    <SidebarProvider
-      defaultOpen={sidebarDefaultOpen}
-      style={{
-        "--sidebar-width": "256px",
-        background: "transparent",
-      } as React.CSSProperties}
-    >
-      <SidebarStatePersist />
-      <MobileMenuButton />
-      <div
-        className="flex min-h-screen w-full"
-        style={{ background: "transparent" }}
+    <SidepanelProvider>
+      <SidebarProvider
+        defaultOpen={sidebarDefaultOpen}
+        style={{
+          "--sidebar-width": "256px",
+          background: "transparent",
+        } as React.CSSProperties}
       >
-        {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
-        <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
-          <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
+        <SidebarStatePersist />
+        <MobileMenuButton />
+        <div
+          className="flex min-h-screen w-full"
+          style={{ background: "transparent" }}
+        >
+          {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
+          <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
+            <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+        <ItemSidepanel />
+      </SidebarProvider>
+    </SidepanelProvider>
   );
 }
