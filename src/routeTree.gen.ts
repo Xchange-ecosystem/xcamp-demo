@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
+import { Route as TaskTaskIdRouteImport } from './routes/task.$taskId'
 
 const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
   id: '/project-details',
@@ -94,6 +95,11 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => ProfileRoute,
 } as any)
+const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
+  id: '/task/$taskId',
+  path: '/task/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/': typeof ProfileIndexRoute
+  '/task/$taskId': typeof TaskTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile': typeof ProfileIndexRoute
+  '/task/$taskId': typeof TaskTaskIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/profile/': typeof ProfileIndexRoute
+  '/task/$taskId': typeof TaskTaskIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/profile/appearance'
     | '/project/$projectId'
     | '/profile/'
+    | '/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/profile/appearance'
     | '/project/$projectId'
     | '/profile'
+    | '/task/$taskId'
   id:
     | '__root__'
     | '/'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/profile/appearance'
     | '/project/$projectId'
     | '/profile/'
+    | '/task/$taskId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   ProjectBuilderRoute: typeof ProjectBuilderRoute
   ProjectDetailsRoute: typeof ProjectDetailsRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRoute
+  TaskTaskIdRoute: typeof TaskTaskIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileAppearanceRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/task/$taskId': {
+      id: '/task/$taskId'
+      path: '/task/$taskId'
+      fullPath: '/task/$taskId'
+      preLoaderRoute: typeof TaskTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -337,6 +357,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectBuilderRoute: ProjectBuilderRoute,
   ProjectDetailsRoute: ProjectDetailsRoute,
   ProjectProjectIdRoute: ProjectProjectIdRoute,
+  TaskTaskIdRoute: TaskTaskIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

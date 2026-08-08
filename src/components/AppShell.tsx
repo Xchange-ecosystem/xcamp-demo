@@ -10,6 +10,7 @@ import { SidepanelProvider, useSidepanel } from "@/contexts/sidepanel";
 import { RightPanelProvider, useRightPanel } from "@/contexts/right-panel";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { EntityPanel } from "@/components/EntityPanel";
+import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -207,6 +208,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </div>
+          <FloatingAltitudeDial />
         </SidebarProvider>
       </RightPanelProvider>
     </SidepanelProvider>

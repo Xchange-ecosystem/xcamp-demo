@@ -645,7 +645,7 @@ export function NotesBrowser({
                     key={note.id}
                     className="x-note-card"
                     data-active={active}
-                    onClick={() => (selectMode ? toggleSelect(note.id) : openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled" }))}
+                    onClick={() => (selectMode ? toggleSelect(note.id) : openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled", noteType: note.note_type }))}
                   >
                     <div className="flex items-start gap-2">
                       {selectMode && (

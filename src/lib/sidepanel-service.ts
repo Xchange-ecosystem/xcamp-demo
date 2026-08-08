@@ -212,6 +212,7 @@ export async function searchItems(
   kinds: ItemKind[],
   excludeIds: string[],
   tenantId: string,
+  options?: { projectId?: string | null; noteType?: string | null },
 ): Promise<LinkedItem[]> {
   if (!query.trim()) return [];
   const results: LinkedItem[] = [];
@@ -225,6 +226,7 @@ export async function searchItems(
       .ilike("title", `%${query}%`)
       .eq("tenant_id", tenantId)
       .limit(8);
+    if (options?.noteType) q = q.eq("note_type", options.noteType);
     if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
     const { data } = await q;
     for (const n of data ?? [])
@@ -237,6 +239,7 @@ export async function searchItems(
       .select("id, title, status")
       .ilike("title", `%${query}%`)
       .limit(8);
+    if (options?.projectId) q = q.eq("project_id", options.projectId);
     if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
     const { data } = await q;
     for (const o of data ?? [])
