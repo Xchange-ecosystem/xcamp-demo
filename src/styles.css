@@ -140,6 +140,33 @@
   --skin-danger:       hsl(0, 72%, 50%);
   --skin-on-accent:    hsl(222, 47%, 11%);
 
+  /* ── Item type tokens — single source of truth for all item type colours.
+   * Use var(--item-<type>) for fills, var(--item-<type>-fg) for text.
+   * Badge text is guaranteed WCAG contrast against its paired fill.
+   * No hex literals in component files — reference these tokens only. ──── */
+  --item-objective:           oklch(0.68 0.18 290);
+  --item-objective-fg:        oklch(0.98 0.01 290);
+  --item-note:                oklch(0.62 0.14 248);
+  --item-note-fg:             oklch(0.98 0.01 248);
+  --item-task:                oklch(0.65 0.18 162);
+  --item-task-fg:             oklch(0.98 0.01 162);
+  --item-idea:                oklch(0.78 0.16 68);
+  --item-idea-fg:             oklch(0.20 0.05 68);
+  --item-question:            oklch(0.68 0.20 30);
+  --item-question-fg:         oklch(0.98 0.01 30);
+  --item-decision:            oklch(0.66 0.20 335);
+  --item-decision-fg:         oklch(0.98 0.01 335);
+  --item-reference:           oklch(0.58 0.04 248);
+  --item-reference-fg:        oklch(0.98 0.01 248);
+
+  /* Objective status tokens — reuse amber/green/purple accent palette */
+  --item-status-open:         oklch(0.80 0.16 70);
+  --item-status-open-fg:      oklch(0.18 0.05 70);
+  --item-status-done:         oklch(0.70 0.18 145);
+  --item-status-done-fg:      oklch(0.98 0.01 145);
+  --item-status-suggested:    oklch(0.68 0.18 290);
+  --item-status-suggested-fg: oklch(0.98 0.01 290);
+
   /* ── Glass-panel tokens (Companion page / home.tsx + ChatThread.tsx) ─────
    * Light values use a white-frost appearance; dark values mirror the
    * existing dark-glass aesthetic. Never inline these as rgba() literals
@@ -209,6 +236,28 @@
 
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+
+  /* ── Item type tokens — dark overrides ── */
+  --item-objective:           oklch(0.42 0.18 290);
+  --item-objective-fg:        oklch(0.92 0.06 290);
+  --item-note:                oklch(0.38 0.14 248);
+  --item-note-fg:             oklch(0.92 0.06 248);
+  --item-task:                oklch(0.40 0.16 162);
+  --item-task-fg:             oklch(0.92 0.06 162);
+  --item-idea:                oklch(0.48 0.16 68);
+  --item-idea-fg:             oklch(0.92 0.06 68);
+  --item-question:            oklch(0.42 0.18 30);
+  --item-question-fg:         oklch(0.92 0.06 30);
+  --item-decision:            oklch(0.42 0.18 335);
+  --item-decision-fg:         oklch(0.92 0.06 335);
+  --item-reference:           oklch(0.36 0.04 248);
+  --item-reference-fg:        oklch(0.88 0.02 248);
+  --item-status-open:         oklch(0.50 0.16 70);
+  --item-status-open-fg:      oklch(0.92 0.06 70);
+  --item-status-done:         oklch(0.42 0.16 145);
+  --item-status-done-fg:      oklch(0.92 0.06 145);
+  --item-status-suggested:    oklch(0.42 0.18 290);
+  --item-status-suggested-fg: oklch(0.92 0.06 290);
 
   /* ── Skin tokens — dark overrides ── */
   --skin-danger:       hsl(0, 84%, 65%);
@@ -500,6 +549,120 @@ select {
     cursor: pointer;
   }
   .x-icon-link:hover { background: var(--skin-surface2); color: var(--skin-ink); }
+
+  /* ---- Item type badge ---- */
+  .x-item-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--xr-pill);
+    padding: 2px 8px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---- Sidepanel ---- */
+  .x-sidepanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 100vw;
+    z-index: 50;
+    background: var(--skin-bg);
+    border-left: 1px solid var(--skin-line);
+    box-shadow: -4px 0 32px rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+    transition: transform 150ms ease;
+  }
+  .x-sidepanel[aria-hidden="true"] { transform: translateX(100%); }
+
+  .x-sidepanel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--skin-line);
+    background: var(--skin-surface);
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+
+  .x-sidepanel-body-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--skin-line-soft);
+    flex-shrink: 0;
+  }
+
+  .x-sidepanel-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--skin-line);
+    flex-shrink: 0;
+    background: var(--skin-surface);
+  }
+  .x-sidepanel-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--skin-ink-soft);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+  .x-sidepanel-tab[data-active="true"] {
+    color: var(--skin-accent);
+    border-bottom-color: var(--skin-accent);
+  }
+  .x-sidepanel-tab:hover:not([data-active="true"]) { color: var(--skin-ink); }
+
+  .x-sidepanel-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 20px 40px;
+  }
+
+  /* ---- Linked item row ---- */
+  .x-linked-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--xr);
+    transition: background 100ms ease;
+    cursor: pointer;
+  }
+  .x-linked-row:hover { background: var(--skin-surface2); }
+  .x-linked-row__remove {
+    opacity: 0;
+    transition: opacity 100ms ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--skin-ink-faint);
+    padding: 2px;
+    display: inline-flex;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .x-linked-row:hover .x-linked-row__remove { opacity: 1; }
+
+  /* ---- Add-link search panel ---- */
+  .x-add-link-panel {
+    background: var(--skin-surface);
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr-lg);
+    padding: 12px;
+    margin-bottom: 12px;
+  }
 }
 
 @keyframes xFadeIn {

@@ -6,6 +6,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
 import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
+import { SidepanelProvider } from "@/contexts/sidepanel";
+import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -143,19 +145,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider
-      defaultOpen={sidebarDefaultOpen}
-      style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
-    >
-      <SidebarStatePersist />
-      {!pathname.startsWith("/profile") && <MobileMenuButton />}
-      <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
-        {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
-        <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
-        <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1 min-w-0">{children}</main>
+    <SidepanelProvider>
+      <SidebarProvider
+        defaultOpen={sidebarDefaultOpen}
+        style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
+      >
+        <SidebarStatePersist />
+        {!pathname.startsWith("/profile") && <MobileMenuButton />}
+        <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
+          {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
+          <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
+          <div className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 min-w-0">{children}</main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+        <ItemSidepanel />
+      </SidebarProvider>
+    </SidepanelProvider>
   );
 }
