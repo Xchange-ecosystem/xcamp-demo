@@ -295,7 +295,7 @@ function DetailPanelSearch() {
 
       {/* Results */}
       <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
-        {debouncedQuery.trim().length === 0 ? (
+        {debouncedQuery.trim().length === 0 || tenantId.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, textAlign: "center", paddingTop: 32 }}>
             <PanelRightOpen size={24} style={{ color: "var(--skin-ink-faint)" }} />
             <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", lineHeight: 1.5, maxWidth: 180 }}>
