@@ -32,6 +32,7 @@ import {
   type HistoricalProposal,
 } from "@/lib/journal-api";
 import { useRightPanel, type EntityPanelTarget } from "@/contexts/right-panel";
+import type { AICard } from "@xchange/client";
 
 type Screen = "input" | "cards" | "editor" | "history";
 
@@ -90,6 +91,28 @@ export function EntityTypeSelector({ selected, onChange }: { selected: EntityTyp
       ))}
     </div>
   );
+}
+
+export function buildContextCardProposal(
+  card: AICard,
+  entityType: EntityType,
+): AICard['proposal'] | undefined {
+  const original = card.proposal;
+  if (!original) return undefined;
+  const orig = original as unknown as { tool: string; payload?: Record<string, unknown> };
+  const basePayload: Record<string, unknown> = orig.payload ?? {};
+  const title = typeof basePayload.title === 'string' ? basePayload.title : card.title;
+  switch (entityType) {
+    case 'objective':
+      return { tool: 'create_objective', payload: { title, project_id: basePayload.project_id } } as unknown as AICard['proposal'];
+    case 'task':
+      return { tool: 'create_task', payload: { ...basePayload, title } } as unknown as AICard['proposal'];
+    case 'resource':
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'reference' } } as unknown as AICard['proposal'];
+    case 'note':
+    default:
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'note' } } as unknown as AICard['proposal'];
+  }
 }
 
 function resolvedPlacement(p: JournalProposal): string {
