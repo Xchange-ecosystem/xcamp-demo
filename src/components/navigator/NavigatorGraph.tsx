@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -31,7 +31,7 @@ import {
   type NavTask,
 } from "@/lib/navigator-api";
 import { listProjects } from "@/lib/xcamp-api";
-import { EntityPanel } from "@/components/EntityPanel";
+import { useRightPanel } from "@/contexts/right-panel";
 
 /* ────────────────────────────────────────────────────────────────────
    Position persistence (localStorage, no migration required)
@@ -382,16 +382,11 @@ const nodeTypes = {
    Main NavigatorGraph component
 ─────────────────────────────────────────────────────────────────── */
 
-type PanelState = {
-  open: boolean;
-  type: "objective" | "task" | "note";
-  id: string;
-  objectiveId?: string;
-};
 
 export function NavigatorGraph() {
   const { user } = useAuth();
   const { activeProjectId } = useActiveProject();
+  const { openEntity } = useRightPanel();
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects", user?.tenantId],
@@ -436,13 +431,9 @@ export function NavigatorGraph() {
 
   /* Entity panel ─────────────────────────────────────────────────── */
 
-  const [panel, setPanel] = useState<PanelState>({ open: false, type: "task", id: "" });
-
-  const closePanel = useCallback(() => setPanel((s) => ({ ...s, open: false })), []);
-
   const onOpenNode = useCallback<OpenNodeFn>((id, type) => {
-    setPanel({ open: true, type, id });
-  }, []);
+    openEntity({ type, id });
+  }, [openEntity]);
 
   const onAddTask = useCallback<AddTaskFn>(
     async (objectiveId: string) => {
@@ -452,7 +443,7 @@ export function NavigatorGraph() {
           title: "",
           objectiveId,
         });
-        setPanel({ open: true, type: "task", id: note.id, objectiveId });
+        openEntity({ type: "task", id: note.id, objectiveId });
       } catch {
         toast.error("Failed to create task");
       }
@@ -655,14 +646,6 @@ export function NavigatorGraph() {
         </ReactFlow>
       </div>
 
-      <EntityPanel
-        open={panel.open}
-        onClose={closePanel}
-        type={panel.type}
-        id={panel.id}
-        objectiveId={panel.objectiveId}
-        user={user ?? undefined}
-      />
     </>
   );
 }

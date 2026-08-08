@@ -21,9 +21,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AiPlanRouteImport } from './routes/ai-plan'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
+import { Route as TaskTaskIdRouteImport } from './routes/task.$taskId'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
-import { Route as TaskTaskIdRouteImport } from './routes/task.$taskId'
 
 const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
   id: '/project-details',
@@ -85,6 +85,11 @@ const ProfileIndexRoute = ProfileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfileRoute,
 } as any)
+const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
+  id: '/task/$taskId',
+  path: '/task/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
   id: '/project/$projectId',
   path: '/project/$projectId',
@@ -94,11 +99,6 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
   getParentRoute: () => ProfileRoute,
-} as any)
-const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
-  id: '/task/$taskId',
-  path: '/task/$taskId',
-  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -115,8 +115,8 @@ export interface FileRoutesByFullPath {
   '/project-details': typeof ProjectDetailsRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
-  '/profile/': typeof ProfileIndexRoute
   '/task/$taskId': typeof TaskTaskIdRoute
+  '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -131,8 +131,8 @@ export interface FileRoutesByTo {
   '/project-details': typeof ProjectDetailsRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
-  '/profile': typeof ProfileIndexRoute
   '/task/$taskId': typeof TaskTaskIdRoute
+  '/profile': typeof ProfileIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,8 +149,8 @@ export interface FileRoutesById {
   '/project-details': typeof ProjectDetailsRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
-  '/profile/': typeof ProfileIndexRoute
   '/task/$taskId': typeof TaskTaskIdRoute
+  '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,8 +168,8 @@ export interface FileRouteTypes {
     | '/project-details'
     | '/profile/appearance'
     | '/project/$projectId'
-    | '/profile/'
     | '/task/$taskId'
+    | '/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,8 +184,8 @@ export interface FileRouteTypes {
     | '/project-details'
     | '/profile/appearance'
     | '/project/$projectId'
-    | '/profile'
     | '/task/$taskId'
+    | '/profile'
   id:
     | '__root__'
     | '/'
@@ -201,8 +201,8 @@ export interface FileRouteTypes {
     | '/project-details'
     | '/profile/appearance'
     | '/project/$projectId'
-    | '/profile/'
     | '/task/$taskId'
+    | '/profile/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -307,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/task/$taskId': {
+      id: '/task/$taskId'
+      path: '/task/$taskId'
+      fullPath: '/task/$taskId'
+      preLoaderRoute: typeof TaskTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId': {
       id: '/project/$projectId'
       path: '/project/$projectId'
@@ -320,13 +327,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/profile/appearance'
       preLoaderRoute: typeof ProfileAppearanceRouteImport
       parentRoute: typeof ProfileRoute
-    }
-    '/task/$taskId': {
-      id: '/task/$taskId'
-      path: '/task/$taskId'
-      fullPath: '/task/$taskId'
-      preLoaderRoute: typeof TaskTaskIdRouteImport
-      parentRoute: typeof rootRouteImport
     }
   }
 }

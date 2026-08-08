@@ -20,7 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { ItemBadge, ItemTypeChip } from "@/components/sidepanel/ItemBadge";
 import { ItemGraph } from "@/components/sidepanel/ItemGraph";
@@ -803,12 +802,12 @@ function NoteContent({ itemId }: { itemId: string }) {
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────
+// Renders directly into the AppShell layout aside — no Sheet/overlay wrapper.
 
 export function ItemSidepanel() {
-  const { stack, isOpen, current, pop, close, goTo, push } = useSidepanel();
+  const { stack, current, pop, close, goTo, push } = useSidepanel();
   const [activeTab, setActiveTab] = useState<"content" | "linked">("content");
 
-  // Reset to content tab whenever the current item changes
   useEffect(() => {
     setActiveTab("content");
   }, [current?.id]);
@@ -820,157 +819,146 @@ export function ItemSidepanel() {
     [push],
   );
 
+  if (!current) return null;
+
   const canGoBack = stack.length > 1;
-  const typeLabel = current
-    ? current.kind === "objective"
-      ? "Editing objective"
-      : `Editing ${current.kind}`
-    : "";
+  const typeLabel =
+    current.kind === "objective" ? "Editing objective" : `Editing ${current.kind}`;
 
   return (
-    <Sheet open={isOpen} onOpenChange={(o) => !o && close()}>
-      <SheetContent
-        side="right"
-        noCloseButton
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        overflow: "hidden",
+        background: "var(--skin-surface)",
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        className="x-sidepanel-header"
         style={{
-          width: 480,
-          maxWidth: "95vw",
           display: "flex",
-          flexDirection: "column",
-          padding: 0,
-          gap: 0,
-          overflow: "hidden",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 14px",
+          borderBottom: "1px solid var(--skin-line)",
+          background: "var(--skin-surface2)",
+          flexShrink: 0,
         }}
       >
-        {current && (
-          <>
-            {/* ── Header ── */}
-            <div
-              className="x-sidepanel-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 14px",
-                borderBottom: "1px solid var(--skin-line)",
-                background: "var(--skin-surface2)",
-                flexShrink: 0,
-              }}
-            >
-              <Breadcrumb stack={stack} onGoTo={goTo} />
-              <div style={{ flex: 1 }} />
-              <button
-                onClick={close}
-                aria-label="Close panel"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--skin-ink-faint)",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: 4,
-                  borderRadius: 4,
-                }}
-              >
-                <X size={15} />
-              </button>
-            </div>
+        <Breadcrumb stack={stack} onGoTo={goTo} />
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={close}
+          aria-label="Close panel"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--skin-ink-faint)",
+            display: "flex",
+            alignItems: "center",
+            padding: 4,
+            borderRadius: 4,
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
 
-            {/* ── Body card header ── */}
-            <div
-              className="x-sidepanel-body-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 14px",
-                borderBottom: "1px solid var(--skin-line)",
-                flexShrink: 0,
-              }}
-            >
-              {canGoBack && (
-                <button
-                  onClick={pop}
-                  aria-label="Go back"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "none",
-                    border: "1px solid var(--skin-line)",
-                    borderRadius: 6,
-                    padding: "4px 6px",
-                    cursor: "pointer",
-                    color: "var(--skin-ink-faint)",
-                  }}
-                >
-                  <ArrowLeft size={13} />
-                </button>
-              )}
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", flex: 1 }}>
-                {typeLabel}
-              </span>
-              <KebabMenu item={current} onClose={close} />
-            </div>
-
-            {/* ── Tabs ── */}
-            <div
-              className="x-sidepanel-tabs"
-              style={{
-                display: "flex",
-                gap: 0,
-                borderBottom: "1px solid var(--skin-line)",
-                flexShrink: 0,
-              }}
-            >
-              {(["content", "linked"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  className="x-sidepanel-tab"
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: "8px 16px",
-                    fontSize: 13,
-                    fontWeight: activeTab === tab ? 600 : 400,
-                    color: activeTab === tab ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                    background: "none",
-                    border: "none",
-                    borderBottom: activeTab === tab ? "2px solid var(--skin-accent)" : "2px solid transparent",
-                    marginBottom: -1,
-                    cursor: "pointer",
-                    textTransform: "capitalize",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {tab === "linked" ? "Linked items" : "Content"}
-                </button>
-              ))}
-            </div>
-
-            {/* ── Scrollable body ── */}
-            <div
-              className="x-sidepanel-scroll"
-              style={{ flex: 1, overflowY: "auto", padding: 16 }}
-            >
-              {activeTab === "content" ? (
-                current.kind === "objective" ? (
-                  <ObjectiveContent key={current.id} itemId={current.id} />
-                ) : (
-                  <NoteContent key={current.id} itemId={current.id} />
-                )
-              ) : (
-                <LinkedItemsTab
-                  key={current.id}
-                  itemId={current.id}
-                  itemKind={current.kind}
-                />
-              )}
-            </div>
-          </>
+      {/* ── Body card header ── */}
+      <div
+        className="x-sidepanel-body-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 14px",
+          borderBottom: "1px solid var(--skin-line)",
+          flexShrink: 0,
+        }}
+      >
+        {canGoBack && (
+          <button
+            onClick={pop}
+            aria-label="Go back"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "none",
+              border: "1px solid var(--skin-line)",
+              borderRadius: 6,
+              padding: "4px 6px",
+              cursor: "pointer",
+              color: "var(--skin-ink-faint)",
+            }}
+          >
+            <ArrowLeft size={13} />
+          </button>
         )}
-      </SheetContent>
-    </Sheet>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", flex: 1 }}>
+          {typeLabel}
+        </span>
+        <KebabMenu item={current} onClose={close} />
+      </div>
+
+      {/* ── Tabs ── */}
+      <div
+        className="x-sidepanel-tabs"
+        style={{
+          display: "flex",
+          gap: 0,
+          borderBottom: "1px solid var(--skin-line)",
+          flexShrink: 0,
+        }}
+      >
+        {(["content", "linked"] as const).map((tab) => (
+          <button
+            key={tab}
+            className="x-sidepanel-tab"
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+              background: "none",
+              border: "none",
+              borderBottom: activeTab === tab ? "2px solid var(--skin-accent)" : "2px solid transparent",
+              marginBottom: -1,
+              cursor: "pointer",
+              textTransform: "capitalize",
+              letterSpacing: "0.01em",
+            }}
+          >
+            {tab === "linked" ? "Linked items" : "Content"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Scrollable body ── */}
+      <div
+        className="x-sidepanel-scroll"
+        style={{ flex: 1, overflowY: "auto", padding: 16 }}
+      >
+        {activeTab === "content" ? (
+          current.kind === "objective" ? (
+            <ObjectiveContent key={current.id} itemId={current.id} />
+          ) : (
+            <NoteContent key={current.id} itemId={current.id} />
+          )
+        ) : (
+          <LinkedItemsTab
+            key={current.id}
+            itemId={current.id}
+            itemKind={current.kind}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -18,7 +18,6 @@ import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createNote } from "@/lib/xcamp-api";
-import { supabase } from "@/lib/supabase";
 import {
   analyse,
   answerWithContext,
@@ -32,9 +31,8 @@ import {
   type SessionStatus,
   type HistoricalProposal,
 } from "@/lib/journal-api";
-import { executeProposal } from "@xchange/client";
+import { useRightPanel, type EntityPanelTarget } from "@/contexts/right-panel";
 import type { AICard } from "@xchange/client";
-import { EntityPanel } from "@/components/EntityPanel";
 
 type Screen = "input" | "cards" | "editor" | "history";
 
@@ -45,11 +43,6 @@ function defaultTopicEntityType(topic: JournalTopic): EntityType {
     case 'resource': return 'resource';
     default: return 'note';
   }
-}
-
-function defaultCardEntityType(kind: string): EntityType {
-  if (kind === 'task' || kind === 'action_item') return 'task';
-  return 'note';
 }
 
 function resolveApprovalOverrides(
@@ -67,28 +60,6 @@ function resolveApprovalOverrides(
     default:
       if (existingProposalType === 'link_to_objective') return {};
       return { proposal_type: 'add_note', note_type: 'note' };
-  }
-}
-
-export function buildContextCardProposal(
-  card: AICard,
-  entityType: EntityType,
-): AICard['proposal'] | undefined {
-  const original = card.proposal;
-  if (!original) return undefined;
-  const orig = original as unknown as { tool: string; payload?: Record<string, unknown> };
-  const basePayload: Record<string, unknown> = orig.payload ?? {};
-  const title = typeof basePayload.title === 'string' ? basePayload.title : card.title;
-  switch (entityType) {
-    case 'objective':
-      return { tool: 'create_objective', payload: { title, project_id: basePayload.project_id } } as unknown as AICard['proposal'];
-    case 'task':
-      return { tool: 'create_task', payload: { ...basePayload, title } } as unknown as AICard['proposal'];
-    case 'resource':
-      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'reference' } } as unknown as AICard['proposal'];
-    case 'note':
-    default:
-      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'note' } } as unknown as AICard['proposal'];
   }
 }
 
@@ -122,6 +93,28 @@ export function EntityTypeSelector({ selected, onChange }: { selected: EntityTyp
   );
 }
 
+export function buildContextCardProposal(
+  card: AICard,
+  entityType: EntityType,
+): AICard['proposal'] | undefined {
+  const original = card.proposal;
+  if (!original) return undefined;
+  const orig = original as unknown as { tool: string; payload?: Record<string, unknown> };
+  const basePayload: Record<string, unknown> = orig.payload ?? {};
+  const title = typeof basePayload.title === 'string' ? basePayload.title : card.title;
+  switch (entityType) {
+    case 'objective':
+      return { tool: 'create_objective', payload: { title, project_id: basePayload.project_id } } as unknown as AICard['proposal'];
+    case 'task':
+      return { tool: 'create_task', payload: { ...basePayload, title } } as unknown as AICard['proposal'];
+    case 'resource':
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'reference' } } as unknown as AICard['proposal'];
+    case 'note':
+    default:
+      return { tool: 'add_note', payload: { ...basePayload, title, note_type: 'note' } } as unknown as AICard['proposal'];
+  }
+}
+
 function resolvedPlacement(p: JournalProposal): string {
   const project = p.payload.project_title;
   const objective = p.payload.objective_title || p.payload.title;
@@ -142,14 +135,6 @@ function statusColors(status: SessionStatus): { bg: string; fg: string } {
   }
 }
 
-interface PanelTarget {
-  type: 'note' | 'task' | 'objective';
-  id: string;
-  objectiveId?: string;
-  prefillText?: string;
-  initialTitle?: string;
-}
-
 export function JournalFlow({
   draft = null,
 }: {
@@ -158,22 +143,17 @@ export function JournalFlow({
   const { user, loading } = useAuth();
   const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
+  const { openEntity } = useRightPanel();
 
   const [screen, setScreen] = useState<Screen>("input");
   const [entryText, setEntryText] = useState("");
   const [analysing, setAnalysing] = useState(false);
   const [topics, setTopics] = useState<JournalTopic[]>([]);
-  const [cards, setCards] = useState<AICard[]>([]);
-  const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
-  const [accepting, setAccepting] = useState<string | null>(null);
-  const [panelTarget, setPanelTarget] = useState<PanelTarget | null>(null);
   const [editingTopic, setEditingTopic] = useState<JournalTopic | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [openSession, setOpenSession] = useState<string | null>(null);
-  const [appliedCards, setAppliedCards] = useState<Map<string, PanelTarget>>(new Map());
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
-  const [savedTopicTargets, setSavedTopicTargets] = useState<Map<string, PanelTarget>>(new Map());
-  const [suggestedCards, setSuggestedCards] = useState<Map<string, AICard[]>>(new Map());
+  const [savedTopicTargets, setSavedTopicTargets] = useState<Map<string, EntityPanelTarget>>(new Map());
   const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
   const [editingTopicType, setEditingTopicType] = useState<EntityType>('note');
 
@@ -195,31 +175,22 @@ export function JournalFlow({
     if (!text || !user) return;
     setAnalysing(true);
     try {
-      const [analysisResult, contextResult] = await Promise.allSettled([
-        analyse({ text, userId: user.centralId, tenantId: user.tenantId, projectId: activeProjectId ?? undefined }),
-        answerWithContext({ question: text, tenantId: user.tenantId, projectId: activeProjectId ?? undefined }),
-      ]);
-
-      const newTopics = analysisResult.status === "fulfilled" ? analysisResult.value : [];
-      const newCards = contextResult.status === "fulfilled" ? contextResult.value.cards : [];
-
-      if (analysisResult.status === "rejected") {
-        toast.error((analysisResult.reason as Error).message);
-      }
+      const newTopics = await analyse({
+        text,
+        userId: user.centralId,
+        tenantId: user.tenantId,
+        projectId: activeProjectId ?? undefined,
+      });
 
       setTopics(newTopics);
-      setCards(newCards);
-      setCardErrors({});
-      setAppliedCards(new Map());
       setSavedTopicIds(new Set());
       setSavedTopicTargets(new Map());
-      setSuggestedCards(new Map());
       const initialTypes = new Map<string, EntityType>();
       for (const t of newTopics) initialTypes.set(t.id, defaultTopicEntityType(t));
       setTopicTypes(initialTypes);
       setScreen("cards");
 
-      if (newTopics.length === 0 && newCards.length === 0) {
+      if (newTopics.length === 0) {
         toast("No topics found in this entry.");
       }
     } catch (e) {
@@ -231,7 +202,6 @@ export function JournalFlow({
 
   const handleDismissTopic = async (topic: JournalTopic) => {
     setTopics((prev) => prev.filter((t) => t.id !== topic.id));
-    setSuggestedCards((prev) => { const next = new Map(prev); next.delete(topic.id); return next; });
     if (topic.organiser_proposals.length > 0 && topic.organiser_session_id) {
       try {
         await confirmSession(
@@ -246,79 +216,13 @@ export function JournalFlow({
     }
   };
 
-  const handleAcceptCard = async (card: AICard, selectedType: EntityType) => {
-    setAccepting(card.id);
-
-    if (selectedType === 'objective') {
-      const modifiedProposal = buildContextCardProposal(card, selectedType);
-      if (!modifiedProposal) { setAccepting(null); return; }
-      const token = await supabase.auth.getSession().then(r => r.data.session?.access_token ?? '');
-      const result = await executeProposal(
-        modifiedProposal,
-        () => Promise.resolve(token || null),
-        (import.meta.env.VITE_BACKEND_URL as string) ?? '',
-      );
-      setAccepting(null);
-      if (result.ok) {
-        const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
-        const payloadTitle = typeof rawPayload?.title === 'string' ? rawPayload.title : card.title;
-        const objId = typeof rawPayload?.objective_id === 'string' ? rawPayload.objective_id : undefined;
-        const target: PanelTarget = { type: 'objective', id: result.committed_id ?? objId ?? '', prefillText: card.body, initialTitle: payloadTitle };
-        setAppliedCards((prev) => new Map(prev).set(card.id, target));
-        setPanelTarget(target);
-        toast.success('Applied');
-      } else {
-        setCardErrors((prev) => ({ ...prev, [card.id]: result.error ?? 'Unknown error' }));
-      }
-      return;
-    }
-
-    const noteType = selectedType === 'task' ? 'task' : selectedType === 'resource' ? 'reference' : 'note';
-    const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> } | undefined;
-    const basePayload = rawProposal?.payload ?? {};
-    const title = typeof basePayload.title === 'string' ? basePayload.title : (card.title ?? 'Untitled');
-
-    try {
-      const note = await createNote(user!, {
-        title,
-        bodyHtml: '',
-        noteType,
-        projectId: null,
-        objectiveIds: [],
-        tags: [],
-      });
-      setAccepting(null);
-      const panelType: PanelTarget['type'] = selectedType === 'task' ? 'task' : 'note';
-      const target: PanelTarget = { type: panelType, id: note.id, prefillText: card.body, initialTitle: title };
-      setAppliedCards((prev) => new Map(prev).set(card.id, target));
-      setPanelTarget(target);
-      toast.success('Applied');
-    } catch (err) {
-      setAccepting(null);
-      setCardErrors((prev) => ({ ...prev, [card.id]: (err as Error).message ?? 'Unknown error' }));
-    }
-  };
-
-  const handleDismissCard = (card: AICard) => {
-    setCards((prev) => prev.filter((c) => c.id !== card.id));
-    setSuggestedCards((prev) => {
-      const next = new Map(prev);
-      for (const [k, v] of next) next.set(k, v.filter((c) => c.id !== card.id));
-      return next;
-    });
-  };
-
   const startNew = () => {
     setEntryText("");
     setTopics([]);
-    setCards([]);
-    setCardErrors({});
     setEditingTopic(null);
     setOpenSession(null);
-    setAppliedCards(new Map());
     setSavedTopicIds(new Set());
     setSavedTopicTargets(new Map());
-    setSuggestedCards(new Map());
     setTopicTypes(new Map());
     setScreen("input");
   };
@@ -441,7 +345,7 @@ export function JournalFlow({
                         </span>
                       </div>
                       <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
-                        {s.proposalCount} {s.proposalCount === 1 ? "proposal" : "proposals"}
+                        {s.proposalCount} suggested / {s.committedCount} applied
                       </div>
                     </button>
                   );
@@ -497,7 +401,7 @@ export function JournalFlow({
                 </button>
               </div>
 
-              {topics.length === 0 && cards.length === 0 ? (
+              {topics.length === 0 ? (
                 <div style={{ padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
                   <CheckCircle2 size={36} style={{ color: "var(--skin-accent)", opacity: 0.7 }} />
                   <p style={{ color: "var(--skin-ink-faint)", fontSize: 14, textAlign: "center", margin: 0 }}>
@@ -509,57 +413,21 @@ export function JournalFlow({
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {topics.map((topic) => {
-                    const topicSuggested = suggestedCards.get(topic.id) ?? [];
-                    return (
-                      <div key={topic.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <TopicCard
-                          topic={topic}
-                          saved={savedTopicIds.has(topic.id)}
-                          target={savedTopicTargets.get(topic.id)}
-                          selectedType={topicTypes.get(topic.id) ?? defaultTopicEntityType(topic)}
-                          onTypeChange={(type) => setTopicTypes(prev => new Map(prev).set(topic.id, type))}
-                          onAccept={() => {
-                            setEditingTopic(topic);
-                            setEditingTopicType(topicTypes.get(topic.id) ?? defaultTopicEntityType(topic));
-                            setScreen("editor");
-                          }}
-                          onDismiss={() => handleDismissTopic(topic)}
-                          onGoTo={(t) => setPanelTarget(t)}
-                        />
-                        {topicSuggested.map((card) => (
-                          <div
-                            key={card.id}
-                            style={{
-                              borderLeft: "3px solid var(--skin-accent)",
-                              paddingLeft: 12,
-                              marginLeft: 8,
-                            }}
-                          >
-                            <AICardView
-                              card={card}
-                              accepting={accepting === card.id}
-                              error={cardErrors[card.id]}
-                              applied={appliedCards.has(card.id)}
-                              onGoTo={appliedCards.has(card.id) ? () => setPanelTarget(appliedCards.get(card.id)!) : undefined}
-                              onAccept={(type) => handleAcceptCard(card, type)}
-                              onDismiss={() => handleDismissCard(card)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                  {cards.map((card) => (
-                    <AICardView
-                      key={card.id}
-                      card={card}
-                      accepting={accepting === card.id}
-                      error={cardErrors[card.id]}
-                      applied={appliedCards.has(card.id)}
-                      onGoTo={appliedCards.has(card.id) ? () => setPanelTarget(appliedCards.get(card.id)!) : undefined}
-                      onAccept={(type) => handleAcceptCard(card, type)}
-                      onDismiss={() => handleDismissCard(card)}
+                  {topics.map((topic) => (
+                    <TopicCard
+                      key={topic.id}
+                      topic={topic}
+                      saved={savedTopicIds.has(topic.id)}
+                      target={savedTopicTargets.get(topic.id)}
+                      selectedType={topicTypes.get(topic.id) ?? defaultTopicEntityType(topic)}
+                      onTypeChange={(type) => setTopicTypes(prev => new Map(prev).set(topic.id, type))}
+                      onAccept={() => {
+                        setEditingTopic(topic);
+                        setEditingTopicType(topicTypes.get(topic.id) ?? defaultTopicEntityType(topic));
+                        setScreen("editor");
+                      }}
+                      onDismiss={() => handleDismissTopic(topic)}
+                      onGoTo={(t) => openEntity(t)}
                     />
                   ))}
                 </div>
@@ -573,19 +441,11 @@ export function JournalFlow({
               selectedType={editingTopicType}
               projectId={activeProjectId ?? undefined}
               onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-              onSaved={(newSuggestedCards, newTarget) => {
+              onSaved={(newTarget) => {
                 const topicId = editingTopic!.id;
                 setSavedTopicIds((prev) => new Set([...prev, topicId]));
                 if (newTarget) {
                   setSavedTopicTargets((prev) => new Map(prev).set(topicId, newTarget));
-                }
-                if (newSuggestedCards && newSuggestedCards.length > 0) {
-                  setSuggestedCards((prev) => {
-                    const next = new Map(prev);
-                    const existing = next.get(topicId) ?? [];
-                    next.set(topicId, [...existing, ...newSuggestedCards]);
-                    return next;
-                  });
                 }
                 setEditingTopic(null);
                 setScreen("cards");
@@ -603,18 +463,6 @@ export function JournalFlow({
         </div>
       </div>
 
-      {panelTarget && (
-        <EntityPanel
-          open={panelTarget !== null}
-          onClose={() => setPanelTarget(null)}
-          type={panelTarget.type}
-          id={panelTarget.id}
-          objectiveId={panelTarget.objectiveId}
-          prefillText={panelTarget.prefillText}
-          initialTitle={panelTarget.initialTitle}
-          user={user ?? undefined}
-        />
-      )}
     </>
   );
 }
@@ -652,8 +500,8 @@ function TopicCard({
   onAccept: () => void;
   onDismiss: () => void;
   saved?: boolean;
-  target?: PanelTarget;
-  onGoTo?: (target: PanelTarget) => void;
+  target?: EntityPanelTarget;
+  onGoTo?: (target: EntityPanelTarget) => void;
   selectedType: EntityType;
   onTypeChange: (type: EntityType) => void;
 }) {
@@ -714,135 +562,6 @@ function TopicCard({
   );
 }
 
-function AICardView({
-  card,
-  accepting,
-  error,
-  onAccept,
-  onDismiss,
-  applied = false,
-  onGoTo,
-}: {
-  card: AICard;
-  accepting: boolean;
-  error?: string;
-  onAccept: (selectedType: EntityType) => void;
-  onDismiss: () => void;
-  applied?: boolean;
-  onGoTo?: () => void;
-}) {
-  const [selectedType, setSelectedType] = useState<EntityType>(() => defaultCardEntityType(card.kind));
-
-  const kindLabel: Record<string, string> = {
-    task: "Task",
-    action_item: "Action",
-    update: "Update",
-    opportunity: "Opportunity",
-    content: "Content",
-    urgency: "Urgent",
-    celebration: "Win",
-    metric: "Metric",
-    web_result: "Reference",
-  };
-
-  return (
-    <div
-      style={{
-        border: "1px solid var(--skin-line)", borderRadius: 14, padding: 16,
-        background: "var(--skin-surface)", display: "flex", flexDirection: "column", gap: 10,
-        opacity: accepting ? 0.7 : applied ? 0.75 : 1,
-      }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <Sparkles size={14} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
-          <h3 className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 16 }}>
-            {card.title}
-          </h3>
-        </div>
-        <span
-          style={{
-            fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
-            background: "color-mix(in srgb, var(--skin-accent) 10%, transparent)", color: "var(--skin-accent)",
-          }}
-        >
-          {kindLabel[card.kind] ?? card.kind}
-        </span>
-      </div>
-
-      {card.body && (
-        <p style={{ color: "var(--skin-ink-soft)", fontSize: 14, lineHeight: 1.55 }}>{card.body}</p>
-      )}
-
-      {(card.proposal as unknown as { rationale?: string })?.rationale && (
-        <p style={{ color: "var(--skin-ink-faint)", fontSize: 12, fontStyle: "italic", margin: 0 }}>
-          {(card.proposal as unknown as { rationale?: string }).rationale}
-        </p>
-      )}
-
-      {error && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--skin-danger, #d4524e)", fontSize: 13 }}>
-          <XCircle size={14} />
-          {error}
-        </div>
-      )}
-
-      {applied ? (
-        <div className="flex items-center gap-2 mt-1">
-          <CheckCircle2 size={14} style={{ color: "var(--skin-accent)" }} />
-          <span style={{ fontSize: 13, color: "var(--skin-accent)", fontWeight: 500 }}>Applied</span>
-          {onGoTo && (
-            <button
-              onClick={onGoTo}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontSize: 13, color: "var(--skin-ink-soft)", padding: "0 4px",
-                textDecoration: "underline",
-              }}
-            >
-              Go to →
-            </button>
-          )}
-        </div>
-      ) : (
-        (card.confirmable || card.dismissible) && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {card.confirmable && card.proposal && (
-              <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
-            )}
-            <div className="flex items-center gap-2">
-              {card.confirmable && (
-                <button
-                  className="x-btn-primary"
-                  style={{ width: "auto", paddingInline: 20 }}
-                  onClick={() => onAccept(selectedType)}
-                  disabled={accepting || !card.proposal}
-                >
-                  {accepting ? (
-                    <><Loader2 size={14} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Accepting…</>
-                  ) : "Create"}
-                </button>
-              )}
-              {card.dismissible && (
-                <button
-                  onClick={onDismiss}
-                  disabled={accepting}
-                  style={{
-                    background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
-                    color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
-                  }}
-                >
-                  Dismiss
-                </button>
-              )}
-            </div>
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
 function NoteEditorPane({
   topic,
   selectedType,
@@ -854,7 +573,7 @@ function NoteEditorPane({
   selectedType: EntityType;
   projectId?: string;
   onBack: () => void;
-  onSaved: (suggestedCards?: AICard[], panelTarget?: PanelTarget) => void;
+  onSaved: (panelTarget?: EntityPanelTarget) => void;
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState(topic.title);
@@ -888,8 +607,7 @@ function NoteEditorPane({
     setSaving(true);
     try {
       const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
-      let suggestedCards: AICard[] | undefined;
-      let panelTarget: PanelTarget | undefined;
+      let panelTarget: EntityPanelTarget | undefined;
       const noteTypeMap: Record<EntityType, string> = {
         objective: 'note',
         task: 'task',
@@ -910,7 +628,6 @@ function NoteEditorPane({
             })),
         );
         const commitResult = await commitSession(topic.organiser_session_id);
-        suggestedCards = commitResult.suggested_task_cards;
         if (commitResult.failures && commitResult.failures.length > 0 && (!commitResult.results || commitResult.results.length === 0)) {
           const firstError = commitResult.failures[0].error ?? 'Commit failed';
           throw new Error(firstError);
@@ -938,7 +655,7 @@ function NoteEditorPane({
         await createNote(user, { title, bodyHtml, noteType: noteTypeMap[selectedType] ?? 'note' });
         toast.success("Note saved");
       }
-      onSaved(suggestedCards, panelTarget);
+      onSaved(panelTarget);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -1003,20 +720,13 @@ function NoteEditorPane({
 }
 
 
-interface HistoryPanelTarget {
-  type: 'note' | 'task' | 'objective';
-  id: string;
-  objectiveId?: string;
-}
-
 function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: () => void }) {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { openEntity } = useRightPanel();
   const { data, isLoading } = useQuery({
     queryKey: ["session-proposals", sessionId],
     queryFn: () => getSessionProposals(sessionId),
   });
-  const [panelTarget, setPanelTarget] = useState<HistoryPanelTarget | null>(null);
   const proposals = data ?? [];
 
   const handleAccept = async (proposalId: string) => {
@@ -1044,12 +754,12 @@ function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: 
     const committedId = proposal.payload.committed_entity_id as string | undefined;
     const committedType = proposal.payload.committed_entity_type as string | undefined;
     if (!committedId) return;
-    const type: HistoryPanelTarget['type'] =
+    const type: EntityPanelTarget['type'] =
       committedType === 'objective' ? 'objective'
       : committedType === 'task' ? 'task'
       : 'note';
     const objectiveId = proposal.payload.objective_id as string | undefined;
-    setPanelTarget({ type, id: committedId, objectiveId });
+    openEntity({ type, id: committedId, objectiveId });
   };
 
   return (
@@ -1085,16 +795,6 @@ function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: 
           ))}
         </div>
       </div>
-      {panelTarget && (
-        <EntityPanel
-          open
-          onClose={() => setPanelTarget(null)}
-          type={panelTarget.type}
-          id={panelTarget.id}
-          objectiveId={panelTarget.objectiveId}
-          user={user ?? undefined}
-        />
-      )}
     </>
   );
 }
