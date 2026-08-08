@@ -91,6 +91,7 @@ export function NoteEditor({
   onCancel,
   onArchive,
   onOrganise,
+  embedded,
 }: {
   editing: Editing;
   projects: ProjectRow[];
@@ -101,6 +102,8 @@ export function NoteEditor({
   onCancel: () => void;
   onArchive?: () => void;
   onOrganise?: () => void;
+  /** When true, suppresses the back-arrow / label / save-status header row (sidepanel provides its own). */
+  embedded?: boolean;
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -247,8 +250,8 @@ export function NoteEditor({
 
   return (
     <div className="x-editor" style={{ width: "100%" }}>
-      {/* Header row */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      {/* Header row — hidden when embedded inside sidepanel */}
+      {!embedded && <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
           <button
             className="x-btn-secondary"
@@ -300,7 +303,7 @@ export function NoteEditor({
             </DropdownMenu>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Unsaved changes confirmation dialog */}
       <Dialog open={showUnsavedModal} onOpenChange={setShowUnsavedModal}>

@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useBrand } from "@/lib/brand";
+import { useSidepanel } from "@/contexts/sidepanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   archiveNote,
@@ -96,6 +97,7 @@ export function NotesBrowser({
   const brand = useBrand();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { open: openSidepanel } = useSidepanel();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [organising, setOrganising] = useState<NoteRow | null>(null);
 
@@ -643,7 +645,7 @@ export function NotesBrowser({
                     key={note.id}
                     className="x-note-card"
                     data-active={active}
-                    onClick={() => (selectMode ? toggleSelect(note.id) : setEditing({ mode: "edit", note }))}
+                    onClick={() => (selectMode ? toggleSelect(note.id) : openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled" }))}
                   >
                     <div className="flex items-start gap-2">
                       {selectMode && (

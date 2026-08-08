@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Plus, Target, Inbox, Compass, ArrowLeft, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
+import { useSidepanel } from "@/contexts/sidepanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ResizablePanelGroup,
@@ -15,23 +16,14 @@ import {
   useObjectiveGenerationStatus,
   useUnassignedTasks,
   useCreateObjective,
-  useUpdateObjective,
   useCreateTask,
   useToggleTask,
-  getNoteById,
   type ObjectiveRow,
   type NavTask,
 } from "@/lib/navigator-api";
-import { listProjects, updateNote, archiveNote } from "@/lib/xcamp-api";
-import type { NoteEditorValues } from "@/components/editor/NoteEditor";
-import { ObjectiveEditor, type ObjectiveEditorValues } from "@/components/navigator/ObjectiveEditor";
 import { ColumnToolbar, type ToolbarState, type ObjSortKey, type ObjGroupBy } from "@/components/navigator/ColumnToolbar";
-import { TaskPanel } from "@/components/navigator/TaskPanel";
-import type { NoteRow } from "@/types/xcamp";
 
 const UNASSIGNED = "__unassigned__";
-
-type EditTarget = { objective: ObjectiveRow } | null;
 
 const DEFAULT_TOOLBAR: ToolbarState = {
   search: "",
@@ -45,60 +37,21 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
   const { user } = useAuth();
   const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
-  const queryClient = useQueryClient();
+  const { open: openSidepanel } = useSidepanel();
 
   const [selectedObj, setSelectedObj] = useState<string | null>(null);
-  const [editing, setEditing] = useState<EditTarget>(null);
-  const [taskPanelNote, setTaskPanelNote] = useState<NoteRow | null>(null);
   const [toolbar, setToolbar] = useState<ToolbarState>(DEFAULT_TOOLBAR);
 
   const onToolbarChange = (next: Partial<ToolbarState>) =>
     setToolbar((prev) => ({ ...prev, ...next }));
 
-  // Projects still needed for NoteEditor inside TaskPanel
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects", user?.tenantId],
-    queryFn: () => listProjects(user!),
-    enabled: !!user,
-  });
-
   const createObj = useCreateObjective(user!, activeProjectId ?? "");
-  const updateObj = useUpdateObjective(user!, activeProjectId ?? "");
   const createTask = useCreateTask(user!, activeProjectId ?? "");
   const toggleTask = useToggleTask(activeProjectId ?? "");
 
-  const updateNoteMut = useMutation({
-    mutationFn: (input: { noteId: string; values: NoteEditorValues; existingDetail: Record<string, unknown> }) =>
-      updateNote(user!, input.noteId, { ...input.values, existingDetail: input.existingDetail }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["nav-tasks"] });
-      // Panel stays open after save — user can keep editing
-    },
-  });
-
-  const archiveNoteMut = useMutation({
-    mutationFn: (note: NoteRow) => archiveNote(user!, note),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["nav-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["nav-objectives"] });
-      setTaskPanelNote(null);
-    },
-  });
-
-  const updateObjMut = useMutation({
-    mutationFn: (input: { objective: ObjectiveRow; values: ObjectiveEditorValues }) =>
-      updateObj.mutateAsync({
-        objectiveId: input.objective.id,
-        title: input.values.title,
-        description: input.values.description,
-      }),
-    onSuccess: () => setEditing(null),
-  });
-
-  const openTask = async (id: string) => {
-    const note = await getNoteById(id);
-    if (note) setTaskPanelNote(note);
-  };
+  const openTask = useCallback((id: string) => {
+    openSidepanel({ id, kind: "note" });
+  }, [openSidepanel]);
 
   if (!user) return null;
 
@@ -112,23 +65,6 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
           Pick a project from the sidebar to start navigating.
         </p>
       </EmptyShell>
-    );
-  }
-
-  // Full-page editor — objectives only
-  if (editing) {
-    return (
-      <div style={{ background: "var(--skin-bg)", height: "100vh", overflowY: "auto" }}>
-        <div style={{ padding: isMobile ? 16 : 32, maxWidth: 880, margin: "0 auto" }}>
-          <ObjectiveEditor
-            key={editing.objective.id}
-            objective={editing.objective}
-            saving={updateObjMut.isPending}
-            onCancel={() => setEditing(null)}
-            onSave={(values) => updateObjMut.mutate({ objective: editing.objective, values })}
-          />
-        </div>
-      </div>
     );
   }
 
@@ -157,7 +93,7 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
               projectId={activeProjectId}
               selected={selectedObj}
               onSelect={setSelectedObj}
-              onOpenObjective={(o) => setEditing({ objective: o })}
+              onOpenObjective={(o) => openSidepanel({ id: o.id, kind: "objective", title: o.title ?? "Untitled objective" })}
               createObj={createObj}
               toolbar={toolbar}
             />
@@ -172,16 +108,6 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
             />
           )}
         </div>
-        <TaskPanel
-          note={taskPanelNote}
-          projects={projects}
-          user={user}
-          saving={updateNoteMut.isPending}
-          archiving={archiveNoteMut.isPending}
-          onSave={(values, note) => updateNoteMut.mutate({ noteId: note.id, values, existingDetail: note.detail })}
-          onClose={() => setTaskPanelNote(null)}
-          onArchive={(note) => archiveNoteMut.mutate(note)}
-        />
       </div>
     );
   }
@@ -199,7 +125,7 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
               projectId={activeProjectId}
               selected={selectedObj}
               onSelect={setSelectedObj}
-              onOpenObjective={(o) => setEditing({ objective: o })}
+              onOpenObjective={(o) => openSidepanel({ id: o.id, kind: "objective", title: o.title ?? "Untitled objective" })}
               createObj={createObj}
               toolbar={toolbar}
             />
@@ -216,16 +142,6 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
-      <TaskPanel
-        note={taskPanelNote}
-        projects={projects}
-        user={user}
-        saving={updateNoteMut.isPending}
-        archiving={archiveNoteMut.isPending}
-        onSave={(values, note) => updateNoteMut.mutate({ noteId: note.id, values, existingDetail: note.detail })}
-        onClose={() => setTaskPanelNote(null)}
-        onArchive={(note) => archiveNoteMut.mutate(note)}
-      />
     </div>
   );
 }
