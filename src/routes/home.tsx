@@ -630,6 +630,60 @@ function CompanionHomePage() {
     setDynamixSuggestions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  const handleSend = useCallback(async () => {
+    const text = draft.trim();
+    if (!text || isLoading) return;
+    stopSpeaking();
+    setDraft("");
+    voice.setTranscript("");
+    setAttachment(null);
+    setMentionedEntities([]);
+    setMentionMenuOpen(false);
+    await session.appendUserMessage(text);
+
+    let reply = "Got it — I'll help with that soon.";
+    let cards: AICard[] = [];
+
+    setIsLoading(true);
+    try {
+      const res = await vox.call({
+        message: text,
+        project_id: activeProject?.id || undefined,
+        objective_id: "",
+        tenant_id: authUser!.tenantId,
+        altitude,
+        aiPersona: "guide",
+      });
+      reply = res.reply_markdown;
+      cards = res.cards ?? [];
+    } catch (err) {
+      console.error("[Chi] Vox call failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+
+    const chiId = await session.appendChiMessage(reply);
+    speak(reply);
+    setTypingMessageId(chiId);
+    await waitForTyping(reply);
+    setTypingMessageId(null);
+
+    if (cards.length > 0) {
+      await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
+
+      // Route cards to the side panel with kind+title dedup across turns
+      const fresh = cards.filter((c) => {
+        const key = `${c.kind}::${c.title}`;
+        if (seenCardKeysRef.current.has(key)) return false;
+        seenCardKeysRef.current.add(key);
+        return true;
+      });
+      if (fresh.length > 0) {
+        setSidePanelCards((prev) => [...prev, ...fresh]);
+      }
+    }
+  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSuggestMore = useCallback(() => {
     if (!draft.trim()) {
       void handleSend();
@@ -684,60 +738,6 @@ function CompanionHomePage() {
     },
     [draft, mentionAtIndex, mentionQuery],
   );
-
-  const handleSend = useCallback(async () => {
-    const text = draft.trim();
-    if (!text || isLoading) return;
-    stopSpeaking();
-    setDraft("");
-    voice.setTranscript("");
-    setAttachment(null);
-    setMentionedEntities([]);
-    setMentionMenuOpen(false);
-    await session.appendUserMessage(text);
-
-    let reply = "Got it — I'll help with that soon.";
-    let cards: AICard[] = [];
-
-    setIsLoading(true);
-    try {
-      const res = await vox.call({
-        message: text,
-        project_id: activeProject?.id || undefined,
-        objective_id: "",
-        tenant_id: authUser!.tenantId,
-        altitude,
-        aiPersona: "guide",
-      });
-      reply = res.reply_markdown;
-      cards = res.cards ?? [];
-    } catch (err) {
-      console.error("[Chi] Vox call failed:", err);
-    } finally {
-      setIsLoading(false);
-    }
-
-    const chiId = await session.appendChiMessage(reply);
-    speak(reply);
-    setTypingMessageId(chiId);
-    await waitForTyping(reply);
-    setTypingMessageId(null);
-
-    if (cards.length > 0) {
-      await session.appendComponentMessage("action-cards", { cards } as Record<string, unknown>);
-
-      // Route cards to the side panel with kind+title dedup across turns
-      const fresh = cards.filter((c) => {
-        const key = `${c.kind}::${c.title}`;
-        if (seenCardKeysRef.current.has(key)) return false;
-        seenCardKeysRef.current.add(key);
-        return true;
-      });
-      if (fresh.length > 0) {
-        setSidePanelCards((prev) => [...prev, ...fresh]);
-      }
-    }
-  }, [draft, isLoading, session, vox, activeProject, authUser, altitude, voice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSendFromHome = useCallback(() => {
     setExperimentalView("chat");
