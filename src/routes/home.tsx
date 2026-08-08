@@ -57,6 +57,7 @@ import {
 } from "@/lib/voicePreference";
 import { installAudioUnlock } from "@/lib/audio-unlock";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
+import { useAltitudeStore } from "@/store/altitudeStore";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -205,7 +206,7 @@ function CompanionHomePage() {
   });
 
   const vox = useVox();
-  const altitude = 1 as const;
+  const { altitude } = useAltitudeStore();
 
   const waitForTyping = (text: string) =>
     new Promise<void>((resolve) => setTimeout(resolve, text.length * 38));

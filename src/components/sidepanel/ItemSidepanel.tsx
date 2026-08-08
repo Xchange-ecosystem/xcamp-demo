@@ -473,7 +473,7 @@ function LinkedItemsTab({
             <LinkedRow
               key={item.id}
               item={item}
-              onOpen={() => push({ id: item.id, kind: item.kind, title: item.title })}
+              onOpen={() => push({ id: item.id, kind: item.kind, title: item.title, noteType: item.noteType })}
               onRemove={() => removeLink.mutate(item)}
             />
           ))}
@@ -1000,7 +1000,7 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
   const handleCopyLink = () => copyItemLink(item.id, item.kind);
 
   const handleOpenFullscreen = () => {
-    const url = `${window.location.origin}?item=${item.kind}:${item.id}`;
+    const url = `${window.location.origin}/task/${item.id}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -1024,10 +1024,12 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
-        <DropdownMenuItem onClick={handleOpenFullscreen} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ExternalLink size={13} />
-          Open fullscreen
-        </DropdownMenuItem>
+        {item.kind === "note" && item.noteType === "task" && (
+          <DropdownMenuItem onClick={handleOpenFullscreen} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ExternalLink size={13} />
+            Open fullscreen
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleCopyLink} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <LinkIcon size={13} />
           Copy link

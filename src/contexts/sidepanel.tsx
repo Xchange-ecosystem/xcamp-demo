@@ -5,6 +5,7 @@ export interface PanelItem {
   id: string;
   kind: ItemKind;
   title?: string;
+  noteType?: string;
 }
 
 interface SidepanelCtx {
