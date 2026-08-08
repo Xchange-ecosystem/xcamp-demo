@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PanelRightOpen, Rocket, Zap, X } from "lucide-react";
 import { useSidepanel } from "@/contexts/sidepanel";
 
-type InlinePanel = "role" | "mood";
+type InlinePanel = "detail" | "role" | "mood";
 
 export const RAIL_PANEL_WIDTH = 480;
 const TAB_WIDTH = 44;
@@ -186,6 +186,28 @@ function MoodPanel() {
   );
 }
 
+function DetailPanel() {
+  return (
+    <div
+      style={{
+        padding: 24,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        gap: 12,
+        textAlign: "center",
+      }}
+    >
+      <PanelRightOpen size={28} style={{ color: "var(--skin-ink-faint)" }} />
+      <p style={{ fontSize: 13, color: "var(--skin-ink-soft)", lineHeight: 1.55, maxWidth: 200 }}>
+        Click a note, task, or objective to view its details here.
+      </p>
+    </div>
+  );
+}
+
 export function CompanionRail({
   onPanelWidthChange,
 }: {
@@ -205,10 +227,24 @@ export function CompanionRail({
     onPanelWidthChange?.(0);
   };
 
+  useEffect(() => {
+    if (sidepanel.isOpen && activePanel === "detail") {
+      setActivePanel(null);
+      onPanelWidthChange?.(0);
+    }
+  }, [sidepanel.isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleIconClick = (key: (typeof RAIL_ITEMS)[number]["key"]) => {
     if (key === "detail") {
-      if (sidepanel.isOpen) sidepanel.close();
-      // No active item → nothing to open; the sheet is triggered by item interactions elsewhere
+      if (sidepanel.isOpen) {
+        sidepanel.close();
+        return;
+      }
+      if (activePanel === "detail") {
+        closeInlinePanel();
+      } else {
+        openInlinePanel("detail");
+      }
       return;
     }
     if (activePanel === key) {
@@ -329,7 +365,7 @@ export function CompanionRail({
                 color: "var(--skin-ink-faint)",
               }}
             >
-              {activePanel === "role" ? "My role" : "My mood"}
+              {activePanel === "detail" ? "Detail" : activePanel === "role" ? "My role" : "My mood"}
             </span>
             <button
               onClick={closeInlinePanel}
@@ -351,6 +387,7 @@ export function CompanionRail({
 
           {/* Panel body */}
           <div style={{ flex: 1, overflowY: "auto" }}>
+            {activePanel === "detail" && <DetailPanel />}
             {activePanel === "role" && <RolePanel />}
             {activePanel === "mood" && <MoodPanel />}
           </div>
