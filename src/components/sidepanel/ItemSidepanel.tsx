@@ -40,6 +40,7 @@ import {
 import { updateNote, archiveNote, autoTagNote } from "@/lib/xcamp-api";
 import { updateObjective } from "@/lib/navigator-api";
 import { supabase } from "@/lib/supabase";
+import { useFullscreenTaskStore } from "@/store/fullscreenTaskStore";
 import { useAuth } from "@/contexts/auth";
 import { useDebounce } from "@/hooks/useDebounce";
 import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
@@ -989,8 +990,7 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
   const handleCopyLink = () => copyItemLink(item.id, item.kind);
 
   const handleOpenFullscreen = () => {
-    const url = `${window.location.origin}/task/${item.id}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    useFullscreenTaskStore.getState().open(item.id);
   };
 
   return (
