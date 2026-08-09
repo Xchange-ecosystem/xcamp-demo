@@ -49,8 +49,8 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
   const createTask = useCreateTask(user!, activeProjectId ?? "");
   const toggleTask = useToggleTask(activeProjectId ?? "");
 
-  const openTask = useCallback((id: string) => {
-    openSidepanel({ id, kind: "note" });
+  const openTask = useCallback((task: NavTask) => {
+    openSidepanel({ id: task.id, kind: "note", title: task.title ?? undefined, noteType: task.note_type ?? undefined });
   }, [openSidepanel]);
 
   if (!user) return null;
@@ -353,7 +353,7 @@ function TasksColumn({
   projectId: string;
   objectiveId: string | null;
   onBack?: () => void;
-  onOpenTask: (id: string) => void;
+  onOpenTask: (task: NavTask) => void;
   createTask: ReturnType<typeof useCreateTask>;
   toggleTask: ReturnType<typeof useToggleTask>;
 }) {
@@ -448,7 +448,7 @@ function TasksColumn({
                 style={{ marginTop: 3 }}
               />
               <button
-                onClick={() => onOpenTask(t.id)}
+                onClick={() => onOpenTask(t)}
                 className="flex-1 truncate text-left"
                 style={{
                   fontSize: 14, background: "none", border: "none", cursor: "pointer",
