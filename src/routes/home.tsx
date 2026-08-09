@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
+import { ProjectEntryScreen } from "@/components/ProjectEntryScreen";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
@@ -111,6 +112,12 @@ function CompanionHomePage() {
 
   const [experimentalView, setExperimentalView] = useState<"home" | "chat">(() =>
     viewParam === "companion" ? "chat" : "home"
+  );
+
+  // Show the project-picker entry screen when opening in experimental mode with no active project.
+  // Set to false once the user makes a choice (select project or enter ecosystem).
+  const [showEntry, setShowEntry] = useState(() =>
+    navVariant === "experimental" && !activeProjectId
   );
 
   const [railPanelWidth, setRailPanelWidth] = useState(0);
@@ -458,6 +465,20 @@ function CompanionHomePage() {
     },
     [setActiveProjectId, setNavMode],
   );
+
+  // Entry-screen callbacks — dismiss the picker then delegate to existing handlers.
+  const handleEntryProjectSelect = useCallback(
+    (project: ProjectFull) => {
+      setShowEntry(false);
+      handleExperimentalProjectSelect(project);
+    },
+    [handleExperimentalProjectSelect],
+  );
+
+  const handleEnterEcosystem = useCallback(() => {
+    setShowEntry(false);
+    setNavMode("ecosystem");
+  }, [setNavMode]);
 
   const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
     if (!card.proposal) return;
@@ -994,7 +1015,18 @@ function CompanionHomePage() {
         </div>}
 
         {/* ── Experimental nav views (Phase 2–4) ─────────────────────────── */}
-        {navVariant === "experimental" && experimentalView === "home" && navMode === "ecosystem" && (
+
+        {/* Entry screen: project picker shown on first open when no project is active */}
+        {navVariant === "experimental" && experimentalView === "home" && showEntry && (
+          <ProjectEntryScreen
+            projects={projects}
+            onProjectSelect={handleEntryProjectSelect}
+            onNewProject={handleCreateProject}
+            onEnterEcosystem={handleEnterEcosystem}
+          />
+        )}
+
+        {navVariant === "experimental" && experimentalView === "home" && !showEntry && navMode === "ecosystem" && (
           <EcosystemHomeView
             projects={projects}
             onProjectSelect={handleExperimentalProjectSelect}
@@ -1018,7 +1050,7 @@ function CompanionHomePage() {
             authUser={authUser}
           />
         )}
-        {navVariant === "experimental" && experimentalView === "home" && navMode === "project" && (
+        {navVariant === "experimental" && experimentalView === "home" && !showEntry && navMode === "project" && (
           <ProjectHomeView
             projects={projects}
             onProjectSelect={handleExperimentalProjectSelect}
