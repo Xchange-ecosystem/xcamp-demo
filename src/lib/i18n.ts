@@ -17,6 +17,7 @@ const resources = {
     translation: {
       nav: {
         home: "Home",
+        portfolio: "Portfolio",
         notes: "Notes",
         journal: "Notes",
         journalApp: "Journal",
@@ -60,6 +61,7 @@ const resources = {
     translation: {
       nav: {
         home: "Inicio",
+        portfolio: "Portafolio",
         notes: "Notas",
         journal: "Notas",
         journalApp: "Diario",
@@ -103,6 +105,7 @@ const resources = {
     translation: {
       nav: {
         home: "Accueil",
+        portfolio: "Portefeuille",
         notes: "Notes",
         journal: "Notes",
         journalApp: "Journal",
@@ -146,6 +149,7 @@ const resources = {
     translation: {
       nav: {
         home: "Startseite",
+        portfolio: "Portfolio",
         notes: "Notizen",
         journal: "Notizen",
         journalApp: "Journal",
