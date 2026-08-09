@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
-import { applySkin, TONE_TOKENS } from "@xchange/ui";
+import { applySkin, PLATFORM_SCIENTIFIC, PLATFORM_PLAYFUL } from "@xchange/ui";
 import { useAuth } from "@/contexts/auth";
 import {
   fetchProjectObjectiveProgress,
@@ -45,10 +45,10 @@ export function PortfolioView() {
   const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    applySkin(TONE_TOKENS[tone]);
+    applySkin(tone === "playful" ? PLATFORM_PLAYFUL : PLATFORM_SCIENTIFIC);
     return () => {
       // restore scientific skin on unmount
-      applySkin(TONE_TOKENS["scientific"]);
+      applySkin(PLATFORM_SCIENTIFIC);
     };
   }, [tone]);
 
