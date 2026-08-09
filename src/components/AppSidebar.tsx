@@ -289,7 +289,9 @@ export function AppSidebar() {
               tooltip="Return to experimental"
               onClick={() => {
                 sessionStorage.removeItem("xcamp-ui-version");
-                window.location.reload();
+                const url = new URL(window.location.href);
+                url.searchParams.delete("ui");
+                window.location.replace(url.toString());
               }}
               style={{ color: "var(--skin-accent)" }}
             >
