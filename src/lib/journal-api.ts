@@ -268,6 +268,24 @@ export async function getSessionNoteTitles(sessionId: string): Promise<string[]>
     .filter((t): t is string => !!t);
 }
 
+export async function getJournalSession(
+  sessionId: string,
+): Promise<Pick<JournalSession, "id" | "created_at" | "status" | "context"> | null> {
+  const { data, error } = await supabase
+    .from("organiser_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+  if (error || !data) return null;
+  const s = data as Record<string, unknown>;
+  return {
+    id: s.id as string,
+    created_at: (s.created_at as string) ?? new Date().toISOString(),
+    status: (s.status as SessionStatus) ?? "pending",
+    context: s.context && typeof s.context === "object" ? (s.context as Record<string, unknown>) : {},
+  };
+}
+
 export function placementLabel(p: JournalProposal): string {
   const title = p.payload.title || p.payload.objective_title || p.payload.project_title || "";
   const kind = p.proposal_type

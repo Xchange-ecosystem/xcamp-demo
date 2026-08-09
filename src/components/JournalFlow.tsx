@@ -11,20 +11,23 @@ import {
   History as HistoryIcon,
   CheckCircle2,
   XCircle,
+  Mic,
+  Square,
 } from "lucide-react";
 
 export type EntityType = 'objective' | 'task' | 'note' | 'resource';
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 import { createNote } from "@/lib/xcamp-api";
 import {
   analyse,
-  answerWithContext,
   confirmSession,
   commitSession,
   listJournalSessions,
   getSessionProposals,
+  getJournalSession,
   placementLabel,
   type JournalTopic,
   type JournalProposal,
@@ -34,7 +37,7 @@ import {
 import { useRightPanel, type EntityPanelTarget } from "@/contexts/right-panel";
 import type { AICard } from "@xchange/client";
 
-type Screen = "input" | "cards" | "editor" | "history";
+type Screen = "input" | "cards" | "history";
 
 function defaultTopicEntityType(topic: JournalTopic): EntityType {
   if (topic.organiser_proposals.some(p => p.proposal_type === 'new_objective')) return 'objective';
@@ -135,6 +138,58 @@ function statusColors(status: SessionStatus): { bg: string; fg: string } {
   }
 }
 
+// Compact inline voice recorder — appends transcript to the entry textarea
+function InlineVoice({ onTranscript }: { onTranscript: (text: string) => void }) {
+  const voice = useVoiceTranscription();
+  const hasText = !voice.isListening && voice.transcript.trim().length > 0;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+      <button
+        type="button"
+        className={voice.isListening ? "x-btn-secondary" : "x-btn-secondary"}
+        style={{ width: "auto", paddingInline: 14, display: "flex", alignItems: "center", gap: 6 }}
+        onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+        disabled={!voice.supported}
+        title={voice.supported ? undefined : "Speech recognition not supported in this browser"}
+      >
+        {voice.isListening
+          ? <><Square size={13} /> Stop recording</>
+          : <><Mic size={13} /> Voice input</>}
+      </button>
+      {voice.isListening && (
+        <span style={{ fontSize: 13, color: "var(--skin-accent)", fontWeight: 500 }}>Listening…</span>
+      )}
+      {hasText && (
+        <>
+          <span style={{
+            fontSize: 12, color: "var(--skin-ink-soft)", flex: 1,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            maxWidth: 280,
+          }}>
+            {voice.transcript}
+          </span>
+          <button
+            type="button"
+            className="x-btn-primary"
+            style={{ width: "auto", paddingInline: 12, fontSize: 12 }}
+            onClick={() => { onTranscript(voice.transcript.trim()); voice.setTranscript(""); }}
+          >
+            Use transcript
+          </button>
+          <button
+            type="button"
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--skin-ink-faint)" }}
+            onClick={() => voice.setTranscript("")}
+          >
+            Clear
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function JournalFlow({
   draft = null,
 }: {
@@ -149,19 +204,18 @@ export function JournalFlow({
   const [entryText, setEntryText] = useState("");
   const [analysing, setAnalysing] = useState(false);
   const [topics, setTopics] = useState<JournalTopic[]>([]);
-  const [editingTopic, setEditingTopic] = useState<JournalTopic | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
   const [savedTopicTargets, setSavedTopicTargets] = useState<Map<string, EntityPanelTarget>>(new Map());
   const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
-  const [editingTopicType, setEditingTopicType] = useState<EntityType>('note');
+  const [acceptingTopicId, setAcceptingTopicId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!draft) return;
     setEntryText(draft.text);
     setScreen("input");
-    setEditingTopic(null);
   }, [draft]);
 
   const sessionsQuery = useQuery({
@@ -169,6 +223,60 @@ export function JournalFlow({
     queryFn: () => listJournalSessions(user!.centralId),
     enabled: !!user,
   });
+
+  // Extract commit logic from the old NoteEditorPane — runs without a UI step
+  const applyTopic = async (topic: JournalTopic, selectedType: EntityType): Promise<EntityPanelTarget | undefined> => {
+    if (!user) return;
+    const noteTypeMap: Record<EntityType, string> = {
+      objective: 'note', task: 'task', note: 'note', resource: 'reference',
+    };
+    const hasProposals = topic.organiser_proposals.length > 0;
+    const allProposalsAreNewObjective = topic.organiser_proposals.every(p => p.proposal_type === 'new_objective');
+    const wouldFailWithoutObjective = hasProposals && allProposalsAreNewObjective && selectedType !== 'objective';
+    let panelTarget: EntityPanelTarget | undefined;
+
+    if (hasProposals && topic.organiser_session_id && !wouldFailWithoutObjective) {
+      await confirmSession(
+        topic.organiser_session_id,
+        topic.organiser_proposals
+          .filter(p => p.proposal_id)
+          .map(p => ({
+            proposal_id: p.proposal_id!,
+            approved: true,
+            ...resolveApprovalOverrides(selectedType, p.proposal_type),
+          })),
+      );
+      const commitResult = await commitSession(topic.organiser_session_id);
+      if (commitResult.failures?.length && !commitResult.results?.length) {
+        throw new Error(commitResult.failures[0].error ?? 'Commit failed');
+      }
+      if (commitResult.results?.length) {
+        const first = commitResult.results[0];
+        if (selectedType === 'objective' || first.proposal_type === 'new_objective') {
+          panelTarget = { type: 'objective', id: first.id };
+        } else if (selectedType === 'task') {
+          panelTarget = { type: 'task', id: first.id, objectiveId: first.objective_id };
+        } else if (first.proposal_type === 'link_to_objective') {
+          panelTarget = { type: 'note', id: first.id, objectiveId: first.objective_id };
+        } else {
+          panelTarget = { type: 'note', id: first.id };
+        }
+      }
+      toast.success("Saved and linked");
+    } else {
+      if (hasProposals && topic.organiser_session_id && wouldFailWithoutObjective) {
+        await confirmSession(
+          topic.organiser_session_id,
+          topic.organiser_proposals.filter(p => p.proposal_id).map(p => ({ proposal_id: p.proposal_id!, approved: false })),
+        ).catch(() => {});
+      }
+      const bodyHtml = `<p>${topic.summary.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
+      const note = await createNote(user, { title: topic.title, bodyHtml, noteType: noteTypeMap[selectedType] ?? 'note' });
+      panelTarget = { type: 'note', id: note.id };
+      toast.success("Note saved");
+    }
+    return panelTarget;
+  };
 
   const handleProcess = async () => {
     const text = entryText.trim();
@@ -188,6 +296,12 @@ export function JournalFlow({
       const initialTypes = new Map<string, EntityType>();
       for (const t of newTopics) initialTypes.set(t.id, defaultTopicEntityType(t));
       setTopicTypes(initialTypes);
+
+      // Track the session created by this analysis
+      if (newTopics.length > 0) {
+        setCurrentSessionId(newTopics[0].organiser_session_id);
+      }
+
       setScreen("cards");
 
       if (newTopics.length === 0) {
@@ -219,11 +333,11 @@ export function JournalFlow({
   const startNew = () => {
     setEntryText("");
     setTopics([]);
-    setEditingTopic(null);
     setOpenSession(null);
     setSavedTopicIds(new Set());
     setSavedTopicTargets(new Map());
     setTopicTypes(new Map());
+    setCurrentSessionId(null);
     setScreen("input");
   };
 
@@ -239,6 +353,9 @@ export function JournalFlow({
   const sidebarWidth = effCollapsed ? 56 : 300;
   const sessions = sessionsQuery.data ?? [];
 
+  // On mobile, hide the sidebar when viewing history so it fills the screen
+  const showSidebar = !(isMobile && screen === "history");
+
   return (
     <>
       <div
@@ -250,110 +367,120 @@ export function JournalFlow({
         }}
       >
         {/* Sidebar */}
-        <aside
-          style={{
-            background: "var(--skin-surface)",
-            borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
-            borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
-            padding: effCollapsed ? "16px 8px" : "18px 14px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {effCollapsed ? (
-            <div className="flex flex-col items-center gap-3">
-              <button
-                className="x-btn-secondary"
-                aria-label="Expand sidebar"
-                title="Expand sidebar"
-                style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                onClick={() => setCollapsed(false)}
-              >
-                <PanelLeftOpen size={16} />
-              </button>
-              <button
-                className="x-btn-primary"
-                aria-label="New entry"
-                title="New entry"
-                style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                onClick={() => { startNew(); setCollapsed(false); }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
-                  Journal
-                </div>
-                {!isMobile && (
-                  <button
-                    className="x-btn-secondary"
-                    aria-label="Collapse sidebar"
-                    title="Collapse sidebar"
-                    style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                    onClick={() => setCollapsed(true)}
-                  >
-                    <PanelLeftClose size={15} />
-                  </button>
-                )}
+        {showSidebar && (
+          <aside
+            style={{
+              background: "var(--skin-surface)",
+              borderRight: isMobile ? "none" : "1px solid var(--skin-line)",
+              borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
+              padding: effCollapsed ? "16px 8px" : "18px 14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {effCollapsed ? (
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  className="x-btn-secondary"
+                  aria-label="Expand sidebar"
+                  title="Expand sidebar"
+                  style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={() => setCollapsed(false)}
+                >
+                  <PanelLeftOpen size={16} />
+                </button>
+                <button
+                  className="x-btn-primary"
+                  aria-label="New entry"
+                  title="New entry"
+                  style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={() => { startNew(); setCollapsed(false); }}
+                >
+                  <Plus size={16} />
+                </button>
               </div>
-
-              <button className="x-btn-primary" onClick={startNew}>
-                + New entry
-              </button>
-
-              <div
-                className="flex items-center gap-1.5 mt-1"
-                style={{ color: "var(--skin-ink-faint)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}
-              >
-                <HistoryIcon size={13} /> History
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
-                {sessionsQuery.isLoading && (
-                  <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
-                )}
-                {!sessionsQuery.isLoading && sessions.length === 0 && (
-                  <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>
-                    No journal sessions yet.
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
+                    Journal
                   </div>
-                )}
-                {sessions.map((s) => {
-                  const c = statusColors(s.status);
-                  const isSelected = openSession === s.id;
-                  return (
+                  {!isMobile && (
                     <button
-                      key={s.id}
-                      onClick={() => { setOpenSession(s.id); setScreen("history"); }}
-                      style={{
-                        width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
-                        background: isSelected ? "var(--skin-surface2)" : "transparent",
-                        borderRadius: 8, padding: "8px 10px", cursor: "pointer",
-                        outline: isSelected ? "2px solid var(--skin-accent)" : "none",
-                        outlineOffset: -1,
-                      }}
+                      className="x-btn-secondary"
+                      aria-label="Collapse sidebar"
+                      title="Collapse sidebar"
+                      style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onClick={() => setCollapsed(true)}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
-                          {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                        </span>
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
-                          {s.status}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
-                        {s.proposalCount} suggested / {s.committedCount} applied
-                      </div>
+                      <PanelLeftClose size={15} />
                     </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </aside>
+                  )}
+                </div>
+
+                <button className="x-btn-primary" onClick={startNew}>
+                  + New entry
+                </button>
+
+                <div
+                  className="flex items-center gap-1.5 mt-1"
+                  style={{ color: "var(--skin-ink-faint)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}
+                >
+                  <HistoryIcon size={13} /> History
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
+                  {sessionsQuery.isLoading && (
+                    <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
+                  )}
+                  {!sessionsQuery.isLoading && sessions.length === 0 && (
+                    <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>
+                      No journal sessions yet.
+                    </div>
+                  )}
+                  {sessions.map((s) => {
+                    const c = statusColors(s.status);
+                    const isSelected = openSession === s.id;
+                    const snippet = typeof s.context?.text === "string"
+                      ? s.context.text.slice(0, 65) + (s.context.text.length > 65 ? "…" : "")
+                      : null;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => { setOpenSession(s.id); setScreen("history"); }}
+                        style={{
+                          width: "100%", textAlign: "left", border: "1px solid var(--skin-line)",
+                          background: isSelected ? "var(--skin-surface2)" : "transparent",
+                          borderRadius: 8, padding: "8px 10px", cursor: "pointer",
+                          outline: isSelected ? "2px solid var(--skin-accent)" : "none",
+                          outlineOffset: -1,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          <span style={{ fontSize: 12, color: "var(--skin-ink)" }}>
+                            {new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: c.bg, color: c.fg }}>
+                            {s.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--skin-ink-faint)", marginTop: 2 }}>
+                          {s.proposalCount} suggested / {s.committedCount} applied
+                        </div>
+                        {snippet && (
+                          <div style={{ fontSize: 11, color: "var(--skin-ink-soft)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {snippet}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </aside>
+        )}
 
         {/* Main pane */}
         <div style={{ padding: isMobile ? "16px" : "22px 26px", minWidth: 0 }}>
@@ -365,6 +492,7 @@ export function JournalFlow({
               <p className="mb-3" style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>
                 Write freely. We'll analyse it and suggest notes linked to your projects.
               </p>
+              <InlineVoice onTranscript={(text) => setEntryText((prev) => prev ? `${prev}\n\n${text}` : text)} />
               <textarea
                 className="x-input"
                 style={{ width: "100%", minHeight: 200, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
@@ -383,9 +511,18 @@ export function JournalFlow({
                   {analysing ? (
                     <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Analysing your entry…</>
                   ) : (
-                    "Process"
+                    "Apply"
                   )}
                 </button>
+                {entryText.trim() && !analysing && (
+                  <button
+                    className="x-btn-secondary"
+                    style={{ width: "auto", paddingInline: 16 }}
+                    onClick={startNew}
+                  >
+                    Start over
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -407,9 +544,20 @@ export function JournalFlow({
                   <p style={{ color: "var(--skin-ink-faint)", fontSize: 14, textAlign: "center", margin: 0 }}>
                     No suggestions remaining.
                   </p>
-                  <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={startNew}>
-                    New entry
-                  </button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {currentSessionId && (
+                      <button
+                        className="x-btn-secondary"
+                        style={{ width: "auto", paddingInline: 20 }}
+                        onClick={() => { setOpenSession(currentSessionId); setScreen("history"); sessionsQuery.refetch(); }}
+                      >
+                        View session
+                      </button>
+                    )}
+                    <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={startNew}>
+                      New entry
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -421,10 +569,21 @@ export function JournalFlow({
                       target={savedTopicTargets.get(topic.id)}
                       selectedType={topicTypes.get(topic.id) ?? defaultTopicEntityType(topic)}
                       onTypeChange={(type) => setTopicTypes(prev => new Map(prev).set(topic.id, type))}
+                      accepting={acceptingTopicId === topic.id}
                       onAccept={() => {
-                        setEditingTopic(topic);
-                        setEditingTopicType(topicTypes.get(topic.id) ?? defaultTopicEntityType(topic));
-                        setScreen("editor");
+                        const selectedType = topicTypes.get(topic.id) ?? defaultTopicEntityType(topic);
+                        setAcceptingTopicId(topic.id);
+                        void applyTopic(topic, selectedType)
+                          .then((target) => {
+                            setSavedTopicIds(prev => new Set([...prev, topic.id]));
+                            if (target) {
+                              setSavedTopicTargets(prev => new Map(prev).set(topic.id, target));
+                              openEntity(target);
+                            }
+                            sessionsQuery.refetch();
+                          })
+                          .catch((e: Error) => toast.error(e.message))
+                          .finally(() => setAcceptingTopicId(null));
                       }}
                       onDismiss={() => handleDismissTopic(topic)}
                       onGoTo={(t) => openEntity(t)}
@@ -435,29 +594,14 @@ export function JournalFlow({
             </div>
           )}
 
-          {screen === "editor" && editingTopic && (
-            <NoteEditorPane
-              topic={editingTopic}
-              selectedType={editingTopicType}
-              projectId={activeProjectId ?? undefined}
-              onBack={() => { setScreen("cards"); setEditingTopic(null); }}
-              onSaved={(newTarget) => {
-                const topicId = editingTopic!.id;
-                setSavedTopicIds((prev) => new Set([...prev, topicId]));
-                if (newTarget) {
-                  setSavedTopicTargets((prev) => new Map(prev).set(topicId, newTarget));
-                }
-                setEditingTopic(null);
-                setScreen("cards");
-                sessionsQuery.refetch();
-              }}
-            />
-          )}
-
           {screen === "history" && openSession && (
             <SessionHistoryView
               sessionId={openSession}
               onBack={() => { setOpenSession(null); setScreen("input"); }}
+              onMoreSuggestions={(text) => {
+                setEntryText(text);
+                setScreen("input");
+              }}
             />
           )}
         </div>
@@ -491,6 +635,7 @@ function TopicCard({
   onAccept,
   onDismiss,
   saved = false,
+  accepting = false,
   target,
   onGoTo,
   selectedType,
@@ -500,6 +645,7 @@ function TopicCard({
   onAccept: () => void;
   onDismiss: () => void;
   saved?: boolean;
+  accepting?: boolean;
   target?: EntityPanelTarget;
   onGoTo?: (target: EntityPanelTarget) => void;
   selectedType: EntityType;
@@ -537,20 +683,29 @@ function TopicCard({
                   textDecoration: "underline",
                 }}
               >
-                Go to →
+                Open →
               </button>
             )}
           </>
         ) : (
           <>
-            <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={onAccept}>
-              Accept
+            <button
+              className="x-btn-primary"
+              style={{ width: "auto", paddingInline: 20 }}
+              onClick={onAccept}
+              disabled={accepting}
+            >
+              {accepting
+                ? <><Loader2 size={13} className="animate-spin" style={{ display: "inline", marginRight: 6 }} />Applying…</>
+                : "Apply"}
             </button>
             <button
               onClick={onDismiss}
+              disabled={accepting}
               style={{
                 background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
                 color: "var(--skin-danger, #d4524e)", padding: "8px 12px",
+                opacity: accepting ? 0.4 : 1,
               }}
             >
               Dismiss
@@ -562,179 +717,52 @@ function TopicCard({
   );
 }
 
-function NoteEditorPane({
-  topic,
-  selectedType,
-  projectId,
+
+function SessionHistoryView({
+  sessionId,
   onBack,
-  onSaved,
+  onMoreSuggestions,
 }: {
-  topic: JournalTopic;
-  selectedType: EntityType;
-  projectId?: string;
+  sessionId: string;
   onBack: () => void;
-  onSaved: (panelTarget?: EntityPanelTarget) => void;
+  onMoreSuggestions?: (text: string) => void;
 }) {
-  const { user } = useAuth();
-  const [title, setTitle] = useState(topic.title);
-  const [body, setBody] = useState(topic.summary);
-  const [enriching, setEnriching] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const hasProposals = topic.organiser_proposals.length > 0;
-
-  useEffect(() => {
-    let active = true;
-    setEnriching(true);
-    answerWithContext({
-      question: `${topic.title}: ${topic.summary}`,
-      tenantId: user!.tenantId,
-      projectId,
-    })
-      .then((res) => {
-        if (!active) return;
-        if (res.answer.trim()) {
-          setBody((prev) => `${prev}\n\n— From your projects —\n${res.answer.trim()}`);
-        }
-      })
-      .catch((e) => toast.error((e as Error).message))
-      .finally(() => active && setEnriching(false));
-    return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const bodyHtml = `<p>${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`;
-      let panelTarget: EntityPanelTarget | undefined;
-      const noteTypeMap: Record<EntityType, string> = {
-        objective: 'note',
-        task: 'task',
-        note: 'note',
-        resource: 'reference',
-      };
-      const allProposalsAreNewObjective = topic.organiser_proposals.every(p => p.proposal_type === 'new_objective');
-      const wouldFailWithoutObjective = hasProposals && allProposalsAreNewObjective && selectedType !== 'objective';
-      if (hasProposals && topic.organiser_session_id && !wouldFailWithoutObjective) {
-        await confirmSession(
-          topic.organiser_session_id,
-          topic.organiser_proposals
-            .filter((p) => p.proposal_id)
-            .map((p) => ({
-              proposal_id: p.proposal_id!,
-              approved: true,
-              ...resolveApprovalOverrides(selectedType, p.proposal_type),
-            })),
-        );
-        const commitResult = await commitSession(topic.organiser_session_id);
-        if (commitResult.failures && commitResult.failures.length > 0 && (!commitResult.results || commitResult.results.length === 0)) {
-          const firstError = commitResult.failures[0].error ?? 'Commit failed';
-          throw new Error(firstError);
-        }
-        if (commitResult.results && commitResult.results.length > 0) {
-          const first = commitResult.results[0];
-          if (selectedType === 'objective' || first.proposal_type === 'new_objective') {
-            panelTarget = { type: 'objective', id: first.id };
-          } else if (selectedType === 'task') {
-            panelTarget = { type: 'task', id: first.id, objectiveId: first.objective_id };
-          } else if (first.proposal_type === 'link_to_objective') {
-            panelTarget = { type: 'note', id: first.id, objectiveId: first.objective_id };
-          } else {
-            panelTarget = { type: 'note', id: first.id };
-          }
-        }
-        toast.success("Note saved and linked");
-      } else {
-        if (hasProposals && topic.organiser_session_id && wouldFailWithoutObjective) {
-          await confirmSession(
-            topic.organiser_session_id,
-            topic.organiser_proposals.filter(p => p.proposal_id).map(p => ({ proposal_id: p.proposal_id!, approved: false })),
-          ).catch(() => {});
-        }
-        await createNote(user, { title, bodyHtml, noteType: noteTypeMap[selectedType] ?? 'note' });
-        toast.success("Note saved");
-      }
-      onSaved(panelTarget);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl">
-      <button className="x-btn-secondary mb-3" style={{ width: "auto", paddingInline: 14 }} onClick={onBack}>
-        <ArrowLeft size={14} style={{ display: "inline", marginRight: 6 }} /> Back
-      </button>
-
-      <div className="mb-3">
-        {hasProposals ? (
-          <PlacementPills proposals={topic.organiser_proposals} resolve />
-        ) : (
-          <span style={{ fontSize: 12, color: "var(--skin-ink-faint)", fontStyle: "italic" }}>
-            No project context found
-          </span>
-        )}
-      </div>
-
-      <input
-        className="x-input"
-        style={{ width: "100%", fontSize: 18, fontWeight: 600, padding: "10px 12px", marginBottom: 10 }}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title"
-      />
-
-      <textarea
-        className="x-input"
-        style={{ width: "100%", minHeight: 240, padding: 14, fontSize: 15, lineHeight: 1.6, resize: "vertical" }}
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="Note body"
-      />
-
-      {enriching && (
-        <div className="flex items-center gap-2 mt-2" style={{ color: "var(--skin-ink-soft)", fontSize: 13 }}>
-          <Sparkles size={14} className="animate-pulse" /> Enriching with project context…
-        </div>
-      )}
-
-      <div className="mt-4">
-        <button
-          className="x-btn-primary w-full sm:w-auto"
-          style={{ paddingInline: 24 }}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <><Loader2 size={15} className="animate-spin" style={{ display: "inline", marginRight: 6 }} /> Saving…</>
-          ) : (
-            "Save"
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
-function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: () => void }) {
   const queryClient = useQueryClient();
   const { openEntity } = useRightPanel();
+  const [showFullText, setShowFullText] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["session-proposals", sessionId],
     queryFn: () => getSessionProposals(sessionId),
   });
+
+  const sessionQuery = useQuery({
+    queryKey: ["journal-session", sessionId],
+    queryFn: () => getJournalSession(sessionId),
+  });
+
   const proposals = data ?? [];
+  const originalText = typeof sessionQuery.data?.context?.text === "string"
+    ? sessionQuery.data.context.text
+    : null;
+  const TRUNCATE_LEN = 200;
 
   const handleAccept = async (proposalId: string) => {
     try {
       await confirmSession(sessionId, [{ proposal_id: proposalId, approved: true }]);
-      await commitSession(sessionId);
+      const commitResult = await commitSession(sessionId);
       await queryClient.invalidateQueries({ queryKey: ["session-proposals", sessionId] });
-      toast.success('Card applied.');
+      toast.success('Applied.');
+      // Open the committed entity in the right panel
+      if (commitResult.results?.length) {
+        const first = commitResult.results[0];
+        const type: EntityPanelTarget['type'] =
+          first.proposal_type === 'new_objective' ? 'objective'
+          : first.proposal_type === 'add_note' ? 'note'
+          : 'note';
+        const objectiveId = first.objective_id;
+        openEntity({ type, id: first.id, objectiveId });
+      }
     } catch {
       toast.error('Could not apply card.');
     }
@@ -744,7 +772,7 @@ function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: 
     try {
       await confirmSession(sessionId, [{ proposal_id: proposalId, approved: false }]);
       await queryClient.invalidateQueries({ queryKey: ["session-proposals", sessionId] });
-      toast.success('Card dismissed.');
+      toast.success('Dismissed.');
     } catch {
       toast.error('Could not dismiss card.');
     }
@@ -776,7 +804,43 @@ function SessionHistoryView({ sessionId, onBack }: { sessionId: string; onBack: 
           <h2 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
             Session cards
           </h2>
+          {onMoreSuggestions && originalText && (
+            <button
+              className="x-btn-secondary"
+              style={{ width: "auto", paddingInline: 12, marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+              onClick={() => onMoreSuggestions(originalText)}
+              title="Re-analyse this entry for more suggestions"
+            >
+              <Sparkles size={13} /> More suggestions
+            </button>
+          )}
         </div>
+
+        {/* Original entry text */}
+        {originalText && (
+          <div style={{
+            background: "var(--skin-surface2)", borderRadius: 10, padding: "10px 14px",
+            marginBottom: 16, border: "1px solid var(--skin-line)",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Original entry
+            </div>
+            <p style={{ fontSize: 13, color: "var(--skin-ink-soft)", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+              {showFullText || originalText.length <= TRUNCATE_LEN
+                ? originalText
+                : `${originalText.slice(0, TRUNCATE_LEN)}…`}
+            </p>
+            {originalText.length > TRUNCATE_LEN && (
+              <button
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--skin-accent)", padding: "4px 0 0" }}
+                onClick={() => setShowFullText(v => !v)}
+              >
+                {showFullText ? "Show less" : "Show more"}
+              </button>
+            )}
+          </div>
+        )}
+
         {isLoading && (
           <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
         )}
@@ -888,7 +952,7 @@ function HistoricalProposalCard({
               onClick={async () => { setBusy(true); await onAccept(proposal.id); setBusy(false); }}
               style={{ ...btnBase, background: "var(--skin-accent, #4de0c1)", color: "var(--skin-bg, #fff)", border: "none" }}
             >
-              {busy ? "Applying…" : proposal.status === "approved" ? "Apply" : "Accept"}
+              {busy ? "Applying…" : "Apply"}
             </button>
           )}
           {hasGoTo && (
@@ -896,7 +960,7 @@ function HistoricalProposalCard({
               onClick={() => onGoTo(proposal)}
               style={{ ...btnBase, background: "transparent", color: "var(--skin-accent)" }}
             >
-              Go to →
+              Open →
             </button>
           )}
         </div>

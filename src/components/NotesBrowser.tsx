@@ -219,6 +219,8 @@ export function NotesBrowser({
     onSuccess: (note, input) => {
       invalidate();
       setEditing(null);
+      // Open the new note in the right panel
+      openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled", noteType: note.note_type });
       // Auto-tag in the background when the user left the tags field empty
       if (input.tags.length === 0 && user) {
         void autoTagNote(user, note.id, note.title, note.body_html ?? "").then(() =>
@@ -675,9 +677,20 @@ export function NotesBrowser({
                             </button>
                           </div>
                         </div>
-                        <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", marginTop: 4 }}>
-                          {formatDate(note.updated_at || note.created_at)}
-                          {projectName(note.detail?.project_id as string) && ` · ${projectName(note.detail?.project_id as string)}`}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
+                            {formatDate(note.updated_at || note.created_at)}
+                            {projectName(note.detail?.project_id as string) && ` · ${projectName(note.detail?.project_id as string)}`}
+                          </span>
+                          {note.note_type && note.note_type !== "note" && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 999,
+                              background: "var(--skin-surface2)", color: "var(--skin-ink-faint)",
+                              border: "1px solid var(--skin-line)", textTransform: "capitalize",
+                            }}>
+                              {note.note_type === "reference" ? "Resource" : note.note_type}
+                            </span>
+                          )}
                         </div>
                         {previewText(note) && (
                           <div style={{ fontSize: 13, color: "var(--skin-ink-soft)", marginTop: 8, lineHeight: 1.5 }}>

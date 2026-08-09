@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppSidebarExperimental } from "@/components/AppSidebarExperimental";
@@ -11,6 +11,7 @@ import { RightPanelProvider, useRightPanel } from "@/contexts/right-panel";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { EntityPanel } from "@/components/EntityPanel";
 import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -74,15 +75,69 @@ function SidebarResizeHandle({
 }
 
 // ── Right panel slot ──────────────────────────────────────────────────────────
-// Renders as a layout aside that animates open/closed — no overlay/Sheet.
+// Desktop: layout aside that animates open/closed (no overlay/Sheet).
+// Mobile: fullscreen overlay with a Back button.
 
 const RIGHT_PANEL_WIDTH = 480;
 
 function RightPanelSlot() {
-  const { isOpen: sidepanelOpen } = useSidepanel();
+  const { isOpen: sidepanelOpen, close: closeSidepanel } = useSidepanel();
   const { entityTarget, closeEntity } = useRightPanel();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const isVisible = sidepanelOpen || entityTarget !== null;
+
+  const handleClose = entityTarget !== null ? closeEntity : closeSidepanel;
+
+  const panelContent = entityTarget !== null ? (
+    <EntityPanel
+      onClose={closeEntity}
+      type={entityTarget.type}
+      id={entityTarget.id}
+      objectiveId={entityTarget.objectiveId}
+      prefillText={entityTarget.prefillText}
+      initialTitle={entityTarget.initialTitle}
+      user={user ?? undefined}
+    />
+  ) : sidepanelOpen ? (
+    <ItemSidepanel />
+  ) : null;
+
+  if (isMobile) {
+    if (!isVisible) return null;
+    return (
+      <div
+        style={{
+          position: "fixed", inset: 0, zIndex: 40,
+          background: "var(--skin-surface)",
+          display: "flex", flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "12px 16px", flexShrink: 0,
+            borderBottom: "1px solid var(--skin-line)",
+          }}
+        >
+          <button
+            onClick={handleClose}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 14, fontWeight: 500, color: "var(--skin-accent)", padding: "4px 0",
+            }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+        </div>
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {panelContent}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <aside
@@ -97,19 +152,7 @@ function RightPanelSlot() {
         flexDirection: "column",
       }}
     >
-      {entityTarget !== null ? (
-        <EntityPanel
-          onClose={closeEntity}
-          type={entityTarget.type}
-          id={entityTarget.id}
-          objectiveId={entityTarget.objectiveId}
-          prefillText={entityTarget.prefillText}
-          initialTitle={entityTarget.initialTitle}
-          user={user ?? undefined}
-        />
-      ) : sidepanelOpen ? (
-        <ItemSidepanel />
-      ) : null}
+      {panelContent}
     </aside>
   );
 }
