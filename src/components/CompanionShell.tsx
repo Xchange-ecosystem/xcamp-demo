@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { initLegacyUi, isLegacyUi } from "@/lib/uiVersion";
 import { Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -47,7 +48,8 @@ export function CompanionShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const brand = useBrand();
   const navSearch = useRouterState({ select: (r) => r.location.search as Record<string, string> });
-  const navVariant = navSearch?.nav ?? "";
+  initLegacyUi(navSearch?.ui);
+  const isLegacy = isLegacyUi();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -91,7 +93,7 @@ export function CompanionShell({ children }: { children: ReactNode }) {
           className="flex min-h-screen w-full"
           style={{ background: "transparent" }}
         >
-          {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
+          {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
           <div className="flex-1 flex flex-col min-w-0" style={{ background: "transparent" }}>
             <main className="flex-1 min-w-0" style={{ background: "transparent" }}>{children}</main>
           </div>

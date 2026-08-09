@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { initLegacyUi, isLegacyUi } from "@/lib/uiVersion";
 import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
 import { ProjectEntryScreen } from "@/components/ProjectEntryScreen";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -72,9 +73,8 @@ const NAV_PILLS = [
 ] as const;
 
 export const Route = createFileRoute("/home")({
-  validateSearch: (search: Record<string, unknown>): { ui: "default" | "experimental"; nav?: "experimental"; view?: "companion" } => ({
-    // NOTE: `ui` param is vestigial — CompanionSidePanel was removed; keeping param to avoid breaking existing links.
-    ui: search.ui === "experimental" ? "experimental" : "default",
+  validateSearch: (search: Record<string, unknown>): { ui?: "v1"; nav?: "experimental"; view?: "companion" } => ({
+    ...(search.ui === "v1" ? { ui: "v1" as const } : {}),
     ...(search.nav === "experimental" ? { nav: "experimental" as const } : {}),
     ...(search.view === "companion" ? { view: "companion" as const } : {}),
   }),
@@ -103,21 +103,17 @@ function CompanionHomePage() {
   const { user: authUser } = useAuth();
   const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
   const navigate = useNavigate();
-  const { ui: uiVariant, view: viewParam } = Route.useSearch();
-
-  const location = useRouterState({ select: (r) => r.location });
-  const navVariant = (location.search as Record<string, string>)?.nav === "experimental" ? "experimental" : "";
-  const navVariantRef = useRef(navVariant);
-  useEffect(() => { navVariantRef.current = navVariant; }, [navVariant]);
+  const { ui: uiParam, view: viewParam } = Route.useSearch();
+  initLegacyUi(uiParam);
+  const isLegacy = isLegacyUi();
 
   const [experimentalView, setExperimentalView] = useState<"home" | "chat">(() =>
     viewParam === "companion" ? "chat" : "home"
   );
 
-  // Show the project-picker entry screen when opening in experimental mode with no active project.
-  // Set to false once the user makes a choice (select project or enter ecosystem).
+  // Show the project-picker entry screen when opening with no active project (experimental is now default).
   const [showEntry, setShowEntry] = useState(() =>
-    navVariant === "experimental" && !activeProjectId
+    !isLegacy && !activeProjectId
   );
 
   const [railPanelWidth, setRailPanelWidth] = useState(0);
@@ -162,7 +158,7 @@ function CompanionHomePage() {
 
   // Apply background image directly on <html>
   useEffect(() => {
-    if (!bgUrl || navVariantRef.current === "experimental") return;
+    if (!bgUrl || !isLegacyUi()) return;
     document.documentElement.style.cssText += `; background-image: url("${bgUrl}"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;`;
     return () => {
       document.documentElement.style.backgroundImage = "";
@@ -232,7 +228,7 @@ function CompanionHomePage() {
   const welcomeFiredRef = useRef(false);
   const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
   useEffect(() => {
-    if (navVariantRef.current === "experimental") { welcomeFiredRef.current = true; return; }
+    if (!isLegacyUi()) { welcomeFiredRef.current = true; return; }
     if (session.loading || welcomeFiredRef.current) return;
     if (projects.length === 0) return;
 
@@ -390,7 +386,7 @@ function CompanionHomePage() {
   const branchFiredRef = useRef(false);
   const switchingProjectRef = useRef(false);
   useEffect(() => {
-    if (navVariantRef.current === "experimental") return;
+    if (!isLegacyUi()) return;
     if (step !== "project-select") return;
     if (session.loading) return;
     if (branchFiredRef.current) return;
@@ -404,7 +400,7 @@ function CompanionHomePage() {
   }, [step, session.loading, projects.length, handleProjectSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (navVariantRef.current === "experimental") return;
+    if (!isLegacyUi()) return;
     if (!activeProjectId) return;
     if (activeProject?.id === activeProjectId) return;
     if (session.loading) return;
@@ -451,7 +447,7 @@ function CompanionHomePage() {
 
   // ── Experimental mode: sync activeProject from context state ─────────────
   useEffect(() => {
-    if (navVariantRef.current !== "experimental") return;
+    if (isLegacyUi()) return;
     const found = projects.find((p) => p.id === activeProjectId) ?? null;
     setActiveProject(found);
   }, [activeProjectId, projects]);
@@ -645,7 +641,7 @@ function CompanionHomePage() {
     <>
       <CompanionShell>
         {/* Scrim — sits above the <html> background image */}
-        {navVariant !== "experimental" && (
+        {isLegacy && (
           <div
             style={{
               position: "fixed",
@@ -658,12 +654,12 @@ function CompanionHomePage() {
         )}
 
         {/* ── Right-edge rail (Detail / Role / Mood) — default companion mode ── */}
-        {navVariant !== "experimental" && (
+        {isLegacy && (
           <CompanionRail onPanelWidthChange={setRailPanelWidth} />
         )}
 
         {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
-        {navVariant !== "experimental" && <div
+        {isLegacy && <div
           style={{
             position: "fixed",
             top: 0,
@@ -1017,7 +1013,7 @@ function CompanionHomePage() {
         {/* ── Experimental nav views (Phase 2–4) ─────────────────────────── */}
 
         {/* Entry screen: project picker shown on first open when no project is active */}
-        {navVariant === "experimental" && experimentalView === "home" && showEntry && (
+        {!isLegacy && experimentalView === "home" && showEntry && (
           <ProjectEntryScreen
             projects={projects}
             onProjectSelect={handleEntryProjectSelect}
@@ -1026,7 +1022,7 @@ function CompanionHomePage() {
           />
         )}
 
-        {navVariant === "experimental" && experimentalView === "home" && !showEntry && navMode === "ecosystem" && (
+        {!isLegacy && experimentalView === "home" && !showEntry && navMode === "ecosystem" && (
           <EcosystemHomeView
             projects={projects}
             onProjectSelect={handleExperimentalProjectSelect}
@@ -1050,7 +1046,7 @@ function CompanionHomePage() {
             authUser={authUser}
           />
         )}
-        {navVariant === "experimental" && experimentalView === "home" && !showEntry && navMode === "project" && (
+        {!isLegacy && experimentalView === "home" && !showEntry && navMode === "project" && (
           <ProjectHomeView
             projects={projects}
             onProjectSelect={handleExperimentalProjectSelect}
@@ -1074,7 +1070,7 @@ function CompanionHomePage() {
             authUser={authUser}
           />
         )}
-        {navVariant === "experimental" && experimentalView === "chat" && (
+        {!isLegacy && experimentalView === "chat" && (
           <ExperimentalChatView
             messages={session.messages}
             typingMessageId={typingMessageId ?? undefined}
