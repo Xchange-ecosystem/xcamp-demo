@@ -15,7 +15,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Share2,
-  StickyNote,
   User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -59,9 +58,9 @@ export function AppSidebar() {
   const onNavigator = pathname.startsWith("/navigator");
   const onNotes = pathname.startsWith("/notes");
   const onJournal = pathname.startsWith("/journal");
+  const onLogbook = onNotes || onJournal;
   const [navigatorOpen, setNavigatorOpen] = useState(onNavigator);
-  const [notesOpen, setNotesOpen] = useState(onNotes);
-  const [journalOpen, setJournalOpen] = useState(onJournal);
+  const [logbookOpen, setLogbookOpen] = useState(onLogbook);
 
   const handleSignOut = async () => {
     setActiveProjectId(null);
@@ -149,75 +148,29 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
 
-              {/* Notes — expandable */}
+              {/* Logbook — expandable (Journal + Notes combined) */}
               <SidebarMenuItem>
                 {collapsed ? (
-                  <SidebarMenuButton asChild isActive={onNotes} tooltip={t("nav.notes")}>
-                    <Link to="/notes" className="flex items-center gap-2">
-                      <StickyNote className="h-4 w-4" />
-                      <span>{t("nav.notes")}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                ) : (
-                  <>
-                    <SidebarMenuButton
-                      isActive={onNotes}
-                      onClick={() => setNotesOpen((v) => !v)}
-                      className="flex items-center gap-2 w-full"
-                    >
-                      <StickyNote className="h-4 w-4" />
-                      <span className="flex-1">{t("nav.notes")}</span>
-                      {notesOpen
-                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                    </SidebarMenuButton>
-                    {notesOpen && (
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={onNotes && !((location.search as Record<string, string>)?.new)}>
-                            <Link to="/notes" className="flex items-center gap-2">
-                              <LayoutList className="h-3.5 w-3.5" />
-                              <span>My Notes</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}>
-                            <Link to="/notes" search={{ new: "1" }} className="flex items-center gap-2">
-                              <FilePlus className="h-3.5 w-3.5" />
-                              <span>+ New Note</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    )}
-                  </>
-                )}
-              </SidebarMenuItem>
-
-              {/* Journal — expandable */}
-              <SidebarMenuItem>
-                {collapsed ? (
-                  <SidebarMenuButton asChild isActive={onJournal} tooltip={t("nav.journalApp")}>
+                  <SidebarMenuButton asChild isActive={onLogbook} tooltip="Logbook">
                     <Link to="/journal" className="flex items-center gap-2">
                       <NotebookPen className="h-4 w-4" />
-                      <span>{t("nav.journalApp")}</span>
+                      <span>Logbook</span>
                     </Link>
                   </SidebarMenuButton>
                 ) : (
                   <>
                     <SidebarMenuButton
-                      isActive={onJournal}
-                      onClick={() => setJournalOpen((v) => !v)}
+                      isActive={onLogbook}
+                      onClick={() => setLogbookOpen((v) => !v)}
                       className="flex items-center gap-2 w-full"
                     >
                       <NotebookPen className="h-4 w-4" />
-                      <span className="flex-1">{t("nav.journalApp")}</span>
-                      {journalOpen
+                      <span className="flex-1">Logbook</span>
+                      {logbookOpen
                         ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
                         : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                     </SidebarMenuButton>
-                    {journalOpen && (
+                    {logbookOpen && (
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild isActive={onJournal && !(location.search as Record<string, string>)?.new}>
@@ -231,7 +184,23 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onJournal}>
                             <Link to="/journal" search={{ new: "1" }} className="flex items-center gap-2">
                               <FilePlus className="h-3.5 w-3.5" />
-                              <span>+ New Journal Entry</span>
+                              <span>New Journal Entry</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={onNotes && !((location.search as Record<string, string>)?.new)}>
+                            <Link to="/notes" className="flex items-center gap-2">
+                              <LayoutList className="h-3.5 w-3.5" />
+                              <span>My Notes</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}>
+                            <Link to="/notes" search={{ new: "1" }} className="flex items-center gap-2">
+                              <FilePlus className="h-3.5 w-3.5" />
+                              <span>New Note</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
