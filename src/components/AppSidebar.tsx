@@ -6,6 +6,7 @@ import {
   Compass,
   FilePlus,
   Home,
+  LayoutGrid,
   LayoutList,
   LogOut,
   Map,
@@ -40,8 +41,9 @@ import { listProjects } from "@/lib/xcamp-api";
 import { AppLogo } from "@/components/AppLogo";
 
 const flatItems = [
-  { title: "home",           url: "/home",           icon: Home,    labelKey: "nav.home" },
-  { title: "projectBuilder", url: "/project-builder",icon: Compass, labelKey: "nav.projectBuilder" },
+  { title: "home",           url: "/home",           icon: Home,        labelKey: "nav.home" },
+  { title: "portfolio",      url: "/portfolio",      icon: LayoutGrid,  labelKey: "nav.portfolio" },
+  { title: "projectBuilder", url: "/project-builder",icon: Compass,     labelKey: "nav.projectBuilder" },
 ];
 
 export function AppSidebar() {

@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { voxFetch } from "@/integrations/vox/client";
 import type { Json } from "@/integrations/supabase/types";
-import type { NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
+import type { CollabRole, NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_COLUMNS =
   "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
@@ -366,6 +366,125 @@ export async function autoTagNote(
     .eq("owner_central_id", user.centralId);
 
   return tags;
+}
+
+// ── Portfolio data layer ──────────────────────────────────────────────────────
+
+export interface ProjectPortfolioItem {
+  id: string;
+  name: string;
+  feature_image: string | null;
+  color: string | null;
+  description: string | null;
+  owner_central_id: string;
+  tags: string[] | null;
+  status: string | null;
+  collab_role: CollabRole | null;
+  collaborator_count: number;
+}
+
+export interface ObjectiveProgress {
+  total: number;
+  done: number;
+}
+export type ObjectiveProgressMap = Record<string, ObjectiveProgress>;
+
+export async function listProjectsForPortfolio(
+  user: XcampUser,
+): Promise<ProjectPortfolioItem[]> {
+  const memberIds = await getAccessibleProjectIds(user);
+  const memberFilter = memberIds.length > 0 ? `,id.in.(${memberIds.join(",")})` : "";
+
+  const { data: projectData, error: projectError } = await (supabase
+    .from("projects")
+    .select("id, title, feature_image, color, description, owner_central_id, tags, status")
+    .eq("tenant_id", user.tenantId)
+    .or(
+      `owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`,
+    )
+    .order("title") as unknown as Promise<{
+    data: Array<Record<string, unknown>> | null;
+    error: { message: string } | null;
+  }>);
+
+  if (projectError) throw new Error(projectError.message);
+  const projects = (projectData ?? []).filter(
+    (p) => (p["title"] as string) !== "__general__",
+  );
+
+  if (projects.length === 0) return [];
+
+  const projectIds = projects.map((p) => p["id"] as string);
+
+  const [collabData, countData] = await Promise.all([
+    supabase
+      .from("collaborators")
+      .select("object_id, role")
+      .eq("user_id", user.centralId)
+      .eq("object_type", "project")
+      .eq("tenant_id", user.tenantId)
+      .in("object_id", projectIds)
+      .eq("status", "active"),
+    supabase
+      .from("collaborators")
+      .select("object_id")
+      .eq("object_type", "project")
+      .eq("tenant_id", user.tenantId)
+      .in("object_id", projectIds)
+      .eq("status", "active"),
+  ]);
+
+  const collabRoleByProject: Record<string, CollabRole> = {};
+  for (const c of collabData.data ?? []) {
+    collabRoleByProject[c.object_id as string] = c.role as CollabRole;
+  }
+
+  const collabCountByProject: Record<string, number> = {};
+  for (const c of countData.data ?? []) {
+    const oid = c.object_id as string;
+    collabCountByProject[oid] = (collabCountByProject[oid] ?? 0) + 1;
+  }
+
+  return projects.map((p) => ({
+    id: p["id"] as string,
+    name: (p["title"] as string) ?? "Untitled",
+    feature_image: (p["feature_image"] as string | null) ?? null,
+    color: (p["color"] as string | null) ?? null,
+    description: (p["description"] as string | null) ?? null,
+    owner_central_id: (p["owner_central_id"] as string) ?? "",
+    tags: (p["tags"] as string[] | null) ?? null,
+    status: (p["status"] as string | null) ?? null,
+    collab_role: collabRoleByProject[(p["id"] as string)] ?? null,
+    collaborator_count: collabCountByProject[(p["id"] as string)] ?? 0,
+  }));
+}
+
+export async function fetchProjectObjectiveProgress(
+  user: XcampUser,
+  projectIds: string[],
+): Promise<ObjectiveProgressMap> {
+  if (!projectIds.length) return {};
+
+  const { data, error } = await supabase
+    .from("objectives")
+    .select("project_id, status")
+    .in("project_id", projectIds)
+    .eq("tenant_id", user.tenantId);
+
+  if (error) throw new Error(error.message);
+
+  const result: ObjectiveProgressMap = {};
+  for (const id of projectIds) result[id] = { total: 0, done: 0 };
+
+  for (const row of data ?? []) {
+    const pid = row.project_id as string;
+    if (!result[pid]) continue;
+    result[pid].total++;
+    const s = row.status as string;
+    if (s === "done" || s === "completed") result[pid].done++;
+  }
+
+  return result;
 }
 
 export type ProjectMetrics = Record<string, { objectives: number; tasks: number }>;
