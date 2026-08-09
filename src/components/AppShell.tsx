@@ -12,6 +12,7 @@ import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { EntityPanel } from "@/components/EntityPanel";
 import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TaskFullscreenModal } from "@/components/TaskFullscreenModal";
 
 const SIDEBAR_COLLAPSED_KEY = "nox-founder-sidebar-collapsed";
 
@@ -252,6 +253,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <FloatingAltitudeDial />
+          <TaskFullscreenModal />
         </SidebarProvider>
       </RightPanelProvider>
     </SidepanelProvider>

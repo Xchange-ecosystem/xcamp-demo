@@ -8,7 +8,12 @@ import { getRouter } from "./router";
 // so it serves as the outermost theme wrapper. Swap to the design-system
 // provider here once it ships.
 import { ThemeProvider } from "./lib/theme";
+import { applySkin, PLATFORM_SCIENTIFIC } from "@xchange/ui";
 import "./styles.css";
+
+// Apply the default scientific skin CSS vars to :root before first paint so
+// all --skin-* custom properties are defined regardless of which route loads first.
+applySkin(PLATFORM_SCIENTIFIC);
 
 async function main() {
   if (!i18n.isInitialized) {

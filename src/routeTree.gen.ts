@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectDetailsRouteImport } from './routes/project-details'
 import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
@@ -38,6 +39,11 @@ const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
+  '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
+  '/portfolio': typeof PortfolioRoute
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
+  '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/navigator'
     | '/notes'
+    | '/portfolio'
     | '/profile'
     | '/project-builder'
     | '/project-details'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/navigator'
     | '/notes'
+    | '/portfolio'
     | '/project-builder'
     | '/project-details'
     | '/profile/appearance'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/navigator'
     | '/notes'
+    | '/portfolio'
     | '/profile'
     | '/project-builder'
     | '/project-details'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRoute
   NavigatorRoute: typeof NavigatorRoute
   NotesRoute: typeof NotesRoute
+  PortfolioRoute: typeof PortfolioRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
   ProjectDetailsRoute: typeof ProjectDetailsRoute
@@ -242,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -353,6 +373,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRoute,
   NavigatorRoute: NavigatorRoute,
   NotesRoute: NotesRoute,
+  PortfolioRoute: PortfolioRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
   ProjectDetailsRoute: ProjectDetailsRoute,
