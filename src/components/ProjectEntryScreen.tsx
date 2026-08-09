@@ -1,40 +1,25 @@
 import { useRef } from "react";
 import { useTheme } from "@/lib/theme";
+import { useBrand } from "@/lib/brand";
 import type { ProjectFull } from "@/types/xcamp";
 
-// Per-skin color tokens matching the entry-screen reference prototype.
-// These are scoped to this screen only — the app's global Tailwind tokens
-// (driven by .dark on <html>) are what the rest of the app uses.
+// Decorative-only colors with no --skin-* equivalent (aurora wash + skyline silhouette + orb gradient).
 const XCAMP = {
-  bg: "#cfd9e2",
   skyline: "#aebccb",
   skyline2: "#93a4b7",
   auroraA: "rgba(31,158,143,0.30)",
   auroraB: "rgba(31,95,174,0.22)",
-  surface: "rgba(255,255,255,0.92)",
-  surface2: "#f3f6f9",
-  ink: "#152230",
-  inkSoft: "#5d6e7e",
-  inkFaint: "#93a2b1",
-  line: "#d6dee6",
-  accent: "#1f5fae",
-  accent2: "#1d9e8f",
+  orbFrom: "#1d9e8f",
+  orbTo: "#1f5fae",
 } as const;
 
 const NOX = {
-  bg: "#0a0e14",
   skyline: "#131a24",
   skyline2: "#0c111a",
   auroraA: "rgba(31,158,143,0.35)",
   auroraB: "rgba(60,52,180,0.30)",
-  surface: "rgba(20,26,36,0.86)",
-  surface2: "rgba(255,255,255,0.06)",
-  ink: "#eef2f6",
-  inkSoft: "#97a3b3",
-  inkFaint: "#5d6a7c",
-  line: "rgba(255,255,255,0.10)",
-  accent: "#3fb6c9",
-  accent2: "#5a5ae0",
+  orbFrom: "#5a5ae0",
+  orbTo: "#3fb6c9",
 } as const;
 
 const BAR_COUNT = 34;
@@ -48,6 +33,7 @@ interface Props {
 
 export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, onEnterEcosystem }: Props) {
   const { resolved, setMode } = useTheme();
+  const brand = useBrand();
   const isNox = resolved === "dark";
   const t = isNox ? NOX : XCAMP;
 
@@ -67,7 +53,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
         position: "fixed",
         inset: 0,
         zIndex: 50,
-        background: t.bg,
+        background: "var(--skin-bg)",
         overflow: "hidden",
         fontFamily: "'Hanken Grotesk', sans-serif",
       }}
@@ -186,7 +172,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
           style={{
             width: "100%",
             maxWidth: 460,
-            background: t.surface,
+            background: "var(--skin-surface)",
             backdropFilter: "blur(18px)",
             WebkitBackdropFilter: "blur(18px)",
             borderRadius: 28,
@@ -205,7 +191,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                 position: "absolute",
                 inset: 0,
                 borderRadius: "50%",
-                background: `radial-gradient(circle at 35% 30%, ${t.accent2}, ${t.accent})`,
+                background: `radial-gradient(circle at 35% 30%, ${t.orbFrom}, ${t.orbTo})`,
                 opacity: 0.35,
                 animation: "pe-orb-pulse 2.6s ease-in-out infinite",
               }}
@@ -216,22 +202,24 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                 position: "absolute",
                 inset: 0,
                 borderRadius: "50%",
-                background: `radial-gradient(circle at 35% 30%, ${t.accent2}, ${t.accent})`,
+                background: `radial-gradient(circle at 35% 30%, ${t.orbFrom}, ${t.orbTo})`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <svg viewBox="0 0 24 24" fill="none" style={{ width: "40%", height: "40%" }}>
-                <path d="M4 4 L20 20 M20 4 L4 20" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" />
-              </svg>
+              <img
+                src={brand.iconUrl}
+                alt={brand.name}
+                style={{ width: "60%", height: "60%", objectFit: "contain", borderRadius: 6 }}
+              />
             </div>
           </div>
 
           {/* ── Waveform (decorative mock — no audio) ── */}
           <div
             style={{
-              background: t.surface2,
+              background: "var(--skin-surface2)",
               borderRadius: 999,
               padding: "12px 18px",
               display: "flex",
@@ -251,7 +239,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                   width: 2.5,
                   height: bar.height,
                   borderRadius: 2,
-                  background: t.accent,
+                  background: "var(--skin-accent)",
                   opacity: 0.75,
                   animation: `pe-wave ${bar.duration}s ease-in-out ${bar.delay}s infinite`,
                 }}
@@ -265,7 +253,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
               fontWeight: 700,
               letterSpacing: "-0.01em",
               fontSize: 26,
-              color: t.ink,
+              color: "var(--skin-ink)",
               marginBottom: 6,
               textAlign: "center",
               margin: "0 0 6px",
@@ -276,7 +264,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
           <div
             style={{
               fontSize: 12.5,
-              color: t.inkFaint,
+              color: "var(--skin-ink-faint)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
               fontWeight: 600,
@@ -286,11 +274,11 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
             Tap your project
           </div>
 
-          {/* ── Project tiles ── */}
+          {/* ── Project tiles — flex-wrap, 2 per row, matching EcosystemHomeView ProjectTile pattern ── */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              display: "flex",
+              flexWrap: "wrap",
               gap: 10,
               width: "100%",
               marginBottom: 22,
@@ -303,12 +291,13 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                 onClick={() => onProjectSelect(project)}
                 style={{
                   position: "relative",
+                  width: "calc(50% - 5px)",
                   aspectRatio: "3 / 4",
                   borderRadius: 10,
                   overflow: "hidden",
                   cursor: "pointer",
-                  border: `1px solid ${t.line}`,
-                  background: t.surface2,
+                  border: "1px solid var(--skin-line)",
+                  background: "var(--skin-surface2)",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "flex-end",
@@ -358,17 +347,18 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
               className="pe-tile"
               onClick={onNewProject}
               style={{
+                width: "calc(50% - 5px)",
                 aspectRatio: "3 / 4",
                 borderRadius: 10,
                 overflow: "hidden",
                 cursor: "pointer",
-                background: t.surface2,
-                border: `1.5px dashed ${t.line}`,
+                background: "var(--skin-surface2)",
+                border: "1.5px dashed var(--skin-line)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                color: t.inkSoft,
+                color: "var(--skin-ink-soft)",
                 textAlign: "center",
                 gap: 6,
                 padding: 8,
@@ -379,7 +369,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                   width: 32,
                   height: 32,
                   borderRadius: "50%",
-                  border: `1.5px solid ${t.inkFaint}`,
+                  border: "1.5px solid var(--skin-ink-faint)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -407,7 +397,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
             style={{
               textAlign: "center",
               fontSize: 12.5,
-              color: t.inkSoft,
+              color: "var(--skin-ink-soft)",
               lineHeight: 1.5,
             }}
           >
@@ -419,7 +409,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                 background: "none",
                 border: "none",
                 padding: 0,
-                color: t.accent,
+                color: "var(--skin-accent)",
                 fontWeight: 600,
                 textDecoration: "underline",
                 cursor: "pointer",
