@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2 } from "lucide-react";
@@ -113,9 +113,8 @@ function LinkedObjectivesPanel({ taskId }: { taskId: string }) {
 
 // ── Task page content ───────────────────────────────────────────────────────
 
-function TaskPageContent({ taskId }: { taskId: string }) {
+export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const { altitude } = useAltitudeStore();
 
@@ -127,8 +126,8 @@ function TaskPageContent({ taskId }: { taskId: string }) {
   const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) void navigate({ to: "/auth" });
-  }, [authLoading, user, navigate]);
+    if (!authLoading && !user) onClose();
+  }, [authLoading, user, onClose]);
 
   useEffect(() => {
     if (!user) return;
@@ -190,7 +189,7 @@ function TaskPageContent({ taskId }: { taskId: string }) {
     try {
       await archiveNote(user, noteRow);
       void qc.invalidateQueries({ queryKey: ["notes"] });
-      window.close();
+      onClose();
     } catch (e) {
       console.error("Archive failed", e);
     } finally {
@@ -229,7 +228,7 @@ function TaskPageContent({ taskId }: { taskId: string }) {
           <p style={{ color: "var(--skin-ink-soft)", marginBottom: 12 }}>
             {error ?? "Task not found."}
           </p>
-          <button className="x-btn-secondary" onClick={() => window.close()}>
+          <button className="x-btn-secondary" onClick={onClose}>
             Close
           </button>
         </div>
@@ -265,7 +264,7 @@ function TaskPageContent({ taskId }: { taskId: string }) {
         }}
       >
         <button
-          onClick={() => window.close()}
+          onClick={onClose}
           style={{
             background: "none",
             border: "none",
@@ -318,7 +317,7 @@ function TaskPageContent({ taskId }: { taskId: string }) {
             saving={saving}
             archiving={archiving}
             onSave={handleSave}
-            onCancel={() => window.close()}
+            onCancel={onClose}
             onArchive={handleArchive}
           />
         </div>
@@ -403,7 +402,7 @@ function TaskPage() {
   const { taskId } = Route.useParams();
   return (
     <SidepanelProvider>
-      <TaskPageContent taskId={taskId} />
+      <TaskPageContent taskId={taskId} onClose={() => window.close()} />
     </SidepanelProvider>
   );
 }
