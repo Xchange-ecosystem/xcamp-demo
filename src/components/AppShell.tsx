@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { initLegacyUi, isLegacyUi } from "@/lib/uiVersion";
 import { ArrowLeft, Menu } from "lucide-react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -166,7 +167,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const brand = useBrand();
   const location = useRouterState({ select: (r) => r.location });
   const pathname = location.pathname;
-  const navVariant = (location.search as Record<string, string>)?.nav ?? "";
+  initLegacyUi((location.search as Record<string, string>)?.ui);
+  const isLegacy = isLegacyUi();
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try {
@@ -243,7 +245,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarStatePersist />
           {!pathname.startsWith("/profile") && <MobileMenuButton />}
           <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
-            {navVariant === "experimental" ? <AppSidebarExperimental /> : <AppSidebar />}
+            {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
             <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
             <div className="flex-1 flex flex-col min-w-0">
               <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>

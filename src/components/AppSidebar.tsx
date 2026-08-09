@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Share2,
+  Sparkles,
   User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -283,6 +284,21 @@ export function AppSidebar() {
 
       <SidebarFooter className="pb-4">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Return to experimental"
+              onClick={() => {
+                sessionStorage.removeItem("xcamp-ui-version");
+                const url = new URL(window.location.href);
+                url.searchParams.delete("ui");
+                window.location.replace(url.toString());
+              }}
+              style={{ color: "var(--skin-accent)" }}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Return to experimental</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/profile")} tooltip={t("nav.profile")}>
               <Link to="/profile" className="flex items-center gap-2">

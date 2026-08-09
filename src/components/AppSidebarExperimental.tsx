@@ -19,19 +19,20 @@ import {
   ChevronDown,
   ChevronRight,
   Compass,
+  FilePlus,
   Home,
   LayoutList,
   LogOut,
   Map,
   MessageCircle,
   NotebookPen,
+  NotebookText,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   Settings2,
   Share2,
   Sparkles,
-  StickyNote,
   Target,
   User,
 } from "lucide-react";
@@ -77,7 +78,7 @@ const ECOSYSTEM_NAV: NavItem[] = [
 const PROJECT_NAV: NavItem[] = [
   { title: "home",            url: "/home",             icon: Home,          label: "Home" },
   { title: "companion",       url: "/home",             icon: MessageCircle, label: "Companion" },
-  { title: "journal",         url: "/journal",          icon: NotebookPen,   label: "Journal" },
+  { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook" },
   { title: "goals",           url: "",                  icon: Target,        label: "My Goals", parameterised: true },
   { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator" },
   { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details" },
@@ -97,11 +98,14 @@ export function AppSidebarExperimental() {
 
   const onNavigator = pathname.startsWith("/navigator");
   const onNotes = pathname.startsWith("/notes");
+  const onJournal = pathname.startsWith("/journal");
   const onAiPlan = pathname.startsWith("/ai-plan");
+  const onLogbook = onNotes || onJournal;
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switcherQuery, setSwitcherQuery] = useState("");
-  const [navigatorOpen, setNavigatorOpen] = useState(onNavigator || onNotes || onAiPlan);
+  const [navigatorOpen, setNavigatorOpen] = useState(onNavigator || onAiPlan);
+  const [logbookOpen, setLogbookOpen] = useState(onLogbook);
   const switcherRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
@@ -380,9 +384,70 @@ export function AppSidebarExperimental() {
                   }
                 };
 
+                // Logbook: expandable with Journal + Notes subitems
+                if (item.title === "logbook" && navMode === "project") {
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed && !isMobile ? (
+                        <SidebarMenuButton
+                          isActive={onLogbook}
+                          tooltip={item.label}
+                          onClick={() =>
+                            void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                          }
+                          className="flex items-center gap-2 w-full"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      ) : (
+                        <>
+                          <SidebarMenuButton
+                            isActive={onLogbook}
+                            onClick={() => setLogbookOpen((v) => !v)}
+                            className="flex items-center gap-2 w-full"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span className="flex-1">{item.label}</span>
+                            {logbookOpen
+                              ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                              : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                          </SidebarMenuButton>
+                          {logbookOpen && (
+                            <SidebarMenuSub>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={onJournal}
+                                  onClick={() =>
+                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                                  }
+                                >
+                                  <NotebookText className="h-3.5 w-3.5" />
+                                  <span>My Journal</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={onNotes}
+                                  onClick={() =>
+                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                                  }
+                                >
+                                  <LayoutList className="h-3.5 w-3.5" />
+                                  <span>My Notes</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            </SidebarMenuSub>
+                          )}
+                        </>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
                 // Project Navigator: expandable with subitems
                 if (item.title === "navigator" && navMode === "project") {
-                  const navigatorActive = onNavigator || onNotes || onAiPlan;
+                  const navigatorActive = onNavigator || onAiPlan;
                   return (
                     <SidebarMenuItem key={item.title}>
                       {collapsed && !isMobile ? (
@@ -457,20 +522,6 @@ export function AppSidebarExperimental() {
                                 >
                                   <Sparkles className="h-3.5 w-3.5" />
                                   <span>AI Plan</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={onNotes}
-                                  onClick={() =>
-                                    void navigate({
-                                      to: "/notes" as never,
-                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
-                                    })
-                                  }
-                                >
-                                  <StickyNote className="h-3.5 w-3.5" />
-                                  <span>All Notes</span>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
                             </SidebarMenuSub>
