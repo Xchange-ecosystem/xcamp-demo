@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
-import { applySkin, PLATFORM_SCIENTIFIC, PLATFORM_PLAYFUL } from "@xchange/ui";
 import { useAuth } from "@/contexts/auth";
 import {
   fetchProjectObjectiveProgress,
   listProjectsForPortfolio,
   type ProjectPortfolioItem,
 } from "@/lib/xcamp-api";
-import type { Tone } from "@/types/xcamp";
 import { PortfolioProjectCard } from "./PortfolioProjectCard";
 import { ProjectStubPanel } from "./ProjectStubPanel";
 
@@ -32,7 +30,6 @@ const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
 
 export function PortfolioView() {
   const { user } = useAuth();
-  const [tone, setTone] = useState<Tone>("scientific");
   const [audience, setAudience] = useState<AudienceTab>("overview");
   const [activeTab, setActiveTab] = useState<ProjectTab>("all");
   const [search, setSearch] = useState("");
@@ -43,14 +40,6 @@ export function PortfolioView() {
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const sortRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    applySkin(tone === "playful" ? PLATFORM_PLAYFUL : PLATFORM_SCIENTIFIC);
-    return () => {
-      // restore scientific skin on unmount
-      applySkin(PLATFORM_SCIENTIFIC);
-    };
-  }, [tone]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -213,26 +202,6 @@ export function PortfolioView() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Skin toggle */}
-            <button
-              type="button"
-              onClick={() => setTone((t) => (t === "scientific" ? "playful" : "scientific"))}
-              style={{
-                all: "unset",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 500,
-                padding: "5px 12px",
-                borderRadius: "var(--xr-pill, 999px)",
-                border: "1px solid var(--skin-line)",
-                color: "var(--skin-ink-soft)",
-                background: "var(--skin-surface2)",
-                transition: "background 0.15s",
-              }}
-            >
-              {tone === "scientific" ? "✦ Playful" : "◈ Scientific"}
-            </button>
-
             {/* Audience switch */}
             <div
               style={{
