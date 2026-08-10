@@ -799,7 +799,7 @@ export function JournalFlow({
                   height: 36, width: 36, padding: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   border: "none", borderRadius: 10,
-                  background: "linear-gradient(90deg, #34acbf, #4de0c1)",
+                  background: "var(--skin-accent-gradient)",
                   cursor: "pointer", color: "#fff",
                 }}
                 onClick={() => { startNew(); setCollapsed(false); }}
@@ -835,7 +835,7 @@ export function JournalFlow({
                     width: "100%", border: "none", borderRadius: 10,
                     padding: "10px 14px", fontSize: 14, fontWeight: 700,
                     color: "#fff", cursor: "pointer",
-                    background: "linear-gradient(90deg, #34acbf, #4de0c1)",
+                    background: "var(--skin-accent-gradient)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                   }}
                   onClick={startNew}
@@ -873,7 +873,7 @@ export function JournalFlow({
               </div>
 
               {historyOpen && (
-                <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="jrn-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
                   {sessionsQuery.isLoading && (
                     <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", padding: "4px 2px" }}>Loading…</div>
                   )}
@@ -1131,13 +1131,14 @@ function SessionHistoryView({
   };
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "24px 32px 32px", maxWidth: 760 }}>
+    <div className="jrn-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "24px 32px 32px", maxWidth: 760 }}>
 
       {/* Session entry read-only box */}
       <h3 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>
         Session entry
       </h3>
       <div
+        className="jrn-scroll"
         style={{
           maxHeight: 150, overflowY: "auto",
           border: "1px solid var(--skin-line)", borderRadius: 10,
@@ -1381,20 +1382,20 @@ function HistoricalProposalCard({
               transition: "opacity 150ms",
             }}
           >
-            {busy === 'dismiss' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Dismiss"}
+            {busy === 'dismiss' ? <Loader2 size={12} className="animate-spin" /> : "Dismiss"}
           </button>
           <button
             disabled={!!busy}
             onClick={() => act('objective')}
             style={{
-              padding: "7px 14px", border: "1px solid var(--skin-line)", borderRadius: 999,
-              background: "var(--skin-surface)", color: "var(--skin-ink)",
-              fontSize: 12, fontWeight: 600,
-              cursor: busy ? "not-allowed" : "pointer", opacity: busy === 'objective' ? 0.5 : 1,
+              padding: "7px 14px", border: "none", borderRadius: 999,
+              background: "var(--skin-accent)", color: "#fff",
+              fontSize: 12, fontWeight: 700,
+              cursor: busy ? "not-allowed" : "pointer", opacity: busy === 'objective' ? 0.7 : 1,
               transition: "opacity 150ms",
             }}
           >
-            {busy === 'objective' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Create Objective and Tasks"}
+            {busy === 'objective' ? <Loader2 size={12} className="animate-spin" style={{ display: "inline" }} /> : "Create Objective and Tasks"}
           </button>
           <button
             disabled={!!busy}
@@ -1407,7 +1408,7 @@ function HistoricalProposalCard({
               transition: "opacity 150ms",
             }}
           >
-            {busy === 'task' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Create Note or Task"}
+            {busy === 'task' ? <Loader2 size={12} className="animate-spin" style={{ display: "inline" }} /> : "Create Note or Task"}
           </button>
         </div>
       )}
