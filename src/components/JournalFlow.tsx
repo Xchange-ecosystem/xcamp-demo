@@ -416,6 +416,9 @@ export function JournalFlow({
   const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
   const [acceptingTopicId, setAcceptingTopicId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  // tracks which session currently owns the in-memory `topics` slice — broader than
+  // currentSessionId (which is strictly the session created by the new-entry composer)
+  const [liveTopicsSessionId, setLiveTopicsSessionId] = useState<string | null>(null);
   const [analysingMore, setAnalysingMore] = useState(false);
   const [parentMap, setParentMap] = useState<Map<string, string>>(new Map());
   const [creatingObjectiveId, setCreatingObjectiveId] = useState<string | null>(null);
@@ -525,6 +528,7 @@ export function JournalFlow({
       if (newTopics.length > 0) {
         const newSessionId = newTopics[0].organiser_session_id;
         setCurrentSessionId(newSessionId);
+        setLiveTopicsSessionId(newSessionId);
         setOpenSession(newSessionId);
         setScreen("history");
         void sessionsQuery.refetch();
@@ -566,12 +570,14 @@ export function JournalFlow({
     setTopicTypes(new Map());
     setParentMap(new Map());
     setCurrentSessionId(null);
+    setLiveTopicsSessionId(null);
     setScreen("input");
   };
 
   const handleMoreSuggestions = async (text: string) => {
     if (!user) return;
     setAnalysingMore(true);
+    const targetSessionId = openSession;
     try {
       const moreTopics = await analyse({
         text,
@@ -584,7 +590,16 @@ export function JournalFlow({
         for (const t of moreTopics) m.set(t.id, defaultTopicEntityType(t));
         return m;
       });
-      setTopics(prev => [...prev, ...moreTopics]);
+      if (targetSessionId !== liveTopicsSessionId) {
+        // Different session: replace stale topics and claim ownership
+        setTopics(moreTopics);
+        setParentMap(new Map());
+        setSavedTopicIds(new Set());
+        setSavedTopicTargets(new Map());
+        setLiveTopicsSessionId(targetSessionId);
+      } else {
+        setTopics(prev => [...prev, ...moreTopics]);
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -943,7 +958,7 @@ export function JournalFlow({
             <SessionHistoryView
               sessionId={openSession}
               entryText={entryText}
-              liveTopics={openSession === currentSessionId ? topics : undefined}
+              liveTopics={openSession === liveTopicsSessionId ? topics : undefined}
               parentMap={parentMap}
               creatingObjectiveId={creatingObjectiveId}
               acceptingTopicId={acceptingTopicId}
@@ -951,7 +966,7 @@ export function JournalFlow({
               savedTopicTargets={savedTopicTargets}
               topicTypes={topicTypes}
               analysingMore={analysingMore}
-              onMoreSuggestions={openSession === currentSessionId ? handleMoreSuggestions : undefined}
+              onMoreSuggestions={openSession !== null ? handleMoreSuggestions : undefined}
               onCreateObjectiveAndTasks={handleCreateObjectiveAndTasks}
               onCreateNoteOrTask={handleCreateNoteOrTask}
               onMoreTasksForObjective={handleMoreTasksForObjective}
