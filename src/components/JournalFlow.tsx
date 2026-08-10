@@ -211,6 +211,7 @@ export function JournalFlow({
   const [topicTypes, setTopicTypes] = useState<Map<string, EntityType>>(new Map());
   const [acceptingTopicId, setAcceptingTopicId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [analysingMore, setAnalysingMore] = useState(false);
 
   useEffect(() => {
     if (!draft) return;
@@ -297,14 +298,13 @@ export function JournalFlow({
       for (const t of newTopics) initialTypes.set(t.id, defaultTopicEntityType(t));
       setTopicTypes(initialTypes);
 
-      // Track the session created by this analysis
       if (newTopics.length > 0) {
-        setCurrentSessionId(newTopics[0].organiser_session_id);
-      }
-
-      setScreen("cards");
-
-      if (newTopics.length === 0) {
+        const newSessionId = newTopics[0].organiser_session_id;
+        setCurrentSessionId(newSessionId);
+        setOpenSession(newSessionId);
+        setScreen("history");
+        void sessionsQuery.refetch();
+      } else {
         toast("No topics found in this entry.");
       }
     } catch (e) {
@@ -339,6 +339,29 @@ export function JournalFlow({
     setTopicTypes(new Map());
     setCurrentSessionId(null);
     setScreen("input");
+  };
+
+  const handleMoreSuggestions = async (text: string) => {
+    if (!user) return;
+    setAnalysingMore(true);
+    try {
+      const moreTopics = await analyse({
+        text,
+        userId: user.centralId,
+        tenantId: user.tenantId,
+        projectId: activeProjectId ?? undefined,
+      });
+      setTopicTypes(prev => {
+        const m = new Map(prev);
+        for (const t of moreTopics) m.set(t.id, defaultTopicEntityType(t));
+        return m;
+      });
+      setTopics(prev => [...prev, ...moreTopics]);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAnalysingMore(false);
+    }
   };
 
   if (loading || !user) {
@@ -598,10 +621,31 @@ export function JournalFlow({
             <SessionHistoryView
               sessionId={openSession}
               onBack={() => { setOpenSession(null); setScreen("input"); }}
-              onMoreSuggestions={(text) => {
-                setEntryText(text);
-                setScreen("input");
+              onMoreSuggestions={openSession === currentSessionId ? handleMoreSuggestions : undefined}
+              liveTopics={openSession === currentSessionId ? topics : undefined}
+              acceptingTopicId={acceptingTopicId}
+              savedTopicIds={savedTopicIds}
+              savedTopicTargets={savedTopicTargets}
+              topicTypes={topicTypes}
+              setTopicTypes={setTopicTypes}
+              onTopicAccept={(topic, type) => {
+                setAcceptingTopicId(topic.id);
+                return applyTopic(topic, type)
+                  .then((target) => {
+                    setSavedTopicIds(prev => new Set([...prev, topic.id]));
+                    if (target) {
+                      setSavedTopicTargets(prev => new Map(prev).set(topic.id, target));
+                      openEntity(target);
+                    }
+                    void sessionsQuery.refetch();
+                    return target;
+                  })
+                  .catch((e: Error) => { toast.error(e.message); return undefined; })
+                  .finally(() => setAcceptingTopicId(null));
               }}
+              onTopicGoTo={(t) => openEntity(t)}
+              onTopicDismiss={handleDismissTopic}
+              analysingMore={analysingMore}
             />
           )}
         </div>
@@ -722,18 +766,40 @@ function SessionHistoryView({
   sessionId,
   onBack,
   onMoreSuggestions,
+  liveTopics,
+  acceptingTopicId,
+  savedTopicIds,
+  savedTopicTargets,
+  topicTypes,
+  setTopicTypes,
+  onTopicAccept,
+  onTopicGoTo,
+  onTopicDismiss,
+  analysingMore,
 }: {
   sessionId: string;
   onBack: () => void;
-  onMoreSuggestions?: (text: string) => void;
+  onMoreSuggestions?: (text: string) => Promise<void>;
+  liveTopics?: JournalTopic[];
+  acceptingTopicId?: string | null;
+  savedTopicIds?: Set<string>;
+  savedTopicTargets?: Map<string, EntityPanelTarget>;
+  topicTypes?: Map<string, EntityType>;
+  setTopicTypes?: React.Dispatch<React.SetStateAction<Map<string, EntityType>>>;
+  onTopicAccept?: (topic: JournalTopic, type: EntityType) => Promise<EntityPanelTarget | undefined>;
+  onTopicGoTo?: (target: EntityPanelTarget) => void;
+  onTopicDismiss?: (topic: JournalTopic) => void;
+  analysingMore?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { openEntity } = useRightPanel();
   const [showFullText, setShowFullText] = useState(false);
 
+  const hasLiveTopics = liveTopics !== undefined;
   const { data, isLoading } = useQuery({
     queryKey: ["session-proposals", sessionId],
     queryFn: () => getSessionProposals(sessionId),
+    enabled: !hasLiveTopics || liveTopics.length === 0,
   });
 
   const sessionQuery = useQuery({
@@ -841,23 +907,75 @@ function SessionHistoryView({
           </div>
         )}
 
-        {isLoading && (
-          <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
+        {/* Current session: render live TopicCards (same UI as cards screen) */}
+        {hasLiveTopics && liveTopics.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {liveTopics.map((topic) => (
+              <TopicCard
+                key={topic.id}
+                topic={topic}
+                saved={savedTopicIds?.has(topic.id) ?? false}
+                target={savedTopicTargets?.get(topic.id)}
+                selectedType={topicTypes?.get(topic.id) ?? defaultTopicEntityType(topic)}
+                onTypeChange={(type) => setTopicTypes?.(prev => new Map(prev).set(topic.id, type))}
+                accepting={acceptingTopicId === topic.id}
+                onAccept={() => {
+                  const type = topicTypes?.get(topic.id) ?? defaultTopicEntityType(topic);
+                  void onTopicAccept?.(topic, type);
+                }}
+                onDismiss={() => onTopicDismiss?.(topic)}
+                onGoTo={(t) => onTopicGoTo?.(t)}
+              />
+            ))}
+            {analysingMore && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0", color: "var(--skin-ink-faint)", fontSize: 13 }}>
+                <Loader2 size={15} className="animate-spin" /> Loading more suggestions…
+              </div>
+            )}
+          </div>
         )}
-        {!isLoading && proposals.length === 0 && (
-          <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>No proposals in this session.</div>
+
+        {/* Current session: all live topics dismissed */}
+        {hasLiveTopics && liveTopics.length === 0 && (
+          analysingMore ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0", color: "var(--skin-ink-faint)", fontSize: 13 }}>
+              <Loader2 size={15} className="animate-spin" /> Loading more suggestions…
+            </div>
+          ) : (
+            <div style={{ padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+              <CheckCircle2 size={36} style={{ color: "var(--skin-accent)", opacity: 0.7 }} />
+              <p style={{ color: "var(--skin-ink-faint)", fontSize: 14, textAlign: "center", margin: 0 }}>
+                No suggestions remaining.
+              </p>
+              <button className="x-btn-primary" style={{ width: "auto", paddingInline: 20 }} onClick={onBack}>
+                New entry
+              </button>
+            </div>
+          )
         )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {proposals.map((p) => (
-            <HistoricalProposalCard
-              key={p.id}
-              proposal={p}
-              onAccept={handleAccept}
-              onDismiss={handleDismiss}
-              onGoTo={handleGoTo}
-            />
-          ))}
-        </div>
+
+        {/* Historical session: fetch from Supabase */}
+        {!hasLiveTopics && (
+          <>
+            {isLoading && (
+              <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>Loading…</div>
+            )}
+            {!isLoading && proposals.length === 0 && (
+              <div style={{ color: "var(--skin-ink-faint)", fontSize: 14 }}>No proposals in this session.</div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {proposals.map((p) => (
+                <HistoricalProposalCard
+                  key={p.id}
+                  proposal={p}
+                  onAccept={handleAccept}
+                  onDismiss={handleDismiss}
+                  onGoTo={handleGoTo}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
