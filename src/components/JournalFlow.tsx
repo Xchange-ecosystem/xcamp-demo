@@ -32,6 +32,9 @@ import {
   type HistoricalProposal,
 } from "@/lib/journal-api";
 import { useRightPanel, type EntityPanelTarget } from "@/contexts/right-panel";
+import { useBrand } from "@/lib/brand";
+import xcampIconEmerald from "@/assets/Xcamp icon emerald.png";
+import noxIconWithX from "@/assets/Nox icon with X.png";
 import type { AICard } from "@xchange/client";
 
 type Screen = "input" | "history";
@@ -135,11 +138,13 @@ function statusColors(status: SessionStatus): { bg: string; fg: string } {
   }
 }
 
-// Large branded record orb — brand X-mark SVG on teal radial gradient
-function RecordOrb({ isListening, onClick, supported }: {
+// Large branded record orb — live-theme brand X-mark on accent radial gradient
+function RecordOrb({ isListening, onClick, supported, iconUrl, iconAlt }: {
   isListening: boolean;
   onClick: () => void;
   supported: boolean;
+  iconUrl: string;
+  iconAlt: string;
 }) {
   return (
     <button
@@ -153,7 +158,7 @@ function RecordOrb({ isListening, onClick, supported }: {
         borderRadius: "50%",
         border: "none",
         cursor: supported ? "pointer" : "not-allowed",
-        background: "radial-gradient(circle at 35% 30%, #7be7d8, #2fb7c2 65%, #1f8f9a)",
+        background: "radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--skin-accent) 45%, #fff), var(--skin-accent) 65%, color-mix(in srgb, var(--skin-accent) 75%, #001a14))",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -162,9 +167,12 @@ function RecordOrb({ isListening, onClick, supported }: {
         transition: "opacity 150ms",
       }}
     >
-      <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-        <path d="M4 4l16 16M20 4L4 20" stroke="#fff" strokeWidth="3.6" strokeLinecap="round" />
-      </svg>
+      <img
+        src={iconUrl}
+        alt={iconAlt}
+        aria-hidden="true"
+        style={{ width: 48, height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }}
+      />
     </button>
   );
 }
@@ -391,6 +399,8 @@ export function JournalFlow({
   const { activeProjectId } = useActiveProject();
   const isMobile = useIsMobile();
   const { openEntity } = useRightPanel();
+  const { isNox, name: brandName } = useBrand();
+  const orbIconUrl = isNox ? noxIconWithX : xcampIconEmerald;
   const voice = useVoiceTranscription();
   const voiceBaseRef = useRef("");
 
@@ -684,8 +694,8 @@ export function JournalFlow({
     <>
       <style>{`
         @keyframes jrnPulse {
-          0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary, 180 60% 50%) / 0.35); }
-          50% { box-shadow: 0 0 0 14px hsl(var(--primary, 180 60% 50%) / 0); }
+          0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--skin-accent) 40%, transparent); }
+          50% { box-shadow: 0 0 0 16px transparent; }
         }
       `}</style>
       <div
@@ -862,6 +872,8 @@ export function JournalFlow({
                 isListening={voice.isListening}
                 onClick={handleOrbClick}
                 supported={voice.supported}
+                iconUrl={orbIconUrl}
+                iconAlt={brandName}
               />
 
               <p style={{ margin: 0, fontSize: 13, color: "var(--skin-ink-soft)" }}>
