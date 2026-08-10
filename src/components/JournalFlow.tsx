@@ -1022,19 +1022,26 @@ function SessionHistoryView({
   const childrenOf = (parentId: string): JournalTopic[] =>
     liveTopics?.filter(t => parentMap?.get(t.id) === parentId) ?? [];
 
-  const handleHistoricalAccept = async (proposalId: string) => {
+  const handleHistoricalAccept = async (proposalId: string, overrideType?: 'objective' | 'task') => {
+    const overrides: { proposal_type?: string; note_type?: string } = {};
+    if (overrideType === 'objective') {
+      overrides.proposal_type = 'new_objective';
+    } else if (overrideType === 'task') {
+      overrides.proposal_type = 'add_note';
+      overrides.note_type = 'task';
+    }
     try {
-      await confirmSession(sessionId, [{ proposal_id: proposalId, approved: true }]);
+      await confirmSession(sessionId, [{ proposal_id: proposalId, approved: true, ...overrides }]);
       const commitResult = await commitSession(sessionId);
       await queryClient.invalidateQueries({ queryKey: ["session-proposals", sessionId] });
-      toast.success('Applied.');
+      toast.success('Created.');
       if (commitResult.results?.length) {
         const first = commitResult.results[0];
         const type: EntityPanelTarget['type'] = first.proposal_type === 'new_objective' ? 'objective' : 'note';
         openEntity({ type, id: first.id, objectiveId: first.objective_id });
       }
     } catch {
-      toast.error('Could not apply card.');
+      toast.error('Could not create item.');
     }
   };
 
@@ -1229,98 +1236,129 @@ function HistoricalProposalCard({
   onGoTo,
 }: {
   proposal: HistoricalProposal;
-  onAccept: (id: string) => Promise<void>;
+  onAccept: (id: string, overrideType?: 'objective' | 'task') => Promise<void>;
   onDismiss: (id: string) => Promise<void>;
   onGoTo: (proposal: HistoricalProposal) => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const statusConfig = {
-    committed: { label: "Applied", bg: "color-mix(in srgb, var(--skin-accent) 12%, transparent)", fg: "var(--skin-accent)" },
-    approved:  { label: "Approved", bg: "color-mix(in srgb, #22c55e 12%, transparent)", fg: "#22c55e" },
-    pending:   { label: "Pending", bg: "color-mix(in srgb, var(--skin-ink-faint) 12%, transparent)", fg: "var(--skin-ink-faint)" },
-    rejected:  { label: "Dismissed", bg: "color-mix(in srgb, var(--skin-danger, #d4524e) 10%, transparent)", fg: "var(--skin-danger, #d4524e)" },
-  } as const;
-  const cfg = statusConfig[proposal.status as keyof typeof statusConfig] ?? statusConfig.pending;
+  const [busy, setBusy] = useState<false | 'dismiss' | 'objective' | 'task'>(false);
+
   const title = proposal.title ?? (proposal.payload.title as string | undefined) ?? "Untitled";
   const body = (proposal.payload.body_markdown as string | undefined) ?? (proposal.payload.description as string | undefined);
   const objectiveTitle = proposal.payload.objective_title as string | undefined;
-  const hasGoTo = proposal.status === "committed" && !!proposal.payload.committed_entity_id;
-  const showActions = proposal.status === "pending" || proposal.status === "approved" || hasGoTo;
 
+  const isCommitted = proposal.status === "committed";
+  const isRejected = proposal.status === "rejected";
   const isPending = proposal.status === "pending" || proposal.status === "approved";
-  const typeLabel = proposal.proposal_type === 'new_objective' ? 'Objective' : proposal.proposal_type === 'add_note'
-    ? ((proposal.payload.note_type as string | undefined) === 'task' ? 'Task' : 'Note')
-    : proposal.proposal_type.replace(/_/g, " ");
+
+  const typeLabel = proposal.proposal_type === 'new_objective' ? 'Objective'
+    : proposal.proposal_type === 'add_note'
+      ? ((proposal.payload.note_type as string | undefined) === 'task' ? 'Task' : 'Note')
+      : proposal.proposal_type.replace(/_/g, " ");
+
+  const badgeBase: React.CSSProperties = {
+    padding: "3px 11px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+  };
+
+  const act = async (kind: 'dismiss' | 'objective' | 'task') => {
+    setBusy(kind);
+    try {
+      if (kind === 'dismiss') await onDismiss(proposal.id);
+      else await onAccept(proposal.id, kind);
+    } finally { setBusy(false); }
+  };
 
   return (
     <div style={{
       border: "1px solid var(--skin-line)", borderRadius: 12,
       padding: "16px 18px", background: "var(--skin-surface)",
-      opacity: proposal.status === "rejected" ? 0.6 : 1,
+      opacity: isRejected ? 0.55 : 1,
+      transition: "opacity 150ms",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          {proposal.status === "committed" && <CheckCircle2 size={14} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />}
-          {proposal.status === "rejected" && <XCircle size={14} style={{ color: "var(--skin-danger, #d4524e)", flexShrink: 0 }} />}
-          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>{title}</span>
+      {/* Header row: title + badges */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            {isCommitted && <CheckCircle2 size={14} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />}
+            {isRejected && <XCircle size={14} style={{ color: "var(--skin-danger, #d4524e)", flexShrink: 0 }} />}
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>{title}</span>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <span style={{
-            padding: "3px 11px", borderRadius: 999,
-            fontSize: 11, fontWeight: 600,
-            background: "var(--skin-surface2)", color: "var(--skin-ink)",
-          }}>
+          <span style={{ ...badgeBase, background: "var(--skin-surface2)", color: "var(--skin-ink)" }}>
             {typeLabel}
           </span>
-          <span style={{ padding: "3px 11px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: cfg.bg, color: cfg.fg }}>
-            {cfg.label}
-          </span>
+          {isPending && (
+            <span style={{
+              ...badgeBase,
+              background: "color-mix(in srgb, var(--skin-ink-faint) 12%, transparent)",
+              color: "var(--skin-ink-faint)",
+            }}>
+              Pending
+            </span>
+          )}
         </div>
       </div>
+
       {body && <p style={{ color: "var(--skin-ink-soft)", fontSize: 13, lineHeight: 1.5, margin: "0 0 10px" }}>{body}</p>}
       {objectiveTitle && <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", margin: "0 0 10px" }}>→ {objectiveTitle}</p>}
-      {showActions && (
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          {isPending && (
-            <button
-              disabled={busy}
-              onClick={async () => { setBusy(true); await onDismiss(proposal.id); setBusy(false); }}
-              style={{
-                padding: "7px 16px", border: "1px solid var(--skin-line)", borderRadius: 999,
-                background: "var(--skin-surface)", color: "var(--skin-ink)",
-                fontSize: 12, fontWeight: 600,
-                cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1,
-              }}
-            >
-              Dismiss
-            </button>
-          )}
-          {isPending && (
-            <button
-              disabled={busy}
-              onClick={async () => { setBusy(true); await onAccept(proposal.id); setBusy(false); }}
-              style={{
-                padding: "7px 16px", border: "none", borderRadius: 999,
-                background: "var(--skin-accent)", color: "#fff",
-                fontSize: 12, fontWeight: 700,
-                cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1,
-              }}
-            >
-              {busy ? "Applying…" : "Apply"}
-            </button>
-          )}
-          {hasGoTo && (
-            <button
-              onClick={() => onGoTo(proposal)}
-              style={{
-                padding: "7px 18px", border: "none", borderRadius: 999,
-                background: "var(--skin-accent)", color: "#fff",
-                fontSize: 12, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              Open
-            </button>
-          )}
+
+      {/* Actions */}
+      {isPending && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            disabled={!!busy}
+            onClick={() => act('dismiss')}
+            style={{
+              padding: "7px 14px", border: "1px solid var(--skin-line)", borderRadius: 999,
+              background: "var(--skin-surface)", color: "var(--skin-ink)",
+              fontSize: 12, fontWeight: 600,
+              cursor: busy ? "not-allowed" : "pointer", opacity: busy === 'dismiss' ? 0.5 : 1,
+              transition: "opacity 150ms",
+            }}
+          >
+            {busy === 'dismiss' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Dismiss"}
+          </button>
+          <button
+            disabled={!!busy}
+            onClick={() => act('objective')}
+            style={{
+              padding: "7px 14px", border: "1px solid var(--skin-line)", borderRadius: 999,
+              background: "var(--skin-surface)", color: "var(--skin-ink)",
+              fontSize: 12, fontWeight: 600,
+              cursor: busy ? "not-allowed" : "pointer", opacity: busy === 'objective' ? 0.5 : 1,
+              transition: "opacity 150ms",
+            }}
+          >
+            {busy === 'objective' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Create Objective and Tasks"}
+          </button>
+          <button
+            disabled={!!busy}
+            onClick={() => act('task')}
+            style={{
+              padding: "7px 14px", border: "none", borderRadius: 999,
+              background: "var(--skin-accent)", color: "#fff",
+              fontSize: 12, fontWeight: 700,
+              cursor: busy ? "not-allowed" : "pointer", opacity: busy === 'task' ? 0.7 : 1,
+              transition: "opacity 150ms",
+            }}
+          >
+            {busy === 'task' ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} /> : "Create Note or Task"}
+          </button>
+        </div>
+      )}
+
+      {isCommitted && !!proposal.payload.committed_entity_id && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => onGoTo(proposal)}
+            style={{
+              padding: "7px 18px", border: "none", borderRadius: 999,
+              background: "var(--skin-accent)", color: "#fff",
+              fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            Open
+          </button>
         </div>
       )}
     </div>
