@@ -693,6 +693,49 @@ export function JournalFlow({
     }
   };
 
+  const handleHistoricalObjectiveCommitted = async (entityId: string, proposalTitle: string, text: string) => {
+    if (!user || !openSession) return;
+    const parentId = `h-obj-${entityId}`;
+    const syntheticParent: JournalTopic = {
+      id: parentId,
+      title: proposalTitle,
+      summary: '',
+      suggested_note_type: 'task',
+      organiser_session_id: openSession,
+      organiser_proposals: [],
+    };
+    // Immediately switch to live mode so the objective card shows while tasks load
+    setSavedTopicIds(new Set([parentId]));
+    setSavedTopicTargets(new Map([[parentId, { type: 'objective', id: entityId }]]));
+    setTopicTypes(new Map([[parentId, 'objective']]));
+    setTopics([syntheticParent]);
+    setParentMap(new Map());
+    setLiveTopicsSessionId(openSession);
+    setCreatingObjectiveId(parentId);
+    try {
+      const nestedTopics = await analyse({
+        text,
+        userId: user.centralId,
+        tenantId: user.tenantId,
+        projectId: activeProjectId ?? undefined,
+      });
+      const newParentMap = new Map<string, string>();
+      const newTopicTypes = new Map<string, EntityType>([[parentId, 'objective']]);
+      for (const t of nestedTopics) {
+        newParentMap.set(t.id, parentId);
+        newTopicTypes.set(t.id, 'task');
+      }
+      setTopics([syntheticParent, ...nestedTopics]);
+      setParentMap(newParentMap);
+      setTopicTypes(newTopicTypes);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setCreatingObjectiveId(null);
+    }
+    void sessionsQuery.refetch();
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center py-16" style={{ color: "var(--skin-ink-soft)" }}>
@@ -971,6 +1014,7 @@ export function JournalFlow({
               onCreateNoteOrTask={handleCreateNoteOrTask}
               onMoreTasksForObjective={handleMoreTasksForObjective}
               onDismiss={handleDismissTopic}
+              onHistoricalObjectiveCommitted={handleHistoricalObjectiveCommitted}
             />
           )}
         </div>
@@ -995,6 +1039,7 @@ function SessionHistoryView({
   onCreateNoteOrTask,
   onMoreTasksForObjective,
   onDismiss,
+  onHistoricalObjectiveCommitted,
 }: {
   sessionId: string;
   entryText: string;
@@ -1011,6 +1056,7 @@ function SessionHistoryView({
   onCreateNoteOrTask?: (topic: JournalTopic) => void;
   onMoreTasksForObjective?: (objectiveTopicId: string) => void;
   onDismiss?: (topic: JournalTopic) => void;
+  onHistoricalObjectiveCommitted?: (entityId: string, proposalTitle: string, displayText: string) => Promise<void>;
 }) {
   const { openEntity } = useRightPanel();
   const queryClient = useQueryClient();
@@ -1054,6 +1100,10 @@ function SessionHistoryView({
         const first = commitResult.results[0];
         const type: EntityPanelTarget['type'] = first.proposal_type === 'new_objective' ? 'objective' : 'note';
         openEntity({ type, id: first.id, objectiveId: first.objective_id });
+        if (overrideType === 'objective' && displayText) {
+          const proposalTitle = historicalProposals?.find(p => p.id === proposalId)?.title ?? 'Untitled';
+          await onHistoricalObjectiveCommitted?.(first.id, proposalTitle, displayText);
+        }
       }
     } catch {
       toast.error('Could not create item.');
