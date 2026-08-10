@@ -6,6 +6,12 @@ import { useAltitudeStore } from "@/store/altitudeStore";
 import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 import type { ProjectFull } from "@/types/xcamp";
 
+// Brand orb gradient colours — theme-specific, not tied to altitude.
+const ORB_GRADIENT: Record<"xcamp" | "nox", { from: string; to: string }> = {
+  xcamp: { from: "#1d9e8f", to: "#1f5fae" },
+  nox:   { from: "#5a5ae0", to: "#3fb6c9" },
+};
+
 // Altitude accent RGB values — mirrors the token map used for altitude state in sidepanel/Vox.
 const ALTITUDE_ACCENT: Record<"xcamp" | "nox", Record<"glide" | "cruise" | "cockpit", string>> = {
   xcamp: { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
@@ -50,6 +56,8 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
   const bars = barsRef.current;
 
   const theme = isNox ? "nox" : "xcamp";
+  const orb = ORB_GRADIENT[theme];
+  const orbGradient = `radial-gradient(circle at 35% 30%, ${orb.from}, ${orb.to})`;
   const altKey = ALTITUDE_SLUG[altitude as 0 | 1 | 2] ?? "cruise";
   const rgb = ALTITUDE_ACCENT[theme][altKey];
   const altitudeTint = `linear-gradient(180deg, rgba(${rgb},${OVERLAY_STRENGTH}), rgba(${rgb},${OVERLAY_STRENGTH * 0.55}))`;
@@ -72,13 +80,14 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
       <style>{`
         @keyframes pe-wave { 0%,100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
         @keyframes pe-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pe-orb-pulse { 0%,100% { transform: scale(1); opacity: 0.35; } 50% { transform: scale(1.35); opacity: 0; } }
         .pe-scroll::-webkit-scrollbar { height: 6px; }
         .pe-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 999px; }
         .pe-tile { transition: transform 150ms ease, box-shadow 150ms ease; }
         .pe-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,25,30,0.18); }
         .pe-tile:active { transform: translateY(-1px) scale(0.98); }
         @media (prefers-reduced-motion: reduce) {
-          .pe-wave-bar { animation: none !important; }
+          .pe-wave-bar, .pe-orb-pulse { animation: none !important; }
           .pe-fade-label, .pe-fade-row, .pe-fade-footer { animation: none !important; opacity: 1 !important; }
           .pe-tile { transition: none !important; }
         }
@@ -179,12 +188,39 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
           gap: 20,
         }}
       >
-        {/* 1. Brand icon */}
-        <img
-          src={brand.iconUrl}
-          alt={brand.name}
-          style={{ width: 132, height: 132, display: "block", objectFit: "contain" }}
-        />
+        {/* 1. Pulsing orb with brand icon */}
+        <div style={{ position: "relative", width: 132, height: 132 }}>
+          {/* Outer pulsing ring */}
+          <div
+            className="pe-orb-pulse"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: orbGradient,
+              opacity: 0.35,
+              animation: "pe-orb-pulse 2.6s ease-in-out infinite",
+            }}
+          />
+          {/* Core orb */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: orbGradient,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={brand.iconUrl}
+              alt={brand.name}
+              style={{ width: "60%", height: "60%", objectFit: "contain", borderRadius: 6 }}
+            />
+          </div>
+        </div>
 
         {/* 2. Voice pill — waveform bars animate ambiently; click toggles mic */}
         <button
