@@ -1,28 +1,34 @@
 import { useRef } from "react";
 import { useTheme } from "@/lib/theme";
 import { useBrand } from "@/lib/brand";
+import { useHeroImage } from "@/lib/useHeroImage";
+import { useAltitudeStore } from "@/store/altitudeStore";
+import { useVoiceTranscription } from "@/hooks/useVoiceTranscription";
 import type { ProjectFull } from "@/types/xcamp";
 
-// Decorative-only colors with no --skin-* equivalent (aurora wash + skyline silhouette + orb gradient).
-const XCAMP = {
-  skyline: "#aebccb",
-  skyline2: "#93a4b7",
-  auroraA: "rgba(31,158,143,0.30)",
-  auroraB: "rgba(31,95,174,0.22)",
-  orbFrom: "#1d9e8f",
-  orbTo: "#1f5fae",
-} as const;
+// Altitude accent RGB values — mirrors the token map used for altitude state in sidepanel/Vox.
+const ALTITUDE_ACCENT: Record<"xcamp" | "nox", Record<"glide" | "cruise" | "cockpit", string>> = {
+  xcamp: { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
+  nox:   { glide: "168,85,247",  cruise: "124,58,237",  cockpit: "37,99,235"   },
+};
+const ALTITUDE_SLUG = ["glide", "cruise", "cockpit"] as const;
+const OVERLAY_STRENGTH = 0.35;
 
-const NOX = {
-  skyline: "#131a24",
-  skyline2: "#0c111a",
-  auroraA: "rgba(31,158,143,0.35)",
-  auroraB: "rgba(60,52,180,0.30)",
-  orbFrom: "#5a5ae0",
-  orbTo: "#3fb6c9",
-} as const;
+const BAR_COUNT = 52;
 
-const BAR_COUNT = 34;
+function buildBars() {
+  const n = BAR_COUNT;
+  return Array.from({ length: n }, (_, i) => {
+    const env = Math.sin((i / (n - 1)) * Math.PI);
+    const v = 10 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)) * 72 * (0.35 + env * 0.65);
+    return {
+      height: Math.round(v),
+      // Negative delay pre-starts the animation mid-cycle, staggering bars without a cold start.
+      delay: parseFloat(((-(i * 0.045)) % 1.2).toFixed(2)),
+      duration: parseFloat((0.7 + (i % 5) * 0.08).toFixed(2)),
+    };
+  });
+}
 
 interface Props {
   projects: ProjectFull[];
@@ -35,17 +41,18 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
   const { resolved, setMode } = useTheme();
   const brand = useBrand();
   const isNox = resolved === "dark";
-  const t = isNox ? NOX : XCAMP;
+  const { altitude } = useAltitudeStore();
+  const { url: heroBgUrl } = useHeroImage(); // no seed → random per load
+  const voice = useVoiceTranscription();
 
-  // Stable random bar values — generated once at mount, never re-randomized on re-render.
-  const barsRef = useRef(
-    Array.from({ length: BAR_COUNT }, () => ({
-      height: 6 + Math.round(Math.random() * 18),
-      delay: (Math.random() * 1.1).toFixed(2),
-      duration: (0.8 + Math.random() * 0.6).toFixed(2),
-    }))
-  );
+  // Stable bar values — generated once at mount.
+  const barsRef = useRef(buildBars());
   const bars = barsRef.current;
+
+  const theme = isNox ? "nox" : "xcamp";
+  const altKey = ALTITUDE_SLUG[altitude as 0 | 1 | 2] ?? "cruise";
+  const rgb = ALTITUDE_ACCENT[theme][altKey];
+  const altitudeTint = `linear-gradient(180deg, rgba(${rgb},${OVERLAY_STRENGTH}), rgba(${rgb},${OVERLAY_STRENGTH * 0.55}))`;
 
   return (
     <div
@@ -53,68 +60,65 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
         position: "fixed",
         inset: 0,
         zIndex: 50,
-        background: "var(--skin-bg)",
         overflow: "hidden",
-        fontFamily: "'Hanken Grotesk', sans-serif",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+        background: "#0f1c1f",
+        fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
       }}
     >
-      {/* Animation keyframes + hover helpers injected once per render */}
       <style>{`
-        @keyframes pe-drift-aurora {
-          0%   { transform: translateY(0) scale(1); }
-          100% { transform: translateY(3%) scale(1.05); }
-        }
-        @keyframes pe-orb-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.35; }
-          50%       { transform: scale(1.35); opacity: 0; }
-        }
-        @keyframes pe-wave {
-          0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
-          50%       { transform: scaleY(1); opacity: 0.9; }
-        }
-        .pe-tile { transition: transform .18s ease, box-shadow .18s ease; }
-        .pe-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+        @keyframes pe-wave { 0%,100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+        @keyframes pe-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pe-scroll::-webkit-scrollbar { height: 6px; }
+        .pe-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 999px; }
+        .pe-tile { transition: transform 150ms ease, box-shadow 150ms ease; }
+        .pe-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,25,30,0.18); }
         .pe-tile:active { transform: translateY(-1px) scale(0.98); }
+        @media (prefers-reduced-motion: reduce) {
+          .pe-wave-bar { animation: none !important; }
+          .pe-fade-label, .pe-fade-row, .pe-fade-footer { animation: none !important; opacity: 1 !important; }
+          .pe-tile { transition: none !important; }
+        }
       `}</style>
 
-      {/* ── Aurora wash ── */}
+      {/* ── Background photo — random from "App media/Hero" per load ── */}
+      {heroBgUrl && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url("${heroBgUrl}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      )}
+
+      {/* ── Brand gradient wash (teal → mint, ~40–55% opacity) ── */}
       <div
         style={{
           position: "absolute",
-          inset: "-20%",
-          background: `radial-gradient(ellipse 60% 40% at 20% 10%, ${t.auroraA}, transparent 60%),
-                       radial-gradient(ellipse 50% 35% at 75% 5%, ${t.auroraB}, transparent 60%)`,
-          filter: "blur(30px)",
-          animation: "pe-drift-aurora 22s ease-in-out infinite alternate",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(160deg, rgba(52,172,191,0.55), rgba(77,224,193,0.45) 55%, rgba(15,28,31,0.6))",
         }}
       />
 
-      {/* ── Dusk skyline ── */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" }}>
-        <svg
-          viewBox="0 0 1200 400"
-          preserveAspectRatio="none"
-          style={{ width: "100%", height: "100%", display: "block" }}
-        >
-          <rect x="0"    y="180" width="60"  height="220" fill={t.skyline2} />
-          <rect x="70"   y="120" width="90"  height="280" fill={t.skyline}  />
-          <rect x="170"  y="200" width="50"  height="200" fill={t.skyline2} />
-          <rect x="230"  y="90"  width="70"  height="310" fill={t.skyline}  />
-          <rect x="310"  y="150" width="55"  height="250" fill={t.skyline2} />
-          <rect x="375"  y="60"  width="85"  height="340" fill={t.skyline}  />
-          <rect x="470"  y="170" width="60"  height="230" fill={t.skyline2} />
-          <rect x="540"  y="30"  width="95"  height="370" fill={t.skyline}  />
-          <rect x="645"  y="140" width="65"  height="260" fill={t.skyline2} />
-          <rect x="720"  y="100" width="80"  height="300" fill={t.skyline}  />
-          <rect x="810"  y="200" width="50"  height="200" fill={t.skyline2} />
-          <rect x="870"  y="70"  width="90"  height="330" fill={t.skyline}  />
-          <rect x="970"  y="160" width="60"  height="240" fill={t.skyline2} />
-          <rect x="1040" y="110" width="75"  height="290" fill={t.skyline}  />
-          <rect x="1125" y="190" width="75"  height="210" fill={t.skyline2} />
-        </svg>
-      </div>
+      {/* ── Theme + altitude tint (~30–35% opacity) ── */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background: altitudeTint,
+        }}
+      />
 
-      {/* ── Mode switch — top-right ── */}
+      {/* ── Xcamp / Nox toggle — top-right ── */}
       <div
         style={{
           position: "fixed",
@@ -129,6 +133,7 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
           padding: 3,
           borderRadius: 999,
           backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
         }}
       >
         <ModeSwitchButton
@@ -155,156 +160,163 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
         />
       </div>
 
-      {/* ── Main shell — centered card ── */}
+      {/* ── Frosted glass card ── */}
       <div
         style={{
           position: "relative",
-          zIndex: 2,
-          height: "100vh",
           width: "100%",
+          maxWidth: 720,
+          padding: "40px 44px 36px",
+          borderRadius: 28,
+          border: "1px solid rgba(255,255,255,0.45)",
+          background: "rgba(255,255,255,0.34)",
+          backdropFilter: "blur(26px)",
+          WebkitBackdropFilter: "blur(26px)",
+          boxShadow: "0 24px 60px rgba(10,25,30,0.28)",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
+          gap: 20,
         }}
       >
+        {/* 1. Brand icon */}
+        <img
+          src={brand.iconUrl}
+          alt={brand.name}
+          style={{ width: 132, height: 132, display: "block", objectFit: "contain" }}
+        />
+
+        {/* 2. Voice pill — waveform bars animate ambiently; click toggles mic */}
+        <button
+          type="button"
+          onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+          title={voice.isListening ? "Stop listening" : "Tap to speak"}
+          style={{
+            appearance: "none",
+            WebkitAppearance: "none",
+            border: voice.isListening ? "2px solid var(--skin-accent)" : "2px solid transparent",
+            boxSizing: "border-box",
+            width: "100%",
+            maxWidth: 380,
+            background: "#fff",
+            borderRadius: 16,
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 3,
+            height: 118,
+            boxShadow: "0 2px 8px rgba(10,25,30,0.08)",
+            cursor: "pointer",
+            transition: "border-color 150ms ease",
+          }}
+        >
+          {bars.map((bar, i) => (
+            <span
+              key={i}
+              className="pe-wave-bar"
+              style={{
+                display: "block",
+                width: 3,
+                height: bar.height,
+                borderRadius: 2,
+                background: "var(--skin-accent)",
+                transformOrigin: "center",
+                animation: `pe-wave ${bar.duration}s ease-in-out ${bar.delay}s infinite`,
+              }}
+            />
+          ))}
+        </button>
+
+        {/* 3. Heading */}
         <div
           style={{
-            width: "100%",
-            maxWidth: 460,
-            background: "var(--skin-surface)",
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            borderRadius: 28,
-            padding: "36px 30px 28px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            boxShadow: "0 30px 80px rgba(0,0,0,0.35)",
+            gap: 6,
+            marginTop: 4,
           }}
         >
-          {/* ── Orb ── */}
-          <div style={{ position: "relative", width: 108, height: 108, marginBottom: 18 }}>
-            {/* Pulsing outer ring */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                background: `radial-gradient(circle at 35% 30%, ${t.orbFrom}, ${t.orbTo})`,
-                opacity: 0.35,
-                animation: "pe-orb-pulse 2.6s ease-in-out infinite",
-              }}
-            />
-            {/* Core orb */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                background: `radial-gradient(circle at 35% 30%, ${t.orbFrom}, ${t.orbTo})`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <img
-                src={brand.iconUrl}
-                alt={brand.name}
-                style={{ width: "60%", height: "60%", objectFit: "contain", borderRadius: 6 }}
-              />
-            </div>
-          </div>
-
-          {/* ── Waveform (decorative mock — no audio) ── */}
-          <div
-            style={{
-              background: "var(--skin-surface2)",
-              borderRadius: 999,
-              padding: "12px 18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 3,
-              height: 40,
-              width: 220,
-              marginBottom: 22,
-            }}
-          >
-            {bars.map((bar, i) => (
-              <span
-                key={i}
-                style={{
-                  display: "block",
-                  width: 2.5,
-                  height: bar.height,
-                  borderRadius: 2,
-                  background: "var(--skin-accent)",
-                  opacity: 0.75,
-                  animation: `pe-wave ${bar.duration}s ease-in-out ${bar.delay}s infinite`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* ── Heading ── */}
           <h1
             style={{
-              fontWeight: 700,
+              margin: 0,
+              fontSize: 34,
+              fontWeight: 600,
               letterSpacing: "-0.01em",
-              fontSize: 26,
               color: "var(--skin-ink)",
-              marginBottom: 6,
               textAlign: "center",
-              margin: "0 0 6px",
             }}
           >
             Welcome to {isNox ? "Nox" : "Xcamp"}.
           </h1>
-          <div
-            style={{
-              fontSize: 12.5,
-              color: "var(--skin-ink-faint)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              fontWeight: 600,
-              marginBottom: 20,
-            }}
-          >
-            Tap your project
-          </div>
 
-          {/* ── Project tiles — flex-wrap, 2 per row, matching EcosystemHomeView ProjectTile pattern ── */}
-          <div
+          {/* 4a. Staggered fade — "Tab your project" label */}
+          <p
+            className="pe-fade-label"
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 10,
-              width: "100%",
-              marginBottom: 22,
+              margin: 0,
+              fontSize: 15,
+              color: "var(--skin-ink-soft)",
+              textAlign: "center",
+              opacity: 0,
+              animation: "pe-fade-up 0.6s ease-out 0.4s forwards",
             }}
           >
-            {projects.map((project) => (
-              <button
-                key={project.id}
-                className="pe-tile"
-                onClick={() => onProjectSelect(project)}
+            Tab your project
+          </p>
+        </div>
+
+        {/* 4b/5. Staggered fade — horizontally scrollable project row */}
+        <div
+          className="pe-scroll pe-fade-row"
+          style={{
+            width: "100%",
+            display: "flex",
+            gap: 16,
+            marginTop: 4,
+            overflowX: "auto",
+            paddingBottom: 4,
+            opacity: 0,
+            animation: "pe-fade-up 0.6s ease-out 0.7s forwards",
+          }}
+        >
+          {projects.map((project) => (
+            <button
+              key={project.id}
+              type="button"
+              className="pe-tile"
+              onClick={() => onProjectSelect(project)}
+              style={{
+                appearance: "none",
+                WebkitAppearance: "none",
+                border: "none",
+                padding: 0,
+                margin: 0,
+                font: "inherit",
+                boxSizing: "border-box",
+                flex: "0 0 200px",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                background: "#fff",
+                borderRadius: 16,
+                overflow: "hidden",
+                boxShadow: "var(--shadow-card)",
+                textAlign: "left",
+              }}
+            >
+              {/* Feature image — 4:3 aspect */}
+              <div
                 style={{
                   position: "relative",
-                  width: "calc(50% - 5px)",
-                  aspectRatio: "3 / 4",
-                  borderRadius: 10,
+                  aspectRatio: "4 / 3",
+                  background: project.color ?? "hsl(210 20% 95%)",
+                  flexShrink: 0,
                   overflow: "hidden",
-                  cursor: "pointer",
-                  border: "1px solid var(--skin-line)",
-                  background: "var(--skin-surface2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  padding: 0,
                 }}
               >
-                {project.feature_image ? (
+                {project.feature_image && (
                   <img
                     src={project.feature_image}
                     alt=""
@@ -316,117 +328,136 @@ export function ProjectEntryScreen({ projects, onProjectSelect, onNewProject, on
                       objectFit: "cover",
                     }}
                   />
-                ) : project.color ? (
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: project.color,
-                    }}
-                  />
-                ) : null}
-                <div
-                  style={{
-                    position: "relative",
-                    zIndex: 1,
-                    padding: "8px 8px 9px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#fff",
-                    background: "linear-gradient(0deg, rgba(0,0,0,0.55), transparent)",
-                    textAlign: "left",
-                  }}
-                >
-                  {project.name}
-                </div>
-              </button>
-            ))}
+                )}
+              </div>
+              {/* Project title */}
+              <div
+                style={{
+                  padding: "14px 16px 18px",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "var(--skin-ink)",
+                  lineHeight: 1.3,
+                }}
+              >
+                {project.name}
+              </div>
+            </button>
+          ))}
 
-            {/* New project tile */}
-            <button
-              className="pe-tile"
-              onClick={onNewProject}
+          {/* 6. Start a new project — same card shape, pinned at row end */}
+          <button
+            type="button"
+            className="pe-tile"
+            onClick={onNewProject}
+            style={{
+              appearance: "none",
+              WebkitAppearance: "none",
+              border: "none",
+              margin: 0,
+              font: "inherit",
+              boxSizing: "border-box",
+              flex: "0 0 200px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 14,
+              background: "#fff",
+              borderRadius: 16,
+              padding: "24px 12px",
+              boxShadow: "var(--shadow-card)",
+              minHeight: 168,
+            }}
+          >
+            <div
               style={{
-                width: "calc(50% - 5px)",
-                aspectRatio: "3 / 4",
-                borderRadius: 10,
-                overflow: "hidden",
-                cursor: "pointer",
-                background: "var(--skin-surface2)",
-                border: "1.5px dashed var(--skin-line)",
+                width: 64,
+                height: 64,
+                borderRadius: 999,
+                border: "2px solid var(--skin-line)",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "var(--skin-ink-soft)",
-                textAlign: "center",
-                gap: 6,
-                padding: 8,
               }}
             >
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  border: "1.5px solid var(--skin-ink-faint)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
-                Start a new project
-              </span>
-            </button>
-          </div>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </div>
+            <span
+              style={{
+                fontSize: 15,
+                color: "var(--skin-ink-soft)",
+                textAlign: "center",
+                lineHeight: 1.3,
+              }}
+            >
+              Start a new project
+            </span>
+          </button>
+        </div>
 
-          {/* ── Footer link ── */}
-          <div
+        {/* 4c/7. Staggered fade — ecosystem footer */}
+        <div
+          className="pe-fade-footer"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            marginTop: 8,
+            opacity: 0,
+            animation: "pe-fade-up 0.6s ease-out 1s forwards",
+          }}
+        >
+          <p
             style={{
+              margin: 0,
+              fontSize: 15,
+              color: "var(--skin-ink)",
               textAlign: "center",
-              fontSize: 12.5,
-              color: "var(--skin-ink-soft)",
-              lineHeight: 1.5,
             }}
           >
             Do you want to work with or invest into a startup?
-            <br />
-            <button
-              onClick={onEnterEcosystem}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                color: "var(--skin-accent)",
-                fontWeight: 600,
-                textDecoration: "underline",
-                cursor: "pointer",
-                fontSize: "inherit",
-                fontFamily: "inherit",
-              }}
-            >
-              Enter the ecosystem instead.
-            </button>
-          </div>
+          </p>
+          <button
+            type="button"
+            onClick={onEnterEcosystem}
+            style={{
+              appearance: "none",
+              WebkitAppearance: "none",
+              background: "none",
+              border: "none",
+              padding: 0,
+              margin: 0,
+              font: "inherit",
+              cursor: "pointer",
+              fontSize: 15,
+              color: "var(--skin-ink)",
+              textDecoration: "underline",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            Enter the ecosystem instead.
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 interface ModeSwitchButtonProps {
   label: string;
@@ -452,7 +483,7 @@ function ModeSwitchButton({ label, active, dark, onClick, icon }: ModeSwitchButt
         display: "flex",
         alignItems: "center",
         gap: 5,
-        transition: "background .15s ease, color .15s ease",
+        transition: "background 0.15s ease, color 0.15s ease",
         background: active ? (dark ? "#1a1f29" : "#fff") : "transparent",
         color: active ? (dark ? "#eef2f6" : "#111") : "rgba(255,255,255,0.65)",
       }}
