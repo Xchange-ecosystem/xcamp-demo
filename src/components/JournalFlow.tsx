@@ -511,7 +511,15 @@ export function JournalFlow({
           // Non-fatal — panel just won't open
         }
       }
-      toast.success("Saved and linked");
+      if (panelTarget) {
+        toast.success("Saved and linked");
+      } else {
+        // Commit ran but produced no entity — the guard above (line 478) already threw for
+        // full-failure responses; reaching here means an empty-results / partial response
+        // that didn't set panelTarget. Surface this instead of showing a false success toast.
+        const detail = commitResult.failures?.[0]?.error;
+        throw new Error(detail ?? "Entry was processed but no entity was created. Check that a project is selected.");
+      }
     } else {
       if (hasProposals && topic.organiser_session_id && wouldFailWithoutObjective) {
         await confirmSession(
