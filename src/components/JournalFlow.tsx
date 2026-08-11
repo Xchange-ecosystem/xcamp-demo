@@ -489,6 +489,27 @@ export function JournalFlow({
         } else {
           panelTarget = { type: 'note', id: first.id };
         }
+      } else {
+        // Fallback: proposals may already be committed from a previous run.
+        // Fetch them directly to recover the committed entity ID.
+        try {
+          const historicalProposals = await getSessionProposals(topic.organiser_session_id);
+          const committed = historicalProposals.find(
+            p => p.status === 'committed' && typeof p.payload.committed_entity_id === 'string',
+          );
+          if (committed) {
+            const entityId = committed.payload.committed_entity_id as string;
+            if (selectedType === 'objective' || committed.proposal_type === 'new_objective') {
+              panelTarget = { type: 'objective', id: entityId };
+            } else if (selectedType === 'task') {
+              panelTarget = { type: 'task', id: entityId };
+            } else {
+              panelTarget = { type: 'note', id: entityId };
+            }
+          }
+        } catch {
+          // Non-fatal — panel just won't open
+        }
       }
       toast.success("Saved and linked");
     } else {
@@ -762,6 +783,9 @@ export function JournalFlow({
           flexDirection: isMobile ? "column" : undefined,
           gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
           minHeight: "70vh",
+          width: "100%",
+          minWidth: 0,
+          transition: isMobile ? undefined : "grid-template-columns 180ms ease",
         }}
       >
         {/* Sidebar */}
@@ -773,7 +797,6 @@ export function JournalFlow({
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            transition: "width 180ms ease",
           }}
         >
           {effCollapsed ? (
