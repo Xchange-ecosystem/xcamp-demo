@@ -455,6 +455,9 @@ export function JournalFlow({
 
   const applyTopic = async (topic: JournalTopic, selectedType: EntityType): Promise<EntityPanelTarget | undefined> => {
     if (!user) return;
+    if (selectedType === 'objective' && !activeProjectId) {
+      throw new Error("Select a project to create an objective from this entry. Open any project from the sidebar first.");
+    }
     const noteTypeMap: Record<EntityType, string> = {
       objective: 'note', task: 'task', note: 'note', resource: 'reference',
     };
