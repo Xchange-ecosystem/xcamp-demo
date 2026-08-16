@@ -143,6 +143,7 @@ function RightPanelSlot() {
 
   return (
     <aside
+      data-testid="right-panel-slot"
       style={{
         width: isVisible ? RIGHT_PANEL_WIDTH : 0,
         flexShrink: 0,
@@ -161,7 +162,24 @@ function RightPanelSlot() {
 
 // ── AppShell ──────────────────────────────────────────────────────────────────
 
-export function AppShell({ children }: { children: ReactNode }) {
+/**
+ * "surface" — standard route chrome: opaque --skin-surface background, sidebar
+ *   open by default, main scrolls internally.
+ * "transparent" — companion surface (/home): the route paints its own full-bleed
+ *   hero background on <html>, so the shell must not cover it, and the sidebar
+ *   starts collapsed. Everything else — right panel, altitude dial, fullscreen
+ *   task modal — is identical, which is the whole point of the variant.
+ */
+export type AppShellVariant = "surface" | "transparent";
+
+export function AppShell({
+  children,
+  variant = "surface",
+}: {
+  children: ReactNode;
+  variant?: AppShellVariant;
+}) {
+  const transparent = variant === "transparent";
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const brand = useBrand();
@@ -183,10 +201,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
       if (stored !== null) return stored !== "true";
+      if (transparent) return false;
       const match = document.cookie.match(/(?:^|;\s*)sidebar_state=([^;]*)/);
       return match ? match[1] !== "false" : true;
     } catch {
-      return true;
+      return !transparent;
     }
   });
 
@@ -240,16 +259,35 @@ export function AppShell({ children }: { children: ReactNode }) {
       <RightPanelProvider>
         <SidebarProvider
           defaultOpen={sidebarDefaultOpen}
-          style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}
+          style={
+            {
+              "--sidebar-width": `${sidebarWidth}px`,
+              ...(transparent ? { background: "transparent" } : {}),
+            } as React.CSSProperties
+          }
         >
           <SidebarStatePersist />
           {!pathname.startsWith("/profile") && <MobileMenuButton />}
-          <div className="flex min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
+          <div
+            className="flex min-h-screen w-full"
+            style={{ background: transparent ? "transparent" : "var(--skin-surface)" }}
+          >
             {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
             <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
-            <div className="flex-1 flex flex-col min-w-0">
+            <div
+              className="flex-1 flex flex-col min-w-0"
+              style={transparent ? { background: "transparent" } : undefined}
+            >
               <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
-                <main className="flex-1 min-w-0" style={{ overflowY: "auto" }}>{children}</main>
+                <main
+                  className="flex-1 min-w-0"
+                  style={{
+                    overflowY: "auto",
+                    ...(transparent ? { background: "transparent" } : {}),
+                  }}
+                >
+                  {children}
+                </main>
                 <RightPanelSlot />
               </div>
             </div>

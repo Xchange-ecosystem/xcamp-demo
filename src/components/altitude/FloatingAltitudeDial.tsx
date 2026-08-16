@@ -22,6 +22,7 @@ export function FloatingAltitudeDial() {
   return (
     <button
       onClick={cycle}
+      data-testid="altitude-dial"
       title={`AI Altitude: ${meta.name} · ${meta.sub}\nClick to change`}
       className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-3 py-2 rounded-full text-white text-xs font-medium shadow-lg transition-all hover:scale-105 ${colors[altitude]}`}
     >
