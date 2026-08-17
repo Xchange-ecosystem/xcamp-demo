@@ -37,6 +37,8 @@ export function TaskFullscreenModal() {
       <div
         role="dialog"
         aria-modal="true"
+        data-testid="task-fullscreen-modal"
+        data-open={isOpen ? "true" : "false"}
         style={{
           position: "fixed",
           inset: 16,

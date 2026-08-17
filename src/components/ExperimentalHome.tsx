@@ -1,8 +1,7 @@
 /**
- * ExperimentalHome — Ecosystem Home and Project Home layouts for the
- * ?nav=experimental sidebar experiment. Rendered inside CompanionHomePage
- * when navVariant === "experimental"; replaced by ExperimentalChatView
- * after the user sends their first message.
+ * ExperimentalHome — Ecosystem Home and Project Home layouts, now the default
+ * /home experience. Rendered inside CompanionHomePage; replaced by
+ * ExperimentalChatView after the user sends their first message.
  *
  * All state lives in home.tsx; these are purely presentational.
  */

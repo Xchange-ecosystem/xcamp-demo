@@ -903,6 +903,7 @@ export function ItemSidepanel() {
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", flex: 1 }}>
           {typeLabel}
         </span>
+        <FullscreenButton item={current} />
         <KebabMenu item={current} onClose={close} />
       </div>
 
@@ -963,6 +964,37 @@ export function ItemSidepanel() {
   );
 }
 
+// ── Fullscreen control ──────────────────────────────────────────────────────
+// Tasks can be opened in the fullscreen modal. This used to be reachable only
+// via the kebab menu, which made "open a Navigator task fullscreen" a
+// three-interaction flow (open panel → open menu → pick item). Surfacing it in
+// the header makes it one visible click from the panel.
+
+function FullscreenButton({ item }: { item: PanelItem }) {
+  if (!(item.kind === "note" && item.noteType === "task")) return null;
+
+  return (
+    <button
+      onClick={() => useFullscreenTaskStore.getState().open(item.id)}
+      aria-label="Open fullscreen"
+      title="Open fullscreen"
+      data-testid="sidepanel-open-fullscreen"
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        color: "var(--skin-ink-faint)",
+        display: "flex",
+        alignItems: "center",
+        padding: 4,
+        borderRadius: 4,
+      }}
+    >
+      <ExternalLink size={15} />
+    </button>
+  );
+}
+
 // ── Kebab menu ──────────────────────────────────────────────────────────────
 
 function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) {
@@ -989,10 +1021,6 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
 
   const handleCopyLink = () => copyItemLink(item.id, item.kind);
 
-  const handleOpenFullscreen = () => {
-    useFullscreenTaskStore.getState().open(item.id);
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1013,12 +1041,8 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
-        {item.kind === "note" && item.noteType === "task" && (
-          <DropdownMenuItem onClick={handleOpenFullscreen} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <ExternalLink size={13} />
-            Open fullscreen
-          </DropdownMenuItem>
-        )}
+        {/* "Open fullscreen" now lives in the panel header as an always-visible
+            control (see FullscreenButton) rather than buried behind this menu. */}
         <DropdownMenuItem onClick={handleCopyLink} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <LinkIcon size={13} />
           Copy link

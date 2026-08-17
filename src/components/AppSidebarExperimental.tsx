@@ -1,8 +1,8 @@
 /**
  * AppSidebarExperimental — sibling of AppSidebar.tsx
  *
- * Activate with ?nav=experimental on any route that renders AppShell or CompanionShell.
- * Original AppSidebar.tsx is untouched.
+ * This is the default sidebar on every AppShell route. AppSidebar.tsx is the
+ * legacy sidebar, reached only in legacy mode (?ui=v1); leave it untouched.
  *
  * Phase 1 experiment:
  *  - Two-segment Ecosystem / Project selector replaces the plain <select> dropdown

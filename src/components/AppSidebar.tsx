@@ -38,6 +38,7 @@ import {
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { listProjects } from "@/lib/xcamp-api";
+import { exitLegacyUi } from "@/lib/uiVersion";
 import { AppLogo } from "@/components/AppLogo";
 
 const flatItems = [
@@ -287,12 +288,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Return to experimental"
-              onClick={() => {
-                sessionStorage.removeItem("xcamp-ui-version");
-                const url = new URL(window.location.href);
-                url.searchParams.delete("ui");
-                window.location.replace(url.toString());
-              }}
+              onClick={() => exitLegacyUi()}
               style={{ color: "var(--skin-accent)" }}
             >
               <Sparkles className="h-4 w-4" />
