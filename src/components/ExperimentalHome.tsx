@@ -103,17 +103,20 @@ const INTRO_OVERLAY_STYLE = `
   }
 `;
 
-// Two-stage typed text sequence: stage 1 lines 0–1, stage 2 lines 2–3, then hint.
+// Two-stage typed text sequence: stage 1 line 0, stage 2 lines 1–2, then hint.
 // No speak() calls — audio is blocked until the dismissing gesture anyway.
+// Deliberately excludes the personalized greeting: the hero underneath speaks
+// and types that itself once this overlay is dismissed, and repeating it here
+// duplicated the "Good morning, {name}" line back to back.
 const INTRO_LINES_STATIC = [
   "I am your companion, always at your service.",
   "Your project is ready. Are you?",
   "Tap the orb to get started.",
 ] as const;
 
-function EcoIntroOverlay({ greetLine, onDismiss }: { greetLine: string; onDismiss: () => void }) {
+function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
   const brand = useBrand();
-  const LINES = [greetLine, ...INTRO_LINES_STATIC];
+  const LINES = INTRO_LINES_STATIC;
   const lineIdxRef = useRef(0);
   const [lineIdx, setLineIdx] = useState(0);
   const [showHint, setShowHint] = useState(false);
@@ -187,7 +190,7 @@ function EcoIntroOverlay({ greetLine, onDismiss }: { greetLine: string; onDismis
                   fontSize: 18,
                   fontWeight: 600,
                   lineHeight: 1.45,
-                  margin: i === 2 ? "12px 0 0" : "0",
+                  margin: i === 1 ? "12px 0 0" : "0",
                 }}
               >
                 {i < lineIdx
@@ -1183,7 +1186,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   return (
     <>
       {showOverlay && (
-        <EcoIntroOverlay greetLine={greetText} onDismiss={handleOverlayDismiss} />
+        <EcoIntroOverlay onDismiss={handleOverlayDismiss} />
       )}
       <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
       <EcosystemHeroLayout heroSrc={heroSrc}>
