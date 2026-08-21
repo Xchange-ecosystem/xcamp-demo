@@ -68,6 +68,10 @@
   --color-skin-line-soft: var(--skin-line-soft);
   --color-skin-accent: var(--skin-accent);
   --color-skin-accent-soft: var(--skin-accent-soft);
+  --color-skin-good: var(--skin-good);
+  --color-skin-good-soft: var(--skin-good-soft);
+  --color-skin-bad: var(--skin-bad);
+  --color-skin-bad-soft: var(--skin-bad-soft);
 }
 
 :root {
@@ -107,23 +111,30 @@
 }
 
 /* ============================================================
- * Xcamp skin tokens (Scientific / Platform — the default/light skin)
- * Mirrors xcamp-foundation SkinProvider output. Do not substitute
- * default Tailwind colours. Accent: #4de0c1 with gradients from #34acbf.
+ * Xcamp skin tokens (single unified skin — the Scientific/Playful axis
+ * from the June 2026 Objectives design spec was retired without ever
+ * going live; this is the one going-forward palette).
+ * Values sourced from the approved TaskFullscreenMockup.jsx palette.
+ * Do not substitute default Tailwind colours or hardcode hex values in
+ * components — reference these tokens only.
  * Defined BEFORE .dark so dark-mode overrides win the cascade.
  * ============================================================ */
 :root {
-  --skin-bg:           hsl(0, 0%, 100%);
-  --skin-surface:      hsl(210, 20%, 98%);
-  --skin-surface2:     hsl(210, 20%, 95%);
-  --skin-ink:          hsl(222, 47%, 11%);
-  --skin-ink-soft:     hsl(215, 16%, 47%);
-  --skin-ink-faint:    hsl(215, 16%, 65%);
-  --skin-line:         hsl(214, 32%, 91%);
-  --skin-line-soft:    hsl(214, 32%, 96%);
-  --skin-accent:       #4de0c1;
-  --skin-accent-soft:  #dcf8f2;
-  --skin-accent-gradient: linear-gradient(135deg, #34acbf, #4de0c1);
+  --skin-bg:           #ffffff;
+  --skin-surface:      #ffffff;
+  --skin-surface2:     #f4f6f8;
+  --skin-ink:          #1c2430;
+  --skin-ink-soft:     #6b7684;
+  --skin-ink-faint:    #9aa4b1;
+  --skin-line:         #e6e9ed;
+  --skin-line-soft:    #eef1f4;
+  --skin-accent:       #22b8b0;
+  --skin-accent-soft:  #e3f8f6;
+  --skin-accent-gradient: linear-gradient(120deg, #22c1a8 0%, #4fd68c 100%);
+  --skin-good:         #3fb96a;
+  --skin-good-soft:    #e6f7ec;
+  --skin-bad:          #e0503a;
+  --skin-bad-soft:     #fbeae6;
 
   --success:           hsl(142, 71%, 45%);
   --warning:           hsl(38, 95%, 52%);
@@ -133,12 +144,19 @@
   --xr-lg:             10px;
   --xr-pill:           999px;
 
+  /* Not part of the light/dark split — radius and heading typeface read the
+   * same in both themes. Values from the mockup's T token object. */
+  --skin-radius:       14px;
+  --skin-radius-lg:    22px;
+  --skin-radius-pill:  999px;
+  --skin-font-head:    'Hanken Grotesk', 'Inter', sans-serif;
+
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 
   /* ── Skin tokens not previously declared (only used via fallback) ──────── */
-  --skin-danger:       hsl(0, 72%, 50%);
-  --skin-on-accent:    hsl(222, 47%, 11%);
+  --skin-danger:       #e0503a;
+  --skin-on-accent:    #ffffff;
 
   /* ── Item type tokens — single source of truth for all item type colours.
    * Use var(--item-<type>) for fills, var(--item-<type>-fg) for text.
@@ -221,7 +239,16 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.85 0.12 176);
 
-  /* Xcamp skin tokens — dark overrides */
+  /* Xcamp skin tokens — dark (Nox) overrides.
+   * The mockup is a light-only design, so these neutral and accent values
+   * are unchanged from Nox's existing dark identity (dark navy neutrals,
+   * purple accent) rather than derived from the light mockup palette —
+   * there's no dark-mode guidance in the source to derive them from, and
+   * overwriting Nox's established purple brand hue with a darkened version
+   * of the new light teal would erase the intentional Xcamp/Nox distinction.
+   * good/bad are new tokens with no prior dark-mode precedent, so those are
+   * derived here using the same lighten-for-dark-bg transform already used
+   * for --skin-danger below. */
   --skin-bg:           hsl(222, 47%, 11%);
   --skin-surface:      hsl(217, 33%, 17%);
   --skin-surface2:     hsl(215, 28%, 22%);
@@ -233,6 +260,10 @@
   --skin-accent:       #b689e6;
   --skin-accent-soft:  hsl(291, 35%, 22%);
   --skin-accent-gradient: linear-gradient(135deg, #731f7d, #b689e6, #34acbf);
+  --skin-good:         hsl(142, 55%, 60%);
+  --skin-good-soft:    hsl(142, 30%, 18%);
+  --skin-bad:          hsl(8, 80%, 68%);
+  --skin-bad-soft:     hsl(8, 30%, 18%);
 
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
@@ -260,7 +291,7 @@
   --item-status-suggested-fg: oklch(0.92 0.06 290);
 
   /* ── Skin tokens — dark overrides ── */
-  --skin-danger:       hsl(0, 84%, 65%);
+  --skin-danger:       hsl(8, 80%, 68%);
   --skin-on-accent:    #fff;
 
   /* ── Glass-panel tokens — dark overrides ── */

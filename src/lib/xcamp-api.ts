@@ -232,6 +232,128 @@ export async function getNoteObjectiveIds(noteId: string): Promise<string[]> {
 }
 
 
+// About tab's own field slice: title / main body / tags. Deliberately does NOT
+// touch `detail` or objective_notes links (unlike updateNote, which is a full
+// NoteEditor-form save and would wipe objective links if called with no
+// projectId/objectiveIds) — the About tab has no project/objective editor of
+// its own, so it must never touch that state.
+export async function updateTaskCore(
+  user: XcampUser,
+  noteId: string,
+  input: { title: string; bodyHtml: string; tags: string[] },
+): Promise<void> {
+  const { error } = await supabase
+    .from("notes")
+    .update({
+      title: input.title,
+      body_markdown: input.bodyHtml,
+      body_html: input.bodyHtml,
+      body_text: htmlToText(input.bodyHtml),
+      tags: input.tags,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
+    .eq("owner_central_id", user.centralId);
+
+  if (error) throw error;
+}
+
+// Patch notes.detail without touching title/body/tags — used by tabs that only
+// own a slice of `detail` (e.g. Do & Document's blob, the Attachments list
+// shared between the About and Do & Document tabs) so they never clobber
+// fields another tab is responsible for.
+export async function patchNoteDetail(
+  user: XcampUser,
+  noteId: string,
+  existingDetail: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase
+    .from("notes")
+    .update({
+      detail: { ...existingDetail, ...patch } as Json,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
+    .eq("owner_central_id", user.centralId);
+
+  if (error) throw error;
+}
+
+// Set up accordion — Timeframe. `notes.start_date` / `notes.end_date` (both
+// `date`, nullable) — added specifically for the task fullscreen modal.
+export async function updateTaskTimeframe(
+  user: XcampUser,
+  noteId: string,
+  input: { startDate: string | null; endDate: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from("notes")
+    .update({
+      start_date: input.startDate,
+      end_date: input.endDate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
+    .eq("owner_central_id", user.centralId);
+
+  if (error) throw error;
+}
+
+export interface TaskLabelObjective {
+  id: string;
+  title: string;
+  dimension: string | null;
+  category: string | null;
+  projectId: string;
+  projectTitle: string;
+}
+
+// Labels and tags accordion — Project / Objectives / Dimension / Category.
+// Resolved via objective_notes -> objectives -> projects; notes carries no
+// dedicated columns for these (they're properties of the linked objective).
+export async function getTaskLabels(noteId: string): Promise<TaskLabelObjective[]> {
+  const { data: links } = await supabase
+    .from("objective_notes")
+    .select("objective_id")
+    .eq("note_id", noteId);
+  const objectiveIds = (links ?? []).map((l) => l.objective_id as string);
+  if (!objectiveIds.length) return [];
+
+  const { data: objectives, error } = await supabase
+    .from("objectives")
+    .select("id, title, dimension, category, project_id, projects(title)")
+    .in("id", objectiveIds);
+  if (error) throw error;
+
+  return (objectives ?? []).map((o) => {
+    const raw = o as unknown as Record<string, unknown>;
+    const project = raw.projects as { title: string } | null;
+    return {
+      id: raw.id as string,
+      title: (raw.title as string) || "Untitled objective",
+      dimension: (raw.dimension as string) || null,
+      category: (raw.category as string) || null,
+      projectId: raw.project_id as string,
+      projectTitle: project?.title || "Untitled project",
+    };
+  });
+}
+
+// Set up accordion — Created by (read-only) / Owned by (deferred, display-only).
+// owner_central_id is the only creator concept notes has; it's stamped once at
+// insert and never changed by any code path today, so it doubles as "created
+// by" for display. Reassignment ("owned by") is a separate, deferred concern —
+// this only reads the name, it never writes anything.
+export async function getUserDisplayName(centralId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("central_users")
+    .select("display_name")
+    .eq("id", centralId)
+    .maybeSingle();
+  return (data?.display_name as string | undefined) ?? null;
+}
+
 export async function archiveNote(user: XcampUser, note: NoteRow): Promise<void> {
   const { error } = await supabase
     .from("notes")
