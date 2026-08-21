@@ -143,6 +143,38 @@ If Auth/Welcome is rebuilt on a shared fullscreen-image-layout primitive, that p
 
 ---
 
+## Post-merge re-verification (Part C of the 2026-08-17 deployment-verification pass)
+
+**Context:** this audit's own branch (`claude/welcome-duplication-diagnosis-1w6u05`, PR #100) was cut before PR #99 (`claude/pr-95-regressions-audit-qkifxt`) merged, so two of the findings below went stale between when this file was written and when it actually landed on `main`. Re-checked directly against `origin/main` HEAD (`d5b8433`) source, not re-run live (see `docs/deployment-verification-2026-08-17.md` for why the live click-through is currently `BLOCKED` in this environment, and for the curl/content-level evidence that this source is in fact what's deployed).
+
+### Changed since this audit was written — both by PR #99
+
+1. **The "Nav wrapper" duplication (`CompanionShell` vs `AppShell`) is `FIXED`, not still open.** PR #99 (commit `fbe1e72`, item 1 of its audit list) gave `AppShell` a `"transparent"` variant and collapsed `CompanionShell` into a 16-line alias:
+   ```tsx
+   export function CompanionShell({ children }: { children: ReactNode }) {
+     return <AppShell variant="transparent">{children}</AppShell>;
+   }
+   ```
+   `/home` now gets the same `RightPanelProvider`/`FloatingAltitudeDial`/`TaskFullscreenModal`/resizable-sidebar behavior every other route gets — the gap flagged in the original "Nav wrapper note" above no longer exists. This also **already implements** the taxonomy proposal's first recommendation ("retire `CompanionShell` in favor of `AppShell` … with a transparent/fullBleed variant prop") — that line item is done, not still awaiting approval.
+
+2. **`CompanionGlassPanelV2.tsx` (duplication example #2's dead-code entry) is deleted**, not merely unreferenced. PR #99 (same commit, item 5, "CONFIRMED dead … Deleted") removed the file outright after confirming zero import references. Two downstream corrections to this file's earlier counts:
+   - "Four separate [glass panel] implementations" is now **three live** (`home.tsx` legacy chat, `EntityPanel` back-button chip, `ProjectEntryScreen`'s card) plus the deleted one — no longer a duplication concern, since there's nothing left to consolidate away.
+   - The "seven different literal radii" list (duplication example #3) drops the `20px` (`CompanionGlassPanelV2`, dead code) entry — **five distinct live radii remain: 4px, 8px, 12px, 18px, 26px.**
+
+### Re-confirmed unchanged (spot-checked against `origin/main` HEAD source)
+
+- `PageHeroShell` is still the one real shared "variant 2" component (`journal.tsx`, `notes.tsx`, `project-details.tsx`, `project.$projectId.tsx`, `project-builder.tsx` all still import it); `EcosystemHeroLayout` in `ExperimentalHome.tsx` is still a hand-rolled fork with its own "Mirrors PageHeroShell's structural pattern" comment still in place (line 556) — neither #98 nor #99 touched this. Still open, taxonomy item 2 (parameterize `PageHeroShell` with an `animatedOverlay` prop, retire the fork) still awaiting approval.
+- Journal (`journal.tsx`) and Notes (`notes.tsx`) still both `AppShell` + `PageHeroShell` — unchanged.
+- Navigator (`navigator.tsx`) still bare `AppShell`, no hero/container — unchanged.
+- `ItemSidepanel.tsx` still has no blur/glass treatment — unchanged. All five sidepanel implementations (`ItemSidepanel`, `EntityPanel`, `OrganiseSheet` + `ProjectStubPanel` on the shared radix `Sheet`, `TaskFullscreenModal`) still exist as separate files — unchanged, taxonomy item on `GlassSidepanel` still an open product decision, not implemented.
+- `home.tsx`'s legacy Companion glass panel is still `blur(var(--glass-blur, 18px))` — unchanged.
+
+### Net effect on the taxonomy proposal
+
+Two of the five taxonomy line items are **already done** (`AppShell`'s transparent variant / `CompanionShell` retirement; the dead-code glass-panel removal that shrinks the blur-radii cleanup surface). The remaining three (`PageHeroShell`/`EcosystemHeroLayout` fork, the `BareLayout`/`FullscreenImageLayout` naming for variants 1/3, and the `GlassContainer`/`GlassSidepanel` product decision) are unchanged and still awaiting human approval before any consolidation work starts. No new duplication or drift was introduced by #98 or #99 — Logbook (#98) and shell-parity (#99) both landed cleanly on top of what this audit already described, and in one case (#99) incidentally fixed part of what this audit was going to recommend anyway.
+
+---
+
 ## Out of scope, confirmed untouched
 
 - `ProjectEntryScreen.tsx` visual bugs (wrong logo, hardcoded hex colors, fixed grid) — deferred, not the same bug as Part A, not modified.
