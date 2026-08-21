@@ -48,8 +48,8 @@ const flatItems = [
 ];
 
 export function AppSidebar() {
-  const { state, toggleSidebar, isMobile } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { visualState, toggleSidebar, isMobile } = useSidebar();
+  const collapsed = visualState === "collapsed";
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
   const location = useRouterState({ select: (r) => r.location });

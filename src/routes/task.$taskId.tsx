@@ -11,6 +11,7 @@ import { useAltitudeStore } from "@/store/altitudeStore";
 import { supabase } from "@/lib/supabase";
 import { listProjects, updateNote, archiveNote } from "@/lib/xcamp-api";
 import { fetchLinkedItemsForNote } from "@/lib/sidepanel-service";
+import { DetailComingSoonPlaceholder } from "@/components/DetailComingSoonPlaceholder";
 import type { NoteRow } from "@/types/xcamp";
 
 export const Route = createFileRoute("/task/$taskId")({
@@ -151,11 +152,6 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
         }
         const raw = data as unknown as Record<string, unknown>;
         const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
-        if (row.note_type !== "task") {
-          setError("This item is not a task.");
-          setLoading(false);
-          return;
-        }
         setNoteRow(row);
         setProjects(projs);
         setLoading(false);
@@ -400,6 +396,80 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
 
 function TaskPage() {
   const { taskId } = Route.useParams();
+
+  // Dispatch by note_type before mounting TaskPageContent: "task" gets the
+  // real view, everything else gets the shared placeholder. A separate,
+  // cheap lookup here (rather than inside TaskPageContent) keeps this
+  // route's dispatch decision out of that component's internals.
+  const { data: noteType, isLoading } = useQuery({
+    queryKey: ["task-route-note-type", taskId],
+    queryFn: async () => {
+      const { data } = await supabase.from("notes").select("note_type").eq("id", taskId).single();
+      return (data?.note_type as string | undefined) ?? null;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          background: "var(--skin-surface)",
+        }}
+      >
+        <Loader2 size={24} className="animate-spin" style={{ color: "var(--skin-accent)" }} />
+      </div>
+    );
+  }
+
+  if (noteType !== "task") {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--skin-surface)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 20px",
+            borderBottom: "1px solid var(--skin-line)",
+            background: "var(--skin-surface2)",
+            flexShrink: 0,
+          }}
+        >
+          <button
+            onClick={() => window.close()}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--skin-ink-faint)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 13,
+              padding: "4px 8px 4px 4px",
+              borderRadius: 6,
+            }}
+          >
+            <ChevronLeft size={15} />
+            Close
+          </button>
+        </div>
+        <DetailComingSoonPlaceholder />
+      </div>
+    );
+  }
+
   return (
     <SidepanelProvider>
       <TaskPageContent taskId={taskId} onClose={() => window.close()} />

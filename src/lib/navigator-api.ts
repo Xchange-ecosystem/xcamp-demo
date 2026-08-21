@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Json } from "@/integrations/supabase/types";
-import type { NoteRow, XcampUser } from "@/types/xcamp";
+import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_COLUMNS =
   "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
@@ -118,13 +118,36 @@ export async function createObjective(projectId: string, title: string) {
 
 export async function updateObjective(
   objectiveId: string,
-  input: { title: string; description: string | null },
+  input: {
+    title: string;
+    description: string | null;
+    // Attachments live in objectives.detail.attachments, same as notes.
+    // Only pass these when you actually intend to write detail — omitting
+    // them leaves the RPC's p_detail unset, which the function treats as
+    // "no change" rather than clobbering existing detail with {}.
+    attachments?: NoteAttachment[];
+    existingDetail?: Record<string, unknown>;
+  },
 ) {
-  const { error } = await supabase.rpc("update_objective", {
+  const rpcArgs: {
+    p_objective_id: string;
+    p_title: string;
+    p_description: string;
+    p_detail?: Json;
+  } = {
     p_objective_id: objectiveId,
     p_title: input.title,
     p_description: input.description ?? "",
-  });
+  };
+
+  if (input.attachments !== undefined) {
+    const detail = { ...(input.existingDetail ?? {}) };
+    if (input.attachments.length) detail.attachments = input.attachments;
+    else delete detail.attachments;
+    rpcArgs.p_detail = detail as Json;
+  }
+
+  const { error } = await supabase.rpc("update_objective", rpcArgs);
   if (error) throw error;
 }
 

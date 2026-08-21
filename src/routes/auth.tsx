@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 import { useTheme } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
+import { useHeroImage } from "@/lib/useHeroImage";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -23,6 +24,9 @@ function AuthPage() {
   const navigate = useNavigate();
   const brand = useBrand();
   const { resolved, setMode: setThemeMode } = useTheme();
+  // Same mechanism as the Welcome screen (ProjectEntryScreen): random image
+  // from the "App media/Hero" bucket, no seed.
+  const { url: heroBgUrl } = useHeroImage();
 
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
@@ -96,24 +100,61 @@ function AuthPage() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center px-4"
-      style={{ background: "var(--skin-surface)" }}
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4"
+      style={{ background: "#0f1c1f" }}
     >
+      {/* Background photo — same random-from-"App media/Hero" mechanism as the Welcome screen */}
+      {heroBgUrl && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url("${heroBgUrl}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      )}
+
+      {/* Brand gradient wash — mirrors the Welcome screen's overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(160deg, rgba(52,172,191,0.55), rgba(77,224,193,0.45) 55%, rgba(15,28,31,0.6))",
+        }}
+      />
+
       {/* Mode switcher pill */}
       <button
         type="button"
         onClick={() => setThemeMode(resolved === "dark" ? "light" : "dark")}
-        className="absolute right-4 top-4 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+        className="absolute right-4 top-4 rounded-full px-3 py-1.5 text-xs font-medium text-white transition-colors"
         style={{
-          background: "var(--skin-surface2)",
-          color: "var(--skin-ink-soft)",
-          border: "1px solid var(--skin-line)",
+          background: "rgba(0,0,0,0.35)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
         }}
       >
         {switchLabel}
       </button>
 
-      <div className="w-full max-w-sm">
+      {/* Frosted glass card — same treatment as the Welcome screen's container */}
+      <div
+        className="relative w-full max-w-sm"
+        style={{
+          padding: "40px 32px 36px",
+          borderRadius: 28,
+          border: "1px solid rgba(255,255,255,0.45)",
+          background: "rgba(255,255,255,0.34)",
+          backdropFilter: "blur(26px)",
+          WebkitBackdropFilter: "blur(26px)",
+          boxShadow: "0 24px 60px rgba(10,25,30,0.28)",
+        }}
+      >
         <div className="mb-6 text-center">
           <img
             src={brand.iconUrl}

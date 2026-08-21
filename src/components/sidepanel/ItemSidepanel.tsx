@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronRight,
+  Download,
   ExternalLink,
+  FileText,
   Link as LinkIcon,
   Loader2,
   MoreVertical,
@@ -40,12 +42,12 @@ import {
 import { updateNote, archiveNote, autoTagNote } from "@/lib/xcamp-api";
 import { updateObjective } from "@/lib/navigator-api";
 import { supabase } from "@/lib/supabase";
-import { useFullscreenTaskStore } from "@/store/fullscreenTaskStore";
+import { useFullscreenItemStore } from "@/store/fullscreenItemStore";
 import { useAuth } from "@/contexts/auth";
 import { useDebounce } from "@/hooks/useDebounce";
 import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import { listProjects } from "@/lib/xcamp-api";
-import type { NoteRow } from "@/types/xcamp";
+import type { NoteAttachment, NoteRow } from "@/types/xcamp";
 
 const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -500,6 +502,12 @@ function LinkedItemsTab({
 
 // ── Objective content ───────────────────────────────────────────────────────
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function ObjectiveContent({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -509,10 +517,17 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("objectives")
-        .select("id, title, description, status, tags")
+        .select("id, title, description, status, tags, detail")
         .eq("id", itemId)
         .single();
-      return data as { id: string; title: string; description: string | null; status: string | null; tags: string[] | null } | null;
+      return data as {
+        id: string;
+        title: string;
+        description: string | null;
+        status: string | null;
+        tags: string[] | null;
+        detail: Record<string, unknown> | null;
+      } | null;
     },
   });
 
@@ -523,6 +538,7 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
   const [tagInput, setTagInput] = useState("");
   const [autoTagging, setAutoTagging] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
 
   const initialised = useRef(false);
   useEffect(() => {
@@ -532,6 +548,7 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
       setDescription(objective.description ?? "");
       setStatus(objective.status ?? "draft");
       setTags(objective.tags ?? []);
+      setAttachments((objective.detail?.attachments as NoteAttachment[] | undefined) ?? []);
     }
   }, [objective]);
 
@@ -550,10 +567,9 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
     prevTitle.current = debouncedTitle;
     prevDescription.current = debouncedDescription;
     setSaveStatus("saving");
-    updateObjective(user, itemId, {
+    updateObjective(itemId, {
       title: debouncedTitle.trim() || "Untitled objective",
       description: debouncedDescription.trim() || null,
-      status,
     })
       .then(() => {
         void qc.invalidateQueries({ queryKey: ["objective-detail", itemId] });
@@ -569,13 +585,49 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
     setStatus(newStatus);
     saveStatus_.current = newStatus;
     if (!user || !objective) return;
-    await updateObjective(user, itemId, {
+    // Note: the update_objective RPC has no p_status parameter today, so
+    // status isn't actually persisted by this call — matches the existing
+    // (separately pre-existing, out of scope here) behavior of this dropdown.
+    await updateObjective(itemId, {
       title: title.trim() || "Untitled objective",
       description: description.trim() || null,
-      status: newStatus,
     }).catch(console.error);
     void qc.invalidateQueries({ queryKey: ["objective-detail", itemId] });
     void qc.invalidateQueries({ queryKey: ["nav-objectives"] });
+  };
+
+  const handleAddAttachment = async (att: NoteAttachment) => {
+    const next = [...attachments, att];
+    setAttachments(next);
+    if (!user || !objective) return;
+    try {
+      await updateObjective(itemId, {
+        title: title.trim() || "Untitled objective",
+        description: description.trim() || null,
+        attachments: next,
+        existingDetail: objective.detail ?? {},
+      });
+      void qc.invalidateQueries({ queryKey: ["objective-detail", itemId] });
+    } catch (e) {
+      console.error("Failed to save objective attachment", e);
+    }
+  };
+
+  const handleRemoveAttachment = async (attachmentId: string) => {
+    const next = attachments.filter((a) => a.id !== attachmentId);
+    setAttachments(next);
+    if (!user || !objective) return;
+    try {
+      await updateObjective(itemId, {
+        title: title.trim() || "Untitled objective",
+        description: description.trim() || null,
+        attachments: next,
+        existingDetail: objective.detail ?? {},
+      });
+      void qc.invalidateQueries({ queryKey: ["objective-detail", itemId] });
+    } catch (e) {
+      console.error("Failed to remove objective attachment", e);
+    }
   };
 
   const addTag = () => {
@@ -715,9 +767,58 @@ function ObjectiveContent({ itemId }: { itemId: string }) {
         <RichTextEditor
           content={description}
           onChange={setDescription}
-          onAddAttachment={() => {}}
+          onAddAttachment={(att) => void handleAddAttachment(att)}
         />
       </div>
+
+      {/* Attachments preview */}
+      {attachments.length > 0 && (
+        <div className="x-preview-section">
+          <h4 className="x-preview-title">Attachments ({attachments.length})</h4>
+          {attachments.filter((a) => a.mime.startsWith("image/")).length > 0 && (
+            <div className="x-attach-grid">
+              {attachments
+                .filter((a) => a.mime.startsWith("image/"))
+                .map((a) => (
+                  <figure key={a.id} className="x-attach-img">
+                    <img src={a.dataUrl} alt={a.name} />
+                    <figcaption>
+                      <span className="truncate">{a.name}</span>
+                      <button onClick={() => void handleRemoveAttachment(a.id)} aria-label="Remove">
+                        <X size={12} />
+                      </button>
+                    </figcaption>
+                  </figure>
+                ))}
+            </div>
+          )}
+          {attachments
+            .filter((a) => !a.mime.startsWith("image/"))
+            .map((a) => (
+              <div key={a.id} className="x-file-card">
+                <FileText size={18} style={{ color: "var(--skin-accent)" }} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate" style={{ fontSize: 13, fontWeight: 500 }}>
+                    {a.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+                    {formatBytes(a.size)}
+                  </div>
+                </div>
+                <a href={a.dataUrl} download={a.name} className="x-icon-link" title="Download">
+                  <Download size={16} />
+                </a>
+                <button
+                  className="x-icon-link"
+                  onClick={() => void handleRemoveAttachment(a.id)}
+                  title="Remove"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -971,11 +1072,13 @@ export function ItemSidepanel() {
 // the header makes it one visible click from the panel.
 
 function FullscreenButton({ item }: { item: PanelItem }) {
-  if (!(item.kind === "note" && item.noteType === "task")) return null;
+  // Every note type can go fullscreen now — "task" gets the real view,
+  // everything else gets the shared placeholder (see FullscreenDispatcher).
+  if (item.kind !== "note") return null;
 
   return (
     <button
-      onClick={() => useFullscreenTaskStore.getState().open(item.id)}
+      onClick={() => useFullscreenItemStore.getState().open(item.id, item.noteType ?? "note")}
       aria-label="Open fullscreen"
       title="Open fullscreen"
       data-testid="sidepanel-open-fullscreen"

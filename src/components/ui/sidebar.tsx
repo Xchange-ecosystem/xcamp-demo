@@ -24,15 +24,26 @@ const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+// Debounce the hover-preview so a fast mouse-through across the icon rail
+// doesn't trigger it, and briefly leaving/re-entering doesn't flicker.
+const SIDEBAR_HOVER_EXPAND_DELAY = 150;
+const SIDEBAR_HOVER_COLLAPSE_DELAY = 300;
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
+  // Same as `state`, except also "expanded" while the collapsed icon rail is
+  // being hover-previewed. Rendering/layout should key off this; anything
+  // that persists the user's actual preference (localStorage, cookies)
+  // should keep using `state`/`open`, which never change from hover alone.
+  visualState: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  onSidebarMouseEnter: () => void;
+  onSidebarMouseLeave: () => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -110,17 +121,64 @@ const SidebarProvider = React.forwardRef<
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed";
 
+    // Hover-preview: temporarily shows the collapsed icon rail expanded
+    // without touching `open` (the persisted preference). Debounced in both
+    // directions so a fast mouse-through or a brief leave doesn't flicker.
+    const [hoverExpanded, setHoverExpanded] = React.useState(false);
+    const hoverTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearHoverTimeout = React.useCallback(() => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+    }, []);
+
+    React.useEffect(() => clearHoverTimeout, [clearHoverTimeout]);
+
+    const onSidebarMouseEnter = React.useCallback(() => {
+      clearHoverTimeout();
+      hoverTimeoutRef.current = setTimeout(
+        () => setHoverExpanded(true),
+        SIDEBAR_HOVER_EXPAND_DELAY,
+      );
+    }, [clearHoverTimeout]);
+
+    const onSidebarMouseLeave = React.useCallback(() => {
+      clearHoverTimeout();
+      hoverTimeoutRef.current = setTimeout(
+        () => setHoverExpanded(false),
+        SIDEBAR_HOVER_COLLAPSE_DELAY,
+      );
+    }, [clearHoverTimeout]);
+
+    const visualState: "expanded" | "collapsed" = open || hoverExpanded ? "expanded" : "collapsed";
+
     const contextValue = React.useMemo<SidebarContextProps>(
       () => ({
         state,
+        visualState,
         open,
         setOpen,
         isMobile,
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        onSidebarMouseEnter,
+        onSidebarMouseLeave,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+      [
+        state,
+        visualState,
+        open,
+        setOpen,
+        isMobile,
+        openMobile,
+        setOpenMobile,
+        toggleSidebar,
+        onSidebarMouseEnter,
+        onSidebarMouseLeave,
+      ],
     );
 
     return (
@@ -169,7 +227,14 @@ const Sidebar = React.forwardRef<
     },
     ref,
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const {
+      isMobile,
+      visualState,
+      openMobile,
+      setOpenMobile,
+      onSidebarMouseEnter,
+      onSidebarMouseLeave,
+    } = useSidebar();
 
     if (collapsible === "none") {
       return (
@@ -214,10 +279,12 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className="group peer hidden text-sidebar-foreground md:block"
-        data-state={state}
-        data-collapsible={state === "collapsed" ? collapsible : ""}
+        data-state={visualState}
+        data-collapsible={visualState === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
+        onMouseEnter={collapsible === "icon" ? onSidebarMouseEnter : undefined}
+        onMouseLeave={collapsible === "icon" ? onSidebarMouseLeave : undefined}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -543,7 +610,7 @@ const SidebarMenuButton = React.forwardRef<
     ref,
   ) => {
     const Comp = asChild ? Slot : "button";
-    const { isMobile, state } = useSidebar();
+    const { isMobile, visualState } = useSidebar();
 
     const button = (
       <Comp
@@ -572,7 +639,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={visualState !== "collapsed" || isMobile}
           {...tooltip}
         />
       </Tooltip>
