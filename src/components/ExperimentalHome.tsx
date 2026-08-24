@@ -30,6 +30,7 @@ import type { ProjectFull, XcampUser } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
 import type { VoiceOption } from "@/lib/voicePreference";
+import type { NavMode } from "@/contexts/active-project";
 import { useTheme } from "@/lib/theme";
 import {
   fetchProjectMetrics,
@@ -291,6 +292,7 @@ export interface ExperimentalChatProps {
   onMentionMenuClose: () => void;
   onMentionToggle: () => void;
   activeProject: ProjectFull | null;
+  navMode: NavMode;
   muted: boolean;
   onMuteToggle: () => void;
   voiceId: string;
@@ -1661,6 +1663,7 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
     mentionedEntities, onMentionedEntitiesChange,
     onMentionMenuClose, onMentionToggle,
     activeProject,
+    navMode,
     muted,
     onMuteToggle,
     voiceId,
@@ -1740,6 +1743,32 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
                 />
               </div>
             </div>
+
+            {navMode === "project" && (
+              <section style={{ marginTop: 24 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--skin-ink-faint)",
+                    marginBottom: 12,
+                  }}
+                >
+                  Tools
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
+                  <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
+                  <ToolTile
+                    title="Project Navigator"
+                    videoSrc={CARD_VIDEOS.navigator}
+                    to="/navigator"
+                  />
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </PageHeroShell>

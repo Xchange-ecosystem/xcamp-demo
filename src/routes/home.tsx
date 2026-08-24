@@ -262,7 +262,7 @@ function CompanionHomePage() {
     }
     welcomeFiredRef.current = true;
 
-    setActiveProjectId(null);
+    const scopedProject = navMode === "project" ? projects.find((p) => p.id === activeProjectId) : undefined;
 
     async function dispatchWelcome() {
       const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
@@ -291,8 +291,57 @@ function CompanionHomePage() {
       setStep("project-select");
     }
 
-    void dispatchWelcome();
-  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Project scope: greet in-context and summarize recent activity instead of the
+    // ecosystem "let's jump in" + project-grid combo, which makes no sense once a
+    // project is already selected. Same vox.call() pattern handleProjectSelect uses.
+    async function dispatchProjectWelcome(project: ProjectFull) {
+      const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+      const MSG1 = `${timeGreeting}, ${firstName}! Here's what's happening in ${project.name}.`;
+      const id1 = await session.appendChiMessage(MSG1);
+      speak(MSG1);
+      setTypingMessageId(id1);
+      await waitForTyping(MSG1);
+      setTypingMessageId(null);
+
+      let summary = `Ready to help — ask me anything about ${project.name}.`;
+      setIsLoading(true);
+      try {
+        const res = await vox.call({
+          message:
+            "Summarize the recent activity in this project — objectives, tasks, and notes — in 2-3 concise sentences.",
+          project_id: project.id,
+          objective_id: "",
+          tenant_id: authUser!.tenantId,
+          altitude,
+          aiPersona: "guide",
+          context_scope: "project",
+        });
+        summary = res.reply_markdown || summary;
+      } catch (err) {
+        console.error("[Chi] Project welcome summary failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+
+      const id2 = await session.appendChiMessage(summary);
+      speak(summary);
+      setTypingMessageId(id2);
+      await waitForTyping(summary);
+      setTypingMessageId(null);
+
+      setStep("inside-project");
+    }
+
+    if (scopedProject) {
+      void dispatchProjectWelcome(scopedProject);
+    } else {
+      setActiveProjectId(null);
+      void dispatchWelcome();
+    }
+  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length, navMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectSelect = useCallback(
     async (project: ProjectFull, silent = false) => {
@@ -1098,6 +1147,7 @@ function CompanionHomePage() {
             onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
             onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
             activeProject={activeProject}
+            navMode={navMode}
             muted={muted}
             onMuteToggle={() => setMuted(!muted)}
             voiceId={voiceId}

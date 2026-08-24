@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 const STORAGE_KEY = "xcamp-active-project";
 
-type NavMode = "ecosystem" | "project";
+export type NavMode = "ecosystem" | "project";
 
 interface ActiveProjectValue {
   activeProjectId: string | null;
