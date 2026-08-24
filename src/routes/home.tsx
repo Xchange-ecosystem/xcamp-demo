@@ -118,7 +118,7 @@ function CompanionHomePage() {
   const [railPanelWidth, setRailPanelWidth] = useState(0);
   useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (viewParam === "companion") setExperimentalView("chat");
+    setExperimentalView(viewParam === "companion" ? "chat" : "home");
   }, [viewParam]);
 
   const session = useCompanionSession(authUser);
@@ -205,7 +205,7 @@ function CompanionHomePage() {
   const { altitude } = useAltitudeStore();
 
   const waitForTyping = (text: string) =>
-    new Promise<void>((resolve) => setTimeout(resolve, text.length * 38));
+    new Promise<void>((resolve) => setTimeout(resolve, (text?.length ?? 0) * 38));
 
   const isNewDay = (dateStr: string) => {
     const sessionDate = new Date(dateStr).toDateString();
@@ -227,7 +227,6 @@ function CompanionHomePage() {
   const welcomeFiredRef = useRef(false);
   const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
   useEffect(() => {
-    if (!isLegacyUi()) { welcomeFiredRef.current = true; return; }
     if (session.loading || welcomeFiredRef.current) return;
     if (projects.length === 0) return;
 
@@ -633,8 +632,12 @@ function CompanionHomePage() {
 
   const handleSendFromHome = useCallback(() => {
     setExperimentalView("chat");
+    void navigate({
+      to: "/home",
+      search: (prev: { ui?: "v1"; view?: "companion" }) => ({ ...prev, view: "companion" }),
+    });
     void handleSend();
-  }, [handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleSend, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -1095,7 +1098,15 @@ function CompanionHomePage() {
             onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
             onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
             activeProject={activeProject}
-            onBack={() => setExperimentalView("home")}
+            muted={muted}
+            onMuteToggle={() => setMuted(!muted)}
+            voiceId={voiceId}
+            availableVoices={availableVoices}
+            onVoiceChange={(id) => {
+              stopSpeaking();
+              setVoiceId(id);
+            }}
+            onNewSession={handleNewSession}
           />
         )}
       </CompanionShell>
