@@ -1,0 +1,119 @@
+# BL-21 — Repo-Wide Half-Built / Half-Deleted Code Audit
+
+**Date:** 2026-08-21
+**Type:** Read-only investigation, git archaeology. No code changes in this session.
+**Why:** Several unrelated audits on this repo have each independently turned up the same
+pattern — something gets built, then abandoned (deleted, silently unwired, or superseded),
+and the abandonment is never recorded, so it later gets misremembered as "working" or
+forgotten as clutter. This session runs a dedicated sweep for that pattern instead of
+continuing to find instances one at a time as side effects of unrelated work.
+
+## Method
+
+Five independent passes, largely run as parallel background sub-agents against the full
+repo (note: **the local clone is shallow**, truncated at commit `63619f3`/"Merge pull
+request #44" — anything referencing history before PR #44 could not be verified from git
+alone in this session):
+
+1. **Git archaeology** — `git log --diff-filter=A/D` cross-referenced for short-window
+   add→delete pairs, plus manual diff review of the churniest files for function/component-level
+   churn within surviving files.
+2. **Orphan detection** — manual grep (including dynamic-import/string-registry patterns,
+   of which this repo has none) cross-checked with `madge --orphans` (alias-resolved via
+   `--ts-config`).
+3. **Duplicate/parallel implementations** — read-through of avatars, date formatting,
+   permission checks, modals, loading states, toasts, and tag pills, beyond the
+   already-documented hero-image/glass-panel/sidepanel/shell duplications.
+4. **Dead stubs and dangling references** — grep for TODO/deprecated/coming-soon/not-implemented
+   markers, verified live/reachable or not.
+5. **Reference hygiene** — every `PR #N` / branch name mentioned in-repo, cross-checked
+   against local merge-commit history.
+
+This session builds directly on findings already recorded in `docs/phase-0-audit-2026-08-09.md`
+and `docs/welcome-duplication-and-layout-audit-2026-08-17.md`; those are included below for
+a single consolidated registry, with their original evidence cited rather than re-derived.
+
+---
+
+## Registry
+
+| Item | What it was | Built (commit/date) | Abandoned how (commit/date, deleted vs. unwired vs. superseded) | Current status | Recommendation |
+|---|---|---|---|---|---|
+| `CompanionSidePanel` (Items/Match/Actions tabs) | Full sidepanel component + `ActionsTab`/`ItemsTab`/`MatchTab` + `companionPanelStore.ts` | `aa78221` 2026-08-08 06:02:57 (PR #83, merge `97a5caa`) | **Deleted** 3h18m later, `46f3e18` 2026-08-08 09:20:52, "remove CompanionSidePanel dead code, inline TopChrome" — delete message names it explicitly | Gone. Zero references (confirmed by phase-0 audit repo-wide grep) | N/A — already fully removed; record only, nothing to act on |
+| `CompanionGlassPanelV2.tsx` (381 lines, right-anchored companion panel V2) | Full component, own JSDoc calling itself a "UX experiment scaffold" | `747a6ea` 2026-07-27 21:59:51 | **Unwired** 11d later (`3fff08f`, 2026-08-08, removed import+JSX from `home.tsx`, message states so explicitly), then **deleted** 8d13h after that (`fbe1e72`, 2026-08-16, PR #99 audit item 5, "CONFIRMED dead ... Deleted") | Gone. Every step explicitly named in its own commit message — a real build→abandon story, but not silent | N/A — already fully removed; record only |
+| Hero-image layout duplication: `PageHeroShell` (canonical) vs. `EcosystemHeroLayout` (hand-rolled fork in `ExperimentalHome.tsx:556-650`) vs. legacy fullscreen-image variant (`home.tsx`) vs. `ProjectEntryScreen.tsx`'s unnamed 4th variant | 4 independent implementations of "hero image + overlapping card" | See `docs/welcome-duplication-and-layout-audit-2026-08-17.md` §Duplication #1 for full commit trail | Still open; fork's own comment admits "Mirrors PageHeroShell's structural pattern" (`ExperimentalHome.tsx:557-558`) | Live, unconsolidated | NEEDS HUMAN JUDGMENT — taxonomy proposal (retire fork, parameterize `PageHeroShell` with `animatedOverlay`) already written and awaiting approval in the 08-17 audit; product decision, not a bug |
+| Glass/blur panel duplication (3 live implementations, 5 distinct literal blur radii: 4/8/12/18/26px) | `home.tsx` legacy chat panel (18px), `EntityPanel.tsx` back-button chip (12px), `ProjectEntryScreen.tsx` card (26px, fully hardcoded) | Pre-existing, see 08-17 audit §Duplication #2/#3 | `CompanionGlassPanelV2`'s 20px entry removed by deletion above; 3 live forks remain, no shared `GlassContainer` primitive exists | Live, unconsolidated | NEEDS HUMAN JUDGMENT — a `GlassContainer` primitive is the proposed fix but not built; product decision on scope |
+| Sidepanel duplication (5 independent implementations) | `ItemSidepanel.tsx`, `EntityPanel.tsx`, `OrganiseSheet.tsx`+`ProjectStubPanel.tsx` (radix `Sheet`), `TaskFullscreenModal.tsx`, `CompanionRail.tsx`/`navigator/TaskPanel.tsx` (converge on same recipe independently) | Pre-existing, see 08-17 audit §Duplication #4 | None deleted; all 5 live and diverging in styling (blur/shadow/scrim) | Live, unconsolidated | NEEDS HUMAN JUDGMENT — whether `ItemSidepanel` (most-reused) should gain glass-optic treatment is an open product decision per the 08-17 audit |
+| `CompanionShell.tsx` vs `AppShell.tsx` capability gap | `CompanionShell` was a stripped-down parallel fork missing `RightPanelProvider`/`FloatingAltitudeDial`/`TaskFullscreenModal` | Pre-existing (see phase-0 audit) | **Fixed**, not abandoned: PR #99 (`fbe1e72`) gave `AppShell` a `transparent` variant and collapsed `CompanionShell` into a 16-line alias | Resolved | N/A — already fixed; record only |
+| `?ui=v1` legacy-mode escape hatch | Phase-0 audit (08-09) flagged this as a confirmed **GAP**: write-only `sessionStorage`, no `clearLegacyUi()`, no UI control | Original gap dated ≤2026-08-09 | **Fixed** by PR #99 (`fbe1e72`, 2026-08-16): `exitLegacyUi()` added to `src/lib/uiVersion.ts`, wired to a real button in `AppSidebar.tsx:291` | Resolved — this session's dead-stub sweep re-verified it live in current code and recommends the earlier finding be marked closed rather than left open in any tracker | N/A — already fixed; **correct the open item in any prior tracking as resolved** |
+| `?nav=experimental` query param | Phase-0 audit flagged this as accepted-but-never-consumed by any component ("vestigial no-op") on `home.tsx`/`navigator.tsx` | Pre-existing | Not found anywhere in current `src/` at all (`grep -rn "nav=experimental" src` → 0 hits) as of this session — may have been removed since, or the finding may need re-verification of exact route validators | Unclear — the string itself is gone from source, but this session did not re-audit every route validator for an equivalent no-op param | NEEDS HUMAN JUDGMENT — re-verify against current route validators before closing this item |
+| `ControlButton` (`home.tsx`) | Small header-control component | `1caa620` 2026-07-25 17:22:25 | **Removed** 11h34m later, `c09b5e6` 2026-07-26 04:56:35, folded into `TopChrome` — delete commit describes "rebuild Companion home layout to match mockup exactly" but **never names `ControlButton`** | Gone, functionality preserved in `TopChrome` (verified by git-archaeology agent) | N/A — functionally superseded, nothing broken; **flagged below as a new instance of the "silent same-day delete" pattern** |
+| `src/components/VoiceTranscriber.tsx` (144 lines) | Voice-note capture UI ("Vox orb" mic button + live transcript → note) | Wired into `notes.tsx` as of commit `7ceffa2` (per 07-16 audit) | **Unwired**: `4c09194` ("journal/notes panel unification... unified composer") replaced the route's tab layout with `NotesBrowser`, dropping the import; file left on disk | Zero references anywhere in `src/`/`tests/` (confirmed by orphan-sweep agent + `madge`) | NEEDS HUMAN JUDGMENT — real, self-contained functionality; unclear if voice capture is still wanted or was intentionally dropped when `NotesBrowser` unified the composer |
+| `src/components/navigator/ObjectiveEditor.tsx` (108 lines) | Inline objective title/status/description editor for the navigator | Predates sidepanel unification | **Unwired** when `NavigatorBrowser.tsx` stopped importing it, coinciding with commit `54ff13a` ("add universal item sidepanel for notes and objectives") | Zero references anywhere (confirmed + `madge`) | SAFE TO DELETE — confirmed zero references, confirmed superseded by the universal `ItemSidepanel` flow |
+| `src/components/navigator/TaskPanel.tsx` (183 lines) | Resizable task-list side panel (drag-resize, localStorage width) embedding `NoteEditor` | Predates sidepanel unification | Same supersession point as `ObjectiveEditor` above | Zero references anywhere (confirmed + `madge`) | SAFE TO DELETE — confirmed zero references, confirmed superseded |
+| `src/lib/error-capture.ts` (27 lines) + `src/lib/error-page.ts` (30 lines) | Global error-capture listener + static error-page HTML renderer, built for an h3/SSR server error-recovery path | Added in merge `63619f3` (repo's earliest locally-visible commit) | Never unwired — **no consumer was ever added**; no `server.ts`, no SSR/h3 config exists anywhere in the repo | Zero references anywhere; built for infrastructure that was never built | NEEDS HUMAN JUDGMENT — dead today, but tied to possible future SSR work rather than a completed-then-abandoned feature; human should confirm SSR is not planned before deleting |
+| `src/shared/ui/ActionPillButton.tsx` (25 lines) | Styled pill-shaped icon+label button using `--skin-accent-gradient` | Unknown exact commit (not separately dated by sub-agent) | Never wired; sibling files in the same directory (`CreateProjectTile.tsx`, `ProjectCard.tsx`, `Typewriter.tsx`) are all live, this one alone is not | Zero references anywhere | NEEDS HUMAN JUDGMENT — small, cheap to keep or delete; no strong signal either way |
+| 29 unused shadcn/ui scaffold components (`accordion`, `alert`, `alert-dialog`, `aspect-ratio`, `breadcrumb`, `calendar`, `carousel`, `chart`, `checkbox`, `collapsible`, `command`, `context-menu`, `drawer`, `form`, `hover-card`, `input-otp`, `menubar`, `navigation-menu`, `pagination`, `popover`, `progress`, `radio-group`, `scroll-area`, `slider`, `switch`, `table`, `tabs`, `textarea`, `toggle-group` — 2,659 lines total) | Standard shadcn/ui generated primitives from initial scaffolding | Initial project scaffold | Never adopted by any screen; each individually verified zero-import (false positives like `role="switch"`/`type="checkbox"` attribute strings excluded) | Zero references anywhere, confirmed per-file | NEEDS HUMAN JUDGMENT — common to keep shadcn scaffolding as an available-but-unused primitive library; human should decide whether to prune for bundle/maintenance clarity or keep as the design-system's available surface |
+| Date/time formatting duplication | 3 independent implementations of "format a timestamp for display": `NotesBrowser.tsx:42-49` (`formatDate`, local `toLocaleString` w/ options), `task.$taskId.tsx:365,369` (inline `toLocaleString()` no options), `JournalFlow.tsx:931` (inline `toLocaleDateString` w/ different options) | Pre-existing, no shared `src/lib` date helper exists | Not abandoned — 3 live, non-sharing implementations producing 3 different output formats for the same concept | Live, unconsolidated | NEEDS HUMAN JUDGMENT — worth extracting `NotesBrowser.tsx`'s `formatDate` (closest to canonical) into `src/lib`, but is a design decision on the canonical format, not a bug |
+| Modal/confirm-dialog duplication | shadcn `AlertDialog` primitive (`src/components/ui/alert-dialog.tsx`) never imported anywhere; 3 call sites use raw `confirm()`/`window.confirm()` instead: `NotesBrowser.tsx:597`, `ItemSidepanel.tsx:1005`, `quickroad/GenerateStep.tsx:135` | Pre-existing | `AlertDialog` never wired in; native browser dialogs used instead, each with its own hardcoded message | Live, unconsolidated | NEEDS HUMAN JUDGMENT — replacing native `confirm()` with the existing `AlertDialog` primitive is a real, scoped improvement but a UX decision on styling/copy |
+| Toast/error-banner duplication | shadcn `Alert`/`AlertTitle`/`AlertDescription` never imported anywhere; 3 hand-rolled inline error banners instead: `home.tsx:734-766` (TTS errors), `auth.tsx:244-248` (form validation), `quickroad/GenerateStep.tsx:144-190` (same box copy-pasted 3× in one file with 2 different accent colors) | Pre-existing | `Alert` primitive never wired in | Live, unconsolidated | NEEDS HUMAN JUDGMENT — same shape as the modal finding above; scoped consolidation opportunity, product/design decision on final look |
+| Tag/chip pill duplication | Shared `.x-tag`/`.x-tag--sm` CSS utility (accent-colored) used correctly in 3 places (`task.$taskId.tsx:380`, `NoteEditor.tsx:446`, `NotesBrowser.tsx:703`); `ItemSidepanel.tsx:667-679` and `ProjectStubPanel.tsx:139-151` reimplement the same concept inline with a different (neutral) color scheme | Pre-existing | Not abandoned — divergent forks producing visibly inconsistent tag-pill styling (accent vs. neutral) for the same UI element | Live, unconsolidated | NEEDS HUMAN JUDGMENT — small, mechanical fix (swap 2 inline styles for the shared class) but changes visible styling, worth a design nod first |
+| `suggestLinks()` always-empty stub wired to a live button | `src/lib/sidepanel-service.ts:252-260` — `// TODO: AI link suggestion — stub until backend endpoint is available`, body is `return []` unconditionally; `ItemSidepanel.tsx:348-358`'s `handleSuggest()` calls it from an **enabled, unlabeled** button and always shows "No suggestions available yet." | Unknown exact commit | Never unwired from the UI — unlike every other stub found in this audit, this one is NOT self-labeled/disabled, so it looks broken rather than "coming soon" | Live, always fails silently-but-visibly (an alert every time) | NEEDS HUMAN JUDGMENT — highest-severity dead-stub finding in this pass: either disable/label the button like the app's other honest stubs, or build the backend endpoint |
+| `promoteNoteToObjective()` dead function | `src/lib/sidepanel-service.ts:262-269` — throws `"Promote to objective: not yet implemented"`; comment notes the DB RPC exists but no UI flow was ever defined | Unknown exact commit | Zero callers anywhere in `src`/`tests` — fully unreferenced exported function | Dead, unreferenced | WORTH REVIVING — backend RPC already exists per the code's own comment; only the UI flow and call site are missing |
+| `RolePanel`/`MoodPanel` (`CompanionRail.tsx:65-194`) | Fully interactive Founder/Collaborator/Investor role switcher + drag-slider mood control, live-mounted at `home.tsx:657` | Pre-existing | Not unwired — both end with "Role switching is not wired yet." / "Mood-adaptive tone is not wired yet." while remaining fully interactive and reachable in production | Live but functionally inert — user can interact with a real-looking control that does nothing beyond a client-side text change | WORTH REVIVING — UI/UX work is complete; only backend wiring is missing |
+| `ecosystem-navigator.tsx` route | "Ecosystem Navigator — Browse all projects across the ecosystem — coming soon" placeholder, linked from a real sidebar nav item (`AppSidebarExperimental.tsx:74`) | Pre-existing | Same pattern as the already-known `ai-plan.tsx` "coming soon" stub — a second live, linked placeholder route | Live placeholder | NEEDS HUMAN JUDGMENT — product-roadmap decision, not a bug; noting the pattern now has 2 known instances (`ai-plan.tsx`, `ecosystem-navigator.tsx`) |
+| `ChatThread.tsx` stub components (`"backcaster-stub"`, `"action-cards-stub"`) | Placeholder components (`StubComponent`, `ActionCardsStub`) rendered when a chat message's `component_type` is a known-not-yet-built type | Pre-existing | Reachable in production: `useCompanionSession.ts:36` defaults any Supabase row with a **null** `component_type` to `"backcaster-stub"`, so a data gap (not just an intentional stub type) silently surfaces the placeholder too | Live, dual-purpose (intentional stub + silent fallback for null data) | NEEDS HUMAN JUDGMENT — the null-defaulting-to-stub behavior specifically is worth a second look; may mask a real data issue as an intentional "coming soon" |
+| `ChiCompanionPanel` / `CompanionCardStack` (`vendor/companion/src/`) | Fully built, complete companion-panel components (mention-autocomplete, proposal confirm/execute flow, voice-input button) exported from the vendored `@xchange/companion` package | Vendored, exact commit not separately dated | Never imported — the app only imports `ComponentRenderer`/`ComponentPayload`/Zod schemas from the same package; these two exports are unused | Zero references in `src/` | NEEDS HUMAN JUDGMENT — same shape as the already-deleted `CompanionGlassPanelV2`: a complete alternative companion-panel implementation sitting unused. Worth checking whether this is what `CompanionGlassPanelV2` was based on / intended to replace, before deciding to prune the vendor export |
+| "PR #116" reference | Cited in this session's kickoff brief as a known instance of the reference-hygiene problem (a PR number that doesn't exist anywhere in this repo's history) | N/A | N/A | **Re-confirmed absent**: a full-repo grep for "116" (docs, code, comments) in this session found zero occurrences of "PR #116" anywhere in the current repo. The origin of the original claim is not in this repository's tracked content — likely a verbal/session-only reference from prior work, not a committed artifact | NEEDS HUMAN JUDGMENT — nothing in-repo to fix; flag for whoever raised it to confirm where it was seen |
+| xcamp-backend "PR#101" reference | `tests/navigator-browser-task-gen.spec.ts:17` — comment: "requires xcamp-backend PR#101 to be deployed before it can be tested end-to-end" | N/A | References a PR in a **different** repository (`xcamp-backend`), unverifiable from this repo. Coincidentally this repo also has its own real, unrelated `#101` (`d82789e`, merged 2026-08-21) — the numbers only coincide, they are not the same PR | Unconfirmed (cross-repo) | NEEDS HUMAN JUDGMENT — verify against the `xcamp-backend` repo directly; low risk of confusion but worth a one-line clarifying comment in the test file |
+| Pre-#44 references (PR #31, PR #9 ×4, 2 branch names) in `AUDIT-2026-07-16-xcamp-nox-founder-app.md` | Older audit doc citing commit `5764a87` and PRs from before this repo's fetched history | N/A | **Unverifiable from this session** — the local clone is shallow, truncated at PR #44 (`63619f3`); `git cat-file -t 5764a87` fails as "not a valid object." PR #9's own text already self-flags as likely belonging to a different repo (`xcamp-sdk`) | Unconfirmed (outside shallow window) | NEEDS HUMAN JUDGMENT — needs an unshallowed clone or direct GitHub API access to verify; not evidence of fabrication, just outside what this session could check |
+| PR references #44–#101 (all others found in-repo) | Every other `PR #N` reference found in `docs/*.md` and code/test comments | N/A | N/A | **All confirmed** — every reference in this range matches a real local merge commit for that exact number (see sub-agent evidence: #44, #83, #89, #94, #95, #97, #98, #99, #100, #101 all verified) | N/A — clean bill of health for this range; no action needed |
+
+---
+
+## Summary
+
+Of the findings above with an actionable recommendation (excluding the 4 "N/A — already
+resolved, record only" rows kept for the historical audit trail):
+
+- **SAFE TO DELETE: 2** — `ObjectiveEditor.tsx`, `TaskPanel.tsx` (navigator), both confirmed
+  zero-referenced and confirmed superseded by the universal `ItemSidepanel` flow.
+- **WORTH REVIVING: 3** — `promoteNoteToObjective()` (backend RPC already exists, only the
+  UI flow is missing), `RolePanel`/`MoodPanel` in `CompanionRail.tsx` (UI fully built,
+  only backend wiring missing), and `VoiceTranscriber.tsx` sits close to this bucket but is
+  marked NEEDS HUMAN JUDGMENT instead since it's unclear whether it was intentionally
+  superseded by `NotesBrowser`'s unified composer rather than simply dropped.
+- **NEEDS HUMAN JUDGMENT: the remaining ~20 findings** — this is the large majority, by
+  design: most of what this sweep found is either (a) a genuine product/design decision
+  (which of several duplicate implementations to keep, whether to consolidate hero-image
+  or glass-panel or modal/toast primitives), (b) dead code tied to infrastructure that was
+  never built rather than abandoned (`error-capture.ts`/`error-page.ts`, the unused shadcn
+  scaffold), or (c) something ambiguous enough (unused vendor exports, cross-repo PR
+  references, pre-shallow-clone history) that a confident SAFE-TO-DELETE or WORTH-REVIVING
+  call would be guessing.
+
+**New instance of the "silent same-day build-then-delete" pattern found and flagged:**
+`ControlButton` in `home.tsx` — built `1caa620` (2026-07-25 17:22:25), removed 11h34m
+later by `c09b5e6` (2026-07-26 04:56:35) when folded into `TopChrome`. Unlike the
+`CompanionSidePanel` and `CompanionGlassPanelV2` cases above (both of which name the
+removed component explicitly in their delete commit message), `c09b5e6`'s message
+("Rebuild Companion home layout to match mockup exactly") never names `ControlButton` —
+the connection between the two commits is only discoverable by reading the actual diff,
+not by grepping commit messages for the component name. The outcome here is benign
+(functionality was genuinely folded into `TopChrome`, confirmed present in current code,
+nothing was lost), but per existing project practice this should have been recorded as
+"built `ControlButton`, then folded into `TopChrome`" rather than left to be
+reconstructed from a diff five weeks later. No other new same-day/short-window silent
+instances were found — this repo's commit discipline (verbose, itemized bodies) makes
+most removals self-documenting, which is why only one new instance surfaced in this pass.
+
+Overall picture: this repo has a good track record of *documenting* its abandonments once
+someone goes looking (the `CompanionGlassPanelV2` build→unwire→delete trail is fully
+named at every step) — the gap is that nothing surfaces these instances proactively, so
+each one is still only found when an unrelated audit or this dedicated sweep stumbles on
+it. The clearest pattern across this registry, beyond individual dead files, is repeated
+**unused shared primitives sitting next to hand-rolled duplicates that solve the same
+problem** (`AlertDialog`/`Alert` unused while native `confirm()`/inline banners proliferate;
+`.x-tag` unused by two sidepanel-adjacent components; `PageHeroShell` unused by its own
+hand-rolled fork) — the shared component usually already exists, it's just not the one
+that got reached for.
