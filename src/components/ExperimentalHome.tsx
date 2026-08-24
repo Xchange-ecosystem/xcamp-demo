@@ -14,7 +14,6 @@ import {
   MicOff,
   Paperclip,
   Plus,
-  RefreshCw,
   Send,
   Volume2,
   VolumeX,
@@ -297,7 +296,6 @@ export interface ExperimentalChatProps {
   availableVoices: VoiceOption[];
   onVoiceChange: (id: string) => void;
   onNewSession: () => void;
-  onReload: () => void;
 }
 
 // ─── Shared input box ─────────────────────────────────────────────────────────
@@ -1571,7 +1569,6 @@ function CompanionCornerControls({
   availableVoices,
   onVoiceChange,
   onNewSession,
-  onReload,
 }: {
   muted: boolean;
   onMuteToggle: () => void;
@@ -1579,7 +1576,6 @@ function CompanionCornerControls({
   availableVoices: VoiceOption[];
   onVoiceChange: (id: string) => void;
   onNewSession: () => void;
-  onReload: () => void;
 }) {
   return (
     <div
@@ -1595,9 +1591,6 @@ function CompanionCornerControls({
     >
       <CornerButton onClick={onNewSession} title="New conversation">
         <MessageSquarePlus size={15} />
-      </CornerButton>
-      <CornerButton onClick={onReload} title="Reload background">
-        <RefreshCw size={15} />
       </CornerButton>
       <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
         <select
@@ -1668,7 +1661,6 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
     availableVoices,
     onVoiceChange,
     onNewSession,
-    onReload,
   } = props;
 
   return (
@@ -1680,9 +1672,8 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
         availableVoices={availableVoices}
         onVoiceChange={onVoiceChange}
         onNewSession={onNewSession}
-        onReload={onReload}
       />
-      <PageHeroShell image={activeProject?.feature_image ?? undefined} showImageReload={false}>
+      <PageHeroShell image={activeProject?.feature_image ?? undefined}>
         <div style={{ padding: "20px 24px 24px" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {/* Thread + input — bounded height, thread scrolls internally, input stays pinned */}

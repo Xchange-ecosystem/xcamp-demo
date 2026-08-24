@@ -205,7 +205,7 @@ function CompanionHomePage() {
   const { altitude } = useAltitudeStore();
 
   const waitForTyping = (text: string) =>
-    new Promise<void>((resolve) => setTimeout(resolve, text.length * 38));
+    new Promise<void>((resolve) => setTimeout(resolve, (text?.length ?? 0) * 38));
 
   const isNewDay = (dateStr: string) => {
     const sessionDate = new Date(dateStr).toDateString();
@@ -227,7 +227,6 @@ function CompanionHomePage() {
   const welcomeFiredRef = useRef(false);
   const prevActiveProjectIdRef = useRef<string | null>(activeProjectId);
   useEffect(() => {
-    if (!isLegacyUi()) { welcomeFiredRef.current = true; return; }
     if (session.loading || welcomeFiredRef.current) return;
     if (projects.length === 0) return;
 
@@ -1108,7 +1107,6 @@ function CompanionHomePage() {
               setVoiceId(id);
             }}
             onNewSession={handleNewSession}
-            onReload={reloadHero}
           />
         )}
       </CompanionShell>

@@ -37,7 +37,7 @@ export function Typewriter({ text, targetMs, onDone, caret = true, className }: 
     return () => window.clearInterval(id);
   }, [text, targetMs]);
 
-  const done = typed.length >= text.length;
+  const done = typed.length >= (text?.length ?? 0);
   return (
     <span className={className}>
       {typed}
