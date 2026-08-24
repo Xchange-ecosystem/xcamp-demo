@@ -635,8 +635,14 @@ function CompanionHomePage() {
     welcomeFiredRef.current = false;
     branchFiredRef.current = false;
     gridMsgIdRef.current = null;
-    setActiveProject(null);
-    setActiveProjectId(null);
+    // Legacy mode has no independent navMode concept — a new conversation always meant
+    // starting over completely, including project selection. Experimental/Companion mode
+    // treats "which project am I in" as independent of "which chat am I having," so a
+    // new conversation there should keep the active project.
+    if (isLegacyUi()) {
+      setActiveProject(null);
+      setActiveProjectId(null);
+    }
     await session.newSession();
     setStep("welcome");
   }, [session, setActiveProjectId]);
