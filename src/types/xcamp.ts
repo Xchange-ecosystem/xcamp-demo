@@ -33,6 +33,8 @@ export interface NoteRow {
   tenant_id: string;
   created_at: string;
   updated_at: string;
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 export interface ProjectRow {

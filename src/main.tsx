@@ -8,16 +8,8 @@ import { getRouter } from "./router";
 // so it serves as the outermost theme wrapper. Swap to the design-system
 // provider here once it ships.
 import { ThemeProvider } from "./lib/theme";
-import { PLATFORM_SCIENTIFIC } from "@xchange/ui";
-import { applyBaseSkin } from "./lib/skin";
 import { initUiVersionFromUrl } from "./lib/uiVersion";
 import "./styles.css";
-
-// Publish the default scientific skin's CSS vars before first paint so all
-// --skin-* custom properties are defined regardless of which route loads first.
-// applyBaseSkin emits them in a cascade layer so styles.css — and in particular
-// its .dark overrides — still win. See src/lib/skin.ts.
-applyBaseSkin(PLATFORM_SCIENTIFIC);
 
 // Resolve ?ui= (enter legacy / escape back out) before the router mounts, so a
 // route validator cannot strip the param before the escape hatch has seen it.

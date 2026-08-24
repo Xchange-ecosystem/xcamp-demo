@@ -3827,12 +3827,14 @@ export type Database = {
           created_at: string
           detail: Json
           done: boolean
+          end_date: string | null
           id: string
           is_restricted: boolean
           note_type: string
           owner_central_id: string
           preferred_external_container_id: string | null
           price_credits: number
+          start_date: string | null
           tags: string[]
           tenant_id: string
           title: string
@@ -3847,12 +3849,14 @@ export type Database = {
           created_at?: string
           detail?: Json
           done?: boolean
+          end_date?: string | null
           id?: string
           is_restricted?: boolean
           note_type?: string
           owner_central_id: string
           preferred_external_container_id?: string | null
           price_credits?: number
+          start_date?: string | null
           tags?: string[]
           tenant_id: string
           title?: string
@@ -3867,12 +3871,14 @@ export type Database = {
           created_at?: string
           detail?: Json
           done?: boolean
+          end_date?: string | null
           id?: string
           is_restricted?: boolean
           note_type?: string
           owner_central_id?: string
           preferred_external_container_id?: string | null
           price_credits?: number
+          start_date?: string | null
           tags?: string[]
           tenant_id?: string
           title?: string

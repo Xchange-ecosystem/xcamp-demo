@@ -1,16 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { SidepanelProvider, useSidepanel } from "@/contexts/sidepanel";
+import { SidepanelProvider } from "@/contexts/sidepanel";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
-import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
-import { useAltitudeStore } from "@/store/altitudeStore";
+import { TaskDetailShell } from "@/components/task-detail/TaskDetailShell";
 import { supabase } from "@/lib/supabase";
-import { listProjects, updateNote, archiveNote } from "@/lib/xcamp-api";
-import { fetchLinkedItemsForNote } from "@/lib/sidepanel-service";
+import {
+  archiveNote,
+  getTaskLabels,
+  getUserDisplayName,
+  patchNoteDetail,
+  type TaskLabelObjective,
+} from "@/lib/xcamp-api";
+import { toggleNoteDone } from "@/lib/navigator-api";
 import { DetailComingSoonPlaceholder } from "@/components/DetailComingSoonPlaceholder";
 import type { NoteRow } from "@/types/xcamp";
 
@@ -21,175 +26,116 @@ export const Route = createFileRoute("/task/$taskId")({
   component: TaskPage,
 });
 
-// ── Linked objectives panel ─────────────────────────────────────────────────
-
-function LinkedObjectivesPanel({ taskId }: { taskId: string }) {
-  const { push } = useSidepanel();
-
-  const { data: linked = [], isLoading } = useQuery({
-    queryKey: ["linked-items", taskId, "note"],
-    queryFn: () => fetchLinkedItemsForNote(taskId),
-  });
-
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          color: "var(--skin-ink-faint)",
-          padding: "24px 0",
-        }}
-      >
-        <Loader2 size={14} className="animate-spin" />
-        Loading…
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--skin-ink-faint)",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          margin: "0 0 4px",
-        }}
-      >
-        Linked objectives
-      </p>
-      {linked.length === 0 ? (
-        <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", margin: 0 }}>
-          No linked objectives.
-        </p>
-      ) : (
-        linked.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => push({ id: item.id, kind: item.kind, title: item.title })}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid var(--skin-line)",
-              background: "var(--skin-surface2)",
-              cursor: "pointer",
-              textAlign: "left",
-              width: "100%",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 13,
-                color: "var(--skin-ink)",
-                flex: 1,
-                minWidth: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {item.title}
-            </span>
-            {item.status && (
-              <span
-                style={{ fontSize: 11, color: "var(--skin-ink-faint)", flexShrink: 0 }}
-              >
-                {item.status}
-              </span>
-            )}
-          </button>
-        ))
-      )}
-    </div>
-  );
-}
+const TASK_COLUMNS =
+  "id, title, body_html, body_markdown, body_text, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done, start_date, end_date";
 
 // ── Task page content ───────────────────────────────────────────────────────
+// Data-fetching + mutation owner for the whole tabbed detail view. Full-depth
+// (altitude=2 / Deep) layout only — this component doesn't gate anything on
+// altitude; that dial still exists and is still mounted below, per the
+// standing decision to defer per-altitude variation for the task modal.
 
 export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const { user, loading: authLoading } = useAuth();
   const qc = useQueryClient();
-  const { altitude } = useAltitudeStore();
 
   const [noteRow, setNoteRow] = useState<NoteRow | null>(null);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [labels, setLabels] = useState<TaskLabelObjective[]>([]);
+  const [ownerName, setOwnerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [archiving, setArchiving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  // Always-current detail snapshot so patchDetail merges never race a stale
+  // read across tabs (e.g. an attachment added in one tab getting reverted by
+  // a Do & Document autosave that started before the attachment save landed).
+  const detailRef = useRef<Record<string, unknown>>({});
 
   useEffect(() => {
     if (!authLoading && !user) onClose();
   }, [authLoading, user, onClose]);
 
+  const loadNote = useCallback(async () => {
+    const { data, error: fetchErr } = await supabase
+      .from("notes")
+      .select(TASK_COLUMNS)
+      .eq("id", taskId)
+      .single();
+    if (fetchErr || !data) return null;
+    const raw = data as unknown as Record<string, unknown>;
+    const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
+    return row;
+  }, [taskId]);
+
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     setError(null);
-    Promise.all([
-      supabase
-        .from("notes")
-        .select(
-          "id, title, body_html, body_markdown, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done",
-        )
-        .eq("id", taskId)
-        .single(),
-      listProjects(user),
-    ])
-      .then(([{ data, error: fetchErr }, projs]) => {
-        if (fetchErr || !data) {
+    loadNote()
+      .then((row) => {
+        if (!row) {
           setError("Could not load task.");
           setLoading(false);
           return;
         }
-        const raw = data as unknown as Record<string, unknown>;
-        const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
+        // No note_type check here — TaskPage (below) already dispatches by
+        // type before this component is ever mounted, so this only ever
+        // runs for real tasks.
+        detailRef.current = row.detail ?? {};
         setNoteRow(row);
-        setProjects(projs);
         setLoading(false);
+        void getTaskLabels(taskId).then(setLabels);
+        void getUserDisplayName(row.created_by).then(setOwnerName);
       })
       .catch(() => {
         setError("Could not load task.");
         setLoading(false);
       });
-  }, [taskId, user?.centralId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [taskId, user?.centralId, loadNote]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSave = async (v: NoteEditorValues) => {
-    if (!user || !noteRow) return;
-    setSaving(true);
-    try {
-      await updateNote(user, taskId, {
-        ...v,
-        existingDetail: (noteRow.detail as Record<string, unknown>) ?? {},
-      });
-      void qc.invalidateQueries({ queryKey: ["notes"] });
-      void qc.invalidateQueries({ queryKey: ["nav-tasks"] });
-    } catch (e) {
-      console.error("Task save failed", e);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const handleSaved = useCallback(() => {
+    void loadNote().then((row) => {
+      if (row) {
+        detailRef.current = row.detail ?? {};
+        setNoteRow(row);
+      }
+    });
+    void qc.invalidateQueries({ queryKey: ["notes"] });
+    void qc.invalidateQueries({ queryKey: ["nav-tasks"] });
+  }, [loadNote, qc]);
 
-  const handleArchive = async () => {
+  const patchDetail = useCallback(
+    async (patch: Record<string, unknown>) => {
+      if (!user) return;
+      await patchNoteDetail(user, taskId, detailRef.current, patch);
+      detailRef.current = { ...detailRef.current, ...patch };
+    },
+    [user, taskId],
+  );
+
+  const handleRemove = async () => {
     if (!user || !noteRow) return;
-    setArchiving(true);
+    setRemoving(true);
     try {
       await archiveNote(user, noteRow);
       void qc.invalidateQueries({ queryKey: ["notes"] });
       onClose();
     } catch (e) {
-      console.error("Archive failed", e);
+      console.error("Remove task failed", e);
     } finally {
-      setArchiving(false);
+      setRemoving(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!noteRow) return;
+    try {
+      await toggleNoteDone(noteRow.id, !noteRow.done);
+      setNoteRow({ ...noteRow, done: !noteRow.done });
+      void qc.invalidateQueries({ queryKey: ["notes"] });
+      void qc.invalidateQueries({ queryKey: ["nav-tasks"] });
+    } catch (e) {
+      console.error("Toggle complete failed", e);
     }
   };
 
@@ -209,7 +155,7 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
     );
   }
 
-  if (error || !noteRow) {
+  if (error || !noteRow || !user) {
     return (
       <div
         style={{
@@ -232,163 +178,23 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
     );
   }
 
-  // Altitude 0 = Surface: editor only, no linked panel
-  // Altitude 1 = Working: two-column, editor + linked objectives
-  // Altitude 2 = Deep: two-column, editor + linked objectives + meta strip
-  const showLinkedPanel = altitude >= 1;
-  const expandedMeta = altitude === 2;
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--skin-surface)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Top bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "10px 20px",
-          borderBottom: "1px solid var(--skin-line)",
-          background: "var(--skin-surface2)",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--skin-ink-faint)",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: 13,
-            padding: "4px 8px 4px 4px",
-            borderRadius: 6,
-          }}
-        >
-          <ChevronLeft size={15} />
-          Close
-        </button>
-        <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>·</span>
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--skin-ink)",
-            flex: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {noteRow.title || "Untitled task"}
-        </span>
-      </div>
-
-      {/* Main content — altitude-branched layout */}
-      <div
-        style={{
-          flex: 1,
-          display: showLinkedPanel ? "grid" : "block",
-          gridTemplateColumns: showLinkedPanel ? "1fr 320px" : undefined,
-          overflow: "hidden",
-          minHeight: 0,
-        }}
-      >
-        {/* Editor */}
-        <div style={{ overflowY: "auto", padding: "24px 32px" }}>
-          <NoteEditor
-            key={noteRow.id}
-            editing={{ mode: "edit", note: noteRow }}
-            projects={projects}
-            user={user!}
-            saving={saving}
-            archiving={archiving}
-            onSave={handleSave}
-            onCancel={onClose}
-            onArchive={handleArchive}
-          />
-        </div>
-
-        {/* Linked objectives panel (altitude 1+) */}
-        {showLinkedPanel && (
-          <div
-            style={{
-              borderLeft: "1px solid var(--skin-line)",
-              overflowY: "auto",
-              padding: 20,
-              background: expandedMeta ? "var(--skin-surface2)" : "var(--skin-surface)",
-            }}
-          >
-            <LinkedObjectivesPanel taskId={taskId} />
-
-            {/* Deep altitude (2): meta strip */}
-            {expandedMeta && (
-              <div
-                style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8 }}
-              >
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "var(--skin-ink-faint)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    margin: "0 0 4px",
-                  }}
-                >
-                  Task detail
-                </p>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--skin-ink-soft)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                  }}
-                >
-                  <div>
-                    <span style={{ color: "var(--skin-ink-faint)" }}>Created: </span>
-                    {new Date(noteRow.created_at).toLocaleString()}
-                  </div>
-                  <div>
-                    <span style={{ color: "var(--skin-ink-faint)" }}>Updated: </span>
-                    {new Date(noteRow.updated_at || noteRow.created_at).toLocaleString()}
-                  </div>
-                  <div>
-                    <span style={{ color: "var(--skin-ink-faint)" }}>Type: </span>
-                    {noteRow.note_type}
-                  </div>
-                  {noteRow.tags?.length > 0 && (
-                    <div
-                      style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}
-                    >
-                      {noteRow.tags.map((t) => (
-                        <span key={t} className="x-tag x-tag--sm">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
+    <>
+      <TaskDetailShell
+        noteRow={noteRow}
+        labels={labels}
+        ownerName={ownerName}
+        user={user}
+        onClose={onClose}
+        onSaved={handleSaved}
+        patchDetail={patchDetail}
+        onRemove={() => void handleRemove()}
+        onComplete={() => void handleComplete()}
+        removing={removing}
+      />
       <FloatingAltitudeDial />
       <ItemSidepanel />
-    </div>
+    </>
   );
 }
 

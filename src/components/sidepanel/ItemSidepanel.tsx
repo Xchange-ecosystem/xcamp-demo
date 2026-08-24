@@ -285,7 +285,7 @@ function AddLinkPanel({
 
 // ── Linked items tab ───────────────────────────────────────────────────────
 
-function LinkedItemsTab({
+export function LinkedItemsTab({
   itemId,
   itemKind,
 }: {
