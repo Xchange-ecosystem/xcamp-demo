@@ -7,7 +7,19 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Paperclip, Plus, Send, Volume2, VolumeX, Zap } from "lucide-react";
+import {
+  ChevronDown,
+  MessageSquarePlus,
+  Mic,
+  MicOff,
+  Paperclip,
+  Plus,
+  RefreshCw,
+  Send,
+  Volume2,
+  VolumeX,
+  Zap,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveProject } from "@/contexts/active-project";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
@@ -17,6 +29,7 @@ import type { ChatMessage } from "@/components/companion/ChatThread";
 import type { ProjectFull, XcampUser } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
+import type { VoiceOption } from "@/lib/voicePreference";
 import { useTheme } from "@/lib/theme";
 import {
   fetchProjectMetrics,
@@ -279,6 +292,13 @@ export interface ExperimentalChatProps {
   onMentionToggle: () => void;
   activeProject: ProjectFull | null;
   onBack: () => void;
+  muted: boolean;
+  onMuteToggle: () => void;
+  voiceId: string;
+  availableVoices: VoiceOption[];
+  onVoiceChange: (id: string) => void;
+  onNewSession: () => void;
+  onReload: () => void;
 }
 
 // ─── Shared input box ─────────────────────────────────────────────────────────
@@ -1508,6 +1528,128 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   );
 }
 
+// ─── Companion corner controls (fixed, upper-right — mirrors legacy TopChrome) ─
+
+function CornerButton({
+  children,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "var(--glass-pill-bg, rgba(255,255,255,0.15))",
+        border: "1px solid var(--glass-pill-border, rgba(255,255,255,0.25))",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        color: "var(--glass-text, #fff)",
+        cursor: "pointer",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CompanionCornerControls({
+  muted,
+  onMuteToggle,
+  voiceId,
+  availableVoices,
+  onVoiceChange,
+  onNewSession,
+  onReload,
+}: {
+  muted: boolean;
+  onMuteToggle: () => void;
+  voiceId: string;
+  availableVoices: VoiceOption[];
+  onVoiceChange: (id: string) => void;
+  onNewSession: () => void;
+  onReload: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 12,
+        right: 16,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <CornerButton onClick={onNewSession} title="New conversation">
+        <MessageSquarePlus size={15} />
+      </CornerButton>
+      <CornerButton onClick={onReload} title="Reload background">
+        <RefreshCw size={15} />
+      </CornerButton>
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+        <select
+          value={voiceId}
+          onChange={(e) => onVoiceChange(e.target.value)}
+          aria-label="Select voice"
+          title="Voice"
+          style={{
+            height: 34,
+            borderRadius: "var(--xr-pill, 999px)",
+            background: "var(--glass-pill-bg, rgba(255,255,255,0.15))",
+            border: "1px solid var(--glass-pill-border, rgba(255,255,255,0.25))",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            color: "var(--glass-text, #fff)",
+            fontSize: 12,
+            padding: "0 32px 0 12px",
+            cursor: "pointer",
+            outline: "none",
+            appearance: "none",
+            WebkitAppearance: "none",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          }}
+        >
+          {availableVoices.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={13}
+          style={{
+            position: "absolute",
+            right: 10,
+            pointerEvents: "none",
+            color: "var(--glass-text, #fff)",
+            flexShrink: 0,
+          }}
+        />
+      </div>
+      <CornerButton
+        onClick={onMuteToggle}
+        title={muted ? "Enable voice output" : "Mute voice output"}
+      >
+        {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+      </CornerButton>
+    </div>
+  );
+}
+
 // ─── Experimental Chat View (shown after Send from Home) ──────────────────────
 
 export function ExperimentalChatView(props: ExperimentalChatProps) {
@@ -1521,104 +1663,115 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
     mentionedEntities, onMentionedEntitiesChange,
     onMentionMenuClose, onMentionToggle,
     activeProject, onBack,
+    muted,
+    onMuteToggle,
+    voiceId,
+    availableVoices,
+    onVoiceChange,
+    onNewSession,
+    onReload,
   } = props;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        background: "var(--skin-surface)",
-      }}
-    >
-      {/* Back bar */}
-      <div
-        style={{
-          flexShrink: 0,
-          padding: "12px 20px",
-          borderBottom: "1px solid var(--skin-line)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <button
-          onClick={onBack}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: "var(--skin-ink-soft)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          ← Back to Home
-        </button>
-        {activeProject && (
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--skin-ink-faint)",
-              borderLeft: "1px solid var(--skin-line)",
-              paddingLeft: 10,
-            }}
-          >
-            {activeProject.name}
-          </span>
-        )}
-      </div>
+    <>
+      <CompanionCornerControls
+        muted={muted}
+        onMuteToggle={onMuteToggle}
+        voiceId={voiceId}
+        availableVoices={availableVoices}
+        onVoiceChange={onVoiceChange}
+        onNewSession={onNewSession}
+        onReload={onReload}
+      />
+      <PageHeroShell image={activeProject?.feature_image ?? undefined} showImageReload={false}>
+        <div style={{ padding: "20px 24px 24px" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto" }}>
+            {/* Back bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                paddingBottom: 14,
+                marginBottom: 14,
+                borderBottom: "1px solid var(--skin-line)",
+              }}
+            >
+              <button
+                onClick={onBack}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  color: "var(--skin-ink-soft)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                ← Back to Home
+              </button>
+              {activeProject && (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--skin-ink-faint)",
+                    borderLeft: "1px solid var(--skin-line)",
+                    paddingLeft: 10,
+                  }}
+                >
+                  {activeProject.name}
+                </span>
+              )}
+            </div>
 
-      {/* Thread */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px" }}>
-        <div style={{ maxWidth: 640, margin: "0 auto" }}>
-          <ChatThread
-            messages={messages}
-            projects={projects}
-            onProjectSelect={onProjectSelect}
-            onCreateProject={onCreateProject}
-            typingMessageId={typingMessageId}
-            isLoading={isLoading}
-            onCardConfirm={onCardConfirm}
-            onCardDismiss={onCardDismiss}
-            hiddenCardIds={hiddenCardIds}
-          />
+            {/* Thread + input — bounded height, thread scrolls internally, input stays pinned */}
+            <div className="flex flex-col max-h-[420px] sm:max-h-[520px] md:max-h-[600px]">
+              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                <ChatThread
+                  messages={messages}
+                  projects={projects}
+                  onProjectSelect={onProjectSelect}
+                  onCreateProject={onCreateProject}
+                  typingMessageId={typingMessageId}
+                  isLoading={isLoading}
+                  onCardConfirm={onCardConfirm}
+                  onCardDismiss={onCardDismiss}
+                  hiddenCardIds={hiddenCardIds}
+                />
+              </div>
+              <div
+                style={{
+                  flexShrink: 0,
+                  borderTop: "1px solid var(--skin-line)",
+                  padding: "12px 0 0",
+                }}
+              >
+                <InputBox
+                  draft={draft}
+                  onDraftChange={onDraftChange}
+                  onSend={onSend}
+                  isLoading={isLoading}
+                  voice={voice}
+                  fileInputRef={fileInputRef}
+                  attachment={attachment}
+                  onAttachmentSet={onAttachmentSet}
+                  mentionMenuOpen={mentionMenuOpen}
+                  mentionQuery={mentionQuery}
+                  onMentionSelect={onMentionSelect}
+                  mentionedEntities={mentionedEntities}
+                  onMentionedEntitiesChange={onMentionedEntitiesChange}
+                  onMentionMenuClose={onMentionMenuClose}
+                  onMentionToggle={onMentionToggle}
+                  activeProjectId={activeProject?.id}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Input footer */}
-      <div
-        style={{
-          flexShrink: 0,
-          borderTop: "1px solid var(--skin-line)",
-          padding: "12px 20px 16px",
-        }}
-      >
-        <div style={{ maxWidth: 640, margin: "0 auto" }}>
-          <InputBox
-            draft={draft}
-            onDraftChange={onDraftChange}
-            onSend={onSend}
-            isLoading={isLoading}
-            voice={voice}
-            fileInputRef={fileInputRef}
-            attachment={attachment}
-            onAttachmentSet={onAttachmentSet}
-            mentionMenuOpen={mentionMenuOpen}
-            mentionQuery={mentionQuery}
-            onMentionSelect={onMentionSelect}
-            mentionedEntities={mentionedEntities}
-            onMentionedEntitiesChange={onMentionedEntitiesChange}
-            onMentionMenuClose={onMentionMenuClose}
-            onMentionToggle={onMentionToggle}
-            activeProjectId={activeProject?.id}
-          />
-        </div>
-      </div>
-    </div>
+      </PageHeroShell>
+    </>
   );
 }

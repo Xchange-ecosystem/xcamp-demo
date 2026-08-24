@@ -1096,6 +1096,16 @@ function CompanionHomePage() {
             onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
             activeProject={activeProject}
             onBack={() => setExperimentalView("home")}
+            muted={muted}
+            onMuteToggle={() => setMuted(!muted)}
+            voiceId={voiceId}
+            availableVoices={availableVoices}
+            onVoiceChange={(id) => {
+              stopSpeaking();
+              setVoiceId(id);
+            }}
+            onNewSession={handleNewSession}
+            onReload={reloadHero}
           />
         )}
       </CompanionShell>
