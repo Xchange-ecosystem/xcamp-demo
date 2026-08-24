@@ -291,7 +291,6 @@ export interface ExperimentalChatProps {
   onMentionMenuClose: () => void;
   onMentionToggle: () => void;
   activeProject: ProjectFull | null;
-  onBack: () => void;
   muted: boolean;
   onMuteToggle: () => void;
   voiceId: string;
@@ -1662,7 +1661,7 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
     mentionMenuOpen, mentionQuery, onMentionSelect,
     mentionedEntities, onMentionedEntitiesChange,
     onMentionMenuClose, onMentionToggle,
-    activeProject, onBack,
+    activeProject,
     muted,
     onMuteToggle,
     voiceId,
@@ -1686,47 +1685,6 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
       <PageHeroShell image={activeProject?.feature_image ?? undefined} showImageReload={false}>
         <div style={{ padding: "20px 24px 24px" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
-            {/* Back bar */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                paddingBottom: 14,
-                marginBottom: 14,
-                borderBottom: "1px solid var(--skin-line)",
-              }}
-            >
-              <button
-                onClick={onBack}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12,
-                  color: "var(--skin-ink-soft)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                ← Back to Home
-              </button>
-              {activeProject && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "var(--skin-ink-faint)",
-                    borderLeft: "1px solid var(--skin-line)",
-                    paddingLeft: 10,
-                  }}
-                >
-                  {activeProject.name}
-                </span>
-              )}
-            </div>
-
             {/* Thread + input — bounded height, thread scrolls internally, input stays pinned */}
             <div className="flex flex-col max-h-[420px] sm:max-h-[520px] md:max-h-[600px]">
               <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>

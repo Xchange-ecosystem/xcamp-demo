@@ -118,7 +118,7 @@ function CompanionHomePage() {
   const [railPanelWidth, setRailPanelWidth] = useState(0);
   useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (viewParam === "companion") setExperimentalView("chat");
+    setExperimentalView(viewParam === "companion" ? "chat" : "home");
   }, [viewParam]);
 
   const session = useCompanionSession(authUser);
@@ -633,8 +633,12 @@ function CompanionHomePage() {
 
   const handleSendFromHome = useCallback(() => {
     setExperimentalView("chat");
+    void navigate({
+      to: "/home",
+      search: (prev: { ui?: "v1"; view?: "companion" }) => ({ ...prev, view: "companion" }),
+    });
     void handleSend();
-  }, [handleSend]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleSend, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -1095,7 +1099,6 @@ function CompanionHomePage() {
             onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
             onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
             activeProject={activeProject}
-            onBack={() => setExperimentalView("home")}
             muted={muted}
             onMuteToggle={() => setMuted(!muted)}
             voiceId={voiceId}
