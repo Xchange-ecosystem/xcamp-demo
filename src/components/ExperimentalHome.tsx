@@ -14,6 +14,7 @@ import {
   MicOff,
   Paperclip,
   Plus,
+  RefreshCw,
   Send,
   Volume2,
   VolumeX,
@@ -1569,6 +1570,7 @@ function CompanionCornerControls({
   availableVoices,
   onVoiceChange,
   onNewSession,
+  onReload,
 }: {
   muted: boolean;
   onMuteToggle: () => void;
@@ -1576,6 +1578,7 @@ function CompanionCornerControls({
   availableVoices: VoiceOption[];
   onVoiceChange: (id: string) => void;
   onNewSession: () => void;
+  onReload: () => void;
 }) {
   return (
     <div
@@ -1591,6 +1594,9 @@ function CompanionCornerControls({
     >
       <CornerButton onClick={onNewSession} title="New conversation">
         <MessageSquarePlus size={15} />
+      </CornerButton>
+      <CornerButton onClick={onReload} title="Reload background">
+        <RefreshCw size={15} />
       </CornerButton>
       <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
         <select
@@ -1663,6 +1669,12 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
     onNewSession,
   } = props;
 
+  // Reload swaps to a random hero image, overriding the project's own photo (if any) —
+  // driven entirely by `seed` so it works without reaching into PageHeroShell's
+  // internal useHeroImage() instance.
+  const [imageOverridden, setImageOverridden] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
+
   return (
     <>
       <CompanionCornerControls
@@ -1672,8 +1684,18 @@ export function ExperimentalChatView(props: ExperimentalChatProps) {
         availableVoices={availableVoices}
         onVoiceChange={onVoiceChange}
         onNewSession={onNewSession}
+        onReload={() => {
+          setImageOverridden(true);
+          setReloadNonce((n) => n + 1);
+        }}
       />
-      <PageHeroShell image={activeProject?.feature_image ?? undefined}>
+      <PageHeroShell
+        image={imageOverridden ? undefined : (activeProject?.feature_image ?? undefined)}
+        seed={
+          imageOverridden ? `companion-${activeProject?.id ?? "eco"}-${reloadNonce}` : undefined
+        }
+        showImageReload={false}
+      >
         <div style={{ padding: "20px 24px 24px" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {/* Thread + input — bounded height, thread scrolls internally, input stays pinned */}
