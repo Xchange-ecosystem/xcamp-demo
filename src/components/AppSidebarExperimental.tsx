@@ -21,6 +21,7 @@ import {
   Compass,
   FilePlus,
   Home,
+  LayoutGrid,
   LayoutList,
   LogOut,
   Map,
@@ -72,6 +73,7 @@ const ECOSYSTEM_NAV: NavItem[] = [
   { title: "home",      url: "/home",                 icon: Home,          label: "Home" },
   { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
   { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator" },
+  { title: "portfolio", url: "/portfolio",            icon: LayoutGrid,    label: "Portfolio" },
   { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder" },
 ];
 
