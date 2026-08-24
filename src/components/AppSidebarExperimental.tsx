@@ -417,7 +417,7 @@ export function AppSidebarExperimental() {
                             <SidebarMenuSub>
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
-                                  isActive={onJournal}
+                                  isActive={onJournal && !(location.search as Record<string, string>)?.new}
                                   onClick={() =>
                                     void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
                                   }
@@ -428,13 +428,35 @@ export function AppSidebarExperimental() {
                               </SidebarMenuSubItem>
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
-                                  isActive={onNotes}
+                                  isActive={(location.search as Record<string, string>)?.new === "1" && onJournal}
+                                  onClick={() =>
+                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: "1" }) })
+                                  }
+                                >
+                                  <FilePlus className="h-3.5 w-3.5" />
+                                  <span>New Journal Entry</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={onNotes && !((location.search as Record<string, string>)?.new)}
                                   onClick={() =>
                                     void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
                                   }
                                 >
                                   <LayoutList className="h-3.5 w-3.5" />
                                   <span>My Notes</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}
+                                  onClick={() =>
+                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: "1" }) })
+                                  }
+                                >
+                                  <FilePlus className="h-3.5 w-3.5" />
+                                  <span>New Note</span>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
                             </SidebarMenuSub>
