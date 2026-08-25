@@ -5,7 +5,8 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { SidepanelProvider } from "@/contexts/sidepanel";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
-import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
+import { CompanionRailProvider } from "@/contexts/companion-rail";
+import { CompanionRail } from "@/components/companion/CompanionRail";
 import { TaskDetailShell } from "@/components/task-detail/TaskDetailShell";
 import { supabase } from "@/lib/supabase";
 import {
@@ -32,8 +33,9 @@ const TASK_COLUMNS =
 // ── Task page content ───────────────────────────────────────────────────────
 // Data-fetching + mutation owner for the whole tabbed detail view. Full-depth
 // (altitude=2 / Deep) layout only — this component doesn't gate anything on
-// altitude; that dial still exists and is still mounted below, per the
-// standing decision to defer per-altitude variation for the task modal.
+// altitude; the CompanionRail's Altitude toggle still exists and is still
+// mounted below, per the standing decision to defer per-altitude variation
+// for the task modal.
 
 export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const { user, loading: authLoading } = useAuth();
@@ -192,7 +194,7 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
         onComplete={() => void handleComplete()}
         removing={removing}
       />
-      <FloatingAltitudeDial />
+      <CompanionRail />
       <ItemSidepanel />
     </>
   );
@@ -278,7 +280,9 @@ function TaskPage() {
 
   return (
     <SidepanelProvider>
-      <TaskPageContent taskId={taskId} onClose={() => window.close()} />
+      <CompanionRailProvider>
+        <TaskPageContent taskId={taskId} onClose={() => window.close()} />
+      </CompanionRailProvider>
     </SidepanelProvider>
   );
 }
