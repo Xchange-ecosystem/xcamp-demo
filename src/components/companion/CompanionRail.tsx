@@ -18,6 +18,14 @@ type InlinePanel = "detail" | "role" | "mood" | "appearance";
 export const RAIL_PANEL_WIDTH = 480;
 const TAB_WIDTH = 44;
 
+// Collapsed tab strip stays below the top/bottom-right FABs (mute-voice toggle,
+// FloatingAltitudeDial, etc. — all z-index 50) so they stay visible and clickable.
+// The expanded panel is full-height on the right edge and would otherwise sit
+// underneath those same FABs, letting them show through and intercept clicks —
+// so while expanded it needs to out-rank that z-50 layer.
+const RAIL_TAB_Z_INDEX = 20;
+const RAIL_PANEL_EXPANDED_Z_INDEX = 55;
+
 const RAIL_ITEMS = [
   {
     key: "detail" as const,
@@ -474,7 +482,7 @@ export function CompanionRail() {
             borderRadius: "12px 0 0 12px",
             boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
             overflow: "visible",
-            zIndex: 20,
+            zIndex: RAIL_TAB_Z_INDEX,
           }}
         >
           {RAIL_ITEMS.map((item, i) => (
@@ -539,7 +547,7 @@ export function CompanionRail() {
             maxWidth: "95vw",
             background: "var(--skin-surface)",
             boxShadow: "-8px 0 32px rgba(0,0,0,0.18)",
-            zIndex: 20,
+            zIndex: RAIL_PANEL_EXPANDED_Z_INDEX,
             display: "flex",
             flexDirection: "column",
           }}
