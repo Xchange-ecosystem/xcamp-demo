@@ -406,7 +406,10 @@ export function AppSidebarExperimental() {
                         <>
                           <SidebarMenuButton
                             isActive={onLogbook}
-                            onClick={() => setLogbookOpen((v) => !v)}
+                            onClick={() => {
+                              setLogbookOpen((v) => !v);
+                              void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
+                            }}
                             className="flex items-center gap-2 w-full"
                           >
                             <item.icon className="h-4 w-4" />
@@ -494,7 +497,13 @@ export function AppSidebarExperimental() {
                         <>
                           <SidebarMenuButton
                             isActive={navigatorActive}
-                            onClick={() => setNavigatorOpen((v) => !v)}
+                            onClick={() => {
+                              setNavigatorOpen((v) => !v);
+                              void navigate({
+                                to: "/navigator" as never,
+                                search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                              });
+                            }}
                             className="flex items-center gap-2 w-full"
                           >
                             <item.icon className="h-4 w-4" />
