@@ -160,7 +160,7 @@ export function AppSidebarExperimental() {
   const navItems = navMode === "project" ? PROJECT_NAV : ECOSYSTEM_NAV;
 
   function resolveUrl(item: NavItem): string {
-    if (item.parameterised && activeProjectId) return `/project/${activeProjectId}`;
+    if (item.parameterised && activeProjectId) return `/project/${activeProjectId}/goals`;
     if (item.parameterised) return "/home";
     return item.url;
   }

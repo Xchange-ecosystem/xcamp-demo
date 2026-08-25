@@ -27,6 +27,7 @@ import { Route as SandboxTaskPanelV3RouteImport } from './routes/sandbox.task-pa
 import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-panel-live'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
+import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
 
 const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
   id: '/project-details',
@@ -118,6 +119,11 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ProjectProjectIdGoalsRoute = ProjectProjectIdGoalsRouteImport.update({
+  id: '/project/$projectId_/goals',
+  path: '/project/$projectId/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile/': typeof ProfileIndexRoute
+  '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile': typeof ProfileIndexRoute
+  '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile/': typeof ProfileIndexRoute
+  '/project/$projectId_/goals': typeof ProjectProjectIdGoalsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
     | '/profile/'
+    | '/project/$projectId/goals'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
     | '/profile'
+    | '/project/$projectId/goals'
   id:
     | '__root__'
     | '/'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
     | '/profile/'
+    | '/project/$projectId_/goals'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   SandboxTaskPanelLiveRoute: typeof SandboxTaskPanelLiveRoute
   SandboxTaskPanelV3Route: typeof SandboxTaskPanelV3Route
   TaskTaskIdRoute: typeof TaskTaskIdRoute
+  ProjectProjectIdGoalsRoute: typeof ProjectProjectIdGoalsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -388,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileAppearanceRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/project/$projectId_/goals': {
+      id: '/project/$projectId_/goals'
+      path: '/project/$projectId/goals'
+      fullPath: '/project/$projectId/goals'
+      preLoaderRoute: typeof ProjectProjectIdGoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   SandboxTaskPanelLiveRoute: SandboxTaskPanelLiveRoute,
   SandboxTaskPanelV3Route: SandboxTaskPanelV3Route,
   TaskTaskIdRoute: TaskTaskIdRoute,
+  ProjectProjectIdGoalsRoute: ProjectProjectIdGoalsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
