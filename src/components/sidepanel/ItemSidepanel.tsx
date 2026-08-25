@@ -12,8 +12,10 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Users,
   X,
   XCircle,
+  Zap,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -48,6 +50,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import { listProjects } from "@/lib/xcamp-api";
 import type { NoteAttachment, NoteRow } from "@/types/xcamp";
+import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
 
 const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -906,9 +909,18 @@ function NoteContent({ itemId }: { itemId: string }) {
 // ── Main panel ─────────────────────────────────────────────────────────────
 // Renders directly into the AppShell layout aside — no Sheet/overlay wrapper.
 
+type SidepanelTabKey = "content" | "linked" | "artefacts-actions" | "match";
+
+const SIDEPANEL_TABS: { key: SidepanelTabKey; label: string }[] = [
+  { key: "content", label: "Content" },
+  { key: "linked", label: "Linked Items" },
+  { key: "artefacts-actions", label: "Artefacts & Actions" },
+  { key: "match", label: "Match" },
+];
+
 export function ItemSidepanel() {
   const { stack, current, pop, close, goTo, push } = useSidepanel();
-  const [activeTab, setActiveTab] = useState<"content" | "linked">("content");
+  const [activeTab, setActiveTab] = useState<SidepanelTabKey>("content");
 
   useEffect(() => {
     setActiveTab("content");
@@ -1018,26 +1030,25 @@ export function ItemSidepanel() {
           flexShrink: 0,
         }}
       >
-        {(["content", "linked"] as const).map((tab) => (
+        {SIDEPANEL_TABS.map(({ key, label }) => (
           <button
-            key={tab}
+            key={key}
             className="x-sidepanel-tab"
-            onClick={() => setActiveTab(tab)}
+            onClick={() => setActiveTab(key)}
             style={{
               padding: "8px 16px",
               fontSize: 13,
-              fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+              fontWeight: activeTab === key ? 600 : 400,
+              color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
               background: "none",
               border: "none",
-              borderBottom: activeTab === tab ? "2px solid var(--skin-accent)" : "2px solid transparent",
+              borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
               marginBottom: -1,
               cursor: "pointer",
-              textTransform: "capitalize",
               letterSpacing: "0.01em",
             }}
           >
-            {tab === "linked" ? "Linked items" : "Content"}
+            {label}
           </button>
         ))}
       </div>
@@ -1053,12 +1064,16 @@ export function ItemSidepanel() {
           ) : (
             <NoteContent key={current.id} itemId={current.id} />
           )
-        ) : (
+        ) : activeTab === "linked" ? (
           <LinkedItemsTab
             key={current.id}
             itemId={current.id}
             itemKind={current.kind}
           />
+        ) : activeTab === "artefacts-actions" ? (
+          <ComingSoonTab icon={Zap} label="Artefacts & Actions" />
+        ) : (
+          <ComingSoonTab icon={Users} label="Match" />
         )}
       </div>
     </div>
