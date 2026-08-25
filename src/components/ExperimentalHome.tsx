@@ -30,6 +30,7 @@ import type { ProjectFull, XcampUser } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
 import type { EntityType } from "@/components/JournalFlow";
 import type { VoiceOption } from "@/lib/voicePreference";
+import type { NavMode } from "@/contexts/active-project";
 import { useTheme } from "@/lib/theme";
 import {
   fetchProjectMetrics,
@@ -291,6 +292,7 @@ export interface ExperimentalChatProps {
   onMentionMenuClose: () => void;
   onMentionToggle: () => void;
   activeProject: ProjectFull | null;
+  navMode: NavMode;
   muted: boolean;
   onMuteToggle: () => void;
   voiceId: string;
@@ -880,12 +882,13 @@ function ProjectSelectAction({
   to: string;
 }) {
   const navigate = useNavigate();
-  const { setActiveProjectId } = useActiveProject();
+  const { setActiveProjectId, setNavMode } = useActiveProject();
   const [selectedId, setSelectedId] = useState("");
 
   const handleSend = () => {
     if (!selectedId) return;
     setActiveProjectId(selectedId);
+    setNavMode("project");
     void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never });
   };
 

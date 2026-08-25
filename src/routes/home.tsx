@@ -116,7 +116,14 @@ function CompanionHomePage() {
   );
 
   const [railPanelWidth, setRailPanelWidth] = useState(0);
-  useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Skip while the user is actively viewing Companion — a navMode change here isn't
+    // always an explicit scope switch (e.g. the conversation-restore path correcting
+    // navMode to match an already-loaded conversation) and shouldn't kick the user out
+    // of Companion into Home.
+    if (viewParam === "companion") return;
+    setExperimentalView("home");
+  }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setExperimentalView(viewParam === "companion" ? "chat" : "home");
   }, [viewParam]);
@@ -254,6 +261,7 @@ function CompanionHomePage() {
           projectRestoredRef.current = true;
           setActiveProjectId(session.conversationProjectId);
           setActiveProject(project);
+          setNavMode("project");
           setStep("inside-project");
         }
       }
@@ -262,7 +270,7 @@ function CompanionHomePage() {
     }
     welcomeFiredRef.current = true;
 
-    setActiveProjectId(null);
+    const scopedProject = navMode === "project" ? projects.find((p) => p.id === activeProjectId) : undefined;
 
     async function dispatchWelcome() {
       const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
@@ -291,8 +299,57 @@ function CompanionHomePage() {
       setStep("project-select");
     }
 
-    void dispatchWelcome();
-  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Project scope: greet in-context and summarize recent activity instead of the
+    // ecosystem "let's jump in" + project-grid combo, which makes no sense once a
+    // project is already selected. Same vox.call() pattern handleProjectSelect uses.
+    async function dispatchProjectWelcome(project: ProjectFull) {
+      const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+      const MSG1 = `${timeGreeting}, ${firstName}! Here's what's happening in ${project.name}.`;
+      const id1 = await session.appendChiMessage(MSG1);
+      speak(MSG1);
+      setTypingMessageId(id1);
+      await waitForTyping(MSG1);
+      setTypingMessageId(null);
+
+      let summary = `Ready to help — ask me anything about ${project.name}.`;
+      setIsLoading(true);
+      try {
+        const res = await vox.call({
+          message:
+            "Summarize the recent activity in this project — objectives, tasks, and notes — in 2-3 concise sentences.",
+          project_id: project.id,
+          objective_id: "",
+          tenant_id: authUser!.tenantId,
+          altitude,
+          aiPersona: "guide",
+          context_scope: "project",
+        });
+        summary = res.reply_markdown || summary;
+      } catch (err) {
+        console.error("[Chi] Project welcome summary failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+
+      const id2 = await session.appendChiMessage(summary);
+      speak(summary);
+      setTypingMessageId(id2);
+      await waitForTyping(summary);
+      setTypingMessageId(null);
+
+      setStep("inside-project");
+    }
+
+    if (scopedProject) {
+      void dispatchProjectWelcome(scopedProject);
+    } else {
+      setActiveProjectId(null);
+      void dispatchWelcome();
+    }
+  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length, navMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectSelect = useCallback(
     async (project: ProjectFull, silent = false) => {
@@ -438,6 +495,42 @@ function CompanionHomePage() {
       }
     }
   }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Experimental mode: treat a project-session boundary as a new Companion session ──
+  // Companion's welcome-dispatch effect only fires once per app load (welcomeFiredRef
+  // never resets on its own), so switching projects while Companion already has a
+  // conversation left the old project's thread showing under the new project's context.
+  // Mirrors the legacy-mode switchingProjectRef effect above, which already does this
+  // same "existing conversation + context changed -> start fresh" handling for legacy.
+  const companionSessionKeyRef = useRef<string | null>(null);
+  const companionSessionInitRef = useRef(false);
+  useEffect(() => {
+    if (isLegacyUi()) return;
+    if (session.loading) return;
+
+    const key = navMode === "project" ? activeProjectId : null;
+
+    if (!companionSessionInitRef.current) {
+      companionSessionInitRef.current = true;
+      companionSessionKeyRef.current = key;
+      return;
+    }
+    if (companionSessionKeyRef.current === key) return;
+    companionSessionKeyRef.current = key;
+
+    if (projectRestoredRef.current) {
+      // navMode/activeProjectId just changed because the conversation-restore path
+      // (above) synced them to match an already-loaded conversation — not because the
+      // user picked a different project. Don't wipe the conversation we just restored.
+      projectRestoredRef.current = false;
+      return;
+    }
+
+    welcomeFiredRef.current = false;
+    branchFiredRef.current = false;
+    gridMsgIdRef.current = null;
+    void session.newSession();
+  }, [navMode, activeProjectId, session.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateProject = useCallback(() => {
     void navigate({ to: "/project-builder" });
@@ -586,8 +679,14 @@ function CompanionHomePage() {
     welcomeFiredRef.current = false;
     branchFiredRef.current = false;
     gridMsgIdRef.current = null;
-    setActiveProject(null);
-    setActiveProjectId(null);
+    // Legacy mode has no independent navMode concept — a new conversation always meant
+    // starting over completely, including project selection. Experimental/Companion mode
+    // treats "which project am I in" as independent of "which chat am I having," so a
+    // new conversation there should keep the active project.
+    if (isLegacyUi()) {
+      setActiveProject(null);
+      setActiveProjectId(null);
+    }
     await session.newSession();
     setStep("welcome");
   }, [session, setActiveProjectId]);
@@ -1098,6 +1197,7 @@ function CompanionHomePage() {
             onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
             onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
             activeProject={activeProject}
+            navMode={navMode}
             muted={muted}
             onMuteToggle={() => setMuted(!muted)}
             voiceId={voiceId}
