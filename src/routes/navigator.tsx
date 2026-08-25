@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { PageHeroShell } from "@/components/PageHeroShell";
 import { NavigatorBrowser } from "@/components/navigator/NavigatorBrowser";
 import { NavigatorGraph } from "@/components/navigator/NavigatorGraph";
 import { LayoutList, Share2 } from "lucide-react";
+import { useBrand } from "@/lib/brand";
 
 type NavigatorView = "browser" | "network";
 
@@ -22,53 +24,75 @@ export const Route = createFileRoute("/navigator")({
 function NavigatorPage() {
   const { view } = Route.useSearch();
   const navigate = useNavigate({ from: "/navigator" });
+  const brand = useBrand();
 
   const setView = (v: NavigatorView) => {
     void navigate({ search: (prev) => ({ ...prev, view: v }), replace: true });
   };
 
-  return (
-    <AppShell>
-      <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-        {/* Header row with view toggles */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "0 16px",
-            height: 48,
-            borderBottom: "1px solid var(--skin-line)",
-            background: "var(--skin-surface)",
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--skin-ink)", flex: 1 }}>
-            Navigator
-          </span>
-          <div style={{ display: "flex", gap: 4 }}>
-            <ViewToggleButton
-              active={view === "browser"}
-              title="Browser view"
-              onClick={() => setView("browser")}
-            >
-              <LayoutList size={15} />
-            </ViewToggleButton>
-            <ViewToggleButton
-              active={view === "network"}
-              title="Network graph view"
-              onClick={() => setView("network")}
-            >
-              <Share2 size={15} />
-            </ViewToggleButton>
+  const viewToggle = (
+    <div style={{ display: "flex", gap: 4 }}>
+      <ViewToggleButton
+        active={view === "browser"}
+        title="Browser view"
+        onClick={() => setView("browser")}
+      >
+        <LayoutList size={15} />
+      </ViewToggleButton>
+      <ViewToggleButton
+        active={view === "network"}
+        title="Network graph view"
+        onClick={() => setView("network")}
+      >
+        <Share2 size={15} />
+      </ViewToggleButton>
+    </div>
+  );
+
+  if (view === "network") {
+    return (
+      <AppShell>
+        <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+          {/* Header row with view toggles */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "0 16px",
+              height: 48,
+              borderBottom: "1px solid var(--skin-line)",
+              background: "var(--skin-surface)",
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600, color: "var(--skin-ink)", flex: 1 }}>
+              Navigator
+            </span>
+            {viewToggle}
+          </div>
+
+          {/* Active view */}
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <NavigatorGraph />
           </div>
         </div>
+      </AppShell>
+    );
+  }
 
-        {/* Active view */}
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-          {view === "network" ? <NavigatorGraph /> : <NavigatorBrowser hideHeader />}
+  return (
+    <AppShell>
+      <PageHeroShell
+        logo={<img src={brand.logoUrl} alt={brand.name} className="h-6 sm:h-8 w-auto" />}
+        title="Navigator"
+        subtitle="Browse project objectives and tasks and open them to edit details."
+        actions={viewToggle}
+      >
+        <div style={{ height: "calc(100vh - 340px)", minHeight: 420 }}>
+          <NavigatorBrowser hideHeader />
         </div>
-      </div>
+      </PageHeroShell>
     </AppShell>
   );
 }
