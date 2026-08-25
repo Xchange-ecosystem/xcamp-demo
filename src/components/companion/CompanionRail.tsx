@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PanelRightOpen, Rocket, Zap, Palette, Sun, Moon, Monitor, X, Search, Loader2 } from "lucide-react";
+import { PanelRightOpen, Rocket, Zap, Palette, Gauge, Sun, Moon, Monitor, X, Search, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSidepanel } from "@/contexts/sidepanel";
@@ -11,15 +11,17 @@ import { searchItems } from "@/lib/sidepanel-service";
 import type { ItemKind } from "@/lib/sidepanel-service";
 import { ItemBadge, ItemTypeChip } from "@/components/sidepanel/ItemBadge";
 import { usePersona, type Persona } from "@/store/personaStore";
+import { useAltitudeStore } from "@/store/altitudeStore";
+import { ALTITUDE_META, type Altitude } from "@/entities/altitude";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 
-type InlinePanel = "detail" | "role" | "mood" | "appearance";
+type InlinePanel = "altitude" | "detail" | "role" | "mood" | "appearance";
 
 export const RAIL_PANEL_WIDTH = 480;
 const TAB_WIDTH = 44;
 
-// Collapsed tab strip stays below the top/bottom-right FABs (mute-voice toggle,
-// FloatingAltitudeDial, etc. — all z-index 50) so they stay visible and clickable.
+// Collapsed tab strip stays below the top-right FABs (mute-voice toggle,
+// CompanionCornerControls, etc. — all z-index 50) so they stay visible and clickable.
 // The expanded panel is full-height on the right edge and would otherwise sit
 // underneath those same FABs, letting them show through and intercept clicks —
 // so while expanded it needs to out-rank that z-50 layer.
@@ -27,6 +29,13 @@ const RAIL_TAB_Z_INDEX = 20;
 const RAIL_PANEL_EXPANDED_Z_INDEX = 55;
 
 const RAIL_ITEMS = [
+  {
+    key: "altitude" as const,
+    Icon: Gauge,
+    title: "Altitude",
+    desc: "Set how deep Chi partners with you — Surface, Working or Deep.",
+    mock: false,
+  },
   {
     key: "detail" as const,
     Icon: PanelRightOpen,
@@ -176,6 +185,64 @@ function RolePanel() {
                 )}
               </div>
               <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{r.note}</div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const ALTITUDE_LEVELS: Altitude[] = [0, 1, 2];
+
+function AltitudePanel() {
+  const { altitude, setAltitude } = useAltitudeStore();
+  return (
+    <div style={{ padding: 20 }}>
+      {ALTITUDE_LEVELS.map((level) => {
+        const meta = ALTITUDE_META[level];
+        const active = altitude === level;
+        return (
+          <button
+            key={level}
+            type="button"
+            onClick={() => setAltitude(level)}
+            aria-pressed={active}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+              textAlign: "left",
+              padding: "13px 14px",
+              border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+              background: active ? "var(--skin-surface2)" : "transparent",
+              borderRadius: 10,
+              marginBottom: 8,
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--skin-accent), #4F8EF7)",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {active && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--skin-ink)" }}>
+                {meta.name} · {meta.sub}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>
+                AI role: {meta.aiRole}
+              </div>
             </div>
           </button>
         );
@@ -495,6 +562,7 @@ export function CompanionRail() {
               <button
                 onClick={() => handleIconClick(item.key)}
                 aria-label={item.title}
+                data-testid={`rail-tab-${item.key}`}
                 style={{
                   width: TAB_WIDTH,
                   height: TAB_WIDTH,
@@ -596,6 +664,7 @@ export function CompanionRail() {
 
           {/* Panel body */}
           <div style={{ flex: 1, overflowY: "auto" }}>
+            {activePanel === "altitude" && <AltitudePanel />}
             {activePanel === "detail" && <DetailPanelSearch />}
             {activePanel === "role" && <RolePanel />}
             {activePanel === "mood" && <MoodPanel />}

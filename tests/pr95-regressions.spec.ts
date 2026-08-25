@@ -18,13 +18,13 @@ test.describe("PR #95 regression audit — live verification", () => {
   });
 
   // ── Item 1 — /home shell capabilities ──────────────────────────────────────
-  test("item1: /home mounts altitude dial, fullscreen modal and right panel", async ({ page }) => {
+  test("item1: /home mounts altitude rail toggle, fullscreen modal and right panel", async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle").catch(() => {});
     await page.waitForTimeout(1500);
 
     const probe = await page.evaluate(() => ({
-      altitudeDial: !!document.querySelector('[data-testid="altitude-dial"]'),
+      altitudeRailTab: !!document.querySelector('[data-testid="rail-tab-altitude"]'),
       fullscreenModal: !!document.querySelector('[data-testid="task-fullscreen-modal"]'),
       rightPanelSlot: !!document.querySelector('[data-testid="right-panel-slot"]'),
       url: location.pathname + location.search,
@@ -32,7 +32,7 @@ test.describe("PR #95 regression audit — live verification", () => {
     console.log("ITEM1_PROBE", JSON.stringify(probe));
     await page.screenshot({ path: shot("item1-home.png"), fullPage: false });
 
-    expect(probe.altitudeDial, "altitude dial present on /home").toBe(true);
+    expect(probe.altitudeRailTab, "altitude rail toggle present on /home").toBe(true);
     expect(probe.fullscreenModal, "task fullscreen modal mounted on /home").toBe(true);
     expect(probe.rightPanelSlot, "right panel slot mounted on /home").toBe(true);
   });
@@ -100,7 +100,7 @@ test.describe("PR #95 regression audit — live verification", () => {
     // the structure has stopped changing.
     const structure = async (url: string) => {
       await page.goto(url);
-      await page.getByTestId("altitude-dial").waitFor({ state: "attached" });
+      await page.getByTestId("rail-tab-altitude").waitFor({ state: "attached" });
 
       let previous = "";
       let settled!: Awaited<ReturnType<typeof snapshot>>;

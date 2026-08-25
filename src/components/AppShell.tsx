@@ -13,7 +13,6 @@ import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { EntityPanel } from "@/components/EntityPanel";
 import { CompanionRail } from "@/components/companion/CompanionRail";
-import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FullscreenDispatcher } from "@/components/FullscreenDispatcher";
 
@@ -169,7 +168,7 @@ function RightPanelSlot() {
  *   open by default, main scrolls internally.
  * "transparent" — companion surface (/home): the route paints its own full-bleed
  *   hero background on <html>, so the shell must not cover it, and the sidebar
- *   starts collapsed. Everything else — right panel, altitude dial, fullscreen
+ *   starts collapsed. Everything else — right panel, companion rail, fullscreen
  *   task modal — is identical, which is the whole point of the variant.
  */
 export type AppShellVariant = "surface" | "transparent";
@@ -296,7 +295,6 @@ export function AppShell({
               </div>
             </div>
             <CompanionRail />
-            <FloatingAltitudeDial />
             <FullscreenDispatcher />
           </SidebarProvider>
         </CompanionRailProvider>
