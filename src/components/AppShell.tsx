@@ -9,8 +9,10 @@ import { useAuth } from "@/contexts/auth";
 import { useBrand } from "@/lib/brand";
 import { SidepanelProvider, useSidepanel } from "@/contexts/sidepanel";
 import { RightPanelProvider, useRightPanel } from "@/contexts/right-panel";
+import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { EntityPanel } from "@/components/EntityPanel";
+import { CompanionRail } from "@/components/companion/CompanionRail";
 import { FloatingAltitudeDial } from "@/components/altitude/FloatingAltitudeDial";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FullscreenDispatcher } from "@/components/FullscreenDispatcher";
@@ -257,44 +259,47 @@ export function AppShell({
   return (
     <SidepanelProvider>
       <RightPanelProvider>
-        <SidebarProvider
-          defaultOpen={sidebarDefaultOpen}
-          style={
-            {
-              "--sidebar-width": `${sidebarWidth}px`,
-              ...(transparent ? { background: "transparent" } : {}),
-            } as React.CSSProperties
-          }
-        >
-          <SidebarStatePersist />
-          {!pathname.startsWith("/profile") && <MobileMenuButton />}
-          <div
-            className="flex min-h-screen w-full"
-            style={{ background: transparent ? "transparent" : "var(--skin-surface)" }}
+        <CompanionRailProvider>
+          <SidebarProvider
+            defaultOpen={sidebarDefaultOpen}
+            style={
+              {
+                "--sidebar-width": `${sidebarWidth}px`,
+                ...(transparent ? { background: "transparent" } : {}),
+              } as React.CSSProperties
+            }
           >
-            {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
-            <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
+            <SidebarStatePersist />
+            {!pathname.startsWith("/profile") && <MobileMenuButton />}
             <div
-              className="flex-1 flex flex-col min-w-0"
-              style={transparent ? { background: "transparent" } : undefined}
+              className="flex min-h-screen w-full"
+              style={{ background: transparent ? "transparent" : "var(--skin-surface)" }}
             >
-              <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
-                <main
-                  className="flex-1 min-w-0"
-                  style={{
-                    overflowY: "auto",
-                    ...(transparent ? { background: "transparent" } : {}),
-                  }}
-                >
-                  {children}
-                </main>
-                <RightPanelSlot />
+              {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
+              <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
+              <div
+                className="flex-1 flex flex-col min-w-0"
+                style={transparent ? { background: "transparent" } : undefined}
+              >
+                <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+                  <main
+                    className="flex-1 min-w-0"
+                    style={{
+                      overflowY: "auto",
+                      ...(transparent ? { background: "transparent" } : {}),
+                    }}
+                  >
+                    {children}
+                  </main>
+                  <RightPanelSlot />
+                </div>
               </div>
             </div>
-          </div>
-          <FloatingAltitudeDial />
-          <FullscreenDispatcher />
-        </SidebarProvider>
+            <CompanionRail />
+            <FloatingAltitudeDial />
+            <FullscreenDispatcher />
+          </SidebarProvider>
+        </CompanionRailProvider>
       </RightPanelProvider>
     </SidepanelProvider>
   );

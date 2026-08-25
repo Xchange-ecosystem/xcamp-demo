@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { usePersona } from "@/store/personaStore";
 import {
   fetchProjectObjectiveProgress,
   listProjectsForPortfolio,
@@ -30,6 +31,7 @@ const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
 
 export function PortfolioView() {
   const { user } = useAuth();
+  const { persona } = usePersona();
   const [audience, setAudience] = useState<AudienceTab>("overview");
   const [activeTab, setActiveTab] = useState<ProjectTab>("all");
   const [search, setSearch] = useState("");
@@ -721,6 +723,7 @@ export function PortfolioView() {
         progress={selectedProject ? progressMap[selectedProject.id] : undefined}
         user={user!}
         onClose={() => setSelectedProjectId(null)}
+        showWatchlistAction={persona === "investor" && activeTab === "all"}
       />
     </div>
   );

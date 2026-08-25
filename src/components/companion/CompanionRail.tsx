@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
-import { PanelRightOpen, Rocket, Zap, X, Search, Loader2 } from "lucide-react";
+import { PanelRightOpen, Rocket, Zap, Palette, Sun, Moon, Monitor, X, Search, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useSidepanel } from "@/contexts/sidepanel";
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
+import { useSetCompanionRailWidth } from "@/contexts/companion-rail";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchItems } from "@/lib/sidepanel-service";
 import type { ItemKind } from "@/lib/sidepanel-service";
 import { ItemBadge, ItemTypeChip } from "@/components/sidepanel/ItemBadge";
+import { usePersona, type Persona } from "@/store/personaStore";
+import { useTheme, type ThemeMode } from "@/lib/theme";
 
-type InlinePanel = "detail" | "role" | "mood";
+type InlinePanel = "detail" | "role" | "mood" | "appearance";
 
 export const RAIL_PANEL_WIDTH = 480;
 const TAB_WIDTH = 44;
@@ -27,7 +31,7 @@ const RAIL_ITEMS = [
     Icon: Rocket,
     title: "My role",
     desc: "Switch your mode between founder, collaborator or investor (paid plan).",
-    mock: true,
+    mock: false,
   },
   {
     key: "mood" as const,
@@ -35,6 +39,13 @@ const RAIL_ITEMS = [
     title: "My mood",
     desc: "Some days you need guidance, on others you need depth.",
     mock: true,
+  },
+  {
+    key: "appearance" as const,
+    Icon: Palette,
+    title: "Appearance",
+    desc: "Light, dark, or match your system.",
+    mock: false,
   },
 ];
 
@@ -81,72 +92,131 @@ function RailTooltip({ title, desc, mock }: { title: string; desc: string; mock:
   );
 }
 
+const ROLES: { key: Persona; name: string; note: string; paid?: boolean }[] = [
+  { key: "founder", name: "Founder", note: "Full orchestration — objectives, value, completion." },
+  { key: "collaborator", name: "Collaborator", note: "Your move, your tasks, your earnings." },
+  { key: "investor", name: "Investor", note: "Provenance only. No edit affordances.", paid: true },
+];
+
 function RolePanel() {
-  const ROLES = [
-    { name: "Founder", note: "Full orchestration — objectives, value, completion." },
-    { name: "Collaborator", note: "Your move, your tasks, your earnings." },
-    { name: "Investor", note: "Provenance only. No edit affordances.", paid: true },
+  const { persona, setPersona } = usePersona();
+  return (
+    <div style={{ padding: 20 }}>
+      {ROLES.map((r) => {
+        const active = persona === r.key;
+        return (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => setPersona(r.key)}
+            aria-pressed={active}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+              textAlign: "left",
+              padding: "13px 14px",
+              border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+              background: active ? "var(--skin-surface2)" : "transparent",
+              borderRadius: 10,
+              marginBottom: 8,
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--skin-accent), #4F8EF7)",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {active && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: "var(--skin-ink)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                {r.name}
+                {r.paid && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      background: "rgba(239,150,30,0.12)",
+                      color: "var(--skin-warning, #B85E08)",
+                      padding: "1px 6px",
+                      borderRadius: 999,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Paid
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{r.note}</div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AppearancePanel() {
+  const { t } = useTranslation();
+  const { mode, setMode } = useTheme();
+  const THEME_OPTIONS: { value: ThemeMode; labelKey: string; icon: typeof Sun }[] = [
+    { value: "light", labelKey: "appearance.light", icon: Sun },
+    { value: "dark", labelKey: "appearance.dark", icon: Moon },
+    { value: "system", labelKey: "appearance.system", icon: Monitor },
   ];
   return (
     <div style={{ padding: 20 }}>
-      {ROLES.map((r) => (
-        <div
-          key={r.name}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "13px 14px",
-            border: "1px solid var(--skin-line)",
-            borderRadius: 10,
-            marginBottom: 8,
-            cursor: "default",
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--skin-accent), #4F8EF7)",
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {THEME_OPTIONS.map((opt) => {
+          const active = mode === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setMode(opt.value)}
+              aria-pressed={active}
               style={{
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: "var(--skin-ink)",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                gap: 6,
+                gap: 8,
+                padding: "16px 8px",
+                borderRadius: 10,
+                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                background: active ? "var(--skin-surface2)" : "transparent",
+                color: active ? "var(--skin-ink)" : "var(--skin-ink-soft)",
+                cursor: "pointer",
+                fontSize: 13,
               }}
             >
-              {r.name}
-              {r.paid && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    background: "rgba(239,150,30,0.12)",
-                    color: "var(--skin-warning, #B85E08)",
-                    padding: "1px 6px",
-                    borderRadius: 999,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  Paid
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{r.note}</div>
-          </div>
-        </div>
-      ))}
-      <p style={{ marginTop: 10, fontSize: 12, color: "var(--skin-ink-faint)", fontStyle: "italic" }}>
-        Role switching is not wired yet.
+              <opt.icon size={18} />
+              {t(opt.labelKey)}
+            </button>
+          );
+        })}
+      </div>
+      <p style={{ marginTop: 14, fontSize: 12, color: "var(--skin-ink-faint)", lineHeight: 1.5 }}>
+        Same setting as Profile → Appearance — changing it here changes it there too.
       </p>
     </div>
   );
@@ -340,29 +410,28 @@ function DetailPanelSearch() {
   );
 }
 
-export function CompanionRail({
-  onPanelWidthChange,
-}: {
-  onPanelWidthChange?: (width: number) => void;
-}) {
+// Mounted once, app-wide, by AppShell — see src/contexts/companion-rail.tsx for why this
+// no longer takes an onPanelWidthChange prop (it used to be owned by home.tsx alone).
+export function CompanionRail() {
   const sidepanel = useSidepanel();
+  const setRailWidth = useSetCompanionRailWidth();
   const [activePanel, setActivePanel] = useState<InlinePanel | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   const openInlinePanel = (key: InlinePanel) => {
     setActivePanel(key);
-    onPanelWidthChange?.(RAIL_PANEL_WIDTH);
+    setRailWidth(RAIL_PANEL_WIDTH);
   };
 
   const closeInlinePanel = () => {
     setActivePanel(null);
-    onPanelWidthChange?.(0);
+    setRailWidth(0);
   };
 
   useEffect(() => {
     if (sidepanel.isOpen && activePanel === "detail") {
       setActivePanel(null);
-      onPanelWidthChange?.(0);
+      setRailWidth(0);
     }
   }, [sidepanel.isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -497,7 +566,7 @@ export function CompanionRail({
                 color: "var(--skin-ink-faint)",
               }}
             >
-              {activePanel === "detail" ? "Detail" : activePanel === "role" ? "My role" : "My mood"}
+              {activePanel === "detail" ? "Detail" : RAIL_ITEMS.find((i) => i.key === activePanel)?.title}
             </span>
             <button
               onClick={closeInlinePanel}
@@ -522,6 +591,7 @@ export function CompanionRail({
             {activePanel === "detail" && <DetailPanelSearch />}
             {activePanel === "role" && <RolePanel />}
             {activePanel === "mood" && <MoodPanel />}
+            {activePanel === "appearance" && <AppearancePanel />}
           </div>
         </div>
       )}
