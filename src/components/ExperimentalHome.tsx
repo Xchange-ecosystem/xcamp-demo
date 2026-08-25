@@ -882,12 +882,13 @@ function ProjectSelectAction({
   to: string;
 }) {
   const navigate = useNavigate();
-  const { setActiveProjectId } = useActiveProject();
+  const { setActiveProjectId, setNavMode } = useActiveProject();
   const [selectedId, setSelectedId] = useState("");
 
   const handleSend = () => {
     if (!selectedId) return;
     setActiveProjectId(selectedId);
+    setNavMode("project");
     void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never });
   };
 

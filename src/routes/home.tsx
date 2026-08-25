@@ -116,7 +116,14 @@ function CompanionHomePage() {
   );
 
   const [railPanelWidth, setRailPanelWidth] = useState(0);
-  useEffect(() => { setExperimentalView("home"); }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Skip while the user is actively viewing Companion — a navMode change here isn't
+    // always an explicit scope switch (e.g. the conversation-restore path correcting
+    // navMode to match an already-loaded conversation) and shouldn't kick the user out
+    // of Companion into Home.
+    if (viewParam === "companion") return;
+    setExperimentalView("home");
+  }, [navMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setExperimentalView(viewParam === "companion" ? "chat" : "home");
   }, [viewParam]);
@@ -254,6 +261,7 @@ function CompanionHomePage() {
           projectRestoredRef.current = true;
           setActiveProjectId(session.conversationProjectId);
           setActiveProject(project);
+          setNavMode("project");
           setStep("inside-project");
         }
       }
@@ -487,6 +495,42 @@ function CompanionHomePage() {
       }
     }
   }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Experimental mode: treat a project-session boundary as a new Companion session ──
+  // Companion's welcome-dispatch effect only fires once per app load (welcomeFiredRef
+  // never resets on its own), so switching projects while Companion already has a
+  // conversation left the old project's thread showing under the new project's context.
+  // Mirrors the legacy-mode switchingProjectRef effect above, which already does this
+  // same "existing conversation + context changed -> start fresh" handling for legacy.
+  const companionSessionKeyRef = useRef<string | null>(null);
+  const companionSessionInitRef = useRef(false);
+  useEffect(() => {
+    if (isLegacyUi()) return;
+    if (session.loading) return;
+
+    const key = navMode === "project" ? activeProjectId : null;
+
+    if (!companionSessionInitRef.current) {
+      companionSessionInitRef.current = true;
+      companionSessionKeyRef.current = key;
+      return;
+    }
+    if (companionSessionKeyRef.current === key) return;
+    companionSessionKeyRef.current = key;
+
+    if (projectRestoredRef.current) {
+      // navMode/activeProjectId just changed because the conversation-restore path
+      // (above) synced them to match an already-loaded conversation — not because the
+      // user picked a different project. Don't wipe the conversation we just restored.
+      projectRestoredRef.current = false;
+      return;
+    }
+
+    welcomeFiredRef.current = false;
+    branchFiredRef.current = false;
+    gridMsgIdRef.current = null;
+    void session.newSession();
+  }, [navMode, activeProjectId, session.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateProject = useCallback(() => {
     void navigate({ to: "/project-builder" });
