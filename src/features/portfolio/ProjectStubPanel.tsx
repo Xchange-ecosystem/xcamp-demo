@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, Eye, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -8,12 +10,18 @@ import {
 } from "@/components/ui/sheet";
 import type { ObjectiveProgress, ProjectPortfolioItem } from "@/lib/xcamp-api";
 import type { XcampUser } from "@/types/xcamp";
+import { addToWatchlist, listWatchlist, removeFromWatchlist } from "@/lib/watchlist-api";
 
 interface Props {
   project: ProjectPortfolioItem | null;
   progress: ObjectiveProgress | undefined;
   user: XcampUser;
   onClose: () => void;
+  // Investor persona, "All" tab only — see PortfolioView. Adds a real "Add to
+  // Watchlist" action alongside "Open project". "Request details" next to it
+  // is intentionally mock (no write) — investor-interest tracking beyond a
+  // watchlist doesn't exist yet.
+  showWatchlistAction?: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,8 +31,46 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Viewer",
 };
 
-export function ProjectStubPanel({ project, progress, user, onClose }: Props) {
+export function ProjectStubPanel({ project, progress, user, onClose, showWatchlistAction }: Props) {
   const isOpen = project !== null;
+  const [watching, setWatching] = useState(false);
+  const [watchBusy, setWatchBusy] = useState(false);
+
+  useEffect(() => {
+    if (!showWatchlistAction || !project) {
+      setWatching(false);
+      return;
+    }
+    let cancelled = false;
+    listWatchlist("project")
+      .then((rows) => {
+        if (!cancelled) setWatching(rows.some((r) => r.object_id === project.id));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [showWatchlistAction, project]);
+
+  async function handleToggleWatch() {
+    if (!project || watchBusy) return;
+    setWatchBusy(true);
+    try {
+      if (watching) {
+        await removeFromWatchlist("project", project.id);
+        setWatching(false);
+        toast.success("Removed from watchlist.");
+      } else {
+        await addToWatchlist("project", project.id);
+        setWatching(true);
+        toast.success("Added to watchlist.");
+      }
+    } catch (err) {
+      console.error("[watchlist] toggle failed:", err);
+      toast.error("Couldn't update your watchlist.");
+    } finally {
+      setWatchBusy(false);
+    }
+  }
+
   const isOwner = project ? project.owner_central_id === user.centralId : false;
   const roleLabel = project
     ? isOwner
@@ -216,29 +262,84 @@ export function ProjectStubPanel({ project, progress, user, onClose }: Props) {
             padding: "12px 24px",
             borderTop: "1px solid var(--skin-line)",
             flexShrink: 0,
+            display: "flex",
+            gap: 8,
           }}
         >
-          {project && (
-            <Link
-              to="/project/$projectId"
-              params={{ projectId: project.id }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                padding: "9px 16px",
-                borderRadius: "var(--xr, 6px)",
-                background: "var(--skin-accent)",
-                color: "var(--skin-on-accent)",
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Open project
-              <ExternalLink size={14} />
-            </Link>
+          {project && showWatchlistAction ? (
+            <>
+              <button
+                type="button"
+                onClick={handleToggleWatch}
+                disabled={watchBusy}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "9px 12px",
+                  borderRadius: "var(--xr, 6px)",
+                  border: "1px solid var(--skin-line)",
+                  background: watching ? "var(--skin-surface2)" : "transparent",
+                  color: "var(--skin-ink)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: watchBusy ? "default" : "pointer",
+                  opacity: watchBusy ? 0.7 : 1,
+                }}
+              >
+                {watchBusy ? <Loader2 size={13} className="animate-spin" /> : null}
+                {watching ? "Watching" : "Add to Watchlist"}
+              </button>
+              <button
+                type="button"
+                title="Not wired yet — investor-interest tracking beyond a watchlist doesn't exist yet."
+                onClick={() => toast("Request details isn't wired up yet.")}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "9px 12px",
+                  borderRadius: "var(--xr, 6px)",
+                  border: "1px dashed var(--skin-line)",
+                  background: "transparent",
+                  color: "var(--skin-ink-faint)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Eye size={13} />
+                Request details
+              </button>
+            </>
+          ) : (
+            project && (
+              <Link
+                to="/project/$projectId"
+                params={{ projectId: project.id }}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "9px 16px",
+                  borderRadius: "var(--xr, 6px)",
+                  background: "var(--skin-accent)",
+                  color: "var(--skin-on-accent)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                Open project
+                <ExternalLink size={14} />
+              </Link>
+            )
           )}
         </div>
       </SheetContent>

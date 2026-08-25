@@ -23,7 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { CompanionShell } from "@/components/CompanionShell";
-import { CompanionRail } from "@/components/companion/CompanionRail";
+import { useCompanionRailWidth } from "@/contexts/companion-rail";
 import { ChatThread } from "@/components/companion/ChatThread";
 import { useHeroImage } from "@/lib/useHeroImage";
 import { useAuth } from "@/contexts/auth";
@@ -58,6 +58,7 @@ import {
 import { installAudioUnlock } from "@/lib/audio-unlock";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
 import { useAltitudeStore } from "@/store/altitudeStore";
+import { usePersona } from "@/store/personaStore";
 
 // ─── CSS custom properties for the glass panel ────────────────────────────────
 const GLASS_STYLE: React.CSSProperties = {
@@ -98,6 +99,36 @@ interface PanelTarget {
   fromSidePanel?: boolean;
 }
 
+// Reads the shared CompanionRail panel width so the legacy centered-chat column can
+// shift out of the way when the rail's inline panel is open. Deliberately its own
+// component (not a hook call inside CompanionHomePage) — CompanionHomePage is the
+// component that *creates* <CompanionRailProvider> further down its own render tree
+// (via <CompanionShell>), so it sits above the provider, not inside it; only a genuine
+// descendant like this one can consume the context.
+function LegacyCenteredColumnFrame({ children }: { children: React.ReactNode }) {
+  const railPanelWidth = useCompanionRailWidth();
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        right: railPanelWidth,
+        bottom: 0,
+        left: 0,
+        zIndex: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+        transition: "right 0.25s ease",
+        padding: "0 0 16px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function CompanionHomePage() {
   const { user: authUser } = useAuth();
   const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
@@ -115,7 +146,6 @@ function CompanionHomePage() {
     !isLegacy && !activeProjectId
   );
 
-  const [railPanelWidth, setRailPanelWidth] = useState(0);
   useEffect(() => {
     // Skip while the user is actively viewing Companion — a navMode change here isn't
     // always an explicit scope switch (e.g. the conversation-restore path correcting
@@ -210,6 +240,7 @@ function CompanionHomePage() {
 
   const vox = useVox();
   const { altitude } = useAltitudeStore();
+  const { persona } = usePersona();
 
   const waitForTyping = (text: string) =>
     new Promise<void>((resolve) => setTimeout(resolve, (text?.length ?? 0) * 38));
@@ -324,7 +355,7 @@ function CompanionHomePage() {
           objective_id: "",
           tenant_id: authUser!.tenantId,
           altitude,
-          aiPersona: "guide",
+          aiPersona: persona,
           context_scope: "project",
         });
         summary = res.reply_markdown || summary;
@@ -389,7 +420,7 @@ function CompanionHomePage() {
           objective_id: "",
           tenant_id: authUser!.tenantId,
           altitude,
-          aiPersona: "guide",
+          aiPersona: persona,
           context_scope: "project",
         });
         reply = res.reply_markdown || reply;
@@ -653,7 +684,7 @@ function CompanionHomePage() {
         objective_id: "",
         tenant_id: authUser!.tenantId,
         altitude,
-        aiPersona: "guide",
+        aiPersona: persona,
       });
       reply = res.reply_markdown;
       cards = res.cards ?? [];
@@ -754,28 +785,11 @@ function CompanionHomePage() {
           />
         )}
 
-        {/* ── Right-edge rail (Detail / Role / Mood) — default companion mode ── */}
-        {isLegacy && (
-          <CompanionRail onPanelWidthChange={setRailPanelWidth} />
-        )}
+        {/* CompanionRail now mounts once, app-wide, from AppShell (see the companion-rail
+            context for how this route still tracks its panel width below). */}
 
         {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
-        {isLegacy && <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: railPanelWidth,
-            bottom: 0,
-            left: 0,
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-            transition: "right 0.25s ease",
-            padding: "0 0 16px",
-          }}
-        >
+        {isLegacy && <LegacyCenteredColumnFrame>
           <div
             style={{
               display: "flex",
@@ -1109,7 +1123,7 @@ function CompanionHomePage() {
               ))}
             </div>
           </div>
-        </div>}
+        </LegacyCenteredColumnFrame>}
 
         {/* ── Experimental nav views (Phase 2–4) ─────────────────────────── */}
 

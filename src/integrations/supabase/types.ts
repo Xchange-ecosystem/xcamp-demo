@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _diag_notes_note_type_backup: {
+        Row: {
+          backed_up_at: string
+          id: string
+          note_type: string
+        }
+        Insert: {
+          backed_up_at?: string
+          id: string
+          note_type: string
+        }
+        Update: {
+          backed_up_at?: string
+          id?: string
+          note_type?: string
+        }
+        Relationships: []
+      }
       _migration_markers: {
         Row: {
           backfill_complete_at: string | null
@@ -3073,6 +3091,7 @@ export type Database = {
           id: string
           owner_central_id: string
           project_id: string | null
+          status: string
           tenant_id: string
           title: string | null
           updated_at: string
@@ -3082,6 +3101,7 @@ export type Database = {
           id?: string
           owner_central_id?: string
           project_id?: string | null
+          status?: string
           tenant_id: string
           title?: string | null
           updated_at?: string
@@ -3091,6 +3111,7 @@ export type Database = {
           id?: string
           owner_central_id?: string
           project_id?: string | null
+          status?: string
           tenant_id?: string
           title?: string | null
           updated_at?: string
@@ -3115,7 +3136,10 @@ export type Database = {
       jarvix_messages: {
         Row: {
           citations: Json | null
+          component_payload: Json | null
+          component_type: string | null
           content: string
+          content_type: string
           conversation_id: string
           created_at: string
           id: string
@@ -3126,7 +3150,10 @@ export type Database = {
         }
         Insert: {
           citations?: Json | null
+          component_payload?: Json | null
+          component_type?: string | null
           content?: string
+          content_type?: string
           conversation_id: string
           created_at?: string
           id?: string
@@ -3137,7 +3164,10 @@ export type Database = {
         }
         Update: {
           citations?: Json | null
+          component_payload?: Json | null
+          component_type?: string | null
           content?: string
+          content_type?: string
           conversation_id?: string
           created_at?: string
           id?: string
@@ -3704,6 +3734,85 @@ export type Database = {
         }
         Relationships: []
       }
+      node_grants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          granted_via: string | null
+          id: string
+          node_id: string
+          policy_version: number | null
+          principal_id: string
+          role_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          granted_via?: string | null
+          id?: string
+          node_id: string
+          policy_version?: number | null
+          principal_id: string
+          role_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          granted_via?: string | null
+          id?: string
+          node_id?: string
+          policy_version?: number | null
+          principal_id?: string
+          role_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_grants_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "central_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_grants_granted_via_fkey"
+            columns: ["granted_via"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_grants_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_grants_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: false
+            referencedRelation: "central_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_grants_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_links: {
         Row: {
           created_at: string
@@ -4212,6 +4321,67 @@ export type Database = {
           },
         ]
       }
+      objective_policies: {
+        Row: {
+          active: boolean
+          applies_to_note_types: string[] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          objective_id: string
+          payload: Json
+          policy_type: string
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          applies_to_note_types?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          objective_id: string
+          payload?: Json
+          policy_type: string
+          tenant_id: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          applies_to_note_types?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          objective_id?: string
+          payload?: Json
+          policy_type?: string
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "central_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_policies_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           category: string | null
@@ -4234,6 +4404,7 @@ export type Database = {
           start_date: string | null
           status: string | null
           tags: string[]
+          tasks_generation_status: string
           tenant_id: string
           title: string
           updated_at: string | null
@@ -4262,6 +4433,7 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           tags?: string[]
+          tasks_generation_status?: string
           tenant_id: string
           title?: string
           updated_at?: string | null
@@ -4290,6 +4462,7 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           tags?: string[]
+          tasks_generation_status?: string
           tenant_id?: string
           title?: string
           updated_at?: string | null
@@ -4875,6 +5048,74 @@ export type Database = {
           },
         ]
       }
+      policy_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          affected_node_count: number | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: string
+          objective_id: string
+          policy_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          affected_node_count?: number | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          objective_id: string
+          policy_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          affected_node_count?: number | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          objective_id?: string
+          policy_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_audit_actor_fkey"
+            columns: ["actor"]
+            isOneToOne: false
+            referencedRelation: "central_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_audit_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_audit_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "objective_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_evaluations: {
         Row: {
           action: string
@@ -5185,6 +5426,7 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          feature_image: string | null
           framework_slug: string | null
           framework_version: string | null
           icon: string | null
@@ -5207,6 +5449,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          feature_image?: string | null
           framework_slug?: string | null
           framework_version?: string | null
           icon?: string | null
@@ -5229,6 +5472,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          feature_image?: string | null
           framework_slug?: string | null
           framework_version?: string | null
           icon?: string | null
@@ -5425,6 +5669,50 @@ export type Database = {
           },
         ]
       }
+      role_rights: {
+        Row: {
+          id: string
+          right_name: string
+          role_id: string
+        }
+        Insert: {
+          id?: string
+          right_name: string
+          role_id: string
+        }
+        Update: {
+          id?: string
+          right_name?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_rights_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       semantic_documents: {
         Row: {
           content: string
@@ -5440,6 +5728,7 @@ export type Database = {
           updated_at: string | null
           vox_id: string | null
           vox_indexed_at: string | null
+          vox_store: string | null
           workspace_id: string | null
         }
         Insert: {
@@ -5456,6 +5745,7 @@ export type Database = {
           updated_at?: string | null
           vox_id?: string | null
           vox_indexed_at?: string | null
+          vox_store?: string | null
           workspace_id?: string | null
         }
         Update: {
@@ -5472,6 +5762,7 @@ export type Database = {
           updated_at?: string | null
           vox_id?: string | null
           vox_indexed_at?: string | null
+          vox_store?: string | null
           workspace_id?: string | null
         }
         Relationships: [
@@ -5881,6 +6172,7 @@ export type Database = {
           enabled_capabilities: string[] | null
           feature_flags: Json | null
           id: string
+          max_admin_seats: number
           metadata: Json | null
           name: string
           policies: Json | null
@@ -5900,6 +6192,7 @@ export type Database = {
           enabled_capabilities?: string[] | null
           feature_flags?: Json | null
           id?: string
+          max_admin_seats?: number
           metadata?: Json | null
           name: string
           policies?: Json | null
@@ -5919,6 +6212,7 @@ export type Database = {
           enabled_capabilities?: string[] | null
           feature_flags?: Json | null
           id?: string
+          max_admin_seats?: number
           metadata?: Json | null
           name?: string
           policies?: Json | null
@@ -6058,6 +6352,102 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vox_conversations: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vox_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vox_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "central_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vox_messages: {
+        Row: {
+          altitude: number
+          cards: Json
+          content_markdown: string
+          context: Json
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          tenant_id: string
+        }
+        Insert: {
+          altitude?: number
+          cards?: Json
+          content_markdown?: string
+          context?: Json
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          tenant_id: string
+        }
+        Update: {
+          altitude?: number
+          cards?: Json
+          content_markdown?: string
+          context?: Json
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vox_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "vox_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vox_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallet_accounts: {
         Row: {
@@ -6212,6 +6602,48 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watchlist_items: {
+        Row: {
+          created_at: string
+          id: string
+          object_id: string
+          object_type: string
+          tenant_id: string
+          user_central_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          object_id: string
+          object_type: string
+          tenant_id: string
+          user_central_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          object_id?: string
+          object_type?: string
+          tenant_id?: string
+          user_central_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watchlist_items_user_central_id_fkey"
+            columns: ["user_central_id"]
+            isOneToOne: false
+            referencedRelation: "central_users"
             referencedColumns: ["id"]
           },
         ]
@@ -6589,6 +7021,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      add_to_watchlist: {
+        Args: { p_object_id: string; p_object_type: string }
+        Returns: {
+          created_at: string
+          id: string
+          object_id: string
+          object_type: string
+          tenant_id: string
+          user_central_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "watchlist_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       archive_objective_note: {
         Args: { p_note_id: string; p_objective_id: string }
         Returns: undefined
@@ -6665,6 +7114,7 @@ export type Database = {
           start_date: string | null
           status: string | null
           tags: string[]
+          tasks_generation_status: string
           tenant_id: string
           title: string
           updated_at: string | null
@@ -6689,6 +7139,10 @@ export type Database = {
         Returns: string
       }
       current_central_id: { Args: never; Returns: string }
+      current_tenant_role: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: string
+      }
       current_user_tenant_ids: { Args: never; Returns: string[] }
       enqueue_workflow_execution: {
         Args: {
@@ -6705,6 +7159,18 @@ export type Database = {
         Returns: {
           objective_id: string
           project_id: string
+        }[]
+      }
+      filter_accessible_documents: {
+        Args: {
+          p_caller_tenant_id: string
+          p_caller_user_id: string
+          p_doc_ids: string[]
+        }
+        Returns: {
+          allowed: boolean
+          document_id: string
+          reason: string
         }[]
       }
       get_accessible_capabilities: {
@@ -6762,6 +7228,7 @@ export type Database = {
           p_grantee_id: string
           p_grantor_id: string
           p_reason?: string
+          p_tenant_id: string
         }
         Returns: {
           access_rights_id: string
@@ -6817,6 +7284,19 @@ export type Database = {
         Args: { _object_id: string; _object_type: string; _user_id: string }
         Returns: boolean
       }
+      is_object_member_active: {
+        Args: { _object_id: string; _object_type: string; _user_id: string }
+        Returns: boolean
+      }
+      is_object_member_with_role: {
+        Args: {
+          _object_id: string
+          _object_type: string
+          _roles: string[]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_object_owner: {
         Args: { p_object_id: string; p_object_type: string; p_user_id: string }
         Returns: boolean
@@ -6864,6 +7344,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      list_watchlist: {
+        Args: { p_object_type?: string }
+        Returns: {
+          created_at: string
+          id: string
+          object_id: string
+          object_type: string
+          tenant_id: string
+          user_central_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "watchlist_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       manage_tags: {
         Args: {
           p_actor_id: string
@@ -6897,6 +7394,7 @@ export type Database = {
           start_date: string | null
           status: string | null
           tags: string[]
+          tasks_generation_status: string
           tenant_id: string
           title: string
           updated_at: string | null
@@ -6944,6 +7442,10 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      remove_from_watchlist: {
+        Args: { p_object_id: string; p_object_type: string }
+        Returns: undefined
+      }
       resolve_assignee_removal: {
         Args: {
           p_assignment_id: string
@@ -6968,6 +7470,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      tenant_role_rank: { Args: { _role: string }; Returns: number }
       toggle_task_done: {
         Args: { p_done: boolean; p_task_note_id: string }
         Returns: {
@@ -6977,12 +7480,14 @@ export type Database = {
           created_at: string
           detail: Json
           done: boolean
+          end_date: string | null
           id: string
           is_restricted: boolean
           note_type: string
           owner_central_id: string
           preferred_external_container_id: string | null
           price_credits: number
+          start_date: string | null
           tags: string[]
           tenant_id: string
           title: string
@@ -7028,6 +7533,7 @@ export type Database = {
           start_date: string | null
           status: string | null
           tags: string[]
+          tasks_generation_status: string
           tenant_id: string
           title: string
           updated_at: string | null
@@ -7059,12 +7565,14 @@ export type Database = {
           created_at: string
           detail: Json
           done: boolean
+          end_date: string | null
           id: string
           is_restricted: boolean
           note_type: string
           owner_central_id: string
           preferred_external_container_id: string | null
           price_credits: number
+          start_date: string | null
           tags: string[]
           tenant_id: string
           title: string
