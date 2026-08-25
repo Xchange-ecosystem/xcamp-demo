@@ -511,7 +511,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function ObjectiveContent({ itemId }: { itemId: string }) {
+export function ObjectiveContent({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
