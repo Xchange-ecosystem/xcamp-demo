@@ -137,15 +137,20 @@ export function NoteEditor({
       return;
     }
     hasUnsavedChanges.current = true;
-  }, [body, title, noteType]);
+  }, [body, title, noteType, projectId, tags, attachments]);
 
-  // Debounced values for autosave (1500 ms)
+  // Debounced values for autosave (1500 ms) — only body/title need debouncing
+  // (continuous typing); metadata fields below change via discrete clicks and
+  // are compared directly, undebounced.
   const debouncedBody = useDebounce(body, 1500);
   const debouncedTitle = useDebounce(title, 1500);
 
   // Stable initial-value refs — set once on mount, never change
   const initialBodyRef = useRef(body);
   const initialTitleRef = useRef(title);
+  const initialProjectIdRef = useRef(projectId);
+  const initialTagsRef = useRef(tags);
+  const initialAttachmentsRef = useRef(attachments);
 
   // Keep onSave prop fresh without it being a dep of the autosave effect
   const onSaveRef = useRef(onSave);
@@ -175,21 +180,30 @@ export function NoteEditor({
     };
   });
 
-  // Autosave: fires 1500 ms after the last title/content keystroke
+  // Autosave: fires 1500 ms after the last title/content keystroke, or right
+  // away when project/tags/attachments change on their own — those, like
+  // noteType (saved immediately by handleTypeChange below), previously fell
+  // out of scope entirely (dependency array only covered body/title), so
+  // e.g. reassigning a note's project with no title/body touch was silently
+  // dropped on close, never reaching the database. noteType is intentionally
+  // left out of this effect's guard/deps — handleTypeChange already saves it
+  // immediately on click, and including it here too would fire a redundant
+  // second save on the same change.
   useEffect(() => {
-    if (
+    const unchanged =
       debouncedBody === initialBodyRef.current &&
-      debouncedTitle === initialTitleRef.current
-    ) {
-      return;
-    }
+      debouncedTitle === initialTitleRef.current &&
+      projectId === initialProjectIdRef.current &&
+      tags === initialTagsRef.current &&
+      attachments === initialAttachmentsRef.current;
+    if (unchanged) return;
     const isNonEmpty =
       debouncedTitle.trim().length > 0 ||
       debouncedBody.replace(/<[^>]+>/g, "").trim().length > 0;
     if (!isNonEmpty) return;
     setSaveStatus("saving");
     onSaveRef.current(currentValuesRef.current);
-  }, [debouncedBody, debouncedTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedBody, debouncedTitle, projectId, tags, attachments]);
 
   // Detect when saving prop transitions true → false (save completed)
   const prevSaving = useRef(false);

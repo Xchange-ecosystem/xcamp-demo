@@ -53,7 +53,9 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     console.log("URL_AFTER_NEW_JOURNAL", urlAfterJournal.pathname + urlAfterJournal.search);
     await page.screenshot({ path: shot("2-new-journal-entry.png"), fullPage: false });
     expect(urlAfterJournal.pathname).toBe("/journal");
-    expect(urlAfterJournal.searchParams.get("new")).toBeNull();
+    // The URL is now the source of truth for the composer view, so ?new=1
+    // persists while it's showing rather than being stripped immediately.
+    expect(urlAfterJournal.searchParams.get("new")).toBe("1");
 
     // Back to home, expand again, click "New Note".
     await page.goto("/home");
@@ -66,6 +68,6 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     console.log("URL_AFTER_NEW_NOTE", urlAfterNote.pathname + urlAfterNote.search);
     await page.screenshot({ path: shot("3-new-note.png"), fullPage: false });
     expect(urlAfterNote.pathname).toBe("/notes");
-    expect(urlAfterNote.searchParams.get("new")).toBeNull();
+    expect(urlAfterNote.searchParams.get("new")).toBe("1");
   });
 });

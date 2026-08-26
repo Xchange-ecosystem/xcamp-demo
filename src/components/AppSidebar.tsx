@@ -183,8 +183,8 @@ export function AppSidebar() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onJournal}>
-                            <Link to="/journal" search={{ new: "1" }} className="flex items-center gap-2">
+                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}>
+                            <Link to="/journal" search={{ new: 1 }} className="flex items-center gap-2">
                               <FilePlus className="h-3.5 w-3.5" />
                               <span>New Journal Entry</span>
                             </Link>
@@ -199,8 +199,8 @@ export function AppSidebar() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}>
-                            <Link to="/notes" search={{ new: "1" }} className="flex items-center gap-2">
+                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}>
+                            <Link to="/notes" search={{ new: 1 }} className="flex items-center gap-2">
                               <FilePlus className="h-3.5 w-3.5" />
                               <span>New Note</span>
                             </Link>

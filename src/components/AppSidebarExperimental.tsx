@@ -433,9 +433,9 @@ export function AppSidebarExperimental() {
                               </SidebarMenuSubItem>
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
-                                  isActive={(location.search as Record<string, string>)?.new === "1" && onJournal}
+                                  isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}
                                   onClick={() =>
-                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: "1" }) })
+                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
                                   }
                                 >
                                   <FilePlus className="h-3.5 w-3.5" />
@@ -455,9 +455,9 @@ export function AppSidebarExperimental() {
                               </SidebarMenuSubItem>
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
-                                  isActive={(location.search as Record<string, string>)?.new === "1" && onNotes}
+                                  isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}
                                   onClick={() =>
-                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: "1" }) })
+                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
                                   }
                                 >
                                   <FilePlus className="h-3.5 w-3.5" />
