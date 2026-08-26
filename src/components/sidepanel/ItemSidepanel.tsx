@@ -831,6 +831,7 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
 function NoteContent({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { patchCurrent } = useSidepanel();
   const [noteRow, setNoteRow] = useState<NoteRow | null>(null);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -863,6 +864,10 @@ function NoteContent({ itemId }: { itemId: string }) {
     setSaving(true);
     try {
       await updateNote(user, itemId, { ...v, existingDetail: (noteRow.detail as Record<string, unknown>) ?? {} });
+      // Keep the sidepanel stack's cached noteType in sync so anything reading it in
+      // this session (e.g. FullscreenButton) doesn't act on a stale value from
+      // whenever the panel was originally opened.
+      patchCurrent({ noteType: v.noteType });
       void qc.invalidateQueries({ queryKey: ["notes"] });
       void qc.invalidateQueries({ queryKey: ["nav-tasks"] });
     } catch (e) {

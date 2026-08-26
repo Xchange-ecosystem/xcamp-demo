@@ -137,7 +137,7 @@ export function NoteEditor({
       return;
     }
     hasUnsavedChanges.current = true;
-  }, [body, title]);
+  }, [body, title, noteType]);
 
   // Debounced values for autosave (1500 ms)
   const debouncedBody = useDebounce(body, 1500);
@@ -239,6 +239,15 @@ export function NoteEditor({
     setObjectiveIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+
+  // Type pills are a discrete, deliberate action — save immediately rather than
+  // waiting on the body/title debounce, which would make the click feel unresponsive.
+  const handleTypeChange = (t: string) => {
+    if (t === noteType) return;
+    setNoteType(t);
+    setSaveStatus("saving");
+    onSaveRef.current({ ...currentValuesRef.current, noteType: t });
+  };
 
   const handleBack = () => {
     if (hasUnsavedChanges.current) {
@@ -383,7 +392,7 @@ export function NoteEditor({
             <button
               key={t}
               type="button"
-              onClick={() => setNoteType(t)}
+              onClick={() => handleTypeChange(t)}
               className="x-pill"
               style={{
                 padding: "5px 12px",
