@@ -392,8 +392,23 @@ function NestedTaskCard({
 
 export function JournalFlow({
   draft = null,
+  isComposing = false,
+  onRequestNew,
+  onExitComposer,
 }: {
   draft?: { text: string; key: number } | null;
+  /** Mirrors the route's `?new=1` search param — the URL is the source of
+   *  truth for whether the composer is showing, not local state that merely
+   *  starts in sync with it. */
+  isComposing?: boolean;
+  /** Push `?new=1` onto the URL — called both by this component's own
+   *  "+ New entry" controls and (from the parent route) the app-wide sidebar,
+   *  so both paths update the URL identically. */
+  onRequestNew?: () => void;
+  /** Clear `?new=1` from the URL once the composer is no longer showing
+   *  (the user opened a history session, or a submitted entry navigated to
+   *  its results). */
+  onExitComposer?: () => void;
 }) {
   const { user, loading } = useAuth();
   const { activeProjectId } = useActiveProject();
@@ -563,6 +578,7 @@ export function JournalFlow({
         setLiveTopicsSessionId(newSessionId);
         setOpenSession(newSessionId);
         setScreen("history");
+        if (isComposing) onExitComposer?.();
         void sessionsQuery.refetch();
       } else {
         toast("No topics found in this entry.");
@@ -605,6 +621,14 @@ export function JournalFlow({
     setLiveTopicsSessionId(null);
     setScreen("input");
   };
+
+  // The route's ?new=1 param is the source of truth for "composer is
+  // showing" — this only fires the actual reset when it transitions to true
+  // (including on a fresh deep-linked load), not on every render.
+  useEffect(() => {
+    if (isComposing) startNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isComposing]);
 
   const handleMoreSuggestions = async (text: string) => {
     if (!user) return;
@@ -836,7 +860,7 @@ export function JournalFlow({
                   background: "var(--skin-accent-gradient)",
                   cursor: "pointer", color: "#fff",
                 }}
-                onClick={() => { startNew(); setCollapsed(false); }}
+                onClick={() => { onRequestNew?.(); startNew(); setCollapsed(false); }}
               >
                 <Plus size={16} />
               </button>
@@ -872,7 +896,7 @@ export function JournalFlow({
                     background: "var(--skin-accent-gradient)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                   }}
-                  onClick={startNew}
+                  onClick={() => { onRequestNew?.(); startNew(); }}
                 >
                   <Plus size={15} />
                   New entry
@@ -919,7 +943,11 @@ export function JournalFlow({
                     return (
                       <button
                         key={s.id}
-                        onClick={() => { setOpenSession(s.id); setScreen("history"); }}
+                        onClick={() => {
+                          setOpenSession(s.id);
+                          setScreen("history");
+                          if (isComposing) onExitComposer?.();
+                        }}
                         style={{
                           width: "100%", textAlign: "left",
                           border: `1px solid ${isSelected ? "color-mix(in srgb, var(--skin-accent) 50%, var(--skin-line))" : "var(--skin-line)"}`,
@@ -1001,7 +1029,7 @@ export function JournalFlow({
                     fontSize: 13, fontWeight: 600, color: "var(--skin-ink)",
                     cursor: "pointer",
                   }}
-                  onClick={startNew}
+                  onClick={() => { onRequestNew?.(); startNew(); }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" />

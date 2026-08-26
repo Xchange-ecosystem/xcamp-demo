@@ -86,10 +86,24 @@ export function NotesBrowser({
   embedded = false,
   defaultCollapsed = false,
   draft = null,
+  isComposing = false,
+  onRequestNew,
+  onExitComposer,
 }: {
   embedded?: boolean;
   defaultCollapsed?: boolean;
   draft?: { body: string; key: number } | null;
+  /** Mirrors the route's `?new=1` search param — the URL is the source of
+   *  truth for whether the new-note composer is showing, not local state
+   *  that merely starts in sync with it. */
+  isComposing?: boolean;
+  /** Push `?new=1` onto the URL — called both by this component's own
+   *  "+ New note" controls and (from the parent route) the app-wide sidebar,
+   *  so both paths update the URL identically. */
+  onRequestNew?: () => void;
+  /** Clear `?new=1` from the URL once the composer is no longer showing
+   *  (cancelled, or a note was successfully created). */
+  onExitComposer?: () => void;
 }) {
   const { user, loading } = useAuth();
   const { activeProjectId } = useActiveProject();
@@ -109,6 +123,12 @@ export function NotesBrowser({
     setCollapsed(false);
   }, [draft]);
 
+  // Complements the effect above: closes the composer when the URL loses
+  // ?new=1 (e.g. browser back), so the URL stays the source of truth in
+  // both directions rather than local state that only starts in sync with it.
+  useEffect(() => {
+    if (!isComposing) setEditing(null);
+  }, [isComposing]);
 
 
   const [search, setSearch] = useState("");
@@ -219,6 +239,7 @@ export function NotesBrowser({
     onSuccess: (note, input) => {
       invalidate();
       setEditing(null);
+      onExitComposer?.();
       // Open the new note in the right panel
       openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled", noteType: note.note_type });
       // Auto-tag in the background when the user left the tags field empty
@@ -342,7 +363,7 @@ export function NotesBrowser({
               aria-label="New note"
               title="New note"
               style={{ height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={() => { setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); setCollapsed(false); }}
+              onClick={() => { onRequestNew?.(); setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); setCollapsed(false); }}
             >
               <Plus size={16} />
             </button>
@@ -366,7 +387,7 @@ export function NotesBrowser({
               )}
             </div>
 
-            <button className="x-btn-primary mb-3" onClick={() => { setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); }}>
+            <button className="x-btn-primary mb-3" onClick={() => { onRequestNew?.(); setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); }}>
               + New note
             </button>
 
@@ -729,7 +750,10 @@ export function NotesBrowser({
             user={user!}
             saving={createMut.isPending || updateMut.isPending}
             archiving={archiveMut.isPending}
-            onCancel={() => setEditing(null)}
+            onCancel={() => {
+              setEditing(null);
+              if (editing.mode === "new") onExitComposer?.();
+            }}
             onSave={(values) => {
               if (editing.mode === "new") {
                 createMut.mutate(values);
