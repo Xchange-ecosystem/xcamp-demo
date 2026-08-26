@@ -19,6 +19,9 @@ interface SidepanelCtx {
   close: () => void;
   /** Navigate back to a specific index in the stack (breadcrumb click). */
   goTo: (index: number) => void;
+  /** Patch fields on the current (top-of-stack) item in place — e.g. to reflect
+   *  a freshly-saved note_type without requiring the panel to be reopened. */
+  patchCurrent: (patch: Partial<PanelItem>) => void;
   stack: PanelItem[];
   isOpen: boolean;
   current: PanelItem | null;
@@ -34,13 +37,21 @@ export function SidepanelProvider({ children }: { children: ReactNode }) {
   const pop = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
   const close = useCallback(() => setStack([]), []);
   const goTo = useCallback((index: number) => setStack((s) => s.slice(0, index + 1)), []);
+  const patchCurrent = useCallback((patch: Partial<PanelItem>) => {
+    setStack((s) => {
+      if (s.length === 0) return s;
+      const next = [...s];
+      next[next.length - 1] = { ...next[next.length - 1], ...patch };
+      return next;
+    });
+  }, []);
 
   const current = stack.length > 0 ? stack[stack.length - 1] : null;
   const isOpen = stack.length > 0;
 
   const ctx = useMemo(
-    () => ({ open, push, pop, close, goTo, stack, isOpen, current }),
-    [open, push, pop, close, goTo, stack, isOpen, current],
+    () => ({ open, push, pop, close, goTo, patchCurrent, stack, isOpen, current }),
+    [open, push, pop, close, goTo, patchCurrent, stack, isOpen, current],
   );
 
   return <SidepanelContext.Provider value={ctx}>{children}</SidepanelContext.Provider>;

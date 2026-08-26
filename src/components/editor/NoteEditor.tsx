@@ -148,7 +148,6 @@ export function NoteEditor({
   // Stable initial-value refs — set once on mount, never change
   const initialBodyRef = useRef(body);
   const initialTitleRef = useRef(title);
-  const initialNoteTypeRef = useRef(noteType);
   const initialProjectIdRef = useRef(projectId);
   const initialTagsRef = useRef(tags);
   const initialAttachmentsRef = useRef(attachments);
@@ -182,15 +181,18 @@ export function NoteEditor({
   });
 
   // Autosave: fires 1500 ms after the last title/content keystroke, or right
-  // away when a metadata field (type/project/tags/attachments) changes on its
-  // own — those previously fell out of scope entirely (dependency array only
-  // covered body/title), so a type-only edit with no title/body touch was
-  // silently dropped on close, never reaching the database.
+  // away when project/tags/attachments change on their own — those, like
+  // noteType (saved immediately by handleTypeChange below), previously fell
+  // out of scope entirely (dependency array only covered body/title), so
+  // e.g. reassigning a note's project with no title/body touch was silently
+  // dropped on close, never reaching the database. noteType is intentionally
+  // left out of this effect's guard/deps — handleTypeChange already saves it
+  // immediately on click, and including it here too would fire a redundant
+  // second save on the same change.
   useEffect(() => {
     const unchanged =
       debouncedBody === initialBodyRef.current &&
       debouncedTitle === initialTitleRef.current &&
-      noteType === initialNoteTypeRef.current &&
       projectId === initialProjectIdRef.current &&
       tags === initialTagsRef.current &&
       attachments === initialAttachmentsRef.current;
@@ -201,7 +203,7 @@ export function NoteEditor({
     if (!isNonEmpty) return;
     setSaveStatus("saving");
     onSaveRef.current(currentValuesRef.current);
-  }, [debouncedBody, debouncedTitle, noteType, projectId, tags, attachments]);
+  }, [debouncedBody, debouncedTitle, projectId, tags, attachments]);
 
   // Detect when saving prop transitions true → false (save completed)
   const prevSaving = useRef(false);
@@ -251,6 +253,15 @@ export function NoteEditor({
     setObjectiveIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+
+  // Type pills are a discrete, deliberate action — save immediately rather than
+  // waiting on the body/title debounce, which would make the click feel unresponsive.
+  const handleTypeChange = (t: string) => {
+    if (t === noteType) return;
+    setNoteType(t);
+    setSaveStatus("saving");
+    onSaveRef.current({ ...currentValuesRef.current, noteType: t });
+  };
 
   const handleBack = () => {
     if (hasUnsavedChanges.current) {
@@ -395,7 +406,7 @@ export function NoteEditor({
             <button
               key={t}
               type="button"
-              onClick={() => setNoteType(t)}
+              onClick={() => handleTypeChange(t)}
               className="x-pill"
               style={{
                 padding: "5px 12px",
