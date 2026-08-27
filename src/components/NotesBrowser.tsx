@@ -53,6 +53,16 @@ function previewText(note: NoteRow) {
   return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
 }
 
+function noteTypeLabel(type: string): string {
+  if (type === "reference") return "Resource";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+// Default Type filter selection — preserves the note-only view for anyone
+// who hasn't touched the filter yet, even though the underlying query now
+// returns every note_type.
+const DEFAULT_TYPE_FILTER = ["note"];
+
 function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
   return (
     <span
@@ -142,24 +152,39 @@ export function NotesBrowser({
   }, [activeProjectId]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterLinked, setFilterLinked] = useState(false);
+  // Defaults to note-only so a first-time/untouched view matches today's
+  // behavior; the underlying query returns every type regardless.
+  const [filterTypes, setFilterTypes] = useState<string[]>(DEFAULT_TYPE_FILTER);
 
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
 
+  // Only counts as an active filter once it differs from the default —
+  // otherwise the badge/chip would always show "1" on a fresh, untouched page.
+  const typeFilterActive =
+    filterTypes.length !== DEFAULT_TYPE_FILTER.length ||
+    !DEFAULT_TYPE_FILTER.every((t) => filterTypes.includes(t));
+
   const activeFilterCount =
-    (filterProject ? 1 : 0) + filterTags.length + (filterLinked ? 1 : 0);
+    (filterProject ? 1 : 0) + filterTags.length + (filterLinked ? 1 : 0) + (typeFilterActive ? 1 : 0);
 
   const toggleTag = (tag: string) =>
     setFilterTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
 
+  const toggleType = (type: string) =>
+    setFilterTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+
   const clearAllFilters = () => {
     setFilterProject("");
     setFilterTags([]);
     setFilterLinked(false);
+    setFilterTypes(DEFAULT_TYPE_FILTER);
   };
 
   useEffect(() => {
@@ -205,6 +230,13 @@ export function NotesBrowser({
     () => Array.from(new Set(notes.flatMap((n) => n.tags))).sort(),
     [notes],
   );
+  // Derived from whatever the query actually returned, rather than a
+  // hardcoded list — so it reflects live note_type values, including any
+  // not in the editor's curated NOTE_TYPES set (e.g. legacy/system rows).
+  const allNoteTypes = useMemo(
+    () => Array.from(new Set(notes.map((n) => n.note_type))).sort(),
+    [notes],
+  );
 
   const visibleNotes = useMemo(() => {
     let list = notes.slice();
@@ -220,6 +252,10 @@ export function NotesBrowser({
     if (filterProject) list = list.filter((n) => n.detail?.project_id === filterProject);
     if (filterTags.length) list = list.filter((n) => filterTags.some((t) => n.tags.includes(t)));
     if (filterLinked) list = list.filter((n) => linked.has(n.id));
+    // Unlike the other (optional-metadata) filters above, an empty Type
+    // selection means "show nothing" rather than "unfiltered" — Type is a
+    // closed category, so zero types checked has an unambiguous meaning.
+    list = list.filter((n) => filterTypes.includes(n.note_type));
     const dir = sortDir === "asc" ? -1 : 1;
     list.sort((a, b) => {
       if (sort === "title") return a.title.localeCompare(b.title) * (sortDir === "asc" ? 1 : -1);
@@ -227,7 +263,7 @@ export function NotesBrowser({
       return (new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime()) * dir;
     });
     return list;
-  }, [notes, search, filterProject, filterTags, filterLinked, linked, sort, sortDir]);
+  }, [notes, search, filterProject, filterTags, filterLinked, filterTypes, linked, sort, sortDir]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
@@ -508,6 +544,33 @@ export function NotesBrowser({
                       ))}
                     </select>
 
+                    {allNoteTypes.length > 0 && (
+                      <>
+                        <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 6 }}>
+                          Type
+                        </span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                          {allNoteTypes.map((t) => {
+                            const on = filterTypes.includes(t);
+                            return (
+                              <button
+                                key={t}
+                                onClick={() => toggleType(t)}
+                                style={{
+                                  fontSize: 12, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+                                  border: `1px solid ${on ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                                  background: on ? "var(--skin-accent)" : "transparent",
+                                  color: on ? "var(--skin-on-accent, #fff)" : "var(--skin-ink)",
+                                }}
+                              >
+                                {noteTypeLabel(t)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
                     {allTags.length > 0 && (
                       <>
                         <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 6 }}>
@@ -579,6 +642,12 @@ export function NotesBrowser({
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 {filterProject && (
                   <FilterChip label={`Project: ${projectName(filterProject) ?? "Unknown"}`} onClear={() => setFilterProject("")} />
+                )}
+                {typeFilterActive && (
+                  <FilterChip
+                    label={`Type: ${allNoteTypes.filter((t) => filterTypes.includes(t)).map(noteTypeLabel).join(", ") || "None"}`}
+                    onClear={() => setFilterTypes(DEFAULT_TYPE_FILTER)}
+                  />
                 )}
                 {filterTags.map((t) => (
                   <FilterChip key={t} label={`#${t}`} onClear={() => toggleTag(t)} />
@@ -707,9 +776,9 @@ export function NotesBrowser({
                             <span style={{
                               fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 999,
                               background: "var(--skin-surface2)", color: "var(--skin-ink-faint)",
-                              border: "1px solid var(--skin-line)", textTransform: "capitalize",
+                              border: "1px solid var(--skin-line)",
                             }}>
-                              {note.note_type === "reference" ? "Resource" : note.note_type}
+                              {noteTypeLabel(note.note_type)}
                             </span>
                           )}
                         </div>
