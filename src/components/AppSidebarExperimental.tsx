@@ -47,6 +47,7 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -386,17 +387,75 @@ export function AppSidebarExperimental() {
                   }
                 };
 
-                // Logbook: expandable with Journal + Notes subitems
+                // Logbook: expandable with Journal + Notes subitems. Hovering the
+                // item or clicking the chevron reveals the submenu; clicking the
+                // main body navigates straight to the first subitem (My Journal).
                 if (item.title === "logbook" && navMode === "project") {
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      {collapsed && !isMobile ? (
-                        <SidebarMenuButton
-                          isActive={onLogbook}
-                          tooltip={item.label}
+                  const logbookSubitems = (
+                    <>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={onJournal && !(location.search as Record<string, string>)?.new}
                           onClick={() =>
                             void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
                           }
+                        >
+                          <NotebookText className="h-3.5 w-3.5" />
+                          <span>My Journal</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}
+                          onClick={() =>
+                            void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
+                          }
+                        >
+                          <FilePlus className="h-3.5 w-3.5" />
+                          <span>New Journal Entry</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={onNotes && !((location.search as Record<string, string>)?.new)}
+                          onClick={() =>
+                            void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                          }
+                        >
+                          <LayoutList className="h-3.5 w-3.5" />
+                          <span>My Notes</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}
+                          onClick={() =>
+                            void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
+                          }
+                        >
+                          <FilePlus className="h-3.5 w-3.5" />
+                          <span>New Note</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </>
+                  );
+
+                  const goToLogbook = () =>
+                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
+
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed && !isMobile ? (
+                        // The rail itself already expands on hover (see
+                        // useSidebar's hoverExpanded/SIDEBAR_HOVER_EXPAND_DELAY) —
+                        // once it does, this item re-renders into the branch
+                        // below, and the submenu reveals the same way it does
+                        // there. No separate flyout needed; the plain tooltip
+                        // covers the brief moment before that hover-expand fires.
+                        <SidebarMenuButton
+                          isActive={onLogbook}
+                          tooltip={item.label}
+                          onClick={goToLogbook}
                           className="flex items-center gap-2 w-full"
                         >
                           <item.icon className="h-4 w-4" />
@@ -406,88 +465,95 @@ export function AppSidebarExperimental() {
                         <>
                           <SidebarMenuButton
                             isActive={onLogbook}
-                            onClick={() => {
-                              setLogbookOpen((v) => !v);
-                              void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
-                            }}
+                            onClick={goToLogbook}
                             className="flex items-center gap-2 w-full"
                           >
                             <item.icon className="h-4 w-4" />
                             <span className="flex-1">{item.label}</span>
+                          </SidebarMenuButton>
+                          <SidebarMenuAction
+                            onClick={() => setLogbookOpen((v) => !v)}
+                            aria-label={logbookOpen ? "Collapse Logbook" : "Expand Logbook"}
+                          >
                             {logbookOpen
                               ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
                               : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                          </SidebarMenuButton>
-                          {logbookOpen && (
-                            <SidebarMenuSub>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={onJournal && !(location.search as Record<string, string>)?.new}
-                                  onClick={() =>
-                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
-                                  }
-                                >
-                                  <NotebookText className="h-3.5 w-3.5" />
-                                  <span>My Journal</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}
-                                  onClick={() =>
-                                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
-                                  }
-                                >
-                                  <FilePlus className="h-3.5 w-3.5" />
-                                  <span>New Journal Entry</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={onNotes && !((location.search as Record<string, string>)?.new)}
-                                  onClick={() =>
-                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
-                                  }
-                                >
-                                  <LayoutList className="h-3.5 w-3.5" />
-                                  <span>My Notes</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}
-                                  onClick={() =>
-                                    void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
-                                  }
-                                >
-                                  <FilePlus className="h-3.5 w-3.5" />
-                                  <span>New Note</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            </SidebarMenuSub>
-                          )}
+                          </SidebarMenuAction>
+                          <SidebarMenuSub className={logbookOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                            {logbookSubitems}
+                          </SidebarMenuSub>
                         </>
                       )}
                     </SidebarMenuItem>
                   );
                 }
 
-                // Project Navigator: expandable with subitems
+                // Project Navigator: expandable with subitems. Same hover/chevron/
+                // direct-click behavior as Logbook above.
                 if (item.title === "navigator" && navMode === "project") {
                   const navigatorActive = onNavigator || onAiPlan;
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      {collapsed && !isMobile ? (
-                        // Collapsed (desktop): direct icon click goes to browser view
-                        <SidebarMenuButton
-                          isActive={navigatorActive}
-                          tooltip={item.label}
+                  const navigatorSubitems = (
+                    <>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={isNavSubActive("browser")}
                           onClick={() =>
                             void navigate({
                               to: "/navigator" as never,
                               search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
                             })
                           }
+                        >
+                          <LayoutList className="h-3.5 w-3.5" />
+                          <span>Browser</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={isNavSubActive("network")}
+                          onClick={() =>
+                            void navigate({
+                              to: "/navigator" as never,
+                              search: (prev: Record<string, unknown>) => ({ ...prev, view: "network" }),
+                            })
+                          }
+                        >
+                          <Share2 className="h-3.5 w-3.5" />
+                          <span>Network</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={onAiPlan}
+                          onClick={() =>
+                            void navigate({
+                              to: "/ai-plan" as never,
+                              search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
+                            })
+                          }
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          <span>AI Plan</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </>
+                  );
+
+                  const goToNavigator = () =>
+                    void navigate({
+                      to: "/navigator" as never,
+                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                    });
+
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed && !isMobile ? (
+                        // See the matching comment on Logbook above: the rail's
+                        // own hover-expand already gets us to the branch below.
+                        <SidebarMenuButton
+                          isActive={navigatorActive}
+                          tooltip={item.label}
+                          onClick={goToNavigator}
                           className="flex items-center gap-2 w-full"
                         >
                           <item.icon className="h-4 w-4" />
@@ -497,68 +563,23 @@ export function AppSidebarExperimental() {
                         <>
                           <SidebarMenuButton
                             isActive={navigatorActive}
-                            onClick={() => {
-                              setNavigatorOpen((v) => !v);
-                              void navigate({
-                                to: "/navigator" as never,
-                                search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
-                              });
-                            }}
+                            onClick={goToNavigator}
                             className="flex items-center gap-2 w-full"
                           >
                             <item.icon className="h-4 w-4" />
                             <span className="flex-1">{item.label}</span>
+                          </SidebarMenuButton>
+                          <SidebarMenuAction
+                            onClick={() => setNavigatorOpen((v) => !v)}
+                            aria-label={navigatorOpen ? "Collapse Navigator" : "Expand Navigator"}
+                          >
                             {navigatorOpen
                               ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
                               : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                          </SidebarMenuButton>
-
-                          {navigatorOpen && (
-                            <SidebarMenuSub>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={isNavSubActive("browser")}
-                                  onClick={() =>
-                                    void navigate({
-                                      to: "/navigator" as never,
-                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
-                                    })
-                                  }
-                                >
-                                  <LayoutList className="h-3.5 w-3.5" />
-                                  <span>Browser</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={isNavSubActive("network")}
-                                  onClick={() =>
-                                    void navigate({
-                                      to: "/navigator" as never,
-                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "network" }),
-                                    })
-                                  }
-                                >
-                                  <Share2 className="h-3.5 w-3.5" />
-                                  <span>Network</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  isActive={onAiPlan}
-                                  onClick={() =>
-                                    void navigate({
-                                      to: "/ai-plan" as never,
-                                      search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
-                                    })
-                                  }
-                                >
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                  <span>AI Plan</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            </SidebarMenuSub>
-                          )}
+                          </SidebarMenuAction>
+                          <SidebarMenuSub className={navigatorOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                            {navigatorSubitems}
+                          </SidebarMenuSub>
                         </>
                       )}
                     </SidebarMenuItem>
