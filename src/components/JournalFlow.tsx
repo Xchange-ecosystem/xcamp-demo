@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   ChevronDown,
+  X,
 } from "lucide-react";
 
 export type EntityType = 'objective' | 'task' | 'note' | 'resource';
@@ -424,6 +425,10 @@ export function JournalFlow({
   const [analysing, setAnalysing] = useState(false);
   const [topics, setTopics] = useState<JournalTopic[]>([]);
   const [collapsed, setCollapsed] = useState(false);
+  // Mobile-only: the History panel is tucked behind a toggle by default so
+  // the composer/history content — not the list — is what a mobile visitor
+  // sees first. Irrelevant on desktop, where both panes always show.
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [savedTopicIds, setSavedTopicIds] = useState<Set<string>>(new Set());
@@ -803,6 +808,10 @@ export function JournalFlow({
   const effCollapsed = isMobile ? false : collapsed;
   const sidebarWidth = effCollapsed ? 56 : 300;
   const sessions = sessionsQuery.data ?? [];
+  // Mobile: only one pane shows at a time, toggled by mobilePanelOpen.
+  // Desktop: both panes always show (grid columns), unaffected by the toggle.
+  const showAside = !isMobile || mobilePanelOpen;
+  const showMain = !isMobile || !mobilePanelOpen;
 
   return (
     <>
@@ -817,13 +826,15 @@ export function JournalFlow({
           display: isMobile ? "flex" : "grid",
           flexDirection: isMobile ? "column" : undefined,
           gridTemplateColumns: isMobile ? undefined : `${sidebarWidth}px 1fr`,
-          minHeight: "70vh",
+          height: "70vh",
           width: "100%",
           minWidth: 0,
+          overflow: "hidden",
           transition: isMobile ? undefined : "grid-template-columns 180ms ease",
         }}
       >
         {/* Sidebar */}
+        {showAside && (
         <aside
           style={{
             background: "var(--skin-surface)",
@@ -831,6 +842,7 @@ export function JournalFlow({
             borderBottom: isMobile ? "1px solid var(--skin-line)" : "none",
             display: "flex",
             flexDirection: "column",
+            height: "100%",
             overflow: "hidden",
           }}
         >
@@ -869,7 +881,22 @@ export function JournalFlow({
             <>
               <div style={{ padding: "18px 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--skin-ink)" }}>Journal</span>
-                {!isMobile && (
+                {isMobile ? (
+                  <button
+                    aria-label="Close history panel"
+                    title="Close"
+                    style={{
+                      height: 26, width: 26, padding: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: "1px solid var(--skin-line)", borderRadius: 7,
+                      background: "var(--skin-surface)", cursor: "pointer",
+                      color: "var(--skin-ink-soft)",
+                    }}
+                    onClick={() => setMobilePanelOpen(false)}
+                  >
+                    <X size={14} />
+                  </button>
+                ) : (
                   <button
                     aria-label="Collapse sidebar"
                     title="Collapse sidebar"
@@ -896,7 +923,7 @@ export function JournalFlow({
                     background: "var(--skin-accent-gradient)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                   }}
-                  onClick={() => { onRequestNew?.(); startNew(); }}
+                  onClick={() => { onRequestNew?.(); startNew(); if (isMobile) setMobilePanelOpen(false); }}
                 >
                   <Plus size={15} />
                   New entry
@@ -947,6 +974,7 @@ export function JournalFlow({
                           setOpenSession(s.id);
                           setScreen("history");
                           if (isComposing) onExitComposer?.();
+                          if (isMobile) setMobilePanelOpen(false);
                         }}
                         style={{
                           width: "100%", textAlign: "left",
@@ -969,9 +997,29 @@ export function JournalFlow({
             </>
           )}
         </aside>
+        )}
 
         {/* Main pane */}
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: "70vh" }}>
+        {showMain && (
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, height: "100%" }}>
+          {isMobile && (
+            <div style={{ padding: "16px 16px 0", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setMobilePanelOpen(true)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "8px 14px", border: "1px solid var(--skin-line)",
+                  borderRadius: 999, background: "var(--skin-surface)",
+                  fontSize: 12, fontWeight: 600, color: "var(--skin-ink)",
+                  cursor: "pointer",
+                }}
+              >
+                <PanelLeftOpen size={14} />
+                History
+              </button>
+            </div>
+          )}
           {screen === "input" && (
             <div style={{
               flex: 1,
@@ -1080,6 +1128,7 @@ export function JournalFlow({
             />
           )}
         </div>
+        )}
       </div>
     </>
   );
