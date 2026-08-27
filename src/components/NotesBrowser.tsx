@@ -116,6 +116,10 @@ export function NotesBrowser({
   const [organising, setOrganising] = useState<NoteRow | null>(null);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  // Mobile-only: the notes list panel is tucked behind a toggle by default so
+  // the main content (composer/detail) — not the list — is what a mobile
+  // visitor sees first. Irrelevant on desktop, where both panes always show.
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
   useEffect(() => {
     if (!draft) return;
@@ -312,12 +316,14 @@ export function NotesBrowser({
 
   const effCollapsed = isMobile ? false : collapsed;
   const sidebarWidth = effCollapsed ? 56 : 340;
-  const containerHeight = isMobile ? "auto" : "70vh";
+  const containerHeight = "70vh";
   const asidePosition = embedded ? "relative" : "sticky";
 
-  // On mobile we render a single column: the list, or the editor when one is open.
-  const showList = !isMobile || !editing;
-  const showMain = !isMobile || !!editing;
+  // On mobile we render a single column: the editor/detail view by default,
+  // or the notes list when the user taps the list toggle (or is actively
+  // editing/creating, which always takes over the visible pane).
+  const showList = !isMobile || (mobilePanelOpen && !editing);
+  const showMain = !isMobile || !mobilePanelOpen || !!editing;
 
   return (
     <div
@@ -339,7 +345,7 @@ export function NotesBrowser({
           padding: effCollapsed ? "16px 8px" : isMobile ? "14px 12px" : "20px 16px",
           display: "flex",
           flexDirection: "column",
-          height: isMobile ? "auto" : "100%",
+          height: "100%",
           flex: isMobile ? 1 : undefined,
           minHeight: isMobile && embedded ? "70vh" : undefined,
           position: isMobile ? "relative" : asidePosition,
@@ -374,7 +380,17 @@ export function NotesBrowser({
               <div className="font-semibold" style={{ color: "var(--skin-ink)", fontSize: 15 }}>
                 Notes
               </div>
-              {!isMobile && (
+              {isMobile ? (
+                <button
+                  className="x-btn-secondary"
+                  aria-label="Close notes list"
+                  title="Close"
+                  style={{ height: 30, width: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={() => setMobilePanelOpen(false)}
+                >
+                  <X size={15} />
+                </button>
+              ) : (
                 <button
                   className="x-btn-secondary"
                   aria-label="Collapse sidebar"
@@ -387,7 +403,7 @@ export function NotesBrowser({
               )}
             </div>
 
-            <button className="x-btn-primary mb-3" onClick={() => { onRequestNew?.(); setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); }}>
+            <button className="x-btn-primary mb-3" onClick={() => { onRequestNew?.(); setEditing({ mode: "new", initialProjectId: activeProjectId ?? undefined }); setMobilePanelOpen(false); }}>
               + New note
             </button>
 
@@ -741,7 +757,22 @@ export function NotesBrowser({
 
       {/* Main content */}
       {showMain && (
-      <main style={{ padding: isMobile ? 14 : 32, width: "100%", overflowY: "auto" }}>
+      <main style={{ padding: isMobile ? 14 : 32, width: "100%", height: "100%", overflowY: "auto", boxSizing: "border-box" }}>
+        {isMobile && !editing && (
+          <button
+            type="button"
+            className="x-btn-secondary"
+            onClick={() => setMobilePanelOpen(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", marginBottom: 14,
+              fontSize: 12, fontWeight: 600,
+            }}
+          >
+            <PanelLeftOpen size={14} />
+            Notes list
+          </button>
+        )}
         {editing ? (
           <NoteEditor
             key={editing.mode === "edit" ? editing.note.id : "new"}
