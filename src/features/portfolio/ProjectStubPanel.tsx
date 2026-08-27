@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Eye, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -17,11 +18,11 @@ interface Props {
   progress: ObjectiveProgress | undefined;
   user: XcampUser;
   onClose: () => void;
-  // Investor persona, "All" tab only — see PortfolioView. Adds a real "Add to
-  // Watchlist" action alongside "Open project". "Request details" next to it
-  // is intentionally mock (no write) — investor-interest tracking beyond a
-  // watchlist doesn't exist yet.
+  // Investor persona, "All" tab only — see PortfolioView. Real "Add to Watchlist" toggle.
   showWatchlistAction?: boolean;
+  // Investor persona, "Watchlist" tab only — see PortfolioView. Intentionally mock
+  // (no write) — investor-interest tracking beyond a watchlist doesn't exist yet.
+  showRequestDetailsAction?: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -31,8 +32,16 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Viewer",
 };
 
-export function ProjectStubPanel({ project, progress, user, onClose, showWatchlistAction }: Props) {
+export function ProjectStubPanel({
+  project,
+  progress,
+  user,
+  onClose,
+  showWatchlistAction,
+  showRequestDetailsAction,
+}: Props) {
   const isOpen = project !== null;
+  const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
 
@@ -63,6 +72,7 @@ export function ProjectStubPanel({ project, progress, user, onClose, showWatchli
         setWatching(true);
         toast.success("Added to watchlist.");
       }
+      await queryClient.invalidateQueries({ queryKey: ["portfolio-watchlist"] });
     } catch (err) {
       console.error("[watchlist] toggle failed:", err);
       toast.error("Couldn't update your watchlist.");
@@ -266,55 +276,59 @@ export function ProjectStubPanel({ project, progress, user, onClose, showWatchli
             gap: 8,
           }}
         >
-          {project && showWatchlistAction ? (
+          {project && (showWatchlistAction || showRequestDetailsAction) ? (
             <>
-              <button
-                type="button"
-                onClick={handleToggleWatch}
-                disabled={watchBusy}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  padding: "9px 12px",
-                  borderRadius: "var(--xr, 6px)",
-                  border: "1px solid var(--skin-line)",
-                  background: watching ? "var(--skin-surface2)" : "transparent",
-                  color: "var(--skin-ink)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: watchBusy ? "default" : "pointer",
-                  opacity: watchBusy ? 0.7 : 1,
-                }}
-              >
-                {watchBusy ? <Loader2 size={13} className="animate-spin" /> : null}
-                {watching ? "Watching" : "Add to Watchlist"}
-              </button>
-              <button
-                type="button"
-                title="Not wired yet — investor-interest tracking beyond a watchlist doesn't exist yet."
-                onClick={() => toast("Request details isn't wired up yet.")}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  padding: "9px 12px",
-                  borderRadius: "var(--xr, 6px)",
-                  border: "1px dashed var(--skin-line)",
-                  background: "transparent",
-                  color: "var(--skin-ink-faint)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                <Eye size={13} />
-                Request details
-              </button>
+              {showWatchlistAction && (
+                <button
+                  type="button"
+                  onClick={handleToggleWatch}
+                  disabled={watchBusy}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "9px 12px",
+                    borderRadius: "var(--xr, 6px)",
+                    border: "1px solid var(--skin-line)",
+                    background: watching ? "var(--skin-surface2)" : "transparent",
+                    color: "var(--skin-ink)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: watchBusy ? "default" : "pointer",
+                    opacity: watchBusy ? 0.7 : 1,
+                  }}
+                >
+                  {watchBusy ? <Loader2 size={13} className="animate-spin" /> : null}
+                  {watching ? "Watching" : "Add to Watchlist"}
+                </button>
+              )}
+              {showRequestDetailsAction && (
+                <button
+                  type="button"
+                  title="Not wired yet — investor-interest tracking beyond a watchlist doesn't exist yet."
+                  onClick={() => toast("Request details isn't wired up yet.")}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "9px 12px",
+                    borderRadius: "var(--xr, 6px)",
+                    border: "1px dashed var(--skin-line)",
+                    background: "transparent",
+                    color: "var(--skin-ink-faint)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Eye size={13} />
+                  Request details
+                </button>
+              )}
             </>
           ) : (
             project && (

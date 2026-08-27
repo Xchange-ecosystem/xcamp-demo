@@ -2,17 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { usePersona } from "@/store/personaStore";
+import { usePersona, type Persona } from "@/store/personaStore";
 import {
   fetchProjectObjectiveProgress,
   listProjectsForPortfolio,
   type ProjectPortfolioItem,
 } from "@/lib/xcamp-api";
+import { listWatchlist } from "@/lib/watchlist-api";
 import { PortfolioProjectCard } from "./PortfolioProjectCard";
 import { ProjectStubPanel } from "./ProjectStubPanel";
 
 type AudienceTab = "overview" | "marketplace" | "investor";
-type ProjectTab = "all" | "owned" | "collaborations" | "viewer";
+type ProjectTab = "all" | "owned" | "collaborations" | "watchlist" | "viewer";
 type SortKey = "name_asc" | "name_desc" | "obj_most" | "obj_least";
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -26,14 +27,38 @@ const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
   all: "All",
   owned: "Owned by me",
   collaborations: "Collaborations",
+  watchlist: "Watchlist",
   viewer: "Viewer",
 };
 
-export function PortfolioView() {
+// Which of the 5 tabs each persona sees, and where they land by default.
+// A persisted/previous tab that isn't in this persona's list falls back to the default.
+const TABS_BY_PERSONA: Record<Persona, ProjectTab[]> = {
+  founder: ["owned", "collaborations", "viewer"],
+  investor: ["all", "watchlist", "viewer"],
+  collaborator: ["collaborations", "viewer"],
+};
+
+const DEFAULT_TAB_BY_PERSONA: Record<Persona, ProjectTab> = {
+  founder: "owned",
+  investor: "all",
+  collaborator: "collaborations",
+};
+
+function isProjectTab(t: string): t is ProjectTab {
+  return t in PROJECT_TAB_LABELS;
+}
+
+export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
   const { user } = useAuth();
   const { persona } = usePersona();
   const [audience, setAudience] = useState<AudienceTab>("overview");
-  const [activeTab, setActiveTab] = useState<ProjectTab>("all");
+  const [activeTab, setActiveTab] = useState<ProjectTab>(() => {
+    if (initialTab && isProjectTab(initialTab) && TABS_BY_PERSONA[persona].includes(initialTab)) {
+      return initialTab;
+    }
+    return DEFAULT_TAB_BY_PERSONA[persona];
+  });
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("name_asc");
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
@@ -54,6 +79,15 @@ export function PortfolioView() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // If the active tab isn't visible for the current persona (switched via the rail,
+  // or restored from a previous session), fall back to that persona's default tab.
+  useEffect(() => {
+    if (!TABS_BY_PERSONA[persona].includes(activeTab)) {
+      setActiveTab(DEFAULT_TAB_BY_PERSONA[persona]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persona]);
+
   const projectsQuery = useQuery({
     queryKey: ["portfolio-projects", user?.tenantId, user?.centralId],
     queryFn: () => listProjectsForPortfolio(user!),
@@ -63,6 +97,18 @@ export function PortfolioView() {
 
   const projects = projectsQuery.data ?? [];
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
+
+  const watchlistQuery = useQuery({
+    queryKey: ["portfolio-watchlist", user?.centralId],
+    queryFn: () => listWatchlist("project"),
+    enabled: !!user && persona === "investor",
+    staleTime: 15_000,
+  });
+
+  const watchlistProjectIds = useMemo(
+    () => new Set((watchlistQuery.data ?? []).map((w) => w.object_id)),
+    [watchlistQuery.data],
+  );
 
   const progressQuery = useQuery({
     queryKey: ["portfolio-objective-progress", projectIds.join(","), user?.tenantId],
@@ -89,7 +135,7 @@ export function PortfolioView() {
   );
 
   const tabCounts = useMemo(() => {
-    if (!user) return { all: 0, owned: 0, collaborations: 0, viewer: 0 };
+    if (!user) return { all: 0, owned: 0, collaborations: 0, watchlist: 0, viewer: 0 };
     const owned = projects.filter((p) => p.owner_central_id === user.centralId).length;
     const collaborations = projects.filter(
       (p) =>
@@ -97,9 +143,10 @@ export function PortfolioView() {
         p.collab_role !== null &&
         p.collab_role !== "viewer",
     ).length;
+    const watchlist = projects.filter((p) => watchlistProjectIds.has(p.id)).length;
     const viewer = projects.filter((p) => p.collab_role === "viewer").length;
-    return { all: projects.length, owned, collaborations, viewer };
-  }, [projects, user]);
+    return { all: projects.length, owned, collaborations, watchlist, viewer };
+  }, [projects, user, watchlistProjectIds]);
 
   const filteredProjects = useMemo(() => {
     if (!user) return [];
@@ -115,6 +162,8 @@ export function PortfolioView() {
           p.collab_role !== null &&
           p.collab_role !== "viewer",
       );
+    } else if (activeTab === "watchlist") {
+      result = result.filter((p) => watchlistProjectIds.has(p.id));
     } else if (activeTab === "viewer") {
       result = result.filter((p) => p.collab_role === "viewer");
     }
@@ -154,7 +203,7 @@ export function PortfolioView() {
     });
 
     return result;
-  }, [projects, user, activeTab, search, filterStatus, filterTags, sort, progressMap]);
+  }, [projects, user, activeTab, search, filterStatus, filterTags, sort, progressMap, watchlistProjectIds]);
 
   const activeFiltersCount = filterStatus.length + filterTags.length;
 
@@ -259,9 +308,9 @@ export function PortfolioView() {
           </div>
         </div>
 
-        {/* Project tabs */}
+        {/* Project tabs — visible set is persona-scoped */}
         <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
-          {(["all", "owned", "collaborations", "viewer"] as const).map((tab) => (
+          {TABS_BY_PERSONA[persona].map((tab) => (
             <button
               key={tab}
               type="button"
@@ -724,6 +773,7 @@ export function PortfolioView() {
         user={user!}
         onClose={() => setSelectedProjectId(null)}
         showWatchlistAction={persona === "investor" && activeTab === "all"}
+        showRequestDetailsAction={persona === "investor" && activeTab === "watchlist"}
       />
     </div>
   );

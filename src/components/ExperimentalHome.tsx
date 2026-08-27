@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useActiveProject } from "@/contexts/active-project";
 import { MentionMenu, type MentionEntity } from "@/components/MentionMenu";
 import { PageHeroShell } from "@/components/PageHeroShell";
@@ -35,9 +36,12 @@ import { useTheme } from "@/lib/theme";
 import {
   fetchProjectMetrics,
   fetchProjectDetailMetrics,
+  listProjectsForPortfolio,
   type ProjectMetrics,
   type ProjectDetailMetrics,
 } from "@/lib/xcamp-api";
+import { usePersona, type Persona } from "@/store/personaStore";
+import { InvestorProjectMetrics } from "@/components/project-home/InvestorProjectMetrics";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import {
   speak,
@@ -62,6 +66,48 @@ const CARD_VIDEOS = {
   project: "/assets/cards/project.mp4",
   navigator: "/assets/cards/navigator.mp4",
 } as const;
+
+// ─── Investor recommend tiles — single source of truth for the welcome overlay
+// and the "Here's what I recommend" section (Phase 3). Same 3 tiles, same
+// destinations, rendered by <InvestorRecommendTiles> in both places.
+interface RecommendTileConfig {
+  key: string;
+  title: string;
+  description: string;
+  videoSrc: string;
+  to: string;
+  search?: Record<string, string>;
+  actionLabel: string;
+}
+
+const INVESTOR_RECOMMEND_TILES: RecommendTileConfig[] = [
+  {
+    key: "find",
+    title: "Find promising projects",
+    description: "Browse the projects available to you.",
+    videoSrc: CARD_VIDEOS.project,
+    to: "/portfolio",
+    search: { tab: "all" },
+    actionLabel: "Browse projects",
+  },
+  {
+    key: "status",
+    title: "Check status",
+    description: "See how the startups in your portfolio are doing.",
+    videoSrc: CARD_VIDEOS.navigator,
+    to: "/portfolio",
+    search: { tab: "watchlist" },
+    actionLabel: "View watchlist",
+  },
+  {
+    key: "analyse",
+    title: "Analyse my portfolio",
+    description: "Portfolio-wide metrics and reporting.",
+    videoSrc: CARD_VIDEOS.journal,
+    to: "/ecosystem-dashboard",
+    actionLabel: "Open dashboard",
+  },
+];
 
 // ─── CSS animation for the shifting-color hero overlay ───────────────────────
 // prefers-reduced-motion is handled in the style block itself.
@@ -128,13 +174,53 @@ const INTRO_LINES_STATIC = [
   "Tap the orb to get started.",
 ] as const;
 
-function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
+// Persona-keyed intro copy (Phase 3). Investor and collaborator get a shorter
+// welcome line followed by persona-specific tiles instead of the generic hint;
+// founder is unchanged.
+const INTRO_LINES_BY_PERSONA = {
+  founder: INTRO_LINES_STATIC,
+  investor: [
+    "Welcome to Xcamp for investors.",
+    "How do you want to get started today?",
+  ] as const,
+  collaborator: [
+    "Welcome to Xcamp for collaborators.",
+    "How do you want to get started today?",
+  ] as const,
+};
+
+function EcoIntroOverlay({
+  onDismiss,
+  persona,
+  authUser,
+  projects,
+  onProjectSelect,
+}: {
+  onDismiss: () => void;
+  persona: Persona;
+  authUser: XcampUser | null;
+  projects: ProjectFull[];
+  onProjectSelect: (project: ProjectFull) => void;
+}) {
   const brand = useBrand();
-  const LINES = INTRO_LINES_STATIC;
+  const LINES = INTRO_LINES_BY_PERSONA[persona];
   const lineIdxRef = useRef(0);
   const [lineIdx, setLineIdx] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [dismissing, setDismissing] = useState(false);
+
+  // Collaborator: project tiles sourced from non-owner collaborations (the
+  // `collaborators` table — same source Portfolio's own "Collaborations" tab
+  // reads from). Only fetched for this persona.
+  const collabQuery = useQuery({
+    queryKey: ["intro-collab-projects", authUser?.centralId],
+    queryFn: () => listProjectsForPortfolio(authUser!),
+    enabled: persona === "collaborator" && !!authUser,
+    staleTime: 30_000,
+  });
+  const collabProjects = (collabQuery.data ?? []).filter(
+    (p) => authUser && p.owner_central_id !== authUser.centralId && p.collab_role !== null && p.collab_role !== "viewer",
+  );
 
   function handleLineDone() {
     const idx = lineIdxRef.current;
@@ -215,20 +301,27 @@ function EcoIntroOverlay({ onDismiss }: { onDismiss: () => void }) {
           )}
         </div>
 
-        {/* Hint — fades in after all lines typed */}
-        <p
+        {/* Follow-up — fades in after all lines typed. Founder keeps the plain hint;
+            investor/collaborator get tiles for their two most common first actions. */}
+        <div
           style={{
-            fontSize: 12,
-            color: "var(--skin-ink-faint)",
-            textAlign: "center",
-            maxWidth: 280,
+            width: "100%",
+            maxWidth: persona === "founder" ? 280 : 420,
             padding: "0 24px",
             opacity: showHint ? 1 : 0,
             transition: "opacity 0.5s ease",
           }}
         >
-          Or use the menu to jump right in. You can always find me in the sidebar.
-        </p>
+          {persona === "founder" && (
+            <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", textAlign: "center", margin: 0 }}>
+              Or use the menu to jump right in. You can always find me in the sidebar.
+            </p>
+          )}
+          {persona === "investor" && <InvestorRecommendTiles />}
+          {persona === "collaborator" && (
+            <CollaboratorProjectTiles projects={collabProjects} onSelect={onProjectSelect} />
+          )}
+        </div>
       </div>
     </>
   );
@@ -1048,11 +1141,89 @@ function RecommendCard({
   );
 }
 
+// Static-destination CTA button — matches GetStartedAction's look, but takes any
+// route + optional search params instead of always saying "Get started with AI."
+function NavigateAction({ to, search, label }: { to: string; search?: Record<string, string>; label: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() =>
+        void navigate({
+          to: to as never,
+          search: (search ? () => search : (prev: Record<string, unknown>) => prev) as never,
+        })
+      }
+      style={{
+        marginTop: 8,
+        padding: "5px 12px",
+        borderRadius: 6,
+        border: "none",
+        background: "var(--skin-accent-gradient)",
+        color: "white",
+        fontWeight: 600,
+        fontSize: 12,
+        cursor: "pointer",
+        display: "inline-block",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// Investor recommend tiles — single source of truth (INVESTOR_RECOMMEND_TILES),
+// rendered identically in the welcome overlay and the "Here's what I recommend"
+// section (Phase 3).
+function InvestorRecommendTiles() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {INVESTOR_RECOMMEND_TILES.map((tile) => (
+        <RecommendCard
+          key={tile.key}
+          title={tile.title}
+          description={tile.description}
+          videoSrc={tile.videoSrc}
+          action={<NavigateAction to={tile.to} search={tile.search} label={tile.actionLabel} />}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Collaborator project tiles — same ProjectTile component/layout founder's "Jump
+// into a project" row uses, sourced from non-owner collaborations instead of
+// owned projects. Empty until Phase 6 seeds real collaboration data (Phase 0
+// confirmed none exists yet) — shows a plain empty state rather than nothing.
+function CollaboratorProjectTiles({
+  projects,
+  onSelect,
+}: {
+  projects: ProjectFull[];
+  onSelect: (p: ProjectFull) => void;
+}) {
+  if (projects.length === 0) {
+    return (
+      <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", textAlign: "center", margin: 0 }}>
+        No collaborations yet — projects you're added to will appear here.
+      </p>
+    );
+  }
+  return (
+    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+      {projects.map((p) => (
+        <ProjectTile key={p.id} project={p} onSelect={onSelect} />
+      ))}
+    </div>
+  );
+}
+
 // ─── Ecosystem Home (Phase 5) ─────────────────────────────────────────────────
 
 export function EcosystemHomeView(props: ExperimentalHomeProps) {
   const { projects, onProjectSelect, onCreateProject, authUser } = props;
   const { resolved: theme } = useTheme();
+  const { persona } = usePersona();
 
   // ── Intro overlay — shown once per session, dismissed on first tap ───────
   const [showOverlay, setShowOverlay] = useState<boolean>(() => {
@@ -1207,7 +1378,13 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
   return (
     <>
       {showOverlay && (
-        <EcoIntroOverlay onDismiss={handleOverlayDismiss} />
+        <EcoIntroOverlay
+          onDismiss={handleOverlayDismiss}
+          persona={persona}
+          authUser={authUser}
+          projects={projects}
+          onProjectSelect={onProjectSelect}
+        />
       )}
       <VoiceToggle muted={muted} onToggle={() => setMuted(!muted)} />
       <EcosystemHeroLayout heroSrc={heroSrc}>
@@ -1290,26 +1467,30 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
           >
             Here's what I recommend
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <RecommendCard
-              title="Daily journal"
-              description="Reflect on today and capture what matters."
-              videoSrc={CARD_VIDEOS.journal}
-              action={<ProjectSelectAction projects={projects} to="/journal" />}
-            />
-            <RecommendCard
-              title="Quick note"
-              description="Capture a thought before it slips away."
-              videoSrc={CARD_VIDEOS.note}
-              action={<ProjectSelectAction projects={projects} to="/notes" />}
-            />
-            <RecommendCard
-              title="Start a project"
-              description="Launch a new initiative with Backcaster."
-              videoSrc={CARD_VIDEOS.project}
-              action={<GetStartedAction to="/project-builder" />}
-            />
-          </div>
+          {persona === "investor" ? (
+            <InvestorRecommendTiles />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <RecommendCard
+                title="Daily journal"
+                description="Reflect on today and capture what matters."
+                videoSrc={CARD_VIDEOS.journal}
+                action={<ProjectSelectAction projects={projects} to="/journal" />}
+              />
+              <RecommendCard
+                title="Quick note"
+                description="Capture a thought before it slips away."
+                videoSrc={CARD_VIDEOS.note}
+                action={<ProjectSelectAction projects={projects} to="/notes" />}
+              />
+              <RecommendCard
+                title="Start a project"
+                description="Launch a new initiative with Backcaster."
+                videoSrc={CARD_VIDEOS.project}
+                action={<GetStartedAction to="/project-builder" />}
+              />
+            </div>
+          )}
         </section>
       </EcosystemHeroLayout>
     </>
@@ -1318,8 +1499,22 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
 // ─── Project Home (Phase 6) ───────────────────────────────────────────────────
 
+// Founder keeps the full narrated heading; investor/collaborator get the shorter
+// "welcome line" (Phase 3/5) with no project name or CTA question, since it also
+// stands in for the current heading on their view.
+function projectHomeHeading(persona: Persona, projectName: string, m: ProjectDetailMetrics): string {
+  const goals = `${m.objectives} goal${m.objectives === 1 ? "" : "s"}`;
+  const tasksTotal = `${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total`;
+  const tasksOpen = `${m.openTasks} task${m.openTasks === 1 ? "" : "s"} open`;
+  if (persona === "founder") {
+    return `This is your project ${projectName}. You have ${goals}, ${tasksTotal}, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`;
+  }
+  return `This project has ${goals}, ${tasksTotal}, ${tasksOpen}.`;
+}
+
 export function ProjectHomeView(props: ExperimentalHomeProps) {
   const { activeProject, authUser } = props;
+  const { persona } = usePersona();
 
   // ── TTS / mute ───────────────────────────────────────────────────────────
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
@@ -1351,9 +1546,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
           setDetailMetrics(m);
           // Prefetch TEXT1 now that real metrics are available — gives ~400ms
           // of lead time before the narration sequence reaches phase 1
-          prefetchTTS(
-            `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`,
-          );
+          prefetchTTS(projectHomeHeading(persona, projectName, m));
         }
       })
       .catch(() => undefined);
@@ -1381,7 +1574,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
       const proj = activeProjectRef.current;
       const m = detailMetricsRef.current;
       const projectName = proj?.name ?? "your project";
-      const TEXT1 = `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`;
+      const TEXT1 = projectHomeHeading(persona, projectName, m);
       const TEXT2 = "Ask Chi about your project, or jot something down…";
       const TEXT3 = "Here are your tools.";
       const TEXT4 = "Here are some suggested next steps.";
@@ -1421,7 +1614,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
       const proj = activeProjectRef.current;
       const m = detailMetricsRef.current;
       const projectName = proj?.name ?? "your project";
-      const TEXT1 = `This is your project ${projectName}. You have ${m.objectives} goal${m.objectives === 1 ? "" : "s"}, ${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total, ${m.openTasks} task${m.openTasks === 1 ? "" : "s"} are currently open. What would you like to start with?`;
+      const TEXT1 = projectHomeHeading(persona, projectName, m);
       const texts = [
         TEXT1,
         "Ask Chi about your project, or jot something down…",
@@ -1433,8 +1626,12 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const headingText = activeProject ? `This is your project ${activeProject.name}.` : "Project Home.";
-  const sublineText = `You have ${detailMetrics.objectives} goal${detailMetrics.objectives === 1 ? "" : "s"}, ${detailMetrics.totalTasks} task${detailMetrics.totalTasks === 1 ? "" : "s"} in total, ${detailMetrics.openTasks} task${detailMetrics.openTasks === 1 ? "" : "s"} currently open. What would you like to start with?`;
+  const headingText = activeProject
+    ? projectHomeHeading(persona, activeProject.name, detailMetrics)
+    : "Project Home.";
+  // Founder's heading already ends with the CTA question; investor/collaborator's
+  // shorter welcome line needs it added back as the subline.
+  const sublineText = persona === "founder" ? "" : "What would you like to start with?";
 
   const FADE: React.CSSProperties = { transition: "opacity 0.5s ease" };
 
@@ -1449,7 +1646,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
       >
         <div style={{ padding: "32px 32px 48px" }}>
           {/* Heading — phase 1 */}
-          <div style={{ ...FADE, opacity: phase >= 1 ? 1 : 0 }}>
+          <div style={{ ...FADE, opacity: phase >= 1 ? 1 : 0, marginBottom: 28 }}>
             <h1
               style={{
                 fontSize: 26,
@@ -1461,9 +1658,11 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
             >
               {phase >= 1 ? (startedMutedRef.current ? headingText : <Typewriter text={headingText} caret={false} />) : null}
             </h1>
-            <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
-              {sublineText}
-            </p>
+            {sublineText && (
+              <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", margin: 0 }}>
+                {sublineText}
+              </p>
+            )}
           </div>
 
           {/* Input — phase 2 */}
@@ -1475,54 +1674,111 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
             />
           </div>
 
-          {/* Tool tiles — phase 3 */}
-          <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0, marginBottom: 36 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--skin-ink-faint)",
-                marginBottom: 12,
-              }}
-            >
-              Tools
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
-              <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
-              <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
-            </div>
-          </section>
+          {persona === "founder" && (
+            <>
+              {/* Tool tiles — phase 3 */}
+              <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0, marginBottom: 36 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--skin-ink-faint)",
+                    marginBottom: 12,
+                  }}
+                >
+                  Tools
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
+                  <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
+                  <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
+                </div>
+              </section>
 
-          {/* Suggested next steps — phase 4 */}
-          <section style={{ ...FADE, opacity: phase >= 4 ? 1 : 0 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--skin-ink-faint)",
-                marginBottom: 12,
-              }}
-            >
-              Suggested next steps
-            </div>
-            <div
-              style={{
-                border: "1.5px dashed var(--skin-line)",
-                borderRadius: 10,
-                padding: "24px 20px",
-                color: "var(--skin-ink-faint)",
-                fontSize: 13,
-                textAlign: "center",
-              }}
-            >
-              Backcaster-generated suggestions — coming soon.
-            </div>
-          </section>
+              {/* Suggested next steps — phase 4 */}
+              <section style={{ ...FADE, opacity: phase >= 4 ? 1 : 0 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--skin-ink-faint)",
+                    marginBottom: 12,
+                  }}
+                >
+                  Suggested next steps
+                </div>
+                <div
+                  style={{
+                    border: "1.5px dashed var(--skin-line)",
+                    borderRadius: 10,
+                    padding: "24px 20px",
+                    color: "var(--skin-ink-faint)",
+                    fontSize: 13,
+                    textAlign: "center",
+                  }}
+                >
+                  Backcaster-generated suggestions — coming soon.
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Investor — real Progress tile + mock Quality/Proof/Members, replaces
+              the Tools row entirely (Phase 5) */}
+          {persona === "investor" && (
+            <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--skin-ink-faint)",
+                  marginBottom: 12,
+                }}
+              >
+                Metrics
+              </div>
+              <InvestorProjectMetrics metrics={detailMetrics} projectId={activeProject?.id ?? ""} />
+            </section>
+          )}
+
+          {/* Collaborator — assignment feed, replaces Tools + Suggested next steps.
+              Stubbed: Phase 0 found zero real task_assignments rows for this project
+              (or any project) — the same "coming soon" pattern the dashboards use,
+              rather than shipping a feed that would always render empty. */}
+          {persona === "collaborator" && (
+            <section style={{ ...FADE, opacity: phase >= 3 ? 1 : 0 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--skin-ink-faint)",
+                  marginBottom: 12,
+                }}
+              >
+                My assignments
+              </div>
+              <div
+                style={{
+                  border: "1.5px dashed var(--skin-line)",
+                  borderRadius: 10,
+                  padding: "24px 20px",
+                  color: "var(--skin-ink-faint)",
+                  fontSize: 13,
+                  textAlign: "center",
+                }}
+              >
+                Your task assignments for this project — coming soon.
+              </div>
+            </section>
+          )}
         </div>
       </PageHeroShell>
     </>
