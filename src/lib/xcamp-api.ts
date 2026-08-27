@@ -88,11 +88,15 @@ function htmlToText(html: string): string {
 }
 
 export async function listNotes(user: XcampUser): Promise<NoteRow[]> {
+  // Returns notes of every note_type — NOTE_TYPES is the curated set a user
+  // can *assign* in the editor, not an exhaustive list of what's in the
+  // database (e.g. legacy/system-written rows can carry other values), so
+  // it must not be used to restrict what this query fetches. Narrowing to a
+  // subset of types is a UI-level concern (see NotesBrowser's Type filter).
   const { data, error } = await supabase
     .from("notes")
     .select(NOTE_COLUMNS)
     .eq("owner_central_id", user.centralId)
-    .in("note_type", NOTE_TYPES as unknown as string[])
     .eq("tenant_id", user.tenantId)
     .or("detail->>archived.is.null,detail->>archived.eq.false")
     .order("created_at", { ascending: false });
