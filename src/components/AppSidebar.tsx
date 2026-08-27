@@ -28,6 +28,7 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -150,133 +151,163 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
 
-              {/* Logbook — expandable (Journal + Notes combined) */}
+              {/* Logbook — expandable (Journal + Notes combined). Hovering the
+                  item or clicking the chevron reveals the submenu; clicking the
+                  main body navigates straight to the first subitem (My Journal). */}
               <SidebarMenuItem>
-                {collapsed ? (
-                  <SidebarMenuButton asChild isActive={onLogbook} tooltip="Logbook">
-                    <Link to="/journal" className="flex items-center gap-2">
-                      <NotebookPen className="h-4 w-4" />
-                      <span>Logbook</span>
-                    </Link>
-                  </SidebarMenuButton>
-                ) : (
-                  <>
-                    <SidebarMenuButton
-                      isActive={onLogbook}
-                      onClick={() => setLogbookOpen((v) => !v)}
-                      className="flex items-center gap-2 w-full"
-                    >
-                      <NotebookPen className="h-4 w-4" />
-                      <span className="flex-1">Logbook</span>
-                      {logbookOpen
-                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                    </SidebarMenuButton>
-                    {logbookOpen && (
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={onJournal && !(location.search as Record<string, string>)?.new}>
-                            <Link to="/journal" className="flex items-center gap-2">
-                              <NotebookText className="h-3.5 w-3.5" />
-                              <span>My Journal</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}>
-                            <Link to="/journal" search={{ new: 1 }} className="flex items-center gap-2">
-                              <FilePlus className="h-3.5 w-3.5" />
-                              <span>New Journal Entry</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={onNotes && !((location.search as Record<string, string>)?.new)}>
-                            <Link to="/notes" className="flex items-center gap-2">
-                              <LayoutList className="h-3.5 w-3.5" />
-                              <span>My Notes</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}>
-                            <Link to="/notes" search={{ new: 1 }} className="flex items-center gap-2">
-                              <FilePlus className="h-3.5 w-3.5" />
-                              <span>New Note</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                {(() => {
+                  const logbookSubitems = (
+                    <>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={onJournal && !(location.search as Record<string, string>)?.new}>
+                          <Link to="/journal" className="flex items-center gap-2">
+                            <NotebookText className="h-3.5 w-3.5" />
+                            <span>My Journal</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}>
+                          <Link to="/journal" search={{ new: 1 }} className="flex items-center gap-2">
+                            <FilePlus className="h-3.5 w-3.5" />
+                            <span>New Journal Entry</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={onNotes && !((location.search as Record<string, string>)?.new)}>
+                          <Link to="/notes" className="flex items-center gap-2">
+                            <LayoutList className="h-3.5 w-3.5" />
+                            <span>My Notes</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}>
+                          <Link to="/notes" search={{ new: 1 }} className="flex items-center gap-2">
+                            <FilePlus className="h-3.5 w-3.5" />
+                            <span>New Note</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </>
+                  );
+
+                  if (collapsed) {
+                    // The rail itself already expands on hover (see useSidebar's
+                    // hoverExpanded/SIDEBAR_HOVER_EXPAND_DELAY) — once it does,
+                    // this item re-renders into the branch below, and the
+                    // submenu reveals the same way it does there. No separate
+                    // flyout needed; the plain tooltip covers the brief moment
+                    // before that hover-expand fires.
+                    return (
+                      <SidebarMenuButton asChild isActive={onLogbook} tooltip="Logbook">
+                        <Link to="/journal" className="flex items-center gap-2">
+                          <NotebookPen className="h-4 w-4" />
+                          <span>Logbook</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <SidebarMenuButton asChild isActive={onLogbook}>
+                        <Link to="/journal" className="flex items-center gap-2">
+                          <NotebookPen className="h-4 w-4" />
+                          <span className="flex-1">Logbook</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <SidebarMenuAction
+                        onClick={() => setLogbookOpen((v) => !v)}
+                        aria-label={logbookOpen ? "Collapse Logbook" : "Expand Logbook"}
+                      >
+                        {logbookOpen
+                          ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                          : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      </SidebarMenuAction>
+                      <SidebarMenuSub className={logbookOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                        {logbookSubitems}
                       </SidebarMenuSub>
-                    )}
-                  </>
-                )}
+                    </>
+                  );
+                })()}
               </SidebarMenuItem>
 
-              {/* Navigator — expandable */}
+              {/* Navigator — expandable. Same hover/chevron/direct-click behavior
+                  as Logbook above. */}
               <SidebarMenuItem>
-                {collapsed ? (
-                  /* Collapsed: single icon linking to browser view */
-                  <SidebarMenuButton
-                    asChild
-                    isActive={onNavigator}
-                    tooltip={t("nav.navigator")}
-                  >
-                    <Link to="/navigator" search={{ view: "browser" }} className="flex items-center gap-2">
-                      <Map className="h-4 w-4" />
-                      <span>{t("nav.navigator")}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                ) : (
-                  /* Expanded: collapsible group */
-                  <>
-                    <SidebarMenuButton
-                      isActive={onNavigator}
-                      onClick={() => setNavigatorOpen((v) => !v)}
-                      className="flex items-center gap-2 w-full"
-                    >
-                      <Map className="h-4 w-4" />
-                      <span className="flex-1">{t("nav.navigator")}</span>
-                      {navigatorOpen
-                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                        : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                    </SidebarMenuButton>
+                {(() => {
+                  const navigatorSubitems = (
+                    <>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={isNavSubActive("browser")}
+                        >
+                          <Link
+                            to="/navigator"
+                            search={{ view: "browser" }}
+                            className="flex items-center gap-2"
+                          >
+                            <LayoutList className="h-3.5 w-3.5" />
+                            <span>Browser</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={isNavSubActive("network")}
+                        >
+                          <Link
+                            to="/navigator"
+                            search={{ view: "network" }}
+                            className="flex items-center gap-2"
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                            <span>Network</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </>
+                  );
 
-                    {navigatorOpen && (
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isNavSubActive("browser")}
-                          >
-                            <Link
-                              to="/navigator"
-                              search={{ view: "browser" }}
-                              className="flex items-center gap-2"
-                            >
-                              <LayoutList className="h-3.5 w-3.5" />
-                              <span>Browser</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isNavSubActive("network")}
-                          >
-                            <Link
-                              to="/navigator"
-                              search={{ view: "network" }}
-                              className="flex items-center gap-2"
-                            >
-                              <Share2 className="h-3.5 w-3.5" />
-                              <span>Network</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                  if (collapsed) {
+                    // See the matching comment on Logbook above: the rail's own
+                    // hover-expand already gets us to the branch below.
+                    return (
+                      <SidebarMenuButton asChild isActive={onNavigator} tooltip={t("nav.navigator")}>
+                        <Link to="/navigator" search={{ view: "browser" }} className="flex items-center gap-2">
+                          <Map className="h-4 w-4" />
+                          <span>{t("nav.navigator")}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <SidebarMenuButton asChild isActive={onNavigator}>
+                        <Link to="/navigator" search={{ view: "browser" }} className="flex items-center gap-2">
+                          <Map className="h-4 w-4" />
+                          <span className="flex-1">{t("nav.navigator")}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <SidebarMenuAction
+                        onClick={() => setNavigatorOpen((v) => !v)}
+                        aria-label={navigatorOpen ? "Collapse Navigator" : "Expand Navigator"}
+                      >
+                        {navigatorOpen
+                          ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                          : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      </SidebarMenuAction>
+                      <SidebarMenuSub className={navigatorOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                        {navigatorSubitems}
                       </SidebarMenuSub>
-                    )}
-                  </>
-                )}
+                    </>
+                  );
+                })()}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
