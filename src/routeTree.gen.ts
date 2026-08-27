@@ -18,6 +18,7 @@ import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
+import { Route as EcosystemDashboardRouteImport } from './routes/ecosystem-dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AiPlanRouteImport } from './routes/ai-plan'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,7 @@ import { Route as SandboxTaskPanelV3RouteImport } from './routes/sandbox.task-pa
 import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-panel-live'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
+import { Route as ProjectProjectIdProjectDashboardRouteImport } from './routes/project.$projectId_.project-dashboard'
 import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
 
 const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
@@ -74,6 +76,11 @@ const EcosystemNavigatorRoute = EcosystemNavigatorRouteImport.update({
   path: '/ecosystem-navigator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EcosystemDashboardRoute = EcosystemDashboardRouteImport.update({
+  id: '/ecosystem-dashboard',
+  path: '/ecosystem-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -119,6 +126,12 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ProjectProjectIdProjectDashboardRoute =
+  ProjectProjectIdProjectDashboardRouteImport.update({
+    id: '/project/$projectId_/project-dashboard',
+    path: '/project/$projectId/project-dashboard',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProjectProjectIdGoalsRoute = ProjectProjectIdGoalsRouteImport.update({
   id: '/project/$projectId_/goals',
   path: '/project/$projectId/goals',
@@ -129,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
@@ -145,11 +159,13 @@ export interface FileRoutesByFullPath {
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile/': typeof ProfileIndexRoute
   '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
+  '/project/$projectId/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
@@ -165,12 +181,14 @@ export interface FileRoutesByTo {
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile': typeof ProfileIndexRoute
   '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
+  '/project/$projectId/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-plan': typeof AiPlanRoute
   '/auth': typeof AuthRoute
+  '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
   '/journal': typeof JournalRoute
@@ -187,6 +205,7 @@ export interface FileRoutesById {
   '/task/$taskId': typeof TaskTaskIdRoute
   '/profile/': typeof ProfileIndexRoute
   '/project/$projectId_/goals': typeof ProjectProjectIdGoalsRoute
+  '/project/$projectId_/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -194,6 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ai-plan'
     | '/auth'
+    | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
     | '/home'
     | '/journal'
@@ -210,11 +230,13 @@ export interface FileRouteTypes {
     | '/task/$taskId'
     | '/profile/'
     | '/project/$projectId/goals'
+    | '/project/$projectId/project-dashboard'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ai-plan'
     | '/auth'
+    | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
     | '/home'
     | '/journal'
@@ -230,11 +252,13 @@ export interface FileRouteTypes {
     | '/task/$taskId'
     | '/profile'
     | '/project/$projectId/goals'
+    | '/project/$projectId/project-dashboard'
   id:
     | '__root__'
     | '/'
     | '/ai-plan'
     | '/auth'
+    | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
     | '/home'
     | '/journal'
@@ -251,12 +275,14 @@ export interface FileRouteTypes {
     | '/task/$taskId'
     | '/profile/'
     | '/project/$projectId_/goals'
+    | '/project/$projectId_/project-dashboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiPlanRoute: typeof AiPlanRoute
   AuthRoute: typeof AuthRoute
+  EcosystemDashboardRoute: typeof EcosystemDashboardRoute
   EcosystemNavigatorRoute: typeof EcosystemNavigatorRoute
   HomeRoute: typeof HomeRoute
   JournalRoute: typeof JournalRoute
@@ -271,6 +297,7 @@ export interface RootRouteChildren {
   SandboxTaskPanelV3Route: typeof SandboxTaskPanelV3Route
   TaskTaskIdRoute: typeof TaskTaskIdRoute
   ProjectProjectIdGoalsRoute: typeof ProjectProjectIdGoalsRoute
+  ProjectProjectIdProjectDashboardRoute: typeof ProjectProjectIdProjectDashboardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EcosystemNavigatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ecosystem-dashboard': {
+      id: '/ecosystem-dashboard'
+      path: '/ecosystem-dashboard'
+      fullPath: '/ecosystem-dashboard'
+      preLoaderRoute: typeof EcosystemDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -401,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileAppearanceRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/project/$projectId_/project-dashboard': {
+      id: '/project/$projectId_/project-dashboard'
+      path: '/project/$projectId/project-dashboard'
+      fullPath: '/project/$projectId/project-dashboard'
+      preLoaderRoute: typeof ProjectProjectIdProjectDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId_/goals': {
       id: '/project/$projectId_/goals'
       path: '/project/$projectId/goals'
@@ -428,6 +469,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiPlanRoute: AiPlanRoute,
   AuthRoute: AuthRoute,
+  EcosystemDashboardRoute: EcosystemDashboardRoute,
   EcosystemNavigatorRoute: EcosystemNavigatorRoute,
   HomeRoute: HomeRoute,
   JournalRoute: JournalRoute,
@@ -442,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   SandboxTaskPanelV3Route: SandboxTaskPanelV3Route,
   TaskTaskIdRoute: TaskTaskIdRoute,
   ProjectProjectIdGoalsRoute: ProjectProjectIdGoalsRoute,
+  ProjectProjectIdProjectDashboardRoute: ProjectProjectIdProjectDashboardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

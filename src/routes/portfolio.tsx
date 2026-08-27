@@ -3,6 +3,9 @@ import { AppShell } from "@/components/AppShell";
 import { PortfolioView } from "@/features/portfolio/PortfolioView";
 
 export const Route = createFileRoute("/portfolio")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Portfolio — Xcamp" },
@@ -13,9 +16,10 @@ export const Route = createFileRoute("/portfolio")({
 });
 
 function PortfolioPage() {
+  const { tab } = Route.useSearch();
   return (
     <AppShell>
-      <PortfolioView />
+      <PortfolioView initialTab={tab} />
     </AppShell>
   );
 }

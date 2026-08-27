@@ -21,6 +21,7 @@ import {
   Compass,
   FilePlus,
   Home,
+  LayoutDashboard,
   LayoutGrid,
   LayoutList,
   LogOut,
@@ -59,6 +60,7 @@ import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { listProjects } from "@/lib/xcamp-api";
 import { AppLogo } from "@/components/AppLogo";
+import { usePersona, type Persona } from "@/store/personaStore";
 
 // ─── Nav lists per mode ───────────────────────────────────────────────────────
 
@@ -68,23 +70,27 @@ type NavItem = {
   icon: React.ElementType;
   label: string;
   parameterised?: boolean;
+  // Personas that see this item. Omit for "every persona" (the common case).
+  personas?: Persona[];
 };
 
 const ECOSYSTEM_NAV: NavItem[] = [
   { title: "home",      url: "/home",                 icon: Home,          label: "Home" },
   { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
-  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator" },
+  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator", personas: ["founder"] },
   { title: "portfolio", url: "/portfolio",            icon: LayoutGrid,    label: "Portfolio" },
-  { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder" },
+  { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder", personas: ["founder"] },
+  { title: "dashboard", url: "/ecosystem-dashboard",  icon: LayoutDashboard, label: "Dashboard", personas: ["investor"] },
 ];
 
 const PROJECT_NAV: NavItem[] = [
   { title: "home",            url: "/home",             icon: Home,          label: "Home" },
   { title: "companion",       url: "/home",             icon: MessageCircle, label: "Companion" },
-  { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook" },
-  { title: "goals",           url: "",                  icon: Target,        label: "My Goals", parameterised: true },
-  { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator" },
-  { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details" },
+  { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook", personas: ["founder"] },
+  { title: "goals",           url: "",                  icon: Target,        label: "My Goals", parameterised: true, personas: ["founder"] },
+  { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator", personas: ["founder"] },
+  { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details", personas: ["founder"] },
+  { title: "dashboard",       url: "",                  icon: LayoutDashboard, label: "Dashboard", parameterised: true, personas: ["investor"] },
 ];
 
 export function AppSidebarExperimental() {
@@ -98,6 +104,7 @@ export function AppSidebarExperimental() {
   const navigate = useNavigate();
 
   const { activeProjectId, setActiveProjectId, navMode, setNavMode } = useActiveProject();
+  const { persona } = usePersona();
 
   const onNavigator = pathname.startsWith("/navigator");
   const onNotes = pathname.startsWith("/notes");
@@ -158,11 +165,22 @@ export function AppSidebarExperimental() {
 
   // ── Nav helpers ───────────────────────────────────────────────────────────
 
-  const navItems = navMode === "project" ? PROJECT_NAV : ECOSYSTEM_NAV;
+  // Hiding a nav item is presentation only — the routes it points to still render on
+  // direct navigation (Phase 4 dashboard placeholders, etc). This filter never gates
+  // the route itself, only whether the rail lists it.
+  const navItems = (navMode === "project" ? PROJECT_NAV : ECOSYSTEM_NAV).filter(
+    (item) => !item.personas || item.personas.includes(persona),
+  );
 
   function resolveUrl(item: NavItem): string {
-    if (item.parameterised && activeProjectId) return `/project/${activeProjectId}/goals`;
-    if (item.parameterised) return "/home";
+    if (item.title === "goals") {
+      if (activeProjectId) return `/project/${activeProjectId}/goals`;
+      return "/home";
+    }
+    if (item.title === "dashboard" && navMode === "project") {
+      if (activeProjectId) return `/project/${activeProjectId}/project-dashboard`;
+      return "/home";
+    }
     return item.url;
   }
 
