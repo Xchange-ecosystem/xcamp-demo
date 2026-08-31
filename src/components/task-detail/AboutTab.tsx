@@ -180,281 +180,289 @@ export function AboutTab({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Save status */}
-      <div style={{ minHeight: 16, fontSize: 12, color: "var(--skin-ink-faint)" }}>
-        {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : ""}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 300px",
+        gap: 28,
+        alignItems: "start",
+      }}
+    >
+      {/* ── Left: title + body ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        {/* Save status */}
+        <div style={{ minHeight: 16, fontSize: 12, color: "var(--skin-ink-faint)" }}>
+          {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : ""}
+        </div>
+
+        {/* Title */}
+        <textarea
+          className="x-input"
+          style={{
+            fontWeight: 700,
+            fontSize: 24,
+            border: "none",
+            background: "transparent",
+            padding: 0,
+            width: "100%",
+            resize: "none",
+            lineHeight: 1.25,
+            fontFamily: "var(--skin-font-head)",
+          }}
+          rows={1}
+          placeholder="Task title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <h2
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "var(--skin-ink-soft)",
+            margin: 0,
+          }}
+        >
+          About this task and its deliverables
+        </h2>
+
+        {/* Main text area */}
+        <RichTextEditor
+          content={body}
+          onChange={setBody}
+          onAddAttachment={(att) => void saveAttachments([...attachments, att])}
+        />
       </div>
 
-      {/* Title */}
-      <textarea
-        className="x-input"
-        style={{
-          fontWeight: 700,
-          fontSize: 24,
-          border: "none",
-          background: "transparent",
-          padding: 0,
-          width: "100%",
-          resize: "none",
-          lineHeight: 1.25,
-          fontFamily: "var(--skin-font-head)",
-        }}
-        rows={1}
-        placeholder="Task title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      {/* Main text area */}
-      <RichTextEditor
-        content={body}
-        onChange={setBody}
-        onAddAttachment={(att) => void saveAttachments([...attachments, att])}
-      />
-
-      {/* ── Labels and tags accordion ── */}
-      <Accordion type="multiple" defaultValue={["labels", "attachments"]} className="w-full">
-        <AccordionItem value="labels" style={{ borderColor: "var(--skin-line)" }}>
-          <AccordionTrigger style={{ color: "var(--skin-ink)" }}>Labels and tags</AccordionTrigger>
-          <AccordionContent>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {labels.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", margin: 0 }}>
-                  Not linked to a project or objective yet.
-                </p>
-              ) : (
-                labels.map((l) => (
-                  <div
-                    key={l.id}
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      alignItems: "center",
-                      fontSize: 12,
-                    }}
-                  >
-                    <span
+      {/* ── Right column: Labels and tags / Set up / Attachments ── */}
+      <div style={{ minWidth: 0 }}>
+        <Accordion type="multiple" defaultValue={["labels", "setup", "attachments"]} className="w-full">
+          <AccordionItem value="labels" style={{ borderColor: "var(--skin-line)" }}>
+            <AccordionTrigger style={{ color: "var(--skin-ink)" }}>Labels and tags</AccordionTrigger>
+            <AccordionContent>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {labels.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", margin: 0 }}>
+                    Not linked to a project or objective yet.
+                  </p>
+                ) : (
+                  labels.map((l) => (
+                    <div
+                      key={l.id}
                       style={{
-                        padding: "3px 10px",
-                        borderRadius: "var(--skin-radius-pill)",
-                        background: "var(--skin-surface2)",
-                        border: "1px solid var(--skin-line)",
-                        color: "var(--skin-ink-soft)",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 8,
+                        alignItems: "center",
+                        fontSize: 12,
                       }}
                     >
-                      {l.projectTitle}
-                    </span>
-                    <ChevronDown
-                      size={11}
-                      style={{ transform: "rotate(-90deg)", color: "var(--skin-ink-faint)" }}
-                    />
-                    <span
-                      style={{
-                        padding: "3px 10px",
-                        borderRadius: "var(--skin-radius-pill)",
-                        background: "var(--skin-accent-soft)",
-                        color: "var(--skin-accent)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {l.title}
-                    </span>
-                    {l.dimension && (
-                      <span style={{ color: "var(--skin-ink-faint)" }}>{l.dimension}</span>
-                    )}
-                    {l.category && (
-                      <span style={{ color: "var(--skin-ink-faint)" }}>· {l.category}</span>
-                    )}
-                  </div>
-                ))
-              )}
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <label
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "var(--skin-ink-faint)",
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <TagIcon size={12} /> Tags
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => void handleAutoTag()}
-                    disabled={autoTagging}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: 11,
-                      color: "var(--skin-accent)",
-                      background: "none",
-                      border: "none",
-                      cursor: autoTagging ? "wait" : "pointer",
-                      padding: "2px 6px",
-                    }}
-                  >
-                    <Sparkles size={11} />
-                    Auto-tag
-                  </button>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-                  {tags.map((t) => (
-                    <span key={t} className="x-tag">
-                      {t}
-                      <button
-                        onClick={() => void saveTags(tags.filter((x) => x !== t))}
-                        aria-label={`Remove ${t}`}
+                      <span
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: "var(--skin-radius-pill)",
+                          background: "var(--skin-surface2)",
+                          border: "1px solid var(--skin-line)",
+                          color: "var(--skin-ink-soft)",
+                        }}
                       >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-                  <input
-                    className="x-input"
-                    style={{ width: 140, height: 28, fontSize: 12 }}
-                    placeholder="Add tag…"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+                        {l.projectTitle}
+                      </span>
+                      <ChevronDown
+                        size={11}
+                        style={{ transform: "rotate(-90deg)", color: "var(--skin-ink-faint)" }}
+                      />
+                      <span
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: "var(--skin-radius-pill)",
+                          background: "var(--skin-accent-soft)",
+                          color: "var(--skin-accent)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {l.title}
+                      </span>
+                      {l.dimension && (
+                        <span style={{ color: "var(--skin-ink-faint)" }}>{l.dimension}</span>
+                      )}
+                      {l.category && (
+                        <span style={{ color: "var(--skin-ink-faint)" }}>· {l.category}</span>
+                      )}
+                    </div>
+                  ))
+                )}
 
-        {/* ── Attachments accordion — shares notes.detail.attachments with Do & Document ── */}
-        <AccordionItem value="attachments" style={{ borderColor: "var(--skin-line)" }}>
-          <AccordionTrigger style={{ color: "var(--skin-ink)" }}>
-            Attachments{attachments.length > 0 ? ` (${attachments.length})` : ""}
-          </AccordionTrigger>
-          <AccordionContent>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {attachments.map((a) => (
-                <div key={a.id} className="x-file-card">
-                  <FileText size={18} style={{ color: "var(--skin-accent)" }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate" style={{ fontSize: 13, fontWeight: 500 }}>
-                      {a.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
-                      {formatBytes(a.size)}
-                    </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: "var(--skin-ink-faint)",
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <TagIcon size={12} /> Tags
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void handleAutoTag()}
+                      disabled={autoTagging}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 11,
+                        color: "var(--skin-accent)",
+                        background: "none",
+                        border: "none",
+                        cursor: autoTagging ? "wait" : "pointer",
+                        padding: "2px 6px",
+                      }}
+                    >
+                      <Sparkles size={11} />
+                      Auto-tag
+                    </button>
                   </div>
-                  <a href={a.dataUrl} download={a.name} className="x-icon-link" title="Download">
-                    <Download size={16} />
-                  </a>
-                  <button
-                    className="x-icon-link"
-                    onClick={() => void saveAttachments(attachments.filter((x) => x.id !== a.id))}
-                    title="Remove"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="x-btn-secondary"
-                onClick={pickAttachment}
-                style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}
-              >
-                <Paperclip size={13} />
-                Add attachment
-              </button>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* ── Set up accordion ── */}
-        <AccordionItem value="setup" style={{ borderColor: "var(--skin-line)" }}>
-          <AccordionTrigger style={{ color: "var(--skin-ink)" }}>Set up</AccordionTrigger>
-          <AccordionContent>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Timeframe — functional */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
-                  Timeframe
-                </label>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <input
-                    type="date"
-                    className="x-input"
-                    style={{ maxWidth: 160 }}
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      void saveTimeframe({ startDate: e.target.value, endDate });
-                    }}
-                  />
-                  <span style={{ color: "var(--skin-ink-faint)", fontSize: 12 }}>to</span>
-                  <input
-                    type="date"
-                    className="x-input"
-                    style={{ maxWidth: 160 }}
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      void saveTimeframe({ startDate, endDate: e.target.value });
-                    }}
-                  />
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                    {tags.map((t) => (
+                      <span key={t} className="x-tag">
+                        {t}
+                        <button
+                          onClick={() => void saveTags(tags.filter((x) => x !== t))}
+                          aria-label={`Remove ${t}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      className="x-input"
+                      style={{ width: 140, height: 28, fontSize: 12 }}
+                      placeholder="Add tag…"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
+            </AccordionContent>
+          </AccordionItem>
 
-              {/* Created by — functional, read-only */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--skin-ink-faint)",
-                    minWidth: 90,
-                  }}
-                >
-                  Created by
-                </label>
-                <span style={{ fontSize: 13, color: "var(--skin-ink)" }}>
-                  {ownerName ?? "Unknown"}
-                </span>
-              </div>
+          {/* ── Set up accordion — start_date/end_date here are the deadline
+              source the objective/project dashboards read (see Set up below). ── */}
+          <AccordionItem value="setup" style={{ borderColor: "var(--skin-line)" }}>
+            <AccordionTrigger style={{ color: "var(--skin-ink)" }}>Set up</AccordionTrigger>
+            <AccordionContent>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Timeframe — functional */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+                    Timeframe
+                  </label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input
+                      type="date"
+                      className="x-input"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        void saveTimeframe({ startDate: e.target.value, endDate });
+                      }}
+                    />
+                    <span style={{ color: "var(--skin-ink-faint)", fontSize: 12 }}>to</span>
+                    <input
+                      type="date"
+                      className="x-input"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        void saveTimeframe({ startDate, endDate: e.target.value });
+                      }}
+                    />
+                  </div>
+                </div>
 
-              {/* Owned by — deferred: display-only, no edit control, no write path.
-                  Reads the same owner_central_id as "Created by" today, but that's
-                  incidental — task-level ownership/reassignment is pending the same
-                  architecture decision as Match & Collaborate (see MatchCollaborateTab). */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--skin-ink-faint)",
-                    minWidth: 90,
-                  }}
-                >
-                  Owned by
-                </label>
-                <span style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>
-                  {ownerName ?? "Unknown"}
-                </span>
+                {/* Created by — functional, read-only */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+                    Created by
+                  </label>
+                  <span style={{ fontSize: 13, color: "var(--skin-ink)" }}>
+                    {ownerName ?? "Unknown"}
+                  </span>
+                </div>
+
+                {/* Owned by — deferred: display-only, no edit control, no write path.
+                    Reads the same owner_central_id as "Created by" today, but that's
+                    incidental — task-level ownership/reassignment is pending the same
+                    architecture decision as Match & Collaborate (see MatchCollaborateTab). */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+                    Owned by
+                  </label>
+                  <span style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>
+                    {ownerName ?? "Unknown"}
+                  </span>
+                </div>
               </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* ── Attachments accordion — shares notes.detail.attachments with Do & Document ── */}
+          <AccordionItem value="attachments" style={{ borderColor: "var(--skin-line)" }}>
+            <AccordionTrigger style={{ color: "var(--skin-ink)" }}>
+              Attachments{attachments.length > 0 ? ` (${attachments.length})` : ""}
+            </AccordionTrigger>
+            <AccordionContent>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {attachments.map((a) => (
+                  <div key={a.id} className="x-file-card">
+                    <FileText size={18} style={{ color: "var(--skin-accent)" }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate" style={{ fontSize: 13, fontWeight: 500 }}>
+                        {a.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+                        {formatBytes(a.size)}
+                      </div>
+                    </div>
+                    <a href={a.dataUrl} download={a.name} className="x-icon-link" title="Download">
+                      <Download size={16} />
+                    </a>
+                    <button
+                      className="x-icon-link"
+                      onClick={() => void saveAttachments(attachments.filter((x) => x.id !== a.id))}
+                      title="Remove"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="x-btn-secondary"
+                  onClick={pickAttachment}
+                  style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  <Paperclip size={13} />
+                  Add attachment
+                </button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
     </div>
   );
 }

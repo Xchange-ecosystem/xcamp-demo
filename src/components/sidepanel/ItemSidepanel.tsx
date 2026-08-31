@@ -41,15 +41,18 @@ import {
   type ItemKind,
   type LinkedItem,
 } from "@/lib/sidepanel-service";
-import { updateNote, archiveNote, autoTagNote } from "@/lib/xcamp-api";
+import { updateNote, archiveNote, autoTagNote, patchNoteDetail } from "@/lib/xcamp-api";
 import { updateObjective } from "@/lib/navigator-api";
 import { supabase } from "@/lib/supabase";
 import { useFullscreenItemStore } from "@/store/fullscreenItemStore";
 import { useAuth } from "@/contexts/auth";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAltitudeStore } from "@/store/altitudeStore";
 import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import { listProjects } from "@/lib/xcamp-api";
-import type { NoteAttachment, NoteRow } from "@/types/xcamp";
+import { fetchProofNotes } from "@/lib/proof-notes-api";
+import { generateTaskSummary } from "@/lib/ai-summary";
+import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
 
 const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
@@ -988,6 +991,14 @@ function NoteContent({ itemId }: { itemId: string }) {
     );
   }
 
+  // Tasks: the fullscreen "About this task" tab is now the canonical place
+  // to edit title/body/tags — this sidepanel is a quick-glance view, so it
+  // shows an AI-generated summary (About body + linked proof notes) instead
+  // of a second full editable copy of the same body field.
+  if (noteRow.note_type === "task") {
+    return <TaskAiSummary noteRow={noteRow} user={user!} />;
+  }
+
   return (
     <NoteEditor
       editing={{ mode: "edit", note: noteRow }}
@@ -1000,6 +1011,113 @@ function NoteContent({ itemId }: { itemId: string }) {
       onArchive={handleArchive}
       embedded
     />
+  );
+}
+
+// ── Task AI summary (sidepanel quick-glance replacement for the body field) ──
+
+interface AiSummaryDetail {
+  text: string;
+  generatedAt: string;
+}
+
+function TaskAiSummary({ noteRow, user }: { noteRow: NoteRow; user: XcampUser }) {
+  const qc = useQueryClient();
+  const { altitude } = useAltitudeStore();
+  const cached = noteRow.detail?.aiSummary as AiSummaryDetail | undefined;
+  const [summary, setSummary] = useState<string>(cached?.text ?? "");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: proofNotes = [] } = useQuery({
+    queryKey: ["proof-notes", noteRow.id],
+    queryFn: () => fetchProofNotes(noteRow.id),
+  });
+
+  const generate = useCallback(async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const text = await generateTaskSummary(user, {
+        taskId: noteRow.id,
+        taskTitle: noteRow.title,
+        aboutBody: noteRow.body_html ?? "",
+        proofNotes: proofNotes.map((n) => ({ title: n.title, body: n.body_html ?? "" })),
+        altitude,
+      });
+      setSummary(text);
+      await patchNoteDetail(user, noteRow.id, noteRow.detail ?? {}, {
+        aiSummary: { text, generatedAt: new Date().toISOString() } satisfies AiSummaryDetail,
+      });
+      void qc.invalidateQueries({ queryKey: ["notes"] });
+    } catch (e) {
+      console.error("Task summary generation failed", e);
+      setError("Couldn't generate a summary right now.");
+    } finally {
+      setGenerating(false);
+    }
+  }, [user, noteRow, proofNotes, altitude, qc]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--skin-ink-faint)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            flex: 1,
+          }}
+        >
+          AI summary
+        </span>
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={generating}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 11,
+            color: "var(--skin-accent)",
+            background: "none",
+            border: "none",
+            cursor: generating ? "wait" : "pointer",
+            padding: "2px 6px",
+          }}
+        >
+          {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+          {summary ? "Regenerate" : "Generate"}
+        </button>
+      </div>
+
+      {error && <p style={{ fontSize: 12, color: "var(--skin-danger)", margin: 0 }}>{error}</p>}
+
+      {summary ? (
+        <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--skin-ink)", margin: 0, whiteSpace: "pre-wrap" }}>
+          {summary}
+        </p>
+      ) : !generating ? (
+        <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", margin: 0 }}>
+          No summary yet — combines "About this task and its deliverables" with this task's linked
+          proof notes.
+        </p>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", fontSize: 13 }}>
+          <Loader2 size={14} className="animate-spin" />
+          Generating…
+        </div>
+      )}
+
+      {cached?.generatedAt && (
+        <span style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+          Last generated {new Date(cached.generatedAt).toLocaleString()}
+        </span>
+      )}
+    </div>
   );
 }
 

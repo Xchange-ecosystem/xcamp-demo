@@ -148,7 +148,7 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
+          height: "100%",
           background: "var(--skin-surface)",
         }}
       >
@@ -164,7 +164,7 @@ export function TaskPageContent({ taskId, onClose }: { taskId: string; onClose: 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
+          height: "100%",
           background: "var(--skin-surface)",
         }}
       >
@@ -279,10 +279,16 @@ function TaskPage() {
   }
 
   return (
-    <SidepanelProvider>
-      <CompanionRailProvider>
-        <TaskPageContent taskId={taskId} onClose={() => window.close()} />
-      </CompanionRailProvider>
-    </SidepanelProvider>
+    // Definite-height box (not minHeight) so TaskDetailShell's `height: 100%`
+    // resolves to exactly one viewport and its own internal areas scroll —
+    // matching the fullscreen modal's fixed inset:16 box instead of falling
+    // back to whole-document scroll.
+    <div style={{ height: "100vh" }}>
+      <SidepanelProvider>
+        <CompanionRailProvider>
+          <TaskPageContent taskId={taskId} onClose={() => window.close()} />
+        </CompanionRailProvider>
+      </SidepanelProvider>
+    </div>
   );
 }

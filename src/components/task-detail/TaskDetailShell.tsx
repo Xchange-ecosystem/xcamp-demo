@@ -37,10 +37,18 @@ export function TaskDetailShell({
   return (
     <div
       style={{
-        minHeight: "100vh",
+        // `height: 100%` (not minHeight: 100vh) so this resolves against
+        // whatever definite-height box hosts it — the fullscreen modal's
+        // fixed inset:16 box, or the standalone route's own 100vh wrapper
+        // (see task.$taskId.tsx). minHeight:100vh previously forced this
+        // shell to be at least a full viewport tall even inside the modal's
+        // (viewport - 32px) overflow:hidden box, which silently clipped the
+        // bottom of every tab instead of scrolling it.
+        height: "100%",
         background: "var(--skin-surface)",
         display: "flex",
         flexDirection: "column",
+        minHeight: 0,
       }}
     >
       {/* Top bar */}
@@ -231,12 +239,7 @@ export function TaskDetailShell({
             />
           )}
           {activeTab === "do-document" && (
-            <DoDocumentTab
-              noteRow={noteRow}
-              user={user}
-              onSaved={onSaved}
-              patchDetail={patchDetail}
-            />
+            <DoDocumentTab noteRow={noteRow} user={user} onSwitchTab={setActiveTab} />
           )}
           {activeTab === "match-collaborate" && <MatchCollaborateTab />}
           {activeTab === "linked-items" && <LinkedItemsTab itemId={noteRow.id} itemKind="note" />}
