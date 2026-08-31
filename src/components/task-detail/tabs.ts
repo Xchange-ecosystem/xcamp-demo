@@ -6,14 +6,14 @@ export type TaskTabKey =
   | "do-document"
   | "match-collaborate"
   | "linked-items"
-  | "actions-artefacts"
+  | "actions-artifacts"
   | "review-complete";
 
 export interface TaskTabDef {
   key: TaskTabKey;
   label: string;
   icon: LucideIcon;
-  /** Actions & Artefacts / Review & Complete — mockup shows these as "coming soon". */
+  /** Actions & Artifacts / Review & Complete — mockup shows these as "coming soon". */
   inactive?: boolean;
 }
 
@@ -22,6 +22,6 @@ export const TASK_TABS: TaskTabDef[] = [
   { key: "do-document", label: "Do & Document", icon: NotebookPen },
   { key: "match-collaborate", label: "Match & Collaborate", icon: Users },
   { key: "linked-items", label: "Linked Items", icon: Link2 },
-  { key: "actions-artefacts", label: "Actions & Artefacts", icon: Zap, inactive: true },
+  { key: "actions-artifacts", label: "Actions & Artifacts", icon: Zap, inactive: true },
   { key: "review-complete", label: "Review & Complete", icon: CheckCircle2, inactive: true },
 ];

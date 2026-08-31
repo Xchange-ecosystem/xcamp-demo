@@ -158,7 +158,15 @@ function CompanionHomePage() {
     setExperimentalView(viewParam === "companion" ? "chat" : "home");
   }, [viewParam]);
 
-  const session = useCompanionSession(authUser);
+  // Scope Companion's chat to the current project (or the ecosystem, for `projectId:
+  // null`) so entering a project starts a fresh chat the first time this session, and
+  // preserves it on return — see useCompanionSession for the per-scope logic. Legacy
+  // mode keeps the old unscoped single-conversation behavior (it manages its own
+  // project/conversation transitions below).
+  const session = useCompanionSession(
+    authUser,
+    isLegacy ? undefined : { projectId: navMode === "project" ? activeProjectId : null },
+  );
 
   const [step, setStep] = useState<ConvStep>("welcome");
   const [activeProject, setActiveProject] = useState<ProjectFull | null>(null);
@@ -527,41 +535,12 @@ function CompanionHomePage() {
     }
   }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Experimental mode: treat a project-session boundary as a new Companion session ──
-  // Companion's welcome-dispatch effect only fires once per app load (welcomeFiredRef
-  // never resets on its own), so switching projects while Companion already has a
-  // conversation left the old project's thread showing under the new project's context.
-  // Mirrors the legacy-mode switchingProjectRef effect above, which already does this
-  // same "existing conversation + context changed -> start fresh" handling for legacy.
-  const companionSessionKeyRef = useRef<string | null>(null);
-  const companionSessionInitRef = useRef(false);
-  useEffect(() => {
-    if (isLegacyUi()) return;
-    if (session.loading) return;
-
-    const key = navMode === "project" ? activeProjectId : null;
-
-    if (!companionSessionInitRef.current) {
-      companionSessionInitRef.current = true;
-      companionSessionKeyRef.current = key;
-      return;
-    }
-    if (companionSessionKeyRef.current === key) return;
-    companionSessionKeyRef.current = key;
-
-    if (projectRestoredRef.current) {
-      // navMode/activeProjectId just changed because the conversation-restore path
-      // (above) synced them to match an already-loaded conversation — not because the
-      // user picked a different project. Don't wipe the conversation we just restored.
-      projectRestoredRef.current = false;
-      return;
-    }
-
-    welcomeFiredRef.current = false;
-    branchFiredRef.current = false;
-    gridMsgIdRef.current = null;
-    void session.newSession();
-  }, [navMode, activeProjectId, session.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Experimental mode: a project-session boundary is now handled inside
+  // useCompanionSession itself (see its `scope` param, passed above) — it loads the
+  // right project-scoped conversation, starting fresh only the first time a given
+  // scope is entered this browser session, and preserving it on return. No effect
+  // needed here beyond what useCompanionSession's own dependency-on-scope re-init
+  // already provides.
 
   const handleCreateProject = useCallback(() => {
     void navigate({ to: "/project-builder" });
@@ -1131,6 +1110,7 @@ function CompanionHomePage() {
         {!isLegacy && experimentalView === "home" && showEntry && (
           <ProjectEntryScreen
             projects={projects}
+            authUser={authUser}
             onProjectSelect={handleEntryProjectSelect}
             onNewProject={handleCreateProject}
             onEnterEcosystem={handleEnterEcosystem}

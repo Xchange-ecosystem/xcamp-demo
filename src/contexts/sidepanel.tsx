@@ -6,6 +6,10 @@ export interface PanelItem {
   kind: ItemKind;
   title?: string;
   noteType?: string;
+  /** Extra kind-specific data carried with the item so the panel doesn't need a
+   *  second fetch — e.g. a "user" item's avatar/bio/tags/metrics. Add fields here
+   *  as new kinds need them; keeps PanelItem itself from growing a field per kind. */
+  meta?: Record<string, unknown>;
 }
 
 interface SidepanelCtx {

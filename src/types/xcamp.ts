@@ -48,6 +48,7 @@ export interface ProjectFull {
   feature_image: string | null;
   color: string | null;
   description: string | null;
+  updated_at: string;
 }
 
 // Skin config shape stored in user_preferences.skin_config

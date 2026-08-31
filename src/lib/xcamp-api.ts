@@ -60,6 +60,49 @@ export async function updateAvatar(centralId: string, avatarUrl: string | null) 
   if (error) throw new Error(error.message);
 }
 
+export interface TenantMemberSummary {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  projectCount: number;
+}
+
+// All central_users in the caller's tenant, with a real "number of projects"
+// count derived from object_memberships (object_type='project') — counts any
+// project a user is a member of, not just ones they own. Used by the Ecosystem
+// Navigator's tile grid (same query/component for founder and investor personas).
+export async function listTenantMembers(user: XcampUser): Promise<TenantMemberSummary[]> {
+  const { data: userRows } = await supabase
+    .from("central_users")
+    .select("id, display_name, preferences")
+    .eq("tenant_id", user.tenantId);
+
+  const { data: memberRows } = await supabase
+    .from("object_memberships")
+    .select("user_central_id")
+    .eq("tenant_id", user.tenantId)
+    .eq("object_type", "project");
+
+  const projectCounts = new Map<string, number>();
+  for (const row of memberRows ?? []) {
+    const uid = row.user_central_id as string;
+    projectCounts.set(uid, (projectCounts.get(uid) ?? 0) + 1);
+  }
+
+  return (userRows ?? []).map((row) => {
+    const prefs =
+      row.preferences && typeof row.preferences === "object" && !Array.isArray(row.preferences)
+        ? (row.preferences as Record<string, unknown>)
+        : {};
+    return {
+      id: row.id as string,
+      displayName: (row.display_name as string | null) ?? "Member",
+      avatarUrl: (prefs.avatar_url as string | undefined) ?? null,
+      projectCount: projectCounts.get(row.id as string) ?? 0,
+    };
+  });
+}
+
 function rowToNote(r: Record<string, unknown>): NoteRow {
   return {
     id: r.id as string,
@@ -429,7 +472,7 @@ export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> 
   // reflected yet. Cast through unknown to allow the column in the select.
   const { data, error } = await (supabase
     .from("projects")
-    .select("id, title, feature_image, color, description")
+    .select("id, title, feature_image, color, description, updated_at")
     .eq("tenant_id", user.tenantId)
     .or(`owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`)
     .order("title") as unknown as Promise<{
@@ -446,6 +489,7 @@ export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> 
       feature_image: (p["feature_image"] as string | null) ?? null,
       color: (p["color"] as string | null) ?? null,
       description: (p["description"] as string | null) ?? null,
+      updated_at: (p["updated_at"] as string | null) ?? new Date(0).toISOString(),
     }));
 }
 
@@ -502,6 +546,7 @@ export interface ProjectPortfolioItem {
   feature_image: string | null;
   color: string | null;
   description: string | null;
+  updated_at: string;
   owner_central_id: string;
   tags: string[] | null;
   status: string | null;
@@ -523,7 +568,7 @@ export async function listProjectsForPortfolio(
 
   const { data: projectData, error: projectError } = await (supabase
     .from("projects")
-    .select("id, title, feature_image, color, description, owner_central_id, tags, status")
+    .select("id, title, feature_image, color, description, updated_at, owner_central_id, tags, status")
     .eq("tenant_id", user.tenantId)
     .or(
       `owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`,
@@ -577,6 +622,7 @@ export async function listProjectsForPortfolio(
     feature_image: (p["feature_image"] as string | null) ?? null,
     color: (p["color"] as string | null) ?? null,
     description: (p["description"] as string | null) ?? null,
+    updated_at: (p["updated_at"] as string | null) ?? new Date(0).toISOString(),
     owner_central_id: (p["owner_central_id"] as string) ?? "",
     tags: (p["tags"] as string[] | null) ?? null,
     status: (p["status"] as string | null) ?? null,

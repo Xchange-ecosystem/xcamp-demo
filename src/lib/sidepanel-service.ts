@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { XcampUser } from "@/types/xcamp";
 
-export type ItemKind = "note" | "objective";
+export type ItemKind = "note" | "objective" | "user";
 
 export interface ItemRef {
   id: string;
