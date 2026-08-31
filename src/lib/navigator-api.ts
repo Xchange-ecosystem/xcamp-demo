@@ -7,7 +7,7 @@ import type { Json } from "@/integrations/supabase/types";
 import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_COLUMNS =
-  "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
+  "id, title, body_markdown, body_html, note_type, done, status, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
 
 export interface ObjectiveRow {
   id: string;
@@ -26,6 +26,7 @@ export interface NavTask {
   title: string | null;
   note_type: string | null;
   done: boolean | null;
+  status: string | null;
 }
 
 function rowToNote(r: Record<string, unknown>): NoteRow {
@@ -36,6 +37,7 @@ function rowToNote(r: Record<string, unknown>): NoteRow {
     body_html: (r.body_html as string) ?? null,
     note_type: r.note_type as string,
     done: !!r.done,
+    status: (r.status as string | null) ?? null,
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
     detail: (r.detail as Record<string, unknown>) ?? {},
     created_by: r.owner_central_id as string,
@@ -164,7 +166,7 @@ export async function listObjectiveTasks(objectiveId: string): Promise<NavTask[]
   if (ids.length === 0) return [];
   const { data: notes } = await supabase
     .from("notes")
-    .select("id, title, note_type, done")
+    .select("id, title, note_type, done, status")
     .in("id", ids)
     .order("updated_at", { ascending: false });
   return (notes ?? []) as NavTask[];
@@ -186,7 +188,7 @@ export async function listUnassignedProjectTasks(projectId: string): Promise<Nav
   if (onlyProject.length === 0) return [];
   const { data: notes } = await supabase
     .from("notes")
-    .select("id, title, note_type, done")
+    .select("id, title, note_type, done, status")
     .in("id", onlyProject)
     .order("updated_at", { ascending: false });
   return (notes ?? []) as NavTask[];
@@ -205,6 +207,8 @@ export async function createTaskNote(
       title: args.title,
       note_type: "task",
       done: false,
+      // Created directly by the user in Navigator — already accepted.
+      status: "active",
     })
     .select("id")
     .single();
@@ -230,7 +234,13 @@ export async function createTaskNote(
 }
 
 export async function toggleNoteDone(noteId: string, done: boolean) {
-  const { error } = await supabase.from("notes").update({ done }).eq("id", noteId);
+  // Keep status in sync with done rather than tracking completion in two
+  // places: completing reopens back to 'active', not 'inactive' — reopening
+  // a task doesn't revoke its earlier acceptance.
+  const { error } = await supabase
+    .from("notes")
+    .update({ done, status: done ? "completed" : "active" })
+    .eq("id", noteId);
   if (error) throw error;
 }
 
