@@ -172,7 +172,7 @@ export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewP
           padding: "40px 44px 36px",
           borderRadius: 28,
           border: "1px solid rgba(255,255,255,0.45)",
-          background: "rgba(255,255,255,0.34)",
+          background: "rgba(255,255,255,0.85)",
           backdropFilter: "blur(26px)",
           WebkitBackdropFilter: "blur(26px)",
           boxShadow: "0 24px 60px rgba(10,25,30,0.28)",
