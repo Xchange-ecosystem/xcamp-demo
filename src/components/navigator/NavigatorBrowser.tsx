@@ -18,10 +18,13 @@ import {
   useCreateObjective,
   useCreateTask,
   useToggleTask,
+  useNavigatorSearch,
   type ObjectiveRow,
   type NavTask,
+  type NavSearchResult,
 } from "@/lib/navigator-api";
 import { ColumnToolbar, type ToolbarState, type ObjSortKey, type ObjGroupBy } from "@/components/navigator/ColumnToolbar";
+import { ItemBadge } from "@/components/sidepanel/ItemBadge";
 
 const UNASSIGNED = "__unassigned__";
 
@@ -51,6 +54,20 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
 
   const openTask = useCallback((task: NavTask) => {
     openSidepanel({ id: task.id, kind: "note", title: task.title ?? undefined, noteType: task.note_type ?? undefined });
+  }, [openSidepanel]);
+
+  const searching = toolbar.search.trim().length > 0;
+  const { data: allObjectives = [] } = useObjectives(user, activeProjectId);
+  const objectiveIds = allObjectives.map((o) => o.id);
+  const searchResults = useNavigatorSearch(user, activeProjectId, objectiveIds, toolbar.search);
+
+  const openSearchResult = useCallback((r: NavSearchResult) => {
+    if (r.kind === "objective") {
+      setSelectedObj(r.id);
+      onToolbarChange({ search: "" });
+    } else {
+      openSidepanel({ id: r.id, kind: "note", title: r.title, noteType: r.noteType });
+    }
   }, [openSidepanel]);
 
   if (!user) return null;
@@ -87,7 +104,9 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
         {header}
         <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
         <div style={{ flex: 1, minHeight: 0 }}>
-          {selectedObj === null ? (
+          {searching ? (
+            <NavigatorSearchResults query={toolbar.search} results={searchResults.data ?? []} isLoading={searchResults.isLoading} onOpen={openSearchResult} />
+          ) : selectedObj === null ? (
             <ObjectivesColumn
               user={user}
               projectId={activeProjectId}
@@ -118,6 +137,9 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
       {header}
       <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
       <div style={{ flex: 1, minHeight: 0 }}>
+        {searching ? (
+          <NavigatorSearchResults query={toolbar.search} results={searchResults.data ?? []} isLoading={searchResults.isLoading} onOpen={openSearchResult} />
+        ) : (
         <ResizablePanelGroup orientation="horizontal">
           <ResizablePanel defaultSize={34} minSize={20}>
             <ObjectivesColumn
@@ -141,6 +163,7 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
             />
           </ResizablePanel>
         </ResizablePanelGroup>
+        )}
       </div>
     </div>
   );
@@ -164,11 +187,9 @@ function EmptyShell({ children }: { children: React.ReactNode }) {
 function applyToolbar(objectives: ObjectiveRow[], toolbar: ToolbarState): ObjectiveRow[] {
   let result = objectives;
 
-  // Search
-  if (toolbar.search.trim()) {
-    const q = toolbar.search.trim().toLowerCase();
-    result = result.filter((o) => o.title.toLowerCase().includes(q));
-  }
+  // Search is handled by NavigatorSearchResults (combined objectives + notes
+  // view) — the Objectives column itself only ever renders while search is
+  // empty, so no search filtering happens here.
 
   // Status filter
   if (toolbar.statusFilter.length > 0) {
@@ -334,6 +355,65 @@ function ObjectivesColumn({
         placeholder="New objective…"
         disabled={!draft.trim() || createObj.isPending}
       />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Combined search results (objectives + notes/tasks)                  */
+/* ------------------------------------------------------------------ */
+
+function NavigatorSearchResults({
+  query,
+  results,
+  isLoading,
+  onOpen,
+}: {
+  query: string;
+  results: NavSearchResult[];
+  isLoading: boolean;
+  onOpen: (r: NavSearchResult) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--skin-surface)" }}>
+      <ColumnHeader title="Search results" count={results.length} />
+      <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+        {isLoading && (
+          <p style={{ padding: "16px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+            Searching…
+          </p>
+        )}
+        {!isLoading && results.length === 0 && (
+          <p style={{ padding: "16px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+            No matches for "{query}".
+          </p>
+        )}
+        {!isLoading && results.map((r) => (
+          <div
+            key={`${r.kind}-${r.id}`}
+            onClick={() => onOpen(r)}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2"
+            style={{ cursor: "pointer", border: "1px solid var(--skin-line)", background: "var(--skin-bg)" }}
+          >
+            <ItemBadge kind={r.kind} noteType={r.noteType} />
+            <span
+              className="flex-1 truncate"
+              style={{
+                fontSize: 14,
+                color: "var(--skin-ink)",
+                textDecoration: r.kind === "note" && r.done ? "line-through" : "none",
+              }}
+            >
+              {r.title || "Untitled"}
+            </span>
+            {r.kind === "objective" && r.status && (
+              <span style={{ fontSize: 11, color: "var(--skin-ink-faint)", textTransform: "capitalize", flexShrink: 0 }}>
+                {r.status.replace("_", " ")}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

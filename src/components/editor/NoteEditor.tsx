@@ -158,13 +158,21 @@ export function NoteEditor({
     onSaveRef.current = onSave;
   }, [onSave]);
 
+  // Objective links are independent of project assignment (objective_notes has
+  // no project_id): a note with no project can still be linked to objectives,
+  // e.g. every Navigator-created task. Only drop objectiveIds when the user
+  // actively clears a project this session (initialProjectIdRef was non-empty)
+  // — that mirrors "unassigning the project drops its objectives". A note
+  // that never had a project keeps whatever objectiveIds were loaded/edited.
+  const currentObjectiveIds = () => (projectId || !initialProjectIdRef.current ? objectiveIds : []);
+
   // Always-fresh snapshot of current save values, updated every render
   const currentValuesRef = useRef<NoteEditorValues>({
     title: title.trim() || "Untitled",
     bodyHtml: body,
     projectId: projectId || null,
     noteType,
-    objectiveIds: projectId ? objectiveIds : [],
+    objectiveIds: currentObjectiveIds(),
     tags,
     attachments,
   });
@@ -174,7 +182,7 @@ export function NoteEditor({
       bodyHtml: body,
       projectId: projectId || null,
       noteType,
-      objectiveIds: projectId ? objectiveIds : [],
+      objectiveIds: currentObjectiveIds(),
       tags,
       attachments,
     };

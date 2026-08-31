@@ -282,6 +282,116 @@ export function useObjectiveGenerationStatus(objectiveId: string | null) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* Combined search (objectives + notes/tasks)                          */
+/* ------------------------------------------------------------------ */
+
+export interface NavSearchResult {
+  id: string;
+  title: string;
+  kind: "objective" | "note";
+  noteType?: string;
+  status?: string | null;
+  done?: boolean;
+  updatedAt: string;
+}
+
+// Matches objectives and notes/tasks for the active project only — objectives
+// by project_id directly, notes via whatever links them into this project
+// (objective_notes for objective-scoped tasks, project_notes for unassigned
+// ones) — so results stay within the project the user is actually browsing.
+export async function searchNavigatorItems(
+  user: XcampUser,
+  projectId: string,
+  objectiveIds: string[],
+  rawQuery: string,
+): Promise<NavSearchResult[]> {
+  const query = rawQuery.trim();
+  if (!query) return [];
+
+  const objectivesPromise = supabase
+    .from("objectives")
+    .select("id, title, status, updated_at")
+    .eq("project_id", projectId)
+    .eq("tenant_id", user.tenantId)
+    .ilike("title", `%${query}%`)
+    .limit(25);
+
+  const noteIdsPromise = (async () => {
+    const ids = new Set<string>();
+    const [{ data: viaObjectives }, { data: viaProject }] = await Promise.all([
+      objectiveIds.length
+        ? supabase.from("objective_notes").select("note_id").in("objective_id", objectiveIds)
+        : Promise.resolve({ data: [] as { note_id: string }[] }),
+      supabase.from("project_notes").select("note_id").eq("project_id", projectId),
+    ]);
+    (viaObjectives ?? []).forEach((r) => ids.add(r.note_id as string));
+    (viaProject ?? []).forEach((r) => ids.add(r.note_id as string));
+    return Array.from(ids);
+  })();
+
+  const [{ data: objs }, noteIds] = await Promise.all([objectivesPromise, noteIdsPromise]);
+
+  let notes: Record<string, unknown>[] = [];
+  if (noteIds.length) {
+    const { data } = await supabase
+      .from("notes")
+      .select("id, title, note_type, done, updated_at")
+      .in("id", noteIds)
+      .or(`title.ilike.%${query}%,body_text.ilike.%${query}%`)
+      .limit(25);
+    notes = (data ?? []) as Record<string, unknown>[];
+  }
+
+  const results: NavSearchResult[] = [
+    ...(objs ?? []).map((o) => ({
+      id: o.id as string,
+      title: (o.title as string) ?? "",
+      kind: "objective" as const,
+      status: o.status as string | null,
+      updatedAt: o.updated_at as string,
+    })),
+    ...notes.map((n) => ({
+      id: n.id as string,
+      title: (n.title as string) ?? "",
+      kind: "note" as const,
+      noteType: n.note_type as string,
+      done: !!n.done,
+      updatedAt: n.updated_at as string,
+    })),
+  ];
+
+  // Relevance (exact > prefix > contains), then recency.
+  const lowerQuery = query.toLowerCase();
+  const rank = (title: string) => {
+    const t = title.toLowerCase();
+    if (t === lowerQuery) return 0;
+    if (t.startsWith(lowerQuery)) return 1;
+    return 2;
+  };
+  results.sort((a, b) => {
+    const byRank = rank(a.title) - rank(b.title);
+    if (byRank !== 0) return byRank;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+
+  return results;
+}
+
+export function useNavigatorSearch(
+  user: XcampUser | null,
+  projectId: string | null,
+  objectiveIds: string[],
+  query: string,
+) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["nav-search", projectId, user?.tenantId, trimmed, objectiveIds],
+    enabled: !!user && !!projectId && !!trimmed,
+    queryFn: () => searchNavigatorItems(user!, projectId!, objectiveIds, trimmed),
+  });
+}
+
 export function useUnassignedTasks(projectId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["nav-tasks", "unassigned", projectId],

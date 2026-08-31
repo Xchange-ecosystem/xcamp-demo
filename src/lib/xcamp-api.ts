@@ -213,7 +213,11 @@ export async function updateNote(
     .eq("owner_central_id", user.centralId);
 
   if (error) throw error;
-  await syncObjectiveLinks(user, noteId, input.projectId ? input.objectiveIds ?? [] : []);
+  // NoteEditor already decides which objective links to keep (it preserves
+  // links for notes with no project, like Navigator tasks, and only clears
+  // them when a project is actively unassigned) — don't re-gate on projectId
+  // here, or every save on a project-less note wipes its objective links.
+  await syncObjectiveLinks(user, noteId, input.objectiveIds ?? []);
 }
 
 // Replace the objective_notes links for a note with the provided objective ids.
