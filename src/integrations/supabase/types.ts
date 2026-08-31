@@ -3944,6 +3944,7 @@ export type Database = {
           preferred_external_container_id: string | null
           price_credits: number
           start_date: string | null
+          status: string | null
           tags: string[]
           tenant_id: string
           title: string
@@ -3966,6 +3967,7 @@ export type Database = {
           preferred_external_container_id?: string | null
           price_credits?: number
           start_date?: string | null
+          status?: string | null
           tags?: string[]
           tenant_id: string
           title?: string
@@ -3988,6 +3990,7 @@ export type Database = {
           preferred_external_container_id?: string | null
           price_credits?: number
           start_date?: string | null
+          status?: string | null
           tags?: string[]
           tenant_id?: string
           title?: string

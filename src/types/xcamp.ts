@@ -27,6 +27,7 @@ export interface NoteRow {
   body_html: string | null;
   note_type: string; // always 'note' in Journal
   done: boolean;
+  status: string | null; // 'inactive' | 'active' | 'completed' for note_type='task'; NULL otherwise
   tags: string[];
   detail: Record<string, unknown>;
   created_by: string; // central_users.id

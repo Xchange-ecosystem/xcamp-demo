@@ -6,7 +6,7 @@ import type { Json } from "@/integrations/supabase/types";
 import type { CollabRole, NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
 
 const NOTE_COLUMNS =
-  "id, title, body_markdown, body_html, note_type, done, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
+  "id, title, body_markdown, body_html, note_type, done, status, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
 
 // Allowed note types selectable in the editor.
 export const NOTE_TYPES = [
@@ -111,6 +111,7 @@ function rowToNote(r: Record<string, unknown>): NoteRow {
     body_html: (r.body_html as string) ?? null,
     note_type: r.note_type as string,
     done: !!r.done,
+    status: (r.status as string | null) ?? null,
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
     detail: (r.detail as Record<string, unknown>) ?? {},
     created_by: r.owner_central_id as string,
@@ -162,6 +163,7 @@ export async function createNote(user: XcampUser, input: NoteInput): Promise<Not
   const detail: Record<string, unknown> = {};
   if (input.projectId) detail.project_id = input.projectId;
   if (input.attachments && input.attachments.length) detail.attachments = input.attachments;
+  const noteType = input.noteType ?? "note";
 
   const { data, error } = await supabase
     .from("notes")
@@ -170,8 +172,12 @@ export async function createNote(user: XcampUser, input: NoteInput): Promise<Not
       body_markdown: input.bodyHtml,
       body_html: input.bodyHtml,
       body_text: htmlToText(input.bodyHtml),
-      note_type: input.noteType ?? "note",
+      note_type: noteType,
       done: false,
+      // Every call site creates the note directly at the user's request
+      // (editor save, journal save, or confirming a suggestion card) —
+      // already accepted by construction.
+      status: noteType === "task" ? "active" : null,
       tags: input.tags ?? [],
       detail: detail as Json,
       owner_central_id: user.centralId, // central_users.id — not authId
