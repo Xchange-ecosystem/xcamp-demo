@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/auth";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useObjectives } from "@/lib/navigator-api";
 import type { ObjectiveRow } from "@/lib/navigator-api";
+import { FounderProjectDashboard } from "@/components/project-home/FounderProjectDashboard";
 
 export const Route = createFileRoute("/project/$projectId")({
   head: () => ({
@@ -28,9 +29,16 @@ interface ProjectData {
 // PageHeroShell's seed-based useHeroImage provides the hero. A migration is needed
 // before per-project custom images can persist.
 
+type ProjectDetailTab = "overview" | "dashboard";
+const PROJECT_DETAIL_TABS: { key: ProjectDetailTab; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "dashboard", label: "Dashboard" },
+];
+
 function ProjectPage() {
   const { projectId } = Route.useParams();
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<ProjectDetailTab>("overview");
 
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -189,6 +197,45 @@ function ProjectPage() {
         logo={<AppLogo collapsed={true} />}
         eyebrow="Project"
       >
+        <div className="px-4 sm:px-5 pt-3">
+          <div
+            style={{
+              display: "flex",
+              gap: 0,
+              borderBottom: "1px solid var(--skin-line)",
+              marginBottom: 4,
+            }}
+          >
+            {PROJECT_DETAIL_TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: activeTab === key ? 600 : 400,
+                  color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+                  background: "none",
+                  border: "none",
+                  borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                  marginBottom: -1,
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeTab === "dashboard" && (
+          <div className="px-4 sm:px-5 pb-6 pt-3">
+            <FounderProjectDashboard projectId={projectId} />
+          </div>
+        )}
+
+        {activeTab === "overview" && (
         <div className="px-4 sm:px-5 pb-6 pt-3 space-y-5">
           {/* Editable title */}
           <div className="flex items-center gap-2">
@@ -340,6 +387,7 @@ function ProjectPage() {
             loading={objectivesLoading}
           />
         </div>
+        )}
       </PageHeroShell>
     </AppShell>
   );

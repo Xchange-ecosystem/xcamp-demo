@@ -51,7 +51,9 @@ import { useAltitudeStore } from "@/store/altitudeStore";
 import { NoteEditor, type NoteEditorValues } from "@/components/editor/NoteEditor";
 import { listProjects } from "@/lib/xcamp-api";
 import { fetchProofNotes } from "@/lib/proof-notes-api";
-import { generateTaskSummary } from "@/lib/ai-summary";
+import { generateTaskSummary, generateObjectiveSummary } from "@/lib/ai-summary";
+import { fetchObjectiveSidepanelMetrics } from "@/lib/dashboard-metrics-api";
+import { MetricCard, StatRow, fmt } from "@/components/project-home/MetricPrimitives";
 import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
 
@@ -869,6 +871,8 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
         />
       </div>
 
+      <ObjectiveMetricsAndSummary objectiveId={itemId} objectiveTitle={title || "Untitled objective"} />
+
       {/* Attachments preview */}
       {attachments.length > 0 && (
         <div className="x-preview-section">
@@ -917,6 +921,135 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
             ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Objective metrics + AI summary ──────────────────────────────────────────
+
+function ObjectiveMetricsAndSummary({
+  objectiveId,
+  objectiveTitle,
+}: {
+  objectiveId: string;
+  objectiveTitle: string;
+}) {
+  const { user } = useAuth();
+  const { altitude } = useAltitudeStore();
+
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ["objective-metrics", objectiveId],
+    queryFn: () => fetchObjectiveSidepanelMetrics(objectiveId),
+  });
+
+  const [summary, setSummary] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generate = useCallback(async () => {
+    if (!user) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const { fetchObjectiveTaskSummaryInputs } = await import("@/lib/dashboard-metrics-api");
+      const taskSummaries = await fetchObjectiveTaskSummaryInputs(objectiveId);
+      const text = await generateObjectiveSummary(user, {
+        objectiveId,
+        objectiveTitle,
+        taskSummaries,
+        mode: "per-task",
+        altitude,
+      });
+      setSummary(text);
+    } catch (e) {
+      console.error("Objective summary generation failed", e);
+      setError("Couldn't generate a summary right now.");
+    } finally {
+      setGenerating(false);
+    }
+  }, [user, objectiveId, objectiveTitle, altitude]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Metrics — tasks/word+char/proof/linked-item totals and per-task averages */}
+      <div>
+        <h4 className="x-preview-title">Metrics</h4>
+        {metricsLoading || !metrics ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", fontSize: 13 }}>
+            <Loader2 size={14} className="animate-spin" />
+            Loading…
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <MetricCard label="Tasks">
+              <StatRow big={metrics.tasksTotal.toLocaleString()} small="total" />
+              <StatRow big={metrics.tasksCompleted.toLocaleString()} small="completed" />
+            </MetricCard>
+            <MetricCard label="Words / chars">
+              <StatRow big={metrics.wordsTotal.toLocaleString()} small={`${fmt(metrics.wordsAvgPerTask)} av. words/task`} />
+              <StatRow big={metrics.charsTotal.toLocaleString()} small={`${fmt(metrics.charsAvgPerTask)} av. chars/task`} />
+            </MetricCard>
+            <MetricCard label="Proof">
+              <StatRow big={metrics.proofAttachmentsTotal.toLocaleString()} small="attachments total" />
+              <StatRow big={fmt(metrics.proofAttachmentsAvgPerTask)} small="av. per task" />
+            </MetricCard>
+            <MetricCard label="Linked items">
+              <StatRow big={metrics.linkedItemsTotal.toLocaleString()} small="total" />
+              <StatRow big={fmt(metrics.linkedItemsAvgPerTask)} small="av. per task" />
+            </MetricCard>
+          </div>
+        )}
+      </div>
+
+      {/* AI summary — aggregates across the objective's tasks (per-task mode, see ai-summary.ts) */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--skin-ink-faint)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              flex: 1,
+            }}
+          >
+            AI summary
+          </span>
+          <button
+            type="button"
+            onClick={() => void generate()}
+            disabled={generating}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              color: "var(--skin-accent)",
+              background: "none",
+              border: "none",
+              cursor: generating ? "wait" : "pointer",
+              padding: "2px 6px",
+            }}
+          >
+            {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {summary ? "Regenerate" : "Generate"}
+          </button>
+        </div>
+        {error && <p style={{ fontSize: 12, color: "var(--skin-danger)", margin: 0 }}>{error}</p>}
+        {summary ? (
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--skin-ink)", margin: 0, whiteSpace: "pre-wrap" }}>
+            {summary}
+          </p>
+        ) : (
+          !generating && (
+            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", margin: 0 }}>
+              Aggregates "About this task and its deliverables" + Do & Document across this
+              objective's tasks.
+            </p>
+          )
+        )}
+      </div>
     </div>
   );
 }
