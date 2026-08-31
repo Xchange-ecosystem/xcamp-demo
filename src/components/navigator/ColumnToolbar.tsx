@@ -61,7 +61,7 @@ export function ColumnToolbar({
         <input
           className="x-input"
           style={{ paddingLeft: 26, paddingRight: state.search ? 26 : 8, height: 30, fontSize: 13, width: "100%" }}
-          placeholder="Search objectives…"
+          placeholder="Search objectives, tasks & notes…"
           value={state.search}
           onChange={(e) => onChange({ search: e.target.value })}
         />
