@@ -503,6 +503,98 @@ export function LinkedItemsTab({
   );
 }
 
+// ── User profile content (Ecosystem Navigator tile click-through) ──────────
+// Reads from `item.meta`, set when the tile grid opens the panel — no second
+// fetch. Deliberately minimal (Bio/Description + the two real/mocked metrics);
+// add more fields to `meta` and render them here as the profile grows.
+
+function UserProfileContent({ item }: { item: PanelItem }) {
+  const meta = (item.meta ?? {}) as {
+    avatarUrl?: string | null;
+    bio?: string | null;
+    tags?: string[];
+    projectCount?: number;
+    contributionCount?: number;
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            overflow: "hidden",
+            flexShrink: 0,
+            background: "var(--skin-surface2)",
+          }}
+        >
+          {meta.avatarUrl && (
+            <img src={meta.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>
+            {item.title ?? "Member"}
+          </div>
+          {!!meta.tags?.length && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              {meta.tags.map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 11,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "var(--skin-surface2)",
+                    color: "var(--skin-ink-soft)",
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 24 }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--skin-ink)" }}>
+            {meta.projectCount ?? 0}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>Projects</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--skin-ink)" }}>
+            {meta.contributionCount ?? 0}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>Contributions</div>
+        </div>
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--skin-ink-faint)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            marginBottom: 6,
+          }}
+        >
+          Bio
+        </div>
+        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", lineHeight: 1.5, margin: 0 }}>
+          {meta.bio || "No bio yet."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Objective content ───────────────────────────────────────────────────────
 
 function formatBytes(bytes: number) {
@@ -914,12 +1006,12 @@ function NoteContent({ itemId }: { itemId: string }) {
 // ── Main panel ─────────────────────────────────────────────────────────────
 // Renders directly into the AppShell layout aside — no Sheet/overlay wrapper.
 
-type SidepanelTabKey = "content" | "linked" | "artefacts-actions" | "match";
+type SidepanelTabKey = "content" | "linked" | "artifacts-actions" | "match";
 
 const SIDEPANEL_TABS: { key: SidepanelTabKey; label: string }[] = [
   { key: "content", label: "Content" },
   { key: "linked", label: "Linked Items" },
-  { key: "artefacts-actions", label: "Artefacts & Actions" },
+  { key: "artifacts-actions", label: "Artifacts & Actions" },
   { key: "match", label: "Match" },
 ];
 
@@ -942,6 +1034,7 @@ export function ItemSidepanel() {
 
   const canGoBack = stack.length > 1;
   const typeLabel =
+    current.kind === "user" ? "Viewing profile" :
     current.kind === "objective" ? "Editing objective" : `Editing ${current.kind}`;
 
   return (
@@ -1022,48 +1115,53 @@ export function ItemSidepanel() {
           {typeLabel}
         </span>
         <FullscreenButton item={current} />
-        <KebabMenu item={current} onClose={close} />
+        {/* KebabMenu's delete action assumes note/objective — a profile has no such action */}
+        {current.kind !== "user" && <KebabMenu item={current} onClose={close} />}
       </div>
 
-      {/* ── Tabs ── */}
-      <div
-        className="x-sidepanel-tabs"
-        style={{
-          display: "flex",
-          gap: 0,
-          borderBottom: "1px solid var(--skin-line)",
-          flexShrink: 0,
-        }}
-      >
-        {SIDEPANEL_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            className="x-sidepanel-tab"
-            onClick={() => setActiveTab(key)}
-            style={{
-              padding: "8px 16px",
-              fontSize: 13,
-              fontWeight: activeTab === key ? 600 : 400,
-              color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-              background: "none",
-              border: "none",
-              borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
-              marginBottom: -1,
-              cursor: "pointer",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── Tabs — a profile is a single flat view, no note/objective-style tab set ── */}
+      {current.kind !== "user" && (
+        <div
+          className="x-sidepanel-tabs"
+          style={{
+            display: "flex",
+            gap: 0,
+            borderBottom: "1px solid var(--skin-line)",
+            flexShrink: 0,
+          }}
+        >
+          {SIDEPANEL_TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              className="x-sidepanel-tab"
+              onClick={() => setActiveTab(key)}
+              style={{
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: activeTab === key ? 600 : 400,
+                color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+                background: "none",
+                border: "none",
+                borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                marginBottom: -1,
+                cursor: "pointer",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Scrollable body ── */}
       <div
         className="x-sidepanel-scroll"
         style={{ flex: 1, overflowY: "auto", padding: 16 }}
       >
-        {activeTab === "content" ? (
+        {current.kind === "user" ? (
+          <UserProfileContent item={current} />
+        ) : activeTab === "content" ? (
           current.kind === "objective" ? (
             <ObjectiveContent key={current.id} itemId={current.id} />
           ) : (
@@ -1075,8 +1173,8 @@ export function ItemSidepanel() {
             itemId={current.id}
             itemKind={current.kind}
           />
-        ) : activeTab === "artefacts-actions" ? (
-          <ComingSoonTab icon={Zap} label="Artefacts & Actions" />
+        ) : activeTab === "artifacts-actions" ? (
+          <ComingSoonTab icon={Zap} label="Artifacts & Actions" />
         ) : (
           <ComingSoonTab icon={Users} label="Match" />
         )}

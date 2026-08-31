@@ -240,7 +240,7 @@ export function TaskDetailShell({
           )}
           {activeTab === "match-collaborate" && <MatchCollaborateTab />}
           {activeTab === "linked-items" && <LinkedItemsTab itemId={noteRow.id} itemKind="note" />}
-          {activeTab === "actions-artefacts" && (
+          {activeTab === "actions-artifacts" && (
             <ComingSoonTab icon={TASK_TABS[4].icon} label={TASK_TABS[4].label} />
           )}
           {activeTab === "review-complete" && (

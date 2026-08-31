@@ -28,6 +28,38 @@ interface MessageRow {
   tenant_id: string;
 }
 
+// Scope a session to a project (or `null` for the ecosystem-level chat). Passing no
+// scope at all (`undefined`) preserves the old unscoped "one conversation per user"
+// behavior — used by the legacy (`?ui=v1`) chat path, which manages its own
+// project/conversation transitions and shouldn't be touched by this.
+export interface CompanionSessionScope {
+  projectId: string | null;
+}
+
+const ECOSYSTEM_SCOPE_KEY = "__ecosystem__";
+const VISITED_SCOPES_KEY = "xcamp-companion-visited-scopes";
+
+function scopeKeyOf(scope: CompanionSessionScope): string {
+  return scope.projectId ?? ECOSYSTEM_SCOPE_KEY;
+}
+
+function readVisitedScopes(): Set<string> {
+  if (typeof sessionStorage === "undefined") return new Set();
+  try {
+    const raw = sessionStorage.getItem(VISITED_SCOPES_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markScopeVisited(scopeKey: string) {
+  if (typeof sessionStorage === "undefined") return;
+  const visited = readVisitedScopes();
+  visited.add(scopeKey);
+  sessionStorage.setItem(VISITED_SCOPES_KEY, JSON.stringify([...visited]));
+}
+
 function rowToMessage(row: MessageRow): ChatMessage {
   if (row.content_type === "component") {
     return {
@@ -58,19 +90,26 @@ export interface CompanionSession {
   closeSession: () => Promise<void>;
 }
 
-export function useCompanionSession(user: XcampUser | null): CompanionSession {
+export function useCompanionSession(user: XcampUser | null, scope?: CompanionSessionScope): CompanionSession {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState<string | null>(null);
   const [conversationProjectId, setConversationProjectId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const conversationIdRef = useRef<string | null>(null);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
 
-  // Load or create conversation on mount
+  // Load or create a conversation on mount, and again whenever the scope's project
+  // changes (entering/leaving a project's Companion). A scope's first load in a given
+  // browser session always starts a fresh conversation for that project (or the
+  // ecosystem, for `projectId: null`); a later return to an already-visited scope in
+  // the same session resumes whatever conversation is already there instead of wiping
+  // it — see `VISITED_SCOPES_KEY` above.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -82,22 +121,29 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
         let convCreatedAt: string | null = null;
         let convProjectId: string | null = null;
 
-        const forceNew = typeof sessionStorage !== "undefined" && sessionStorage.getItem("xcamp-force-new-session");
-        if (forceNew) {
-          if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("xcamp-force-new-session");
-          convId = await createConversation(user!);
+        const scopeKey = scope ? scopeKeyOf(scope) : null;
+        const forceNewFlag = typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("xcamp-force-new-session");
+        const firstVisitThisSession = scopeKey !== null && !readVisitedScopes().has(scopeKey);
+
+        if (forceNewFlag || firstVisitThisSession) {
+          if (forceNewFlag && typeof sessionStorage !== "undefined") sessionStorage.removeItem("xcamp-force-new-session");
+          convId = await createConversation(user!, scope ? scope.projectId : undefined);
+          convProjectId = scope ? scope.projectId : null;
+          if (scopeKey !== null) markScopeVisited(scopeKey);
         } else {
-          // Find most recent active conversation
+          // Find most recent active conversation, scoped to this project when a scope is given.
           // Cast through unknown early: generated types are stale and missing status column
-          type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
-          const { data: convRows } = await (supabase
+          type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; is: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
+          let query = (supabase
             .from("jarvix_conversations")
             .select("id, status, created_at, project_id") as unknown as ConvQuery)
             .eq("owner_central_id", user!.centralId)
             .eq("tenant_id", user!.tenantId)
-            .neq("status", "closed")
-            .order("created_at", { ascending: false })
-            .limit(1);
+            .neq("status", "closed");
+          if (scope) {
+            query = scope.projectId === null ? query.is("project_id", null) : query.eq("project_id", scope.projectId);
+          }
+          const { data: convRows } = await query.order("created_at", { ascending: false }).limit(1);
 
           if (cancelled) return;
 
@@ -106,7 +152,9 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
             convCreatedAt = convRows[0].created_at;
             convProjectId = convRows[0].project_id ?? null;
           } else {
-            convId = await createConversation(user!);
+            convId = await createConversation(user!, scope ? scope.projectId : undefined);
+            convProjectId = scope ? scope.projectId : null;
+            if (scopeKey !== null) markScopeVisited(scopeKey);
           }
         }
 
@@ -130,7 +178,7 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
 
     void init();
     return () => { cancelled = true; };
-  }, [user?.centralId, user?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.centralId, user?.tenantId, scope?.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const appendChiMessage = useCallback(async (text: string): Promise<string> => {
     const id = crypto.randomUUID();
@@ -189,22 +237,29 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
       }).update({ status: "closed" }).eq("id", convId);
     }
     if (!user) return;
-    const nextId = await createConversation(user);
+    const currentScope = scopeRef.current;
+    const nextId = await createConversation(user, currentScope ? currentScope.projectId : undefined);
     setConversationId(nextId);
     setConversationCreatedAt(null);
-    setConversationProjectId(null);
+    setConversationProjectId(currentScope ? currentScope.projectId : null);
     setMessages([]);
+    if (currentScope) markScopeVisited(scopeKeyOf(currentScope));
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close current conversation without creating a new one (used on logout).
   // Clears local state immediately so the UI shows empty chat right away.
   // Sets a sessionStorage flag so the next init creates a fresh conversation
   // rather than finding the one we're closing (handles the race where re-login
-  // happens before the DB update completes).
+  // happens before the DB update completes). Also clears the per-scope "already
+  // visited this session" record so the next user to sign in on this browser
+  // doesn't inherit it.
   const closeSession = useCallback(async () => {
     const convId = conversationIdRef.current;
     if (!convId) return;
-    if (typeof sessionStorage !== "undefined") sessionStorage.setItem("xcamp-force-new-session", "1");
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("xcamp-force-new-session", "1");
+      sessionStorage.removeItem(VISITED_SCOPES_KEY);
+    }
     conversationIdRef.current = null;
     setConversationId(null);
     setConversationCreatedAt(null);
@@ -219,10 +274,16 @@ export function useCompanionSession(user: XcampUser | null): CompanionSession {
   return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession, closeSession };
 }
 
-async function createConversation(user: XcampUser): Promise<string> {
+async function createConversation(user: XcampUser, projectId?: string | null): Promise<string> {
   const id = crypto.randomUUID();
   await (supabase.from("jarvix_conversations") as unknown as {
     insert: (row: Record<string, unknown>) => Promise<unknown>;
-  }).insert({ id, owner_central_id: user.centralId, tenant_id: user.tenantId, status: "active" });
+  }).insert({
+    id,
+    owner_central_id: user.centralId,
+    tenant_id: user.tenantId,
+    status: "active",
+    ...(projectId !== undefined ? { project_id: projectId } : {}),
+  });
   return id;
 }

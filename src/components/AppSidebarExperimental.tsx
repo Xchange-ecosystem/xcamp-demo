@@ -15,13 +15,13 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  BarChart3,
   Check,
   ChevronDown,
   ChevronRight,
   Compass,
   FilePlus,
   Home,
-  LayoutDashboard,
   LayoutGrid,
   LayoutList,
   LogOut,
@@ -77,20 +77,20 @@ type NavItem = {
 const ECOSYSTEM_NAV: NavItem[] = [
   { title: "home",      url: "/home",                 icon: Home,          label: "Home" },
   { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
-  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator", personas: ["founder"] },
+  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator", personas: ["founder", "investor"] },
   { title: "portfolio", url: "/portfolio",            icon: LayoutGrid,    label: "Portfolio" },
   { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder", personas: ["founder"] },
-  { title: "dashboard", url: "/ecosystem-dashboard",  icon: LayoutDashboard, label: "Dashboard", personas: ["investor"] },
+  { title: "dashboard", url: "/ecosystem-dashboard",  icon: BarChart3, label: "Dashboard", personas: ["investor"] },
 ];
 
 const PROJECT_NAV: NavItem[] = [
   { title: "home",            url: "/home",             icon: Home,          label: "Home" },
   { title: "companion",       url: "/home",             icon: MessageCircle, label: "Companion" },
   { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook", personas: ["founder"] },
-  { title: "goals",           url: "",                  icon: Target,        label: "My Goals", parameterised: true, personas: ["founder"] },
+  { title: "goals",           url: "",                  icon: Target,        label: "Goals", parameterised: true, personas: ["founder"] },
   { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator", personas: ["founder"] },
   { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details", personas: ["founder"] },
-  { title: "dashboard",       url: "",                  icon: LayoutDashboard, label: "Dashboard", parameterised: true, personas: ["investor"] },
+  { title: "dashboard",       url: "",                  icon: BarChart3, label: "Dashboard", parameterised: true, personas: ["investor"] },
 ];
 
 export function AppSidebarExperimental() {

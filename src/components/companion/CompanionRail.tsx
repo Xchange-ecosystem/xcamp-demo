@@ -112,7 +112,7 @@ function RailTooltip({ title, desc, mock }: { title: string; desc: string; mock:
 const ROLES: { key: Persona; name: string; note: string; paid?: boolean }[] = [
   { key: "founder", name: "Founder", note: "Full orchestration — objectives, value, completion." },
   { key: "collaborator", name: "Collaborator", note: "Your move, your tasks, your earnings." },
-  { key: "investor", name: "Investor", note: "Provenance only. No edit affordances.", paid: true },
+  { key: "investor", name: "Investor/ Operator", note: "Provenance only. No edit affordances.", paid: true },
 ];
 
 function RolePanel() {
