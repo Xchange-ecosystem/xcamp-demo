@@ -191,15 +191,19 @@ export function GoalsFeed({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Create New Goal input */}
       <div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <textarea
             className="x-input"
-            style={{ flex: 1, height: 40, fontSize: 14 }}
+            rows={4}
+            style={{ flex: 1, fontSize: 14, resize: "vertical", overflowY: "auto", lineHeight: 1.4 }}
             placeholder='Create a new goal… e.g. "Launch our beta waitlist"'
             value={goalInput}
             onChange={(e) => setGoalInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void handleCreateGoal();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void handleCreateGoal();
+              }
             }}
             disabled={!canCreateNewGoal}
           />
