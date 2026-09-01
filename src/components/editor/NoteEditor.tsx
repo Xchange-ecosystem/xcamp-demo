@@ -12,6 +12,7 @@ import {
   Sparkles,
   MoreVertical,
   Trash2,
+  Maximize2,
 } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { NOTE_TYPES, listObjectives, getNoteObjectiveIds } from "@/lib/xcamp-api";
@@ -91,8 +92,10 @@ export function NoteEditor({
   onCancel,
   onArchive,
   onOrganise,
+  onExpand,
   embedded,
   renderBody,
+  hideMeta,
 }: {
   editing: Editing;
   projects: ProjectRow[];
@@ -103,11 +106,18 @@ export function NoteEditor({
   onCancel: () => void;
   onArchive?: () => void;
   onOrganise?: () => void;
+  /** Provide to show a "fullscreen" trigger in the header (e.g. My Notes' inline
+   *  editor, which has no other expand affordance — the sidepanel has its own). */
+  onExpand?: () => void;
   /** When true, suppresses the back-arrow / label / save-status header row (sidepanel provides its own). */
   embedded?: boolean;
   /** When provided, replaces the rich-text body editor (e.g. a note type that shows an
    *  AI summary instead of a freeform body) — title and the meta accordion stay unchanged. */
   renderBody?: () => ReactNode;
+  /** When true, hides the type/project/objectives/tags accordion entirely (not just
+   *  collapsed) — for a stripped-down "just the editor" view, e.g. NoteFullscreenModal.
+   *  Metadata is still preserved on save; there's just no UI to change it here. */
+  hideMeta?: boolean;
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -308,6 +318,17 @@ export function NoteEditor({
           )}
         </div>
         <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
+          {onExpand && (
+            <button
+              className="x-btn-secondary"
+              aria-label="Open fullscreen"
+              title="Open fullscreen"
+              onClick={onExpand}
+              style={{ height: 32, width: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <Maximize2 size={14} />
+            </button>
+          )}
           {onOrganise && (
             <button className="x-btn-secondary w-full sm:w-auto" onClick={onOrganise} title="Organise with Chi">
               <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
@@ -387,6 +408,8 @@ export function NoteEditor({
         onChange={(e) => setTitle(e.target.value)}
       />
 
+      {!hideMeta && (
+      <>
       {/* Collapsible meta: type / project / objectives / tags */}
       <button
         type="button"
@@ -500,6 +523,8 @@ export function NoteEditor({
           />
         </div>
       </div>
+      </>
+      )}
       </>
       )}
 

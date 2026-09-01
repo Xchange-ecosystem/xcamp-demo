@@ -264,7 +264,11 @@ test.describe("Combined session verification", () => {
     expect(editorVisible).toBe(true);
   });
 
-  test("item4b: non-task note shows placeholder, dismiss works", async ({ page }) => {
+  // Was "non-task note shows placeholder" — superseded by a real fullscreen
+  // editor for note_type: "note" (see NoteFullscreenModal / FullscreenDispatcher).
+  // Other non-task, non-note types (idea/question/decision/reference) still
+  // get the placeholder — unchanged, not re-tested here.
+  test("item4b: plain note shows fullscreen editor (not the placeholder), dismiss works", async ({ page }) => {
     await installExtendedHarness(page);
     await page.goto("/navigator?view=browser");
     await page.waitForTimeout(2000);
@@ -278,33 +282,41 @@ test.describe("Combined session verification", () => {
     await expect(fsBtn).toBeVisible();
     await fsBtn.click();
     await page.waitForTimeout(800);
-    await page.screenshot({ path: path.join(OUT, "4b-placeholder-open.png") });
+    await page.screenshot({ path: path.join(OUT, "4b-note-fullscreen-open.png") });
 
+    const noteModalOpen = await page.getByTestId("note-fullscreen-modal").getAttribute("data-open");
     const placeholderOpen = await page
       .getByTestId("note-detail-placeholder-modal")
       .getAttribute("data-open");
-    const placeholderText = await page.getByText("Detail view coming soon.").isVisible();
     const taskModalOpen = await page.getByTestId("task-fullscreen-modal").getAttribute("data-open");
+    // Scoped to the fullscreen modal — the sidepanel behind it also renders a
+    // "Note title" field, so an unscoped locator would match both and throw.
+    const titleVisible = await page
+      .getByTestId("note-fullscreen-modal")
+      .getByPlaceholder("Note title")
+      .isVisible()
+      .catch(() => false);
     console.log(
+      "NOTE MODAL OPEN:",
+      noteModalOpen,
       "PLACEHOLDER OPEN:",
       placeholderOpen,
-      "TEXT VISIBLE:",
-      placeholderText,
       "TASK MODAL OPEN:",
       taskModalOpen,
+      "TITLE VISIBLE:",
+      titleVisible,
     );
-    expect(placeholderOpen).toBe("true");
-    expect(placeholderText).toBe(true);
+    expect(noteModalOpen).toBe("true");
+    expect(placeholderOpen).toBe("false");
     expect(taskModalOpen).toBe("false");
+    expect(titleVisible).toBe(true);
 
     // Escape should dismiss it.
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
-    const placeholderOpenAfterEsc = await page
-      .getByTestId("note-detail-placeholder-modal")
-      .getAttribute("data-open");
-    console.log("PLACEHOLDER OPEN AFTER ESCAPE:", placeholderOpenAfterEsc);
-    expect(placeholderOpenAfterEsc).toBe("false");
+    const noteModalOpenAfterEsc = await page.getByTestId("note-fullscreen-modal").getAttribute("data-open");
+    console.log("NOTE MODAL OPEN AFTER ESCAPE:", noteModalOpenAfterEsc);
+    expect(noteModalOpenAfterEsc).toBe("false");
   });
 
   test("item4c: grep-verifiable — no old hard-coded message reachable via direct route", async ({

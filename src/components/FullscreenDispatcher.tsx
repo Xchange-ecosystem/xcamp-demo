@@ -2,11 +2,13 @@ import { useEffect } from "react";
 import { useFullscreenItemStore } from "@/store/fullscreenItemStore";
 import { useFullscreenTaskStore } from "@/store/fullscreenTaskStore";
 import { TaskFullscreenModal } from "@/components/TaskFullscreenModal";
+import { NoteFullscreenModal } from "@/components/NoteFullscreenModal";
 import { NoteDetailPlaceholderModal } from "@/components/NoteDetailPlaceholderModal";
 
 // Routes a fullscreen-open request (from ItemSidepanel's FullscreenButton) by
-// note_type: "task" gets the real Task fullscreen view, everything else gets
-// a shared placeholder.
+// note_type: "task" gets the real Task fullscreen view, plain notes get a
+// simple enlarged-editor view, everything else (idea/question/decision/
+// reference) still gets the shared placeholder.
 //
 // TaskFullscreenModal/useFullscreenTaskStore are only ever driven through
 // their existing public open()/close() API here — never edited, never
@@ -18,6 +20,7 @@ export function FullscreenDispatcher() {
   const taskStoreTaskId = useFullscreenTaskStore((s) => s.taskId);
 
   const isTask = item?.noteType === "task";
+  const isNote = item?.noteType === "note";
 
   // Dispatcher → Task modal: open/close it via its own store when the
   // dispatcher's target item changes.
@@ -42,7 +45,8 @@ export function FullscreenDispatcher() {
   return (
     <>
       <TaskFullscreenModal />
-      <NoteDetailPlaceholderModal isOpen={item !== null && !isTask} onClose={closeItem} />
+      <NoteFullscreenModal isOpen={item !== null && isNote} noteId={isNote ? item!.id : null} onClose={closeItem} />
+      <NoteDetailPlaceholderModal isOpen={item !== null && !isTask && !isNote} onClose={closeItem} />
     </>
   );
 }
