@@ -30,6 +30,7 @@ import {
   bulkAssignProject,
   createNote,
   getLinkedNoteIds,
+  getNoteProjectIds,
   listNotes,
   listProjects,
   updateNote,
@@ -229,7 +230,23 @@ export function NotesBrowser({
   });
   const linked = linkedQuery.data ?? new Set<string>();
 
+  // A note's real project comes from objective_notes -> objectives.project_id
+  // or a direct project_notes link, not a project_id column on notes itself
+  // (there isn't one) — see getNoteProjectIds.
+  const noteProjectsQuery = useQuery({
+    queryKey: ["note-projects", notes.map((n) => n.id).join(",")],
+    queryFn: () => getNoteProjectIds(notes.map((n) => n.id)),
+    enabled: notes.length > 0,
+  });
+  const noteProjects = noteProjectsQuery.data ?? new Map<string, Set<string>>();
+
   const projectName = (id?: string) => projects.find((p) => p.id === id)?.name;
+  // A note's displayed project — prefers the manually-assigned detail.project_id,
+  // falling back to whichever real project it resolves to via objective_notes /
+  // project_notes (see getNoteProjectIds) so the card's project label matches
+  // what the Project filter above actually matches on.
+  const noteProjectId = (note: NoteRow) =>
+    (note.detail?.project_id as string | undefined) ?? [...(noteProjects.get(note.id) ?? [])][0];
   const allTags = useMemo(
     () => Array.from(new Set(notes.flatMap((n) => n.tags))).sort(),
     [notes],
@@ -253,7 +270,10 @@ export function NotesBrowser({
           n.tags.some((t) => t.includes(q)),
       );
     }
-    if (filterProject) list = list.filter((n) => n.detail?.project_id === filterProject);
+    if (filterProject)
+      list = list.filter(
+        (n) => n.detail?.project_id === filterProject || noteProjects.get(n.id)?.has(filterProject),
+      );
     if (filterTags.length) list = list.filter((n) => filterTags.some((t) => n.tags.includes(t)));
     if (filterLinked) list = list.filter((n) => linked.has(n.id));
     // Unlike the other (optional-metadata) filters above, an empty Type
@@ -267,7 +287,7 @@ export function NotesBrowser({
       return (new Date(b[key] || b.created_at).getTime() - new Date(a[key] || a.created_at).getTime()) * dir;
     });
     return list;
-  }, [notes, search, filterProject, filterTags, filterLinked, filterTypes, linked, sort, sortDir]);
+  }, [notes, search, filterProject, filterTags, filterLinked, filterTypes, linked, noteProjects, sort, sortDir]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notes", user?.centralId] });
@@ -786,7 +806,7 @@ export function NotesBrowser({
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
                             {formatDate(note.updated_at || note.created_at)}
-                            {projectName(note.detail?.project_id as string) && ` · ${projectName(note.detail?.project_id as string)}`}
+                            {projectName(noteProjectId(note)) && ` · ${projectName(noteProjectId(note))}`}
                           </span>
                           {note.note_type && note.note_type !== "note" && (
                             <span style={{

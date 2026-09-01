@@ -10,6 +10,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useObjectives } from "@/lib/navigator-api";
 import type { ObjectiveRow } from "@/lib/navigator-api";
 import { FounderProjectDashboard } from "@/components/project-home/FounderProjectDashboard";
+import { usePersona } from "@/store/personaStore";
 
 export const Route = createFileRoute("/project/$projectId")({
   head: () => ({
@@ -40,11 +41,25 @@ const PROJECT_DETAIL_TABS: { key: ProjectDetailTab; label: string }[] = [
 
 function ProjectPage() {
   const { projectId } = Route.useParams();
-  const { tab: activeTab } = Route.useSearch();
+  const { tab: requestedTab } = Route.useSearch();
   const navigate = useNavigate({ from: "/project/$projectId" });
   const { user } = useAuth();
+  const { persona } = usePersona();
+  // Investors get Dashboard only — no Overview tab, no switcher to reach it,
+  // regardless of what a stale/typed-in ?tab= URL asks for.
+  const isInvestor = persona === "investor";
+  const activeTab: ProjectDetailTab = isInvestor ? "dashboard" : requestedTab;
   const setActiveTab = (tab: ProjectDetailTab) =>
     navigate({ params: { projectId }, search: { tab } });
+
+  // Keep the URL itself honest for investors so a shared/typed ?tab=overview
+  // link doesn't leave a stale search param sitting behind the forced tab.
+  useEffect(() => {
+    if (isInvestor && requestedTab !== "dashboard") {
+      navigate({ params: { projectId }, search: { tab: "dashboard" }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInvestor, requestedTab]);
 
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -203,37 +218,39 @@ function ProjectPage() {
         logo={<AppLogo collapsed={true} />}
         eyebrow="Project"
       >
-        <div className="px-4 sm:px-5 pt-3">
-          <div
-            style={{
-              display: "flex",
-              gap: 0,
-              borderBottom: "1px solid var(--skin-line)",
-              marginBottom: 4,
-            }}
-          >
-            {PROJECT_DETAIL_TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveTab(key)}
-                style={{
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  fontWeight: activeTab === key ? 600 : 400,
-                  color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                  background: "none",
-                  border: "none",
-                  borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
-                  marginBottom: -1,
-                  cursor: "pointer",
-                }}
-              >
-                {label}
-              </button>
-            ))}
+        {!isInvestor && (
+          <div className="px-4 sm:px-5 pt-3">
+            <div
+              style={{
+                display: "flex",
+                gap: 0,
+                borderBottom: "1px solid var(--skin-line)",
+                marginBottom: 4,
+              }}
+            >
+              {PROJECT_DETAIL_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    fontWeight: activeTab === key ? 600 : 400,
+                    color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+                    background: "none",
+                    border: "none",
+                    borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                    marginBottom: -1,
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {activeTab === "dashboard" && (
           <div className="px-4 sm:px-5 pb-6 pt-3">

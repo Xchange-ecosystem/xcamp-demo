@@ -512,6 +512,53 @@ export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> 
   return new Set((data ?? []).map((r) => r.note_id as string));
 }
 
+// Bulk project resolution for a "Project" filter/badge over a list of notes.
+// notes carries no project_id column — a note's real project comes from
+// project_notes (direct, unassigned-to-any-objective notes) or transitively
+// via objective_notes -> objectives.project_id (see getTaskLabels above).
+// `detail.project_id` (set when a note is manually assigned a project through
+// the editor) is a third, independent source — merged in here too so a note
+// counts as "in" a project via any of the ways it can actually be associated
+// with one, not just whichever one happens to be set.
+export async function getNoteProjectIds(
+  noteIds: string[],
+): Promise<Map<string, Set<string>>> {
+  const result = new Map<string, Set<string>>();
+  if (noteIds.length === 0) return result;
+
+  const addLink = (noteId: string, projectId: string | null | undefined) => {
+    if (!projectId) return;
+    const set = result.get(noteId) ?? new Set<string>();
+    set.add(projectId);
+    result.set(noteId, set);
+  };
+
+  const [{ data: directLinks }, { data: objectiveLinks }] = await Promise.all([
+    supabase.from("project_notes").select("note_id, project_id").in("note_id", noteIds),
+    supabase.from("objective_notes").select("note_id, objective_id").in("note_id", noteIds),
+  ]);
+
+  for (const row of directLinks ?? []) {
+    addLink(row.note_id as string, row.project_id as string | null);
+  }
+
+  const objectiveIds = [...new Set((objectiveLinks ?? []).map((r) => r.objective_id as string))];
+  if (objectiveIds.length) {
+    const { data: objectives } = await supabase
+      .from("objectives")
+      .select("id, project_id")
+      .in("id", objectiveIds);
+    const projectByObjective = new Map(
+      (objectives ?? []).map((o) => [o.id as string, o.project_id as string | null]),
+    );
+    for (const row of objectiveLinks ?? []) {
+      addLink(row.note_id as string, projectByObjective.get(row.objective_id as string));
+    }
+  }
+
+  return result;
+}
+
 /**
  * Calls the backend auto-tag endpoint, then patches the note's tags in Supabase.
  * Only runs when the note has no manually-set tags. Fire-and-forget safe.

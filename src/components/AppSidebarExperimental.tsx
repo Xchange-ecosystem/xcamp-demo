@@ -89,7 +89,7 @@ const PROJECT_NAV: NavItem[] = [
   { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook", personas: ["founder"] },
   { title: "goals",           url: "",                  icon: Target,        label: "Goals", parameterised: true, personas: ["founder"] },
   { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator", personas: ["founder"] },
-  { title: "project-details", url: "/project-details",  icon: Settings2,     label: "Project Details", personas: ["founder"] },
+  { title: "project-details", url: "",                  icon: Settings2,     label: "Project Details", parameterised: true, personas: ["founder"] },
   { title: "dashboard",       url: "",                  icon: BarChart3, label: "Dashboard", parameterised: true, personas: ["investor"] },
 ];
 
@@ -177,6 +177,13 @@ export function AppSidebarExperimental() {
       if (activeProjectId) return `/project/${activeProjectId}/goals`;
       return "/home";
     }
+    if (item.title === "project-details") {
+      // Founders' "Project Details" now opens the same Overview/Dashboard-tabbed
+      // page as the Dashboard nav item (project.$projectId.tsx), not the old
+      // separate flat /project-details route — see AUDIT notes on that page.
+      if (activeProjectId) return `/project/${activeProjectId}`;
+      return "/home";
+    }
     if (item.title === "dashboard" && navMode === "project") {
       // The Dashboard tab lives inside the project page itself (project.$projectId.tsx),
       // not the old standalone /project-dashboard stub — see handleNavClick for the
@@ -189,6 +196,11 @@ export function AppSidebarExperimental() {
 
   const isActive = (url: string) => {
     if (url === "/home" || url === "") return pathname === "/" || pathname.startsWith("/home");
+    // The bare /project/$projectId path (Project Details / Dashboard nav items)
+    // is also a prefix of its own sub-routes (e.g. /project/$projectId/goals) —
+    // require an exact match there so those nav items don't also light up
+    // whenever a founder is actually on Goals.
+    if (activeProjectId && url === `/project/${activeProjectId}`) return pathname === url;
     return pathname.startsWith(url);
   };
 
