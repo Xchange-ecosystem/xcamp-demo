@@ -21,8 +21,8 @@ import {
 import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useBrand } from "@/lib/brand";
-import { useSidepanel } from "@/contexts/sidepanel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useFullscreenItemStore } from "@/store/fullscreenItemStore";
 import {
   archiveNote,
   autoTagNote,
@@ -122,7 +122,6 @@ export function NotesBrowser({
   const brand = useBrand();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { open: openSidepanel } = useSidepanel();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [organising, setOrganising] = useState<NoteRow | null>(null);
 
@@ -298,10 +297,10 @@ export function NotesBrowser({
     mutationFn: (input: NoteEditorValues) => createNote(user!, input),
     onSuccess: (note, input) => {
       invalidate();
-      setEditing(null);
       onExitComposer?.();
-      // Open the new note in the right panel
-      openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled", noteType: note.note_type });
+      // Keep editing the newly-created note inline, in the middle column —
+      // same place it was just composed, not the generic right-hand sidepanel.
+      setEditing({ mode: "edit", note });
       // Auto-tag in the background when the user left the tags field empty
       if (input.tags.length === 0 && user) {
         void autoTagNote(user, note.id, note.title, note.body_html ?? "").then(() =>
@@ -773,7 +772,7 @@ export function NotesBrowser({
                     key={note.id}
                     className="x-note-card"
                     data-active={active}
-                    onClick={() => (selectMode ? toggleSelect(note.id) : openSidepanel({ id: note.id, kind: "note", title: note.title || "Untitled", noteType: note.note_type }))}
+                    onClick={() => (selectMode ? toggleSelect(note.id) : setEditing({ mode: "edit", note }))}
                   >
                     <div className="flex items-start gap-2">
                       {selectMode && (
@@ -883,6 +882,11 @@ export function NotesBrowser({
             }}
             onArchive={editing.mode === "edit" ? () => archiveMut.mutate(editing.note) : undefined}
             onOrganise={editing.mode === "edit" ? () => setOrganising(editing.note) : undefined}
+            onExpand={
+              editing.mode === "edit"
+                ? () => useFullscreenItemStore.getState().open(editing.note.id, editing.note.note_type)
+                : undefined
+            }
           />
         ) : (
           <div className="flex h-full items-center justify-center text-center" style={{ color: "var(--skin-ink-faint)", minHeight: 300 }}>

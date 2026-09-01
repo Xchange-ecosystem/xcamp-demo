@@ -505,6 +505,13 @@ select {
     resize: vertical;
     overflow: auto;
   }
+
+  /* ---- NoteFullscreenModal: stretch the editor to fill the modal instead of
+     sitting at .x-tiptap's normal min-height with dead space below it. ---- */
+  .x-note-fullscreen-body { display: flex; flex-direction: column; }
+  .x-note-fullscreen-body .x-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .x-note-fullscreen-body .x-tt-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .x-note-fullscreen-body .x-tiptap { flex: 1; min-height: 0; }
   .x-tiptap:focus { outline: none; }
   .x-tiptap p { margin: 0 0 12px; }
   .x-tiptap h1 { font-size: 26px; font-weight: 700; margin: 18px 0 10px; }
