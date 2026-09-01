@@ -178,7 +178,10 @@ export function AppSidebarExperimental() {
       return "/home";
     }
     if (item.title === "dashboard" && navMode === "project") {
-      if (activeProjectId) return `/project/${activeProjectId}/project-dashboard`;
+      // The Dashboard tab lives inside the project page itself (project.$projectId.tsx),
+      // not the old standalone /project-dashboard stub — see handleNavClick for the
+      // ?tab=dashboard search param that actually selects it.
+      if (activeProjectId) return `/project/${activeProjectId}`;
       return "/home";
     }
     return item.url;
@@ -400,6 +403,8 @@ export function AppSidebarExperimental() {
                 const handleNavClick = () => {
                   if (item.title === "companion") {
                     void navigate({ to: "/home" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: "companion" }) });
+                  } else if (item.title === "dashboard" && navMode === "project" && activeProjectId) {
+                    void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, tab: "dashboard" }) });
                   } else {
                     void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
                   }

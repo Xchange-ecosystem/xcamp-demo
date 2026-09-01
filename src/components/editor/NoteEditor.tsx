@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   X,
@@ -92,6 +92,7 @@ export function NoteEditor({
   onArchive,
   onOrganise,
   embedded,
+  renderBody,
 }: {
   editing: Editing;
   projects: ProjectRow[];
@@ -104,6 +105,9 @@ export function NoteEditor({
   onOrganise?: () => void;
   /** When true, suppresses the back-arrow / label / save-status header row (sidepanel provides its own). */
   embedded?: boolean;
+  /** When provided, replaces the rich-text body editor (e.g. a note type that shows an
+   *  AI summary instead of a freeform body) — title and the meta accordion stay unchanged. */
+  renderBody?: () => ReactNode;
 }) {
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -499,11 +503,15 @@ export function NoteEditor({
       </>
       )}
 
-      <RichTextEditor
-        content={body}
-        onChange={setBody}
-        onAddAttachment={(att) => setAttachments((prev) => [...prev, att])}
-      />
+      {renderBody ? (
+        renderBody()
+      ) : (
+        <RichTextEditor
+          content={body}
+          onChange={setBody}
+          onAddAttachment={(att) => setAttachments((prev) => [...prev, att])}
+        />
+      )}
 
       {/* Attachments preview */}
       {(imageAtts.length > 0 || fileAtts.length > 0) && (

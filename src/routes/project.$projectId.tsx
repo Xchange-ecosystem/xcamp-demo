@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, X, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -14,6 +14,9 @@ import { FounderProjectDashboard } from "@/components/project-home/FounderProjec
 export const Route = createFileRoute("/project/$projectId")({
   head: () => ({
     meta: [{ title: "Project — Xcamp" }],
+  }),
+  validateSearch: (search: Record<string, unknown>): { tab: ProjectDetailTab } => ({
+    tab: search.tab === "dashboard" ? "dashboard" : "overview",
   }),
   component: ProjectPage,
 });
@@ -37,8 +40,11 @@ const PROJECT_DETAIL_TABS: { key: ProjectDetailTab; label: string }[] = [
 
 function ProjectPage() {
   const { projectId } = Route.useParams();
+  const { tab: activeTab } = Route.useSearch();
+  const navigate = useNavigate({ from: "/project/$projectId" });
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<ProjectDetailTab>("overview");
+  const setActiveTab = (tab: ProjectDetailTab) =>
+    navigate({ params: { projectId }, search: { tab } });
 
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);

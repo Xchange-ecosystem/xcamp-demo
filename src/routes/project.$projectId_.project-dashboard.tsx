@@ -1,28 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LayoutDashboard } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Renders for every persona on direct navigation — nav visibility (investor-only,
-// see AppSidebarExperimental) is presentation only and never gates the route itself.
+// This route predates the Dashboard tab built into /project/$projectId (see
+// project.$projectId.tsx) — it used to render a "coming soon" placeholder that
+// duplicated (and confusingly outlived) the real, working dashboard. Redirect
+// rather than delete so old links/bookmarks still land somewhere useful.
 export const Route = createFileRoute("/project/$projectId_/project-dashboard")({
-  head: () => ({
-    meta: [
-      { title: "Project Dashboard — Xcamp" },
-      { name: "description", content: "Project analytics — coming soon." },
-    ],
-  }),
-  component: ProjectDashboardPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/project/$projectId",
+      params: { projectId: params.projectId },
+      search: { tab: "dashboard" },
+    });
+  },
 });
-
-function ProjectDashboardPage() {
-  return (
-    <AppShell>
-      <ComingSoonPage
-        icon={LayoutDashboard}
-        title="Project Dashboard"
-        subtitle="Project analytics and reporting — coming soon."
-      />
-    </AppShell>
-  );
-}

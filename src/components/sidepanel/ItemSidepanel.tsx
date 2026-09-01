@@ -861,6 +861,10 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
         </div>
       </div>
 
+      {/* Metrics + AI summary — placed above the (often long/empty) description editor
+          so they're visible without scrolling past it. */}
+      <ObjectiveMetricsAndSummary objectiveId={itemId} objectiveTitle={title || "Untitled objective"} />
+
       {/* Description */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>Description</label>
@@ -870,8 +874,6 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
           onAddAttachment={(att) => void handleAddAttachment(att)}
         />
       </div>
-
-      <ObjectiveMetricsAndSummary objectiveId={itemId} objectiveTitle={title || "Untitled objective"} />
 
       {/* Attachments preview */}
       {attachments.length > 0 && (
@@ -1124,13 +1126,10 @@ function NoteContent({ itemId }: { itemId: string }) {
   }
 
   // Tasks: the fullscreen "About this task" tab is now the canonical place
-  // to edit title/body/tags — this sidepanel is a quick-glance view, so it
-  // shows an AI-generated summary (About body + linked proof notes) instead
-  // of a second full editable copy of the same body field.
-  if (noteRow.note_type === "task") {
-    return <TaskAiSummary noteRow={noteRow} user={user!} />;
-  }
-
+  // to edit the body — this sidepanel is a quick-glance view, so the body
+  // field is replaced with an AI-generated summary (About body + linked proof
+  // notes). Title and the meta accordion stay exactly as they are for every
+  // other note type.
   return (
     <NoteEditor
       editing={{ mode: "edit", note: noteRow }}
@@ -1142,6 +1141,11 @@ function NoteContent({ itemId }: { itemId: string }) {
       onCancel={() => {}}
       onArchive={handleArchive}
       embedded
+      renderBody={
+        noteRow.note_type === "task"
+          ? () => <TaskAiSummary noteRow={noteRow} user={user!} />
+          : undefined
+      }
     />
   );
 }
