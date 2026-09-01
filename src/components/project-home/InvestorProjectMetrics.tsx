@@ -60,8 +60,9 @@ export function InvestorProjectMetrics({
       </div>
 
       <Link
-        to="/project/$projectId_/project-dashboard"
+        to="/project/$projectId"
         params={{ projectId }}
+        search={{ tab: "dashboard" }}
         style={{
           display: "inline-flex",
           alignItems: "center",
