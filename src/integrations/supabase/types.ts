@@ -3933,6 +3933,7 @@ export type Database = {
           body_html: string
           body_markdown: string
           body_text: string
+          completed_at: string | null
           created_at: string
           detail: Json
           done: boolean
@@ -3956,6 +3957,7 @@ export type Database = {
           body_html?: string
           body_markdown?: string
           body_text?: string
+          completed_at?: string | null
           created_at?: string
           detail?: Json
           done?: boolean
@@ -3979,6 +3981,7 @@ export type Database = {
           body_html?: string
           body_markdown?: string
           body_text?: string
+          completed_at?: string | null
           created_at?: string
           detail?: Json
           done?: boolean
@@ -4261,6 +4264,75 @@ export type Database = {
           },
           {
             foreignKeyName: "objective_completion_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_metrics_daily: {
+        Row: {
+          attachment_count_avg: number | null
+          attachment_count_total: number
+          char_count_avg: number | null
+          char_count_total: number
+          created_at: string
+          id: string
+          linked_item_count_avg: number | null
+          linked_item_count_total: number
+          objective_id: string
+          snapshot_date: string
+          tasks_completed: number
+          tasks_total: number
+          tenant_id: string
+          word_count_avg: number | null
+          word_count_total: number
+        }
+        Insert: {
+          attachment_count_avg?: number | null
+          attachment_count_total?: number
+          char_count_avg?: number | null
+          char_count_total?: number
+          created_at?: string
+          id?: string
+          linked_item_count_avg?: number | null
+          linked_item_count_total?: number
+          objective_id: string
+          snapshot_date: string
+          tasks_completed?: number
+          tasks_total?: number
+          tenant_id: string
+          word_count_avg?: number | null
+          word_count_total?: number
+        }
+        Update: {
+          attachment_count_avg?: number | null
+          attachment_count_total?: number
+          char_count_avg?: number | null
+          char_count_total?: number
+          created_at?: string
+          id?: string
+          linked_item_count_avg?: number | null
+          linked_item_count_total?: number
+          objective_id?: string
+          snapshot_date?: string
+          tasks_completed?: number
+          tasks_total?: number
+          tenant_id?: string
+          word_count_avg?: number | null
+          word_count_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_metrics_daily_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_metrics_daily_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5242,6 +5314,75 @@ export type Database = {
           },
         ]
       }
+      project_metrics_daily: {
+        Row: {
+          attachment_count_avg_per_objective: number | null
+          attachment_count_total: number
+          created_at: string
+          id: string
+          linked_item_count_avg_per_objective: number | null
+          linked_item_count_total: number
+          objectives_completed: number
+          objectives_total: number
+          project_id: string
+          snapshot_date: string
+          tasks_avg_per_objective: number | null
+          tasks_completed_avg_per_objective: number | null
+          tasks_completed_total: number
+          tasks_total: number
+          tenant_id: string
+        }
+        Insert: {
+          attachment_count_avg_per_objective?: number | null
+          attachment_count_total?: number
+          created_at?: string
+          id?: string
+          linked_item_count_avg_per_objective?: number | null
+          linked_item_count_total?: number
+          objectives_completed?: number
+          objectives_total?: number
+          project_id: string
+          snapshot_date: string
+          tasks_avg_per_objective?: number | null
+          tasks_completed_avg_per_objective?: number | null
+          tasks_completed_total?: number
+          tasks_total?: number
+          tenant_id: string
+        }
+        Update: {
+          attachment_count_avg_per_objective?: number | null
+          attachment_count_total?: number
+          created_at?: string
+          id?: string
+          linked_item_count_avg_per_objective?: number | null
+          linked_item_count_total?: number
+          objectives_completed?: number
+          objectives_total?: number
+          project_id?: string
+          snapshot_date?: string
+          tasks_avg_per_objective?: number | null
+          tasks_completed_avg_per_objective?: number | null
+          tasks_completed_total?: number
+          tasks_total?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_metrics_daily_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_metrics_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_notes: {
         Row: {
           created_at: string
@@ -6113,6 +6254,79 @@ export type Database = {
           },
           {
             foreignKeyName: "task_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_metrics_daily: {
+        Row: {
+          attachment_count: number
+          char_count: number
+          completed_at: string | null
+          created_at: string
+          days_to_complete: number | null
+          deadline: string | null
+          id: string
+          linked_item_count: number
+          objective_id: string | null
+          snapshot_date: string
+          status: string | null
+          task_note_id: string
+          tenant_id: string
+          word_count: number
+        }
+        Insert: {
+          attachment_count?: number
+          char_count?: number
+          completed_at?: string | null
+          created_at?: string
+          days_to_complete?: number | null
+          deadline?: string | null
+          id?: string
+          linked_item_count?: number
+          objective_id?: string | null
+          snapshot_date: string
+          status?: string | null
+          task_note_id: string
+          tenant_id: string
+          word_count?: number
+        }
+        Update: {
+          attachment_count?: number
+          char_count?: number
+          completed_at?: string | null
+          created_at?: string
+          days_to_complete?: number | null
+          deadline?: string | null
+          id?: string
+          linked_item_count?: number
+          objective_id?: string | null
+          snapshot_date?: string
+          status?: string | null
+          task_note_id?: string
+          tenant_id?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_metrics_daily_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_metrics_daily_task_note_id_fkey"
+            columns: ["task_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_metrics_daily_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7087,6 +7301,39 @@ export type Database = {
         Args: { p_objective_id: string }
         Returns: Json
       }
+      convert_note_to_proof: {
+        Args: { p_note_id: string; p_task_note_id: string }
+        Returns: {
+          body_html: string
+          body_markdown: string
+          body_text: string
+          completed_at: string | null
+          created_at: string
+          detail: Json
+          done: boolean
+          end_date: string | null
+          id: string
+          is_restricted: boolean
+          note_type: string
+          owner_central_id: string
+          preferred_external_container_id: string | null
+          price_credits: number
+          start_date: string | null
+          status: string | null
+          tags: string[]
+          tenant_id: string
+          title: string
+          updated_at: string
+          visibility: string
+          visibility_scope: Database["public"]["Enums"]["visibility_scope"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_objective: {
         Args: {
           p_category?: string
@@ -7473,6 +7720,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      snapshot_metrics_daily: {
+        Args: { p_snapshot_date?: string }
+        Returns: undefined
+      }
       tenant_role_rank: { Args: { _role: string }; Returns: number }
       toggle_task_done: {
         Args: { p_done: boolean; p_task_note_id: string }
@@ -7480,6 +7731,7 @@ export type Database = {
           body_html: string
           body_markdown: string
           body_text: string
+          completed_at: string | null
           created_at: string
           detail: Json
           done: boolean
@@ -7491,6 +7743,7 @@ export type Database = {
           preferred_external_container_id: string | null
           price_credits: number
           start_date: string | null
+          status: string | null
           tags: string[]
           tenant_id: string
           title: string
@@ -7558,13 +7811,15 @@ export type Database = {
           p_detail?: Json
           p_note_id?: string
           p_note_type?: string
-          p_objective_id: string
+          p_objective_id?: string
+          p_proof_of_note_id?: string
           p_title?: string
         }
         Returns: {
           body_html: string
           body_markdown: string
           body_text: string
+          completed_at: string | null
           created_at: string
           detail: Json
           done: boolean
@@ -7576,6 +7831,7 @@ export type Database = {
           preferred_external_container_id: string | null
           price_credits: number
           start_date: string | null
+          status: string | null
           tags: string[]
           tenant_id: string
           title: string
