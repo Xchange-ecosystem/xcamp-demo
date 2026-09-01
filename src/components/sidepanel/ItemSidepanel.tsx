@@ -957,7 +957,6 @@ function ObjectiveMetricsAndSummary({
         objectiveId,
         objectiveTitle,
         taskSummaries,
-        mode: "per-task",
         altitude,
       });
       setSummary(text);

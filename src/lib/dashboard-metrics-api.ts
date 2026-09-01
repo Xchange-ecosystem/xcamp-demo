@@ -156,10 +156,10 @@ export async function fetchObjectiveSidepanelMetrics(
 
 /**
  * One summary-input entry per task under the objective, for the objective
- * AI summary's 'per-task' mode: prefers each task's already-generated
- * sidepanel summary (`notes.detail.aiSummary`, see ai-summary.ts /
- * TaskAiSummary) and falls back to a truncated raw body when a task hasn't
- * had one generated yet, so the aggregate never silently skips a task.
+ * AI summary: prefers each task's already-generated sidepanel summary
+ * (`notes.detail.aiSummary`, see ai-summary.ts / TaskAiSummary) and falls
+ * back to a truncated raw body when a task hasn't had one generated yet, so
+ * the aggregate never silently skips a task.
  */
 export async function fetchObjectiveTaskSummaryInputs(
   objectiveId: string,

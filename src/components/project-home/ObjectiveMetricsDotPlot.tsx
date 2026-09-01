@@ -12,11 +12,10 @@ import {
 // is fundamentally a 1D strip (one metric, one dimension); a row-per-objective
 // track reads more clearly than forcing a categorical Y onto a scatter chart.
 //
-// Default metric is "Task count" — task_total is the one field guaranteed
-// present on every snapshot row with no divide-by-zero derived math, unlike
-// Completion % which needs a task count to mean anything. This default is a
-// judgment call, not a confirmed one — flagging per the brief for Fabian to
-// pick a different default if task count isn't the most useful one.
+// Fabian-confirmed: full switcher across all four metrics in
+// OBJECTIVE_DOT_METRICS, defaulting to "Task count" — it's the one metric
+// with real spread in the data today; completions and proof notes are still
+// near-zero and would render as flat lines until usage picks up.
 const DEFAULT_METRIC: ObjectiveDotMetricKey = "tasksTotal";
 
 export function ObjectiveMetricsDotPlot({

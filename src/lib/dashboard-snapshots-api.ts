@@ -87,6 +87,9 @@ export async function fetchProjectSnapshotBounds(
 export interface ObjectiveMetricsSnapshot {
   objectiveId: string;
   objectiveTitle: string;
+  dimension: string | null;
+  category: string | null;
+  status: string | null;
   snapshotDate: string;
   tasksTotal: number;
   tasksCompleted: number;
@@ -100,14 +103,18 @@ export interface ObjectiveMetricsSnapshot {
   linkedItemCountAvg: number;
 }
 
+// Fabian-confirmed switcher (CC follow-up to PR #130): all four of these are
+// selectable, defaulting to task count — it's the one metric with real
+// spread in the data today; completions/proof are still near-zero and would
+// render as flat lines until usage picks up. Word/proof/linked-item counts
+// use the per-task average rather than the objective total: the total
+// mostly just re-expresses task count (more tasks -> more words/attachments/
+// links), while the average is the more distinct per-objective signal.
 export const OBJECTIVE_DOT_METRICS = [
   { key: "tasksTotal", label: "Task count" },
-  { key: "tasksCompleted", label: "Tasks completed" },
-  { key: "completionPct", label: "Completion %" },
-  { key: "wordCountTotal", label: "Word count" },
-  { key: "charCountTotal", label: "Char count" },
-  { key: "attachmentCountTotal", label: "Proof attachments" },
-  { key: "linkedItemCountTotal", label: "Linked items" },
+  { key: "wordCountAvg", label: "Word count (avg/task)" },
+  { key: "attachmentCountAvg", label: "Proof attachments (avg/task)" },
+  { key: "linkedItemCountAvg", label: "Linked items (avg/task)" },
 ] as const;
 export type ObjectiveDotMetricKey = (typeof OBJECTIVE_DOT_METRICS)[number]["key"];
 
@@ -115,8 +122,6 @@ export function objectiveDotMetricValue(
   s: ObjectiveMetricsSnapshot,
   key: ObjectiveDotMetricKey,
 ): number {
-  if (key === "completionPct")
-    return s.tasksTotal > 0 ? (s.tasksCompleted / s.tasksTotal) * 100 : 0;
   return s[key];
 }
 
@@ -134,14 +139,22 @@ export async function fetchObjectiveMetricsSnapshot(
 ): Promise<ObjectiveMetricsSnapshot[]> {
   const { data: objectives, error: objErr } = await supabase
     .from("objectives")
-    .select("id, title")
+    .select("id, title, dimension, category, status")
     .eq("project_id", projectId)
     .eq("tenant_id", user.tenantId);
   if (objErr) throw objErr;
   if (!objectives?.length) return [];
 
-  const titleById = new Map(
-    objectives.map((o) => [o.id as string, (o.title as string) || "Untitled objective"]),
+  const metaById = new Map(
+    objectives.map((o) => [
+      o.id as string,
+      {
+        title: (o.title as string) || "Untitled objective",
+        dimension: (o.dimension as string | null) ?? null,
+        category: (o.category as string | null) ?? null,
+        status: (o.status as string | null) ?? null,
+      },
+    ]),
   );
   const objectiveIds = objectives.map((o) => o.id as string);
 
@@ -160,9 +173,13 @@ export async function fetchObjectiveMetricsSnapshot(
   const latestByObjective = new Map<string, ObjectiveMetricsSnapshot>();
   for (const r of data ?? []) {
     const objectiveId = r.objective_id as string;
+    const meta = metaById.get(objectiveId);
     latestByObjective.set(objectiveId, {
       objectiveId,
-      objectiveTitle: titleById.get(objectiveId) ?? "Untitled objective",
+      objectiveTitle: meta?.title ?? "Untitled objective",
+      dimension: meta?.dimension ?? null,
+      category: meta?.category ?? null,
+      status: meta?.status ?? null,
       snapshotDate: r.snapshot_date as string,
       tasksTotal: (r.tasks_total as number) ?? 0,
       tasksCompleted: (r.tasks_completed as number) ?? 0,
@@ -178,4 +195,90 @@ export async function fetchObjectiveMetricsSnapshot(
   }
 
   return [...latestByObjective.values()];
+}
+
+/**
+ * Timeline rows re-aggregated from per-objective daily snapshots, scoped to
+ * a filtered set of objective ids (Decision 2: dimension/category/status
+ * filters apply to the timeline too, not just the dot plot). `project_metrics_daily`
+ * has no per-objective breakdown to filter by, so when a filter is active we
+ * roll this up client-side from `objective_metrics_daily` instead of reading
+ * the pre-aggregated table. Unfiltered, `fetchProjectMetricsTimeline` above
+ * is used instead — it's the real backend-computed aggregate and cheaper.
+ *
+ * `objectivesCompleted` here uses each objective's *current* status (there's
+ * no daily-versioned status to read) — the same simplification
+ * `fetchProjectDashboardMetrics` already makes for the non-timeline totals.
+ * Per-objective averages divide by the count of filtered objectives that
+ * have a row on that date, consistent with this file's "absent row is not a
+ * zero" rule.
+ */
+export async function fetchFilteredObjectiveMetricsTimeline(
+  user: XcampUser,
+  objectives: { id: string; status: string | null }[],
+  range: { from: string; to: string },
+): Promise<ProjectMetricsSnapshot[]> {
+  const objectiveIds = objectives.map((o) => o.id);
+  if (!objectiveIds.length) return [];
+  const completedById = new Map(objectives.map((o) => [o.id, o.status === "completed"]));
+
+  const { data, error } = await supabase
+    .from("objective_metrics_daily")
+    .select(
+      "objective_id, snapshot_date, tasks_total, tasks_completed, attachment_count_total, linked_item_count_total",
+    )
+    .in("objective_id", objectiveIds)
+    .eq("tenant_id", user.tenantId)
+    .gte("snapshot_date", range.from)
+    .lte("snapshot_date", range.to)
+    .order("snapshot_date", { ascending: true });
+  if (error) throw error;
+
+  interface Accum {
+    objectiveIds: Set<string>;
+    objectivesCompleted: number;
+    tasksTotal: number;
+    tasksCompletedTotal: number;
+    attachmentCountTotal: number;
+    linkedItemCountTotal: number;
+  }
+  const byDate = new Map<string, Accum>();
+  for (const r of data ?? []) {
+    const date = r.snapshot_date as string;
+    const objectiveId = r.objective_id as string;
+    const acc = byDate.get(date) ?? {
+      objectiveIds: new Set<string>(),
+      objectivesCompleted: 0,
+      tasksTotal: 0,
+      tasksCompletedTotal: 0,
+      attachmentCountTotal: 0,
+      linkedItemCountTotal: 0,
+    };
+    acc.objectiveIds.add(objectiveId);
+    if (completedById.get(objectiveId)) acc.objectivesCompleted += 1;
+    acc.tasksTotal += (r.tasks_total as number) ?? 0;
+    acc.tasksCompletedTotal += (r.tasks_completed as number) ?? 0;
+    acc.attachmentCountTotal += (r.attachment_count_total as number) ?? 0;
+    acc.linkedItemCountTotal += (r.linked_item_count_total as number) ?? 0;
+    byDate.set(date, acc);
+  }
+
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([snapshotDate, acc]) => {
+      const n = acc.objectiveIds.size || 1;
+      return {
+        snapshotDate,
+        objectivesTotal: acc.objectiveIds.size,
+        objectivesCompleted: acc.objectivesCompleted,
+        tasksTotal: acc.tasksTotal,
+        tasksAvgPerObjective: acc.tasksTotal / n,
+        tasksCompletedTotal: acc.tasksCompletedTotal,
+        tasksCompletedAvgPerObjective: acc.tasksCompletedTotal / n,
+        attachmentCountTotal: acc.attachmentCountTotal,
+        attachmentCountAvgPerObjective: acc.attachmentCountTotal / n,
+        linkedItemCountTotal: acc.linkedItemCountTotal,
+        linkedItemCountAvgPerObjective: acc.linkedItemCountTotal / n,
+      };
+    });
 }

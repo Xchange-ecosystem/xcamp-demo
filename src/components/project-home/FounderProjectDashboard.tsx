@@ -1,16 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { fetchProjectDashboardMetrics } from "@/lib/dashboard-metrics-api";
 import {
+  fetchFilteredObjectiveMetricsTimeline,
   fetchObjectiveMetricsSnapshot,
   fetchProjectMetricsTimeline,
   fetchProjectSnapshotBounds,
 } from "@/lib/dashboard-snapshots-api";
+import {
+  EMPTY_OBJECTIVE_FILTER,
+  fetchProjectObjectivesMeta,
+  isFilterActive,
+  objectiveMatchesFilter,
+  type ObjectiveFilterState,
+} from "@/lib/objective-filters";
 import { MetricCard, StatRow, fmt } from "@/components/project-home/MetricPrimitives";
 import { ProjectMetricsTimeline } from "@/components/project-home/ProjectMetricsTimeline";
 import { ObjectiveMetricsDotPlot } from "@/components/project-home/ObjectiveMetricsDotPlot";
+import { ObjectiveFiltersBar } from "@/components/project-home/ObjectiveFiltersBar";
 
 // Founder-facing "Dashboard" tab on project details. Numbers over charts for
 // the headline totals — per the brief, simple counts read better as numbers
@@ -19,6 +28,10 @@ import { ObjectiveMetricsDotPlot } from "@/components/project-home/ObjectiveMetr
 // (verified directly against the DB — see dashboard-snapshots-api.ts for why
 // the previous session's "tables don't exist" finding was wrong: it checked
 // committed migrations rather than the live schema).
+//
+// Dimension/category/status filters (Decision 2, CC follow-up to PR #130)
+// combine with the date range as AND and apply to both the timeline and the
+// dot plot.
 export function FounderProjectDashboard({ projectId }: { projectId: string }) {
   const { user } = useAuth();
 
@@ -34,9 +47,14 @@ export function FounderProjectDashboard({ projectId }: { projectId: string }) {
     enabled: !!user,
   });
 
-  // Date-range filter — the baseline per the brief; anything beyond date
-  // range (objective/tag/status) is explicitly left for Fabian to confirm,
-  // not added here.
+  const { data: objectivesMeta = [] } = useQuery({
+    queryKey: ["project-objectives-meta", projectId],
+    queryFn: () => fetchProjectObjectivesMeta(user!, projectId),
+    enabled: !!user,
+  });
+
+  // Date range — the baseline filter — plus dimension/category/status
+  // (Decision 2), combined as AND.
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
   useEffect(() => {
@@ -46,19 +64,48 @@ export function FounderProjectDashboard({ projectId }: { projectId: string }) {
     }
   }, [bounds, fromDate, toDate]);
 
+  const [filter, setFilter] = useState<ObjectiveFilterState>(EMPTY_OBJECTIVE_FILTER);
+  const filterActive = isFilterActive(filter);
+
   const range = fromDate && toDate ? { from: fromDate, to: toDate } : null;
 
-  const { data: timeline = [], isLoading: timelineLoading } = useQuery({
+  const filteredObjectives = useMemo(
+    () => objectivesMeta.filter((o) => objectiveMatchesFilter(o, filter)),
+    [objectivesMeta, filter],
+  );
+  const filteredObjectiveIds = useMemo(
+    () => filteredObjectives.map((o) => o.id),
+    [filteredObjectives],
+  );
+
+  const { data: unfilteredTimeline = [], isLoading: unfilteredTimelineLoading } = useQuery({
     queryKey: ["project-metrics-timeline", projectId, range?.from, range?.to],
     queryFn: () => fetchProjectMetricsTimeline(user!, projectId, range!),
-    enabled: !!user && !!range,
+    enabled: !!user && !!range && !filterActive,
   });
+  const { data: filteredTimeline = [], isLoading: filteredTimelineLoading } = useQuery({
+    queryKey: [
+      "project-metrics-timeline-filtered",
+      projectId,
+      range?.from,
+      range?.to,
+      filteredObjectiveIds,
+    ],
+    queryFn: () => fetchFilteredObjectiveMetricsTimeline(user!, filteredObjectives, range!),
+    enabled: !!user && !!range && filterActive,
+  });
+  const timeline = filterActive ? filteredTimeline : unfilteredTimeline;
+  const timelineLoading = filterActive ? filteredTimelineLoading : unfilteredTimelineLoading;
 
   const { data: objectiveSnapshots = [], isLoading: dotPlotLoading } = useQuery({
     queryKey: ["objective-metrics-snapshot", projectId, range?.to],
     queryFn: () => fetchObjectiveMetricsSnapshot(user!, projectId, range!.to),
     enabled: !!user && !!range,
   });
+  const filteredObjectiveSnapshots = useMemo(
+    () => objectiveSnapshots.filter((s) => objectiveMatchesFilter(s, filter)),
+    [objectiveSnapshots, filter],
+  );
 
   if (isLoading || !metrics) {
     return (
@@ -106,29 +153,33 @@ export function FounderProjectDashboard({ projectId }: { projectId: string }) {
         </MetricCard>
       </div>
 
-      {/* Date-range filter, shared by the timeline and the dot plot (the dot
-          plot uses the range's end date as its "as of" snapshot). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <label style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>From</label>
-        <input
-          type="date"
-          className="x-input"
-          value={fromDate ?? ""}
-          min={bounds?.min}
-          max={toDate ?? bounds?.max}
-          onChange={(e) => setFromDate(e.target.value)}
-          style={{ fontSize: 12, padding: "4px 8px" }}
-        />
-        <label style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>To</label>
-        <input
-          type="date"
-          className="x-input"
-          value={toDate ?? ""}
-          min={fromDate ?? bounds?.min}
-          max={bounds?.max}
-          onChange={(e) => setToDate(e.target.value)}
-          style={{ fontSize: 12, padding: "4px 8px" }}
-        />
+      {/* Date-range + dimension/category/status filters, shared by the
+          timeline and the dot plot (AND'd together; the dot plot uses the
+          range's end date as its "as of" snapshot). */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <label style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>From</label>
+          <input
+            type="date"
+            className="x-input"
+            value={fromDate ?? ""}
+            min={bounds?.min}
+            max={toDate ?? bounds?.max}
+            onChange={(e) => setFromDate(e.target.value)}
+            style={{ fontSize: 12, padding: "4px 8px" }}
+          />
+          <label style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>To</label>
+          <input
+            type="date"
+            className="x-input"
+            value={toDate ?? ""}
+            min={fromDate ?? bounds?.min}
+            max={bounds?.max}
+            onChange={(e) => setToDate(e.target.value)}
+            style={{ fontSize: 12, padding: "4px 8px" }}
+          />
+        </div>
+        <ObjectiveFiltersBar objectives={objectivesMeta} filter={filter} onChange={setFilter} />
       </div>
 
       {!bounds ? (
@@ -160,8 +211,8 @@ export function FounderProjectDashboard({ projectId }: { projectId: string }) {
               />
             ) : (
               <ObjectiveMetricsDotPlot
-                snapshots={objectiveSnapshots}
-                objectivesTotal={metrics.objectivesTotal}
+                snapshots={filteredObjectiveSnapshots}
+                objectivesTotal={filteredObjectives.length}
               />
             )}
           </div>

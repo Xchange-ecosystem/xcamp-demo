@@ -81,26 +81,25 @@ export async function generateTaskSummary(
 export interface ObjectiveSummaryInput {
   objectiveId: string;
   objectiveTitle: string;
-  /** One entry per task under the objective — either the task's own combined
-   * (About + proof notes) summary, or its raw text, per `mode`. */
+  /** One entry per task under the objective — the task's own already-generated
+   * summary (`notes.detail.aiSummary`), falling back to its raw text when a
+   * task hasn't had one generated yet (see fetchObjectiveTaskSummaryInputs). */
   taskSummaries: { title: string; text: string }[];
-  /** 'per-task' summarizes each task's already-generated summary (cheaper,
-   * and per the brief likely more coherent at scale) vs 'raw' which
-   * concatenates full About+Do&Document text. Defaulting to 'per-task' —
-   * flagged for Fabian to confirm rather than silently assumed final. */
-  mode: "per-task" | "raw";
   altitude: Altitude;
   persona?: AIPersona;
 }
 
+// Fabian-confirmed (CC follow-up to PR #130): summarize each task
+// individually first, then combine those per-task summaries into the
+// objective-level summary — cheaper than re-concatenating every task's full
+// raw text into one prompt, and avoids that prompt swallowing the objective's
+// entire raw markdown as it grows.
 /** Objective sidepanel — aggregates across the objective's tasks. */
 export async function generateObjectiveSummary(
   user: XcampUser,
   input: ObjectiveSummaryInput,
 ): Promise<string> {
-  const lines = input.taskSummaries.map(
-    (t) => `- ${t.title}: ${truncate(t.text, input.mode === "raw" ? 800 : 300)}`,
-  );
+  const lines = input.taskSummaries.map((t) => `- ${t.title}: ${truncate(t.text, 300)}`);
 
   const message = [
     `Write a concise 3-5 sentence summary of progress and deliverables across this objective's tasks, for a quick-glance side panel. Plain prose, no headings or bullet points in your reply.`,
