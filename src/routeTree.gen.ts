@@ -16,6 +16,7 @@ import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
+import { Route as InvestorPortfolioRouteImport } from './routes/investor-portfolio'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as FounderRouteImport } from './routes/founder'
 import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
@@ -69,6 +70,11 @@ const NavigatorRoute = NavigatorRouteImport.update({
 const JournalRoute = JournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvestorPortfolioRoute = InvestorPortfolioRouteImport.update({
+  id: '/investor-portfolio',
+  path: '/investor-portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/founder': typeof FounderRouteWithChildren
   '/home': typeof HomeRoute
+  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
+  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/founder': typeof FounderRouteWithChildren
   '/home': typeof HomeRoute
+  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/ecosystem-navigator'
     | '/founder'
     | '/home'
+    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
     | '/home'
+    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/ecosystem-navigator'
     | '/founder'
     | '/home'
+    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -344,6 +356,7 @@ export interface RootRouteChildren {
   EcosystemNavigatorRoute: typeof EcosystemNavigatorRoute
   FounderRoute: typeof FounderRouteWithChildren
   HomeRoute: typeof HomeRoute
+  InvestorPortfolioRoute: typeof InvestorPortfolioRoute
   JournalRoute: typeof JournalRoute
   NavigatorRoute: typeof NavigatorRoute
   NotesRoute: typeof NotesRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/investor-portfolio': {
+      id: '/investor-portfolio'
+      path: '/investor-portfolio'
+      fullPath: '/investor-portfolio'
+      preLoaderRoute: typeof InvestorPortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   EcosystemNavigatorRoute: EcosystemNavigatorRoute,
   FounderRoute: FounderRouteWithChildren,
   HomeRoute: HomeRoute,
+  InvestorPortfolioRoute: InvestorPortfolioRoute,
   JournalRoute: JournalRoute,
   NavigatorRoute: NavigatorRoute,
   NotesRoute: NotesRoute,
