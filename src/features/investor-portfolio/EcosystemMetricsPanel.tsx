@@ -27,7 +27,7 @@ export function EcosystemMetricsPanel() {
           <StatRow big={String(m.totalProjects)} small={`${m.activeProjects} active`} />
         </MetricCard>
         <MetricCard label="People">
-          <StatRow big={String(m.totalPeople)} small="founders & collaborators" />
+          <StatRow big={String(m.totalPeople)} small="across the ecosystem" />
         </MetricCard>
         <MetricCard label="Objectives">
           <StatRow

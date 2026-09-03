@@ -6,6 +6,23 @@ import { RankedPortfolioBars } from "./RankedPortfolioBars";
 import { ProjectSelectorStrip } from "./ProjectSelectorStrip";
 import { EcosystemMetricsPanel } from "./EcosystemMetricsPanel";
 
+// Below this width the 316px metrics aside plus the main column no longer
+// both fit without the main column's content overlapping it, so the aside
+// drops below the main column instead of sitting beside it.
+const LAYOUT_STYLE = `
+  .investor-portfolio-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 316px;
+    gap: 30px;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .investor-portfolio-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
+
 // P1.2 — Investor/Operator Portfolio screen. Composes the four parts of the
 // session brief: the ranked bar list and the selector strip share one
 // `selectedProjectId` so either can drive the filter that Part 3's feed
@@ -33,15 +50,8 @@ export function InvestorPortfolioScreen() {
         background: "var(--skin-bg)",
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) 316px",
-          gap: 30,
-          padding: "28px 32px 60px",
-          alignItems: "start",
-        }}
-      >
+      <style>{LAYOUT_STYLE}</style>
+      <div className="investor-portfolio-cols" style={{ padding: "28px 32px 60px" }}>
         <section>
           <RankedPortfolioBars
             selectedProjectId={selectedProjectId}
