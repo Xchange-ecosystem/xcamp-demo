@@ -3,6 +3,7 @@ set -euo pipefail
 
 readonly PREFIX="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/pw-sysdeps"
 readonly PROBE_LOG="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/playwright-launch-probe.log"
+readonly APT_LISTS="$PREFIX/apt-lists"
 BROWSER_PATH=""
 INSPECT_PATH=""
 PACKAGE_MANAGER="unknown"
@@ -185,6 +186,20 @@ detect_package_manager() {
   fi
 }
 
+prepare_package_manager() {
+  if [[ "$PACKAGE_MANAGER" != "apt" ]]; then
+    return 0
+  fi
+
+  mkdir -p "$APT_LISTS/partial"
+  if find "$APT_LISTS" -type f -name '*Packages*' -print -quit | grep -q .; then
+    return 0
+  fi
+
+  log "Refreshing apt package metadata in the userspace prefix."
+  apt-get -o "Dir::State::lists=$APT_LISTS" update
+}
+
 resolve_packages() {
   local library alternatives candidate
   local -a resolved=()
@@ -193,13 +208,15 @@ resolve_packages() {
     [[ -n "$alternatives" ]] || continue
     IFS='|' read -r -a candidates <<<"$alternatives"
     for candidate in "${candidates[@]}"; do
-      if [[ "$PACKAGE_MANAGER" != "apt" ]] || apt-cache show "$candidate" >/dev/null 2>&1; then
+      if [[ "$PACKAGE_MANAGER" != "apt" ]] || apt-cache -o "Dir::State::lists=$APT_LISTS" show "$candidate" >/dev/null 2>&1; then
         resolved+=("$candidate")
         break
       fi
     done
   done
-  printf '%s\n' "${resolved[@]}" | sort -u
+  if ((${#resolved[@]})); then
+    printf '%s\n' "${resolved[@]}" | sort -u
+  fi
 }
 
 download_and_extract() {
@@ -211,7 +228,7 @@ download_and_extract() {
 
   case "$PACKAGE_MANAGER" in
     apt)
-      (cd "$downloads" && apt-get download "${packages[@]}")
+      (cd "$downloads" && apt-get -o "Dir::State::lists=$APT_LISTS" download "${packages[@]}")
       find "$downloads" -type f -name '*.deb' -print0 | while IFS= read -r -d '' archive; do
         dpkg-deb -x "$archive" "$destination/root"
       done
@@ -296,6 +313,9 @@ fi
 if [[ "${PW_DEPS_DISABLE_USERSPACE:-0}" != "1" ]] && [[ "$PACKAGE_MANAGER" != "unknown" ]] && ((${#initial_missing[@]})); then
   rm -rf "$set_dir"
   mkdir -p "$set_dir"
+  if ! prepare_package_manager; then
+    log "Could not prepare $PACKAGE_MANAGER metadata for no-root downloads."
+  fi
   current_missing=("${initial_missing[@]}")
   for round in 1 2 3; do
     mapfile -t packages < <(resolve_packages "${current_missing[@]}")
