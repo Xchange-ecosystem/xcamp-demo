@@ -12,16 +12,16 @@ Vercel Git integration is the default deployment authority. Keep `ENABLE_VERCEL_
 
 CI distinguishes regressions from debt that already exists on `main`:
 
-| Check                                           | Policy today              | Enforcement                                                                                |
-| ----------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| Repository guards                               | Hard gate                 | Any violation fails `guards`.                                                              |
-| Production build and generated route-tree drift | Hard gate                 | Any failure fails `verify` (`Build`).                                                      |
-| Playwright E2E                                  | Hard gate                 | Any failure fails `e2e`.                                                                   |
-| Security scans and dependency/action policy     | Hard gates                | Any failure fails its Security workflow job; findings are not suppressed.                  |
-| Prettier                                        | Soft report, hard ratchet | The report step may fail, but more than **165 unformatted files** fails the final ratchet. |
-| ESLint errors                                   | Soft report, hard ratchet | The report step may fail, but more than **10,819 errors** fails the final ratchet.         |
-| ESLint warnings                                 | Soft report, hard ratchet | More than **44 warnings** fails the final ratchet.                                         |
-| TypeScript                                      | Soft report, hard ratchet | The report step may fail, but more than **14 errors** fails the final ratchet.             |
+| Check                                           | Policy today               | Enforcement                                                                                                   |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Repository guards                               | Hard gate                  | Any violation fails `guards`.                                                                                 |
+| Production build and generated route-tree drift | Hard gate                  | Any failure fails `verify` (`Build`).                                                                         |
+| Playwright E2E                                  | Hard known-failure ratchet | New failures, changed signatures, recovered allowlisted tests, missing tests, and overdue reviews fail `e2e`. |
+| Security scans and dependency/action policy     | Hard gates                 | Any failure fails its Security workflow job; findings are not suppressed.                                     |
+| Prettier                                        | Soft report, hard ratchet  | The report step may fail, but more than **165 unformatted files** fails the final ratchet.                    |
+| ESLint errors                                   | Soft report, hard ratchet  | The report step may fail, but more than **10,819 errors** fails the final ratchet.                            |
+| ESLint warnings                                 | Soft report, hard ratchet  | More than **44 warnings** fails the final ratchet.                                                            |
+| TypeScript                                      | Soft report, hard ratchet  | The report step may fail, but more than **14 errors** fails the final ratchet.                                |
 
 The exact baselines live in `.github/quality-baseline.json`; `.github/scripts/quality-ratchet.sh` measures current results using Prettier check output, ESLint's JSON formatter, and `tsc --noEmit`. Existing debt is visible in separate `quality` steps, while the final ratchet step is blocking. Debt may shrink, never grow.
 
@@ -32,6 +32,21 @@ When a count reaches zero, promote that gate to hard:
 1. In `.github/workflows/ci.yml`, find the matching `Report formatting debt`, `Report lint debt`, or `Report TypeScript debt` step under `jobs.quality` and remove `continue-on-error: true`.
 2. Remove that metric from `.github/quality-baseline.json` and from the baseline parsing, row construction, and comparison logic in `.github/scripts/quality-ratchet.sh`. ESLint errors and warnings share one command; promote the lint step only when both are zero.
 3. Update this table, run the workflow checks locally, and keep `quality` in the `ci-ok` dependency/result assertions.
+
+### E2E known-failures ratchet
+
+`.github/e2e-known-failures.txt` records the exact Playwright identity (`file` plus full test title), expected error signature, date added, 90-day `REVIEW-BY` deadline, and whether the failure is `ALWAYS-FAILS` or `FLAKY`. This is not a skip list: Playwright still runs every test and writes JUnit to `playwright-report/results.xml`. The blocking `.github/scripts/e2e-gate.sh` then requires the observed failure set and signatures to exactly match the checked-in list.
+
+The list may **only shrink**. Never add or update an entry merely to make CI pass. A new failure or changed signature is a regression and must be fixed. When an allowlisted test passes, the gate prints the exact line to delete; remove that line in the same PR that fixes the test. A `FLAKY` entry is tracked debt to fix, not tolerated nondeterminism: any passing run also forces its removal. Every entry must be reviewed by its deadline or the gate fails.
+
+Run the ratchet locally after a full E2E run:
+
+```bash
+CI=1 bun run test:e2e || true
+bash .github/scripts/e2e-gate.sh
+```
+
+The first command is allowed to return non-zero only so the blocking second command can inspect its real JUnit report. Do not use the Playwright exit code alone while known failures remain.
 
 ## Self-hosted runner requirements
 
