@@ -1,0 +1,71 @@
+import type { Objective, Task } from "./types";
+
+// 2 objectives per project (16 total), 2-3 tasks each (~38 total) — enough
+// for the Founder action-item feed and Collaborator assignment feed to
+// pull from a real spread of projects rather than one or two.
+export const OBJECTIVES: Objective[] = [
+  { id: "obj-1", projectId: "proj-1", title: "Ship v2 microgrid controller", description: "Redesign the controller board for 30% lower unit cost.", status: "in_progress", sortOrder: 0 },
+  { id: "obj-2", projectId: "proj-1", title: "Close pilot with Kenya Power", description: "Land the 50-site pilot agreement.", status: "open", sortOrder: 1 },
+  { id: "obj-3", projectId: "proj-2", title: "Certify second-life battery packs", description: "Pass UL 1974 certification for reused cell packs.", status: "in_progress", sortOrder: 0 },
+  { id: "obj-4", projectId: "proj-2", title: "Line up first storage customer", description: null, status: "open", sortOrder: 1 },
+  { id: "obj-5", projectId: "proj-3", title: "Launch Fernbase Runtime 1.0", description: "Stable release with ARM + RISC-V support.", status: "in_progress", sortOrder: 0 },
+  { id: "obj-6", projectId: "proj-3", title: "Grow developer waitlist to 5,000", description: null, status: "open", sortOrder: 1 },
+  { id: "obj-7", projectId: "proj-4", title: "Prototype visual pipeline builder", description: "De-risk the drag-and-drop model graph editor.", status: "suggested", sortOrder: 0 },
+  { id: "obj-8", projectId: "proj-4", title: "Validate pricing with 3 design partners", description: null, status: "open", sortOrder: 1 },
+  { id: "obj-9", projectId: "proj-5", title: "Complete FDA 510(k) submission", description: "Finish clinical data package for the sensor.", status: "in_progress", sortOrder: 0 },
+  { id: "obj-10", projectId: "proj-5", title: "Ship AI coaching v1", description: "Personalized nudges based on glucose trend data.", status: "in_progress", sortOrder: 1 },
+  { id: "obj-11", projectId: "proj-6", title: "Onboard 10 pilot clinics", description: null, status: "open", sortOrder: 0 },
+  { id: "obj-12", projectId: "proj-6", title: "Build care-team dashboard v1", description: "Roll-up view of patient adherence and alerts.", status: "in_progress", sortOrder: 1 },
+  { id: "obj-13", projectId: "proj-7", title: "Complete offshore field trial", description: "4-week autonomous inspection trial with Ørsted.", status: "in_progress", sortOrder: 0 },
+  { id: "obj-14", projectId: "proj-7", title: "Reduce drone unit cost by 20%", description: null, status: "open", sortOrder: 1 },
+  { id: "obj-15", projectId: "proj-8", title: "GA release of Fleet dashboard", description: "General availability for existing hardware customers.", status: "done", sortOrder: 0 },
+  { id: "obj-16", projectId: "proj-8", title: "Migrate billing to usage-based plans", description: null, status: "done", sortOrder: 1 },
+];
+
+export const TASKS: Task[] = [
+  { id: "task-1", objectiveId: "obj-1", projectId: "proj-1", title: "Finalize BOM for v2 controller board", done: true, status: "completed", assigneeId: "person-9", dueDate: "2026-08-20", priority: "high" },
+  { id: "task-2", objectiveId: "obj-1", projectId: "proj-1", title: "Run thermal stress test on new enclosure", done: false, status: "active", assigneeId: "person-9", dueDate: "2026-09-10", priority: "high" },
+  { id: "task-3", objectiveId: "obj-1", projectId: "proj-1", title: "Get 3 contract manufacturer quotes", done: false, status: "active", assigneeId: null, dueDate: "2026-09-15", priority: "medium" },
+  { id: "task-4", objectiveId: "obj-2", projectId: "proj-1", title: "Prepare pilot proposal deck", done: false, status: "active", assigneeId: "person-8", dueDate: "2026-09-08", priority: "high" },
+  { id: "task-5", objectiveId: "obj-2", projectId: "proj-1", title: "Schedule site visit with Kenya Power", done: false, status: "active", assigneeId: "person-1", dueDate: "2026-09-12", priority: "medium" },
+  { id: "task-6", objectiveId: "obj-3", projectId: "proj-2", title: "Submit UL 1974 test samples", done: true, status: "completed", assigneeId: "person-9", dueDate: "2026-08-10", priority: "high" },
+  { id: "task-7", objectiveId: "obj-3", projectId: "proj-2", title: "Respond to UL lab follow-up questions", done: false, status: "active", assigneeId: "person-9", dueDate: "2026-09-05", priority: "medium" },
+  { id: "task-8", objectiveId: "obj-4", projectId: "proj-2", title: "Build storage sizing calculator", done: false, status: "active", assigneeId: "person-10", dueDate: "2026-09-18", priority: "low" },
+  { id: "task-9", objectiveId: "obj-5", projectId: "proj-3", title: "Ship RISC-V backend", done: false, status: "active", assigneeId: "person-9", dueDate: "2026-09-09", priority: "high" },
+  { id: "task-10", objectiveId: "obj-5", projectId: "proj-3", title: "Write migration guide from 0.9", done: true, status: "completed", assigneeId: "person-7", dueDate: "2026-08-22", priority: "medium" },
+  { id: "task-11", objectiveId: "obj-5", projectId: "proj-3", title: "Fix ARM64 quantization regression", done: false, status: "active", assigneeId: "person-9", dueDate: "2026-09-06", priority: "high" },
+  { id: "task-12", objectiveId: "obj-6", projectId: "proj-3", title: "Launch dev-community Discord", done: true, status: "completed", assigneeId: "person-11", dueDate: "2026-08-05", priority: "low" },
+  { id: "task-13", objectiveId: "obj-6", projectId: "proj-3", title: "Publish 3 tutorial blog posts", done: false, status: "active", assigneeId: "person-8", dueDate: "2026-09-14", priority: "medium" },
+  { id: "task-14", objectiveId: "obj-7", projectId: "proj-4", title: "Wireframe drag-and-drop canvas", done: false, status: "active", assigneeId: "person-7", dueDate: "2026-09-20", priority: "medium" },
+  { id: "task-15", objectiveId: "obj-8", projectId: "proj-4", title: "Interview 3 design-partner candidates", done: false, status: "active", assigneeId: "person-2", dueDate: "2026-09-16", priority: "medium" },
+  { id: "task-16", objectiveId: "obj-9", projectId: "proj-5", title: "Finalize clinical study report", done: false, status: "active", assigneeId: "person-3", dueDate: "2026-09-11", priority: "high" },
+  { id: "task-17", objectiveId: "obj-9", projectId: "proj-5", title: "Address FDA pre-submission feedback", done: true, status: "completed", assigneeId: "person-3", dueDate: "2026-08-18", priority: "high" },
+  { id: "task-18", objectiveId: "obj-10", projectId: "proj-5", title: "Tune nudge model on pilot cohort data", done: false, status: "active", assigneeId: "person-9", dueDate: "2026-09-13", priority: "high" },
+  { id: "task-19", objectiveId: "obj-10", projectId: "proj-5", title: "Design coaching notification UX", done: false, status: "active", assigneeId: "person-7", dueDate: "2026-09-09", priority: "medium" },
+  { id: "task-20", objectiveId: "obj-11", projectId: "proj-6", title: "Draft clinic onboarding checklist", done: true, status: "completed", assigneeId: "person-11", dueDate: "2026-08-12", priority: "low" },
+  { id: "task-21", objectiveId: "obj-11", projectId: "proj-6", title: "Sign 2nd pilot clinic contract", done: false, status: "active", assigneeId: "person-3", dueDate: "2026-09-17", priority: "high" },
+  { id: "task-22", objectiveId: "obj-12", projectId: "proj-6", title: "Build adherence roll-up view", done: false, status: "active", assigneeId: "person-10", dueDate: "2026-09-19", priority: "medium" },
+  { id: "task-23", objectiveId: "obj-13", projectId: "proj-7", title: "Calibrate inspection cameras for salt spray", done: true, status: "completed", assigneeId: "person-9", dueDate: "2026-08-08", priority: "high" },
+  { id: "task-24", objectiveId: "obj-13", projectId: "proj-7", title: "Run week-2 flight log review", done: false, status: "active", assigneeId: "person-4", dueDate: "2026-09-07", priority: "high" },
+  { id: "task-25", objectiveId: "obj-13", projectId: "proj-7", title: "Prepare trial results summary for Ørsted", done: false, status: "active", assigneeId: "person-10", dueDate: "2026-09-21", priority: "medium" },
+  { id: "task-26", objectiveId: "obj-14", projectId: "proj-7", title: "Source cheaper rotor supplier", done: false, status: "active", assigneeId: null, dueDate: "2026-09-25", priority: "low" },
+  { id: "task-27", objectiveId: "obj-15", projectId: "proj-8", title: "Final QA pass on Fleet dashboard", done: true, status: "completed", assigneeId: "person-7", dueDate: "2026-07-15", priority: "medium" },
+  { id: "task-28", objectiveId: "obj-15", projectId: "proj-8", title: "Publish GA release notes", done: true, status: "completed", assigneeId: "person-8", dueDate: "2026-07-18", priority: "low" },
+  { id: "task-29", objectiveId: "obj-16", projectId: "proj-8", title: "Migrate existing customers to usage billing", done: true, status: "completed", assigneeId: "person-10", dueDate: "2026-07-10", priority: "medium" },
+];
+
+export function getObjectivesByProject(projectId: string): Objective[] {
+  return OBJECTIVES.filter((o) => o.projectId === projectId).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function getTasksByObjective(objectiveId: string): Task[] {
+  return TASKS.filter((t) => t.objectiveId === objectiveId);
+}
+
+export function getTasksByProject(projectId: string): Task[] {
+  return TASKS.filter((t) => t.projectId === projectId);
+}
+
+export function getTasksByAssignee(assigneeId: string): Task[] {
+  return TASKS.filter((t) => t.assigneeId === assigneeId);
+}

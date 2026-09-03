@@ -11,8 +11,15 @@
     <title>Xcamp Nox</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Rubik: skin heading font (--skin-font-head), per @xchange/ui's Claude
+      Design export (vendor/ui/src/claude-design/tokens.json
+      objectiveSkins.scientific.fontHead) — resolves CONFLICTS.md #1.
+      IBM Plex Sans: body font declared in src/styles.css `body` but never
+      actually loaded before this fix (silent fallback to system-ui).
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" href="/favicon.ico" />
