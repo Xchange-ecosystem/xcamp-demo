@@ -49,8 +49,14 @@ export function RightColumn() {
   soon.setDate(soon.getDate() + 7);
   const risks = TASKS.filter(
     (t) =>
-      t.status === "active" && t.priority === "high" && t.dueDate && new Date(t.dueDate) <= soon,
-  ).slice(0, 3);
+      t.status === "active" &&
+      t.priority === "high" &&
+      t.dueDate &&
+      new Date(t.dueDate) >= today &&
+      new Date(t.dueDate) <= soon,
+  )
+    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+    .slice(0, 3);
 
   const people = PEOPLE.filter((p) => p.role === "investor" || p.role === "collaborator").slice(
     0,

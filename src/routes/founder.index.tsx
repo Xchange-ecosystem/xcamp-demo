@@ -130,6 +130,13 @@ function FounderHomePage() {
 
   const handleDismissProposal = (p: Proposal) => {
     setProposal(null);
+    // Dismissing a proposal opened via a card's "Review" action should drop
+    // that card too — otherwise it stays in the feed contradicting the
+    // "Proposal dismissed" toast. Composer-originated drafts (id prefixed
+    // "draft-") were never added to `items`, so there's nothing to remove.
+    if (!p.id.startsWith("draft-")) {
+      setItems((prev) => prev.filter((i) => i.id !== p.id));
+    }
     toast("Proposal dismissed", { description: p.title });
   };
 
@@ -156,7 +163,7 @@ function FounderHomePage() {
             placeholder="What moved today? Type it, paste a transcript, or drop a file."
             className="resize-none border-none bg-transparent px-0 shadow-none text-base focus-visible:ring-0"
           />
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <input
               ref={fileInputRef}
               type="file"

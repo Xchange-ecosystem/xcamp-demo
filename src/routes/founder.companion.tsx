@@ -22,20 +22,37 @@ export const Route = createFileRoute("/founder/companion")({
   component: FounderCompanionPage,
 });
 
-const THREAD = [
+type ThreadMessage = { role: "user" | "assistant"; text: string };
+
+const INITIAL_THREAD: ThreadMessage[] = [
   {
-    role: "assistant" as const,
+    role: "assistant",
     text: "Kenya Power's pilot has been open eleven days. Want me to draft the follow-up proposal from your site-visit notes?",
   },
-  { role: "user" as const, text: "What's blocking it right now?" },
+  { role: "user", text: "What's blocking it right now?" },
   {
-    role: "assistant" as const,
+    role: "assistant",
     text: "Nothing formally — you just haven't sent it. I can turn the notes into a one-pager and queue it as a task for review.",
   },
 ];
 
 function FounderCompanionPage() {
+  const [thread, setThread] = useState<ThreadMessage[]>(INITIAL_THREAD);
   const [draft, setDraft] = useState("");
+
+  const handleSend = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    setThread((prev) => [
+      ...prev,
+      { role: "user", text },
+      // Lighter build for the demo — no real Chi call here, just an
+      // acknowledgement so the thread doesn't look like it swallowed the
+      // message. The full Companion at /home has the real backend call.
+      { role: "assistant", text: "Got it — noted for this project." },
+    ]);
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-6">
@@ -46,7 +63,7 @@ function FounderCompanionPage() {
       </p>
 
       <div className="flex flex-col gap-3">
-        {THREAD.map((m, i) => (
+        {thread.map((m, i) => (
           <div
             key={i}
             className={cn(
@@ -71,6 +88,9 @@ function FounderCompanionPage() {
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSend();
+          }}
           placeholder="Ask Chi about this project"
           className="rounded-full"
         />
@@ -78,7 +98,7 @@ function FounderCompanionPage() {
           size="icon"
           className="shrink-0 rounded-full"
           disabled={!draft.trim()}
-          onClick={() => setDraft("")}
+          onClick={handleSend}
         >
           <Send size={15} />
         </Button>
