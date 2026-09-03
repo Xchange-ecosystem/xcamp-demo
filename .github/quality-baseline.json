@@ -1,0 +1,7 @@
+{
+  "prettier_files": 161,
+  "eslint_errors": 10810,
+  "eslint_warnings": 44,
+  "typescript_errors": 14,
+  "note": "Pre-existing debt measured on main at commit 59fa4a3; these numbers must only ever go DOWN."
+}

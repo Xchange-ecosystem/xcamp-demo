@@ -1,11 +1,5 @@
 import { test, expect } from "@playwright/test";
-import fs from "fs";
-import path from "path";
 import { installLiveHarness } from "./helpers/liveAuth";
-
-const OUT = process.env.LOGBOOK_OUT ?? "/tmp/logbook-fix";
-fs.mkdirSync(OUT, { recursive: true });
-const shot = (name: string) => path.join(OUT, name);
 
 test.describe("BL-26 — Logbook submenu 4-item restore", () => {
   test.beforeEach(async ({ page }) => {
@@ -13,11 +7,11 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     page.on("pageerror", (e) => console.log("[page error]", e.message));
   });
 
-  test("sidebar shows 4 items in order and both + links work", async ({ page }) => {
+  test("sidebar shows 4 items in order and both + links work", async ({ page }, testInfo) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle").catch(() => {});
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: shot("0-initial.png"), fullPage: false });
+    await page.screenshot({ path: testInfo.outputPath("0-initial.png"), fullPage: false });
 
     const sidebar = page.locator('[data-sidebar="sidebar"]');
 
@@ -25,8 +19,9 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     await sidebar.getByRole("button", { name: "Logbook", exact: true }).click({ timeout: 10000 });
     await page.waitForTimeout(300);
 
-    const items = await page.$$eval("aside li a, aside li button, [data-sidebar] a, [data-sidebar] button", (els) =>
-      els.map((e) => e.textContent?.trim()).filter(Boolean),
+    const items = await page.$$eval(
+      "aside li a, aside li button, [data-sidebar] a, [data-sidebar] button",
+      (els) => els.map((e) => e.textContent?.trim()).filter(Boolean),
     );
     console.log("SIDEBAR_ITEMS", JSON.stringify(items));
 
@@ -38,7 +33,7 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     });
     console.log("ALL_SPANS", JSON.stringify(subItems));
 
-    await page.screenshot({ path: shot("1-sidebar-expanded.png"), fullPage: false });
+    await page.screenshot({ path: testInfo.outputPath("1-sidebar-expanded.png"), fullPage: false });
 
     const order = subItems.filter((s) =>
       ["My Journal", "New Journal Entry", "My Notes", "New Note"].includes(s as string),
@@ -51,7 +46,10 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     await page.waitForTimeout(1200);
     const urlAfterJournal = new URL(page.url());
     console.log("URL_AFTER_NEW_JOURNAL", urlAfterJournal.pathname + urlAfterJournal.search);
-    await page.screenshot({ path: shot("2-new-journal-entry.png"), fullPage: false });
+    await page.screenshot({
+      path: testInfo.outputPath("2-new-journal-entry.png"),
+      fullPage: false,
+    });
     expect(urlAfterJournal.pathname).toBe("/journal");
     // The URL is now the source of truth for the composer view, so ?new=1
     // persists while it's showing rather than being stripped immediately.
@@ -66,7 +64,7 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     await page.waitForTimeout(1200);
     const urlAfterNote = new URL(page.url());
     console.log("URL_AFTER_NEW_NOTE", urlAfterNote.pathname + urlAfterNote.search);
-    await page.screenshot({ path: shot("3-new-note.png"), fullPage: false });
+    await page.screenshot({ path: testInfo.outputPath("3-new-note.png"), fullPage: false });
     expect(urlAfterNote.pathname).toBe("/notes");
     expect(urlAfterNote.searchParams.get("new")).toBe("1");
   });

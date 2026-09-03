@@ -1,12 +1,7 @@
-import { test, expect } from "@playwright/test";
-import fs from "fs";
-import path from "path";
+import { test, expect, type TestInfo } from "@playwright/test";
 import { installLiveHarness, AUTH_STORAGE_KEY, TASK_TITLE } from "./helpers/liveAuth";
 
-const OUT = process.env.PR95_OUT ?? "/tmp/pr95";
-fs.mkdirSync(OUT, { recursive: true });
-
-const shot = (name: string) => path.join(OUT, name);
+const shot = (testInfo: TestInfo, name: string) => testInfo.outputPath(name);
 
 test.describe("PR #95 regression audit — live verification", () => {
   test.beforeEach(async ({ page }) => {
@@ -18,7 +13,9 @@ test.describe("PR #95 regression audit — live verification", () => {
   });
 
   // ── Item 1 — /home shell capabilities ──────────────────────────────────────
-  test("item1: /home mounts altitude rail toggle, fullscreen modal and right panel", async ({ page }) => {
+  test("item1: /home mounts altitude rail toggle, fullscreen modal and right panel", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle").catch(() => {});
     await page.waitForTimeout(1500);
@@ -30,7 +27,7 @@ test.describe("PR #95 regression audit — live verification", () => {
       url: location.pathname + location.search,
     }));
     console.log("ITEM1_PROBE", JSON.stringify(probe));
-    await page.screenshot({ path: shot("item1-home.png"), fullPage: false });
+    await page.screenshot({ path: shot(testInfo, "item1-home.png"), fullPage: false });
 
     expect(probe.altitudeRailTab, "altitude rail toggle present on /home").toBe(true);
     expect(probe.fullscreenModal, "task fullscreen modal mounted on /home").toBe(true);
@@ -38,7 +35,7 @@ test.describe("PR #95 regression audit — live verification", () => {
   });
 
   // ── Item 2 — ?ui=v1 escape hatch ───────────────────────────────────────────
-  test("item2: ?ui=v1 is sticky and ?ui=reset escapes it", async ({ page }) => {
+  test("item2: ?ui=v1 is sticky and ?ui=reset escapes it", async ({ page }, testInfo) => {
     // Set the trap.
     await page.goto("/home?ui=v1");
     await page.waitForTimeout(1200);
@@ -69,7 +66,7 @@ test.describe("PR #95 regression audit — live verification", () => {
     console.log("ITEM2_AFTER_RESET", JSON.stringify(after));
     expect(after.flag, "?ui=reset clears the sessionStorage flag").toBeNull();
     expect(after.url, "?ui= param stripped from the URL after reset").toBe("/home");
-    await page.screenshot({ path: shot("item2-after-reset.png") });
+    await page.screenshot({ path: shot(testInfo, "item2-after-reset.png") });
   });
 
   // ── Item 3 — ?nav=experimental is gone ─────────────────────────────────────
@@ -138,10 +135,12 @@ test.describe("PR #95 regression audit — live verification", () => {
   });
 
   // ── Item 4 — Navigator task → fullscreen in one click ──────────────────────
-  test("item4: Navigator task list opens fullscreen in a single click", async ({ page }) => {
+  test("item4: Navigator task list opens fullscreen in a single click", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/navigator?view=browser");
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: shot("item4-navigator-before.png") });
+    await page.screenshot({ path: shot(testInfo, "item4-navigator-before.png") });
 
     await page.getByText("Audit objective").first().click();
     await page.waitForTimeout(1000);
@@ -152,7 +151,7 @@ test.describe("PR #95 regression audit — live verification", () => {
     // Click 1 — task row opens the sidepanel.
     await taskButton.click();
     await page.waitForTimeout(900);
-    await page.screenshot({ path: shot("item4-01-sidepanel.png") });
+    await page.screenshot({ path: shot(testInfo, "item4-01-sidepanel.png") });
 
     // The fullscreen control must be visible in the header, not behind the kebab.
     const fullscreenBtn = page.getByTestId("sidepanel-open-fullscreen");
@@ -179,7 +178,7 @@ test.describe("PR #95 regression audit — live verification", () => {
       };
     });
     console.log("ITEM4_AFTER_FULLSCREEN_CLICK", JSON.stringify(state));
-    await page.screenshot({ path: shot("item4-02-fullscreen.png") });
+    await page.screenshot({ path: shot(testInfo, "item4-02-fullscreen.png") });
     expect(state.open, "fullscreen modal open after a single header click").toBe("true");
     expect(state.opacity, "fullscreen modal actually visible").toBe("1");
   });
@@ -194,7 +193,9 @@ test.describe("PR #95 regression audit — live verification", () => {
   });
 
   // ── Item 6 — skin CSS vars resolve at runtime ──────────────────────────────
-  test("item6: --skin-* custom properties resolve on load (light and dark)", async ({ page }) => {
+  test("item6: --skin-* custom properties resolve on load (light and dark)", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/home");
     await page.waitForTimeout(1200);
 
@@ -246,6 +247,6 @@ test.describe("PR #95 regression audit — live verification", () => {
     expect(dark.vars["--skin-ink"], "--skin-ink differs between light and dark").not.toBe(
       light.vars["--skin-ink"],
     );
-    await page.screenshot({ path: shot("item6-dark.png") });
+    await page.screenshot({ path: shot(testInfo, "item6-dark.png") });
   });
 });

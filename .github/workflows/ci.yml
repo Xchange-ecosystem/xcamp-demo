@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guards:
+    name: Repository guards
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          clean: true
+
+      - name: Run repository guards
+        env:
+          GUARD_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        run: bash .github/scripts/repo-guards.sh
+
+  verify:
+    name: Build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Build
+        run: bun run build
+
+      - name: Check generated route tree drift
+        run: |
+          if ! git cat-file -e HEAD:src/routeTree.gen.ts 2>/dev/null; then
+            echo "::error file=src/routeTree.gen.ts::The generated route tree must be tracked in HEAD. Run 'bun run build' and commit src/routeTree.gen.ts."
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain --untracked-files=all -- src/routeTree.gen.ts)" ]; then
+            git diff -- src/routeTree.gen.ts || true
+            echo "::error file=src/routeTree.gen.ts::The build regenerated the route tree. Run 'bun run build' and commit src/routeTree.gen.ts."
+            exit 1
+          fi
+
+      - name: Upload production build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # Quality checks expose existing debt without making it invisible. Each report
+  # step is soft, but the final ratchet hard-fails if any baseline grows. When a
+  # baseline reaches zero, remove continue-on-error for that check, remove its
+  # baseline/ratchet entry, and keep the check as a normal hard CI step.
+  quality:
+    name: Quality debt ratchet
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Report formatting debt
+        continue-on-error: true
+        run: bun run format:check
+
+      - name: Report lint debt
+        continue-on-error: true
+        run: bun run lint
+
+      - name: Report TypeScript debt
+        continue-on-error: true
+        run: bun run typecheck
+
+      - name: Enforce quality debt ratchet
+        run: bash .github/scripts/quality-ratchet.sh
+
+  e2e:
+    name: Playwright E2E
+    needs: verify
+    runs-on: [self-hosted]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Restore Playwright userspace system libraries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/pw-sysdeps
+          key: playwright-sysdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', '.github/scripts/ensure-playwright-deps.sh') }}
+
+      - name: Ensure Playwright Chromium dependencies
+        shell: bash
+        run: bash .github/scripts/ensure-playwright-deps.sh
+
+      - name: Configure E2E environment
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VOX_API_URL: ${{ secrets.VITE_VOX_API_URL }}
+          BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
+          BACKEND_API_URL: ${{ secrets.VITE_BACKEND_API_URL }}
+        run: |
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${SUPABASE_URL:-https://ueebzuleyrnsrxbowdfa.supabase.co}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${SUPABASE_ANON_KEY:-ci-placeholder-anon-key}"
+            printf 'VITE_VOX_API_URL=%s\n' "${VOX_API_URL:-https://xcampapi.xchange.eco}"
+            printf 'VITE_BACKEND_URL=%s\n' "${BACKEND_URL:-https://xcampapi.xchange.eco}"
+            printf 'VITE_BACKEND_API_URL=%s\n' "${BACKEND_API_URL:-https://xcampapi.xchange.eco}"
+          } > .env
+
+      - name: Run Playwright tests
+        run: bun run test:e2e
+
+      - name: Upload Playwright reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: warn
+
+  ci-ok:
+    name: ci-ok
+    needs: [guards, verify, e2e, quality]
+    if: always()
+    runs-on: [self-hosted]
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job to succeed
+        env:
+          GUARDS_RESULT: ${{ needs.guards.result }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+        run: |
+          printf 'guards=%s\nverify=%s\ne2e=%s\nquality=%s\n' "$GUARDS_RESULT" "$VERIFY_RESULT" "$E2E_RESULT" "$QUALITY_RESULT"
+          test "$GUARDS_RESULT" = success
+          test "$VERIFY_RESULT" = success
+          test "$E2E_RESULT" = success
+          test "$QUALITY_RESULT" = success

@@ -1,0 +1,53 @@
+name: Setup project
+
+description: Install Bun when needed and restore exact project dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Detect existing Bun
+      id: bun
+      shell: bash
+      run: |
+        required=1.3.11
+        if ! command -v bun >/dev/null 2>&1; then
+          echo "available=false" >> "$GITHUB_OUTPUT"
+          echo "Bun is absent; installing pinned Bun $required."
+          exit 0
+        fi
+
+        detected=$(bun --version)
+        if python3 - "$detected" "$required" <<'PY'
+        import re
+        import sys
+
+        def version(value: str):
+            match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-([^+]+))?(?:\+.+)?", value)
+            if not match:
+                raise ValueError(value)
+            core = tuple(int(part) for part in match.groups()[:3])
+            return core, match.group(4) is None
+
+        try:
+            detected, required = map(version, sys.argv[1:])
+        except ValueError:
+            sys.exit(1)
+        sys.exit(0 if detected >= required else 1)
+        PY
+        then
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          echo "Using preinstalled Bun $detected (minimum required: $required)."
+        else
+          echo "available=false" >> "$GITHUB_OUTPUT"
+          echo "Preinstalled Bun '$detected' is older than or not a valid release for minimum $required; installing pinned Bun $required."
+        fi
+
+    - name: Install Bun
+      if: steps.bun.outputs.available != 'true'
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      with:
+        bun-version: 1.3.11
+
+    - name: Install frozen dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
