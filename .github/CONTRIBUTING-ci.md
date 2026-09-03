@@ -53,16 +53,24 @@ Required tools:
 - Network egress to GitHub, Bun's package registry, Playwright browser downloads, GHCR, Supabase/Vox stubs, and optionally Vercel.
 - Enough free disk for dependencies, Chromium, build output, and artifacts.
 
-Playwright installs Chromium without `--with-deps`, so install browser system libraries once on the runner image. On current Debian/Ubuntu runners these commonly include:
+### E2E runner requirements
 
-```text
-libasound2t64 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3
-libdrm2 libgbm1 libglib2.0-0 libnspr4 libnss3 libpango-1.0-0
-libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3
-libxkbcommon0 libxrandr2 fonts-noto-color-emoji
+`.github/scripts/ensure-playwright-deps.sh` installs Chromium and performs a real headless launch before E2E runs. It is fail-closed and works in these layers:
+
+1. Launch the freshly installed browser and exit immediately when the host is ready.
+2. If the account is root or has passwordless sudo, run Playwright's supported `--with-deps` installer and launch again.
+3. Otherwise, inspect the browser with `ldd`, map the exact missing libraries to the detected `apt`, `dnf`, `apk`, or `pacman` packages, download without installing, extract under `$RUNNER_TEMP/pw-sysdeps`, export `LD_LIBRARY_PATH` through `$GITHUB_ENV`, and launch again. The extracted prefix is cached, keyed by the Playwright lock/script and its resolved missing-library set; a cache hit is always re-probed.
+4. If Chromium still cannot launch, emit a GitHub `::error::` containing the exact missing libraries, package family, package list, and admin commands, then exit non-zero.
+
+The permanent runner-image fix is a one-time admin command from a checkout with dependencies installed:
+
+```bash
+sudo bunx playwright install --with-deps chromium
+# Equivalent when npm/npx is the managed toolchain:
+sudo npx playwright install-deps chromium
 ```
 
-Package names differ by distribution (for example, older Ubuntu uses `libasound2`). Validate the image with `bunx playwright install chromium` and `bunx playwright test --list`; if browser launch reports a missing shared object, install the corresponding distribution package in the runner image rather than granting workflow jobs `sudo`.
+Once the image has those libraries, layer 1 succeeds and all privileged/userspace fallbacks are skipped. Package names vary by distribution (for example, newer Debian/Ubuntu may use `libasound2t64` rather than `libasound2`). To debug, run `bash .github/scripts/ensure-playwright-deps.sh`, inspect the printed `ldd` library names and probe log path, then run `ldd` on the reported `chrome-headless-shell` executable. The script never changes the developer host unless root or passwordless sudo is already available; without privilege it writes only to the temporary userspace prefix.
 
 Self-hosted workspaces are reused. `actions/checkout` is configured with `clean: true` and `persist-credentials: false`; jobs must not rely on files from earlier runs. Periodically remove abandoned Actions work directories, old Docker images, Playwright caches, and Bun caches under the runner service account, while never deleting an active job's workspace.
 
@@ -125,7 +133,7 @@ CI=1 bunx playwright test --list
 To run full E2E, create an ignored `.env` from `.env.example` with non-empty Supabase URL/key values, then install and test:
 
 ```bash
-bunx playwright install chromium
+bash .github/scripts/ensure-playwright-deps.sh
 CI=1 bun run test:e2e
 ```
 
