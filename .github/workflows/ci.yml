@@ -35,7 +35,7 @@ jobs:
         run: bash .github/scripts/repo-guards.sh
 
   verify:
-    name: Format, lint, types, and build
+    name: Build
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted]
     timeout-minutes: 20
@@ -48,15 +48,6 @@ jobs:
 
       - name: Setup project
         uses: ./.github/actions/setup-project
-
-      - name: Check formatting
-        run: bun run format:check
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Typecheck
-        run: bun run typecheck
 
       - name: Build
         run: bun run build
@@ -75,6 +66,40 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  # Quality checks expose existing debt without making it invisible. Each report
+  # step is soft, but the final ratchet hard-fails if any baseline grows. When a
+  # baseline reaches zero, remove continue-on-error for that check, remove its
+  # baseline/ratchet entry, and keep the check as a normal hard CI step.
+  quality:
+    name: Quality debt ratchet
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Report formatting debt
+        continue-on-error: true
+        run: bun run format:check
+
+      - name: Report lint debt
+        continue-on-error: true
+        run: bun run lint
+
+      - name: Report TypeScript debt
+        continue-on-error: true
+        run: bun run typecheck
+
+      - name: Enforce quality debt ratchet
+        run: bash .github/scripts/quality-ratchet.sh
 
   e2e:
     name: Playwright E2E
@@ -128,7 +153,7 @@ jobs:
 
   ci-ok:
     name: ci-ok
-    needs: [guards, verify, e2e]
+    needs: [guards, verify, e2e, quality]
     if: always()
     runs-on: [self-hosted]
     timeout-minutes: 5
@@ -138,8 +163,10 @@ jobs:
           GUARDS_RESULT: ${{ needs.guards.result }}
           VERIFY_RESULT: ${{ needs.verify.result }}
           E2E_RESULT: ${{ needs.e2e.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
         run: |
-          printf 'guards=%s\nverify=%s\ne2e=%s\n' "$GUARDS_RESULT" "$VERIFY_RESULT" "$E2E_RESULT"
+          printf 'guards=%s\nverify=%s\ne2e=%s\nquality=%s\n' "$GUARDS_RESULT" "$VERIFY_RESULT" "$E2E_RESULT" "$QUALITY_RESULT"
           test "$GUARDS_RESULT" = success
           test "$VERIFY_RESULT" = success
           test "$E2E_RESULT" = success
+          test "$QUALITY_RESULT" = success

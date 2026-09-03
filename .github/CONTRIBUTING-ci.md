@@ -1,12 +1,37 @@
 # CI, security, and deployment operations
 
-This repository uses three GitHub Actions workflows, all on repository-managed self-hosted runners:
+This repository uses three GitHub Actions workflows, all on organization-level self-hosted runners:
 
-- **CI**: repository guards, formatting, linting, TypeScript, build, generated-route drift, and Playwright E2E.
+- **CI**: hard repository guards, build, generated-route drift, and Playwright E2E gates, plus ratcheted formatting, linting, and TypeScript debt reports.
 - **Security**: TruffleHog OSS secret scanning, Bun dependency audit, and immutable action-reference enforcement.
 - **CD**: release artifact creation and an opt-in Vercel production deployment with a post-deploy smoke test.
 
 Vercel Git integration is the default deployment authority. Keep `ENABLE_VERCEL_DEPLOY` unset unless the workflow should replace that behavior for production deploys.
+
+## Hard gates and ratcheted quality debt
+
+CI distinguishes regressions from debt that already exists on `main`:
+
+| Check                                           | Policy today              | Enforcement                                                                                |
+| ----------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
+| Repository guards                               | Hard gate                 | Any violation fails `guards`.                                                              |
+| Production build and generated route-tree drift | Hard gate                 | Any failure fails `verify` (`Build`).                                                      |
+| Playwright E2E                                  | Hard gate                 | Any failure fails `e2e`.                                                                   |
+| Security scans and dependency/action policy     | Hard gates                | Any failure fails its Security workflow job; findings are not suppressed.                  |
+| Prettier                                        | Soft report, hard ratchet | The report step may fail, but more than **165 unformatted files** fails the final ratchet. |
+| ESLint errors                                   | Soft report, hard ratchet | The report step may fail, but more than **10,819 errors** fails the final ratchet.         |
+| ESLint warnings                                 | Soft report, hard ratchet | More than **44 warnings** fails the final ratchet.                                         |
+| TypeScript                                      | Soft report, hard ratchet | The report step may fail, but more than **14 errors** fails the final ratchet.             |
+
+The exact baselines live in `.github/quality-baseline.json`; `.github/scripts/quality-ratchet.sh` measures current results using Prettier check output, ESLint's JSON formatter, and `tsc --noEmit`. Existing debt is visible in separate `quality` steps, while the final ratchet step is blocking. Debt may shrink, never grow.
+
+When a change reduces a count, lower the matching value in `.github/quality-baseline.json` in the same PR. Never raise a baseline to make CI pass. Run `bash .github/scripts/quality-ratchet.sh` locally and commit the lower number after verifying the new count.
+
+When a count reaches zero, promote that gate to hard:
+
+1. In `.github/workflows/ci.yml`, find the matching `Report formatting debt`, `Report lint debt`, or `Report TypeScript debt` step under `jobs.quality` and remove `continue-on-error: true`.
+2. Remove that metric from `.github/quality-baseline.json` and from the baseline parsing, row construction, and comparison logic in `.github/scripts/quality-ratchet.sh`. ESLint errors and warnings share one command; promote the lint step only when both are zero.
+3. Update this table, run the workflow checks locally, and keep `quality` in the `ci-ok` dependency/result assertions.
 
 ## Self-hosted runner requirements
 
@@ -66,9 +91,20 @@ Set all of the following before enabling workflow deployment:
 
 When the variable is absent or not `true`, `deploy-vercel` is skipped and the release summary explains that Vercel Git integration remains authoritative. When enabled but a secret is absent, deployment steps skip cleanly and name the missing configuration in the job summary. The smoke job runs only when deployment emitted a real URL.
 
+## SECURITY: historical `.env` leak requires remediation
+
+Git history contains a previously committed `.env` in commits `8f00f17ea62ad4308fdc6bf64e77f99c51ad4a48` and `b428d78b12e46298e403f43fc3b6d10966dae336`, authored by `gpt-engineer-app[bot]`; the file was deleted later in `584f3fb`. Treat the exposed **OpenAI API key** and **Supabase keys** as compromised. Do not copy their values into issues, logs, pull requests, or documentation.
+
+The Security workflow intentionally runs TruffleHog over full history on push, schedule, and manual dispatch. It **will fail** on those events until both required remediations are complete:
+
+1. Rotate/revoke the exposed OpenAI API key and Supabase keys, then update legitimate secret stores with replacement credentials.
+2. After coordinating repository downtime and backups, purge the historical `.env` blobs with `git-filter-repo`, verify the rewritten history, and force-push all affected branches/tags. Every collaborator must then re-clone or carefully reset onto the rewritten history.
+
+This finding is intentionally not suppressed: deleting `.env` in a later commit does not remove credentials from earlier Git objects, and history rewriting without credential rotation does not make already exposed credentials safe.
+
 ## Recommended branch protection
 
-Protect `main` and require pull requests. Require the single stable status check **`ci-ok`**. That aggregator fails unless repository guards, verification, and E2E all succeed. Also require the **Security / Secret scan**, **Security / Dependency audit**, and **Security / Action reference pinning** checks if the organization wants security checks to block merges. Require branches to be up to date or use GitHub's merge queue (`merge_group` is supported by CI). Restrict force pushes and branch deletion.
+Protect `main` and require pull requests. Require the single stable status check **`ci-ok`**. That aggregator fails unless repository guards, build verification, E2E, and the quality debt ratchet all succeed. Also require the **Security / Secret scan**, **Security / Dependency audit**, and **Security / Action reference pinning** checks so security remains a hard merge gate. Require branches to be up to date or use GitHub's merge queue (`merge_group` is supported by CI). Restrict force pushes and branch deletion.
 
 ## Run gates locally
 
@@ -80,6 +116,7 @@ bash .github/scripts/repo-guards.sh
 bun run format:check
 bun run lint
 bun run typecheck
+bash .github/scripts/quality-ratchet.sh
 bun run build
 git diff --exit-code -- src/routeTree.gen.ts
 CI=1 bunx playwright test --list
