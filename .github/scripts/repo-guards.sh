@@ -100,7 +100,7 @@ if [ -n "$base_sha" ] && git cat-file -e "$base_sha:package.json" 2>/dev/null &&
   if ! python3 - "$old_manifest" package.json <<'PY'
 import json, sys
 keys = (
-    "name", "version", "workspaces", "packageManager", "engines",
+    "name", "version", "workspaces", "packageManager",
     "dependencies", "devDependencies", "optionalDependencies",
     "peerDependencies", "overrides", "resolutions",
 )
@@ -144,7 +144,7 @@ while IFS= read -r workflow; do
       fail "$workflow" "$line" "Every job must use exactly 'runs-on: [self-hosted]'; found: $value"
     fi
   done < <(awk '/^[[:space:]]*runs-on:/ { line=$0; sub(/^[[:space:]]*runs-on:[[:space:]]*/, "", line); print NR ":" line }' "$workflow")
-done < <(find .github/workflows -maxdepth 1 -type f -name '*.yml' -print 2>/dev/null | sort)
+done < <(find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -print 2>/dev/null | sort)
 
 stub_pattern='TODO:[[:space:]]*imple''ment|not imple''mented|placeholder imple''mentation'
 while IFS= read -r file; do

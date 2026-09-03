@@ -47,9 +47,9 @@ If the existing organization runner group must be replaced or expanded:
 
 Required tools:
 
-- A currently supported GitHub Actions Runner release.
+- GitHub Actions Runner 2.327.1 or newer (required by the Node.js 24 action majors).
 - `bash`, Git, curl, Python 3, GNU coreutils, `jq`, and Docker (TruffleHog runs its OSS container).
-- Bun 1.3.11 is preferred. The setup composite uses an existing Bun or installs 1.3.11 with `oven-sh/setup-bun`.
+- Bun 1.3.11 or newer. The setup composite compares the installed semantic version and installs pinned Bun 1.3.11 when Bun is absent, older, or reports an invalid version.
 - Network egress to GitHub, Bun's package registry, Playwright browser downloads, GHCR, Supabase/Vox stubs, and optionally Vercel.
 - Enough free disk for dependencies, Chromium, build output, and artifacts.
 
@@ -97,7 +97,9 @@ Set all of the following before enabling workflow deployment:
 - Repository secret `VERCEL_ORG_ID`
 - Repository secret `VERCEL_PROJECT_ID`
 
-When the variable is absent or not `true`, `deploy-vercel` is skipped and the release summary explains that Vercel Git integration remains authoritative. When enabled but a secret is absent, deployment steps skip cleanly and name the missing configuration in the job summary. The smoke job runs only when deployment emitted a real URL.
+When the variable is absent or not `true`, `deploy-vercel` is skipped and the release summary explains that Vercel Git integration remains authoritative. A push or manual dispatch of `main` may deploy to production; a manual dispatch of any other ref is forced to a Vercel preview and can never receive `--prod`. When enabled but a secret is absent, deployment steps skip cleanly and name the missing configuration in the job summary. The smoke job runs only when deployment emitted a real URL.
+
+The generic `release-dist-<sha>` artifact records the normal Vite build but is not Vercel's deployable format. The deploy job uploads `vercel-output-<sha>` from `.vercel/output/` immediately after `vercel build` and deploys that same local output with `--prebuilt`; this is the artifact that corresponds to the deployed bytes. All pull, build, and deploy commands use the workflow-level `VERCEL_CLI_VERSION` pin. To upgrade it, review the Vercel CLI release notes, change that single value, and validate both preview and production argument paths.
 
 ## SECURITY: historical `.env` leak requires remediation
 
@@ -150,6 +152,6 @@ TruffleHog is AGPL-3.0 OSS and its action/container are free to run for private 
 
 ## Workflow maintenance
 
-All external actions are pinned to immutable 40-character commit SHAs. Dependabot's `github-actions` updater proposes SHA changes while retaining release comments. Never replace a SHA with a mutable tag or branch. The security workflow enforces this policy; local actions under `./.github/actions/` are the only exemption.
+All external actions are pinned to immutable 40-character commit SHAs. They must also target the newest runtime supported by GitHub Actions Runner, currently Node.js 24. Node.js 26 is not a valid Actions runtime yet; do not invent or require it. Dependabot's `github-actions` updater will surface future action and runtime bumps while retaining release comments. Never replace a SHA with a mutable tag or branch. The security workflow enforces pinning; local actions under `./.github/actions/` are the only exemption.
 
 Both `bun.lock` and `package-lock.json` remain authoritative. Dependency-bearing `package.json` changes must update both lockfiles. Script-only changes do not alter lockfile dependency metadata.

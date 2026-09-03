@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -41,7 +41,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           clean: true
@@ -54,13 +54,18 @@ jobs:
 
       - name: Check generated route tree drift
         run: |
-          if ! git diff --exit-code -- src/routeTree.gen.ts; then
+          if ! git cat-file -e HEAD:src/routeTree.gen.ts 2>/dev/null; then
+            echo "::error file=src/routeTree.gen.ts::The generated route tree must be tracked in HEAD. Run 'bun run build' and commit src/routeTree.gen.ts."
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain --untracked-files=all -- src/routeTree.gen.ts)" ]; then
+            git diff -- src/routeTree.gen.ts || true
             echo "::error file=src/routeTree.gen.ts::The build regenerated the route tree. Run 'bun run build' and commit src/routeTree.gen.ts."
             exit 1
           fi
 
       - name: Upload production build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-${{ github.sha }}
           path: dist/
@@ -78,7 +83,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           clean: true
@@ -108,7 +113,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           clean: true
@@ -117,7 +122,7 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Restore Playwright userspace system libraries
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/pw-sysdeps
           key: playwright-sysdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', '.github/scripts/ensure-playwright-deps.sh') }}
@@ -149,7 +154,7 @@ jobs:
 
       - name: Upload Playwright reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-${{ github.sha }}
           path: |
