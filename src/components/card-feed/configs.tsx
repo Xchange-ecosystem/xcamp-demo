@@ -88,7 +88,8 @@ export const collaboratorAssignmentConfig: CardFeedConfig<FeedItem> = {
     const dueDate = item.meta?.dueDate;
     if (typeof dueDate === "string") entries.push({ key: "due", label: `Due ${dueDate}` });
     const reward = item.meta?.rewardAmount;
-    if (typeof reward === "number") entries.push({ key: "reward", label: `$${reward} on completion` });
+    if (typeof reward === "number")
+      entries.push({ key: "reward", label: `$${reward} on completion` });
     return entries;
   },
   getTimestamp: (item) => item.timestamp,

@@ -22,6 +22,18 @@ export interface CardFeedItemVisual {
   accent: string;
 }
 
+/** One action button rendered in a card's footer row (e.g. "Review",
+ *  "Dismiss", "Open proposal") — added for P1.1's Founder action-item feed,
+ *  whose cards need per-item actions distinct from the single `onItemClick`
+ *  navigation hook. `onClick` receives the item so callers don't need to
+ *  close over it per-row. */
+export interface CardFeedAction<T> {
+  key: string;
+  label: string;
+  onClick: (item: T) => void;
+  variant?: "default" | "outline" | "ghost";
+}
+
 /** Config-driven contract for CardFeed<T> — one component, any item shape.
  *  Each P1 use case (Founder action items, Investor/Operator updates,
  *  Collaborator assignments) supplies its own config instead of forking the
@@ -35,6 +47,9 @@ export interface CardFeedConfig<T> {
   getMeta?: (item: T) => CardFeedMetaEntry[];
   getTimestamp?: (item: T) => string | null | undefined;
   onItemClick?: (item: T) => void;
+  /** Per-item action buttons (e.g. Review/Dismiss) — independent of
+   *  `onItemClick`, which is a whole-card click for navigation. */
+  getActions?: (item: T) => CardFeedAction<T>[];
   /** Shown when `items` is empty. Defaults to a generic message. */
   emptyMessage?: ReactNode;
 }
