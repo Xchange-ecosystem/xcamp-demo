@@ -74,7 +74,7 @@ export function PageHeroShell({
         )}
 
         {/* Accent colour multiply filter — tints the hero with the active brand accent
-            (Xcamp #4de0c1 / Nox #b689e6 via --skin-accent) */}
+            (teal in both light and dark, via --skin-accent) */}
         {heroUrl && (
           <div
             aria-hidden

@@ -217,16 +217,17 @@
 }
 
 /*
- * CONFLICTS.md #2 (dark-theme brand colour) resolved: KEEP purple for dark,
- * sourced exactly from tokens.json themes.dark "Nox" (Claude Design export),
- * not flipped to teal. This is a deliberate divergence from this task's
- * literal fallback instruction ("pick teal unless CONFLICTS.md indicates
- * otherwise") — see the Part 1 report for the reasoning: tokens.json itself
- * (the actual design source of truth) encodes light=Xcamp/teal vs.
- * dark=Nox/purple as an intentional two-brand distinction, and this app's
- * own asset naming (nox-logo.svg vs xcamp-logo.svg, "Nox" PWA title) already
- * depends on that split. Values below replace the previous ad-hoc
- * oklch(...) approximations with the exact canonical hsl(...) tokens.
+ * AMENDMENT (post-P1.0, "Amend dark-theme brand color" session): overrides
+ * the earlier CONFLICTS.md #2 resolution below. xcamp-companion previously
+ * kept purple for dark, matching tokens.json's canonical Xcamp(light)/
+ * Nox(dark) two-brand split. That split is xcamp-nox-founder-app's brand
+ * identity, not xcamp-companion's — by explicit human decision,
+ * xcamp-companion is single-brand Xcamp in both modes, so dark now gets a
+ * brighter teal (same hue family as light, tuned for contrast on a dark
+ * background) instead of Nox's purple. This is an xcamp-companion-only
+ * override: the canonical tokens.json split is unchanged and still applies
+ * to xcamp-nox-founder-app and any other consumer that wants the Nox
+ * identity — see xcamp-designsystem's CONFLICTS.md for the override note.
  */
 .dark {
   --background: hsl(222 47% 8%);
@@ -235,8 +236,8 @@
   --card-foreground: hsl(210 40% 98%);
   --popover: hsl(222 47% 11%);
   --popover-foreground: hsl(210 40% 98%);
-  --primary: hsl(264 85% 47%);
-  --primary-foreground: hsl(210 40% 98%);
+  --primary: hsl(168 65% 48%);
+  --primary-foreground: hsl(222 47% 8%);
   --secondary: hsl(217 33% 18%);
   --secondary-foreground: hsl(210 40% 98%);
   --muted: hsl(217 33% 18%);
@@ -255,17 +256,19 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: hsl(222 47% 11%);
   --sidebar-foreground: hsl(210 40% 98%);
-  --sidebar-primary: hsl(264 85% 47%);
-  --sidebar-primary-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(168 65% 48%);
+  --sidebar-primary-foreground: hsl(222 47% 8%);
   --sidebar-accent: hsl(217 33% 18%);
   --sidebar-accent-foreground: hsl(210 40% 98%);
   --sidebar-border: hsl(217 33% 18%);
   --sidebar-ring: hsl(168 72% 42%);
 
-  /* Xcamp skin tokens — dark (Nox) overrides, sourced from tokens.json.
-   * good/bad have no canonical dark entry in tokens.json (semantic block is
-   * theme-agnostic there), so those keep the previous lighten-for-dark-bg
-   * derivation — unaffected by either CONFLICTS.md item. */
+  /* Xcamp skin tokens — dark overrides. Neutrals sourced from tokens.json;
+   * accent is xcamp-companion's teal-for-dark override (see AMENDMENT
+   * comment above `.dark {` — single-brand Xcamp, not the canonical Nox
+   * purple). good/bad have no canonical dark entry in tokens.json (semantic
+   * block is theme-agnostic there), so those keep the previous
+   * lighten-for-dark-bg derivation, unrelated to this override. */
   --skin-bg:           hsl(222, 47%, 8%);
   --skin-surface:      hsl(222, 47%, 11%);
   --skin-surface2:     hsl(222, 47%, 13%);
@@ -274,9 +277,9 @@
   --skin-ink-faint:    hsl(215, 15%, 50%);
   --skin-line:         hsl(217, 33%, 18%);
   --skin-line-soft:    hsl(217, 33%, 22%);
-  --skin-accent:       hsl(264 85% 47%);
-  --skin-accent-soft:  hsl(291, 35%, 22%);
-  --skin-accent-gradient: linear-gradient(135deg, #731f7d, hsl(264 85% 47%), hsl(217 91% 52%));
+  --skin-accent:       hsl(168 65% 48%);
+  --skin-accent-soft:  hsl(168, 40%, 18%);
+  --skin-accent-gradient: linear-gradient(135deg, #1f6b7a, hsl(168 65% 48%), #3cddc2);
   --skin-good:         hsl(142, 55%, 60%);
   --skin-good-soft:    hsl(142, 30%, 18%);
   --skin-bad:          hsl(8, 80%, 68%);
