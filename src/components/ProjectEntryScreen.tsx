@@ -5,16 +5,21 @@ import { useHeroImage } from "@/lib/useHeroImage";
 import { useAltitudeStore } from "@/store/altitudeStore";
 import type { ProjectFull, XcampUser } from "@/types/xcamp";
 
-// Brand orb gradient colours — theme-specific, not tied to altitude.
-const ORB_GRADIENT: Record<"xcamp" | "nox", { from: string; to: string }> = {
-  xcamp: { from: "#1d9e8f", to: "#1f5fae" },
-  nox:   { from: "#5a5ae0", to: "#3fb6c9" },
+// Brand orb gradient colours — light/dark contrast tuning, not a brand
+// switch. xcamp-companion is single-brand (Xcamp, teal) in both modes; the
+// "dark" entry is a brighter teal-family pairing for legibility against a
+// dark background, not a different brand hue (was purple/violet — see the
+// "amend dark-theme brand color" session).
+const ORB_GRADIENT: Record<"light" | "dark", { from: string; to: string }> = {
+  light: { from: "#1d9e8f", to: "#1f5fae" },
+  dark:  { from: "#1f6b7a", to: "#3cddc2" },
 };
 
-// Altitude accent RGB values — mirrors the token map used for altitude state in sidepanel/Vox.
-const ALTITUDE_ACCENT: Record<"xcamp" | "nox", Record<"glide" | "cruise" | "cockpit", string>> = {
-  xcamp: { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
-  nox:   { glide: "168,85,247",  cruise: "124,58,237",  cockpit: "37,99,235"   },
+// Altitude accent RGB values — mirrors the token map used for altitude state
+// in sidepanel/Vox. Same teal family in both modes now (was purple for dark).
+const ALTITUDE_ACCENT: Record<"light" | "dark", Record<"glide" | "cruise" | "cockpit", string>> = {
+  light: { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
+  dark:  { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
 };
 const ALTITUDE_SLUG = ["glide", "cruise", "cockpit"] as const;
 const OVERLAY_STRENGTH = 0.35;
@@ -35,11 +40,11 @@ interface Props {
 export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewProject, onEnterEcosystem }: Props) {
   const { resolved, setMode } = useTheme();
   const brand = useBrand();
-  const isNox = resolved === "dark";
+  const isDark = resolved === "dark";
   const { altitude } = useAltitudeStore();
   const { url: heroBgUrl } = useHeroImage(); // no seed → random per load
 
-  const theme = isNox ? "nox" : "xcamp";
+  const theme = isDark ? "dark" : "light";
   const orb = ORB_GRADIENT[theme];
   const orbGradient = `radial-gradient(circle at 35% 30%, ${orb.from}, ${orb.to})`;
   const altKey = ALTITUDE_SLUG[altitude as 0 | 1 | 2] ?? "cruise";
@@ -140,8 +145,8 @@ export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewP
         }}
       >
         <ModeSwitchButton
-          label="Xcamp"
-          active={!isNox}
+          label="Light"
+          active={!isDark}
           onClick={() => setMode("light")}
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
@@ -151,8 +156,8 @@ export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewP
           }
         />
         <ModeSwitchButton
-          label="Nox"
-          active={isNox}
+          label="Dark"
+          active={isDark}
           dark
           onClick={() => setMode("dark")}
           icon={

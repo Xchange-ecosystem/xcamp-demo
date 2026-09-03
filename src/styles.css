@@ -74,40 +74,46 @@
   --color-skin-bad-soft: var(--skin-bad-soft);
 }
 
+/*
+ * Values below are sourced directly from @xchange/ui's Claude Design export
+ * (vendor/ui/src/claude-design/tokens.json, themes.light "Xcamp") — the
+ * single source of visual truth for P1. Do not hand-tune these independently
+ * of that file; update tokens.json's source of truth first, then resync.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.821 0.132 175.939);
-  --primary-foreground: oklch(0.15 0.05 176);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.821 0.132 175.939);
+  --radius: 0.75rem;
+  --background: hsl(0 0% 97%);
+  --foreground: hsl(220 13% 10%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(220 13% 10%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(220 13% 10%);
+  --primary: hsl(168 72% 42%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(220 13% 95%);
+  --secondary-foreground: hsl(220 13% 10%);
+  --muted: hsl(220 13% 95%);
+  --muted-foreground: hsl(220 9% 46%);
+  --accent: hsl(220 13% 95%);
+  --accent-foreground: hsl(220 13% 10%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(220 13% 91%);
+  --input: hsl(220 13% 91%);
+  --ring: hsl(168 72% 42%);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.821 0.132 175.939);
-  --sidebar-primary-foreground: oklch(0.15 0.05 176);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.821 0.132 175.939);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(220 13% 10%);
+  --sidebar-primary: hsl(168 72% 42%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 13% 95%);
+  --sidebar-accent-foreground: hsl(220 13% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(168 72% 42%);
 }
 
 /* ============================================================
@@ -120,24 +126,25 @@
  * Defined BEFORE .dark so dark-mode overrides win the cascade.
  * ============================================================ */
 :root {
-  --skin-bg:           #ffffff;
+  /* Sourced from tokens.json themes.light.colors.surfaces/brand/semantic. */
+  --skin-bg:           hsl(0 0% 97%);
   --skin-surface:      #ffffff;
-  --skin-surface2:     #f4f6f8;
-  --skin-ink:          #1c2430;
-  --skin-ink-soft:     #6b7684;
-  --skin-ink-faint:    #9aa4b1;
-  --skin-line:         #e6e9ed;
-  --skin-line-soft:    #eef1f4;
-  --skin-accent:       #22b8b0;
-  --skin-accent-soft:  #e3f8f6;
-  --skin-accent-gradient: linear-gradient(120deg, #22c1a8 0%, #4fd68c 100%);
-  --skin-good:         #3fb96a;
-  --skin-good-soft:    #e6f7ec;
-  --skin-bad:          #e0503a;
-  --skin-bad-soft:     #fbeae6;
+  --skin-surface2:     hsl(220 13% 95%);
+  --skin-ink:          hsl(220 13% 10%);
+  --skin-ink-soft:     hsl(220 9% 46%);
+  --skin-ink-faint:    hsl(220 6% 64%);
+  --skin-line:         hsl(220 13% 91%);
+  --skin-line-soft:    hsl(220 13% 95%);
+  --skin-accent:       hsl(168 72% 42%);
+  --skin-accent-soft:  hsl(168 72% 94%);
+  --skin-accent-gradient: linear-gradient(120deg, hsl(190 57% 47%) 0%, hsl(170 70% 59%) 100%);
+  --skin-good:         hsl(142 76% 36%);
+  --skin-good-soft:    hsl(142 76% 94%);
+  --skin-bad:          hsl(0 84% 60%);
+  --skin-bad-soft:     hsl(0 84% 95%);
 
-  --success:           hsl(142, 71%, 45%);
-  --warning:           hsl(38, 95%, 52%);
+  --success:           hsl(142, 76%, 36%);
+  --warning:           hsl(38, 92%, 50%);
   --danger:            hsl(0, 84%, 60%);
 
   --xr:                6px;
@@ -149,7 +156,11 @@
   --skin-radius:       14px;
   --skin-radius-lg:    22px;
   --skin-radius-pill:  999px;
-  --skin-font-head:    'Hanken Grotesk', 'Inter', sans-serif;
+  /* Resolves CONFLICTS.md #1: aligned to tokens.json
+   * objectiveSkins.scientific.fontHead (Claude Design export). The
+   * Scientific/Playful axis is retired, so this is the one going-forward
+   * heading font rather than a per-tone choice. */
+  --skin-font-head:    'Rubik', 'IBM Plex Sans', sans-serif;
 
   --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -205,61 +216,70 @@
   --glass-divider:       rgba(0,0,0,0.1);
 }
 
+/*
+ * AMENDMENT (post-P1.0, "Amend dark-theme brand color" session): overrides
+ * the earlier CONFLICTS.md #2 resolution below. xcamp-companion previously
+ * kept purple for dark, matching tokens.json's canonical Xcamp(light)/
+ * Nox(dark) two-brand split. That split is xcamp-nox-founder-app's brand
+ * identity, not xcamp-companion's — by explicit human decision,
+ * xcamp-companion is single-brand Xcamp in both modes, so dark now gets a
+ * brighter teal (same hue family as light, tuned for contrast on a dark
+ * background) instead of Nox's purple. This is an xcamp-companion-only
+ * override: the canonical tokens.json split is unchanged and still applies
+ * to xcamp-nox-founder-app and any other consumer that wants the Nox
+ * identity — see xcamp-designsystem's CONFLICTS.md for the override note.
+ */
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.72 0.13 312);
-  --primary-foreground: oklch(0.15 0.05 312);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.85 0.12 176);
+  --background: hsl(222 47% 8%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222 47% 11%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222 47% 11%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(168 65% 48%);
+  --primary-foreground: hsl(222 47% 8%);
+  --secondary: hsl(217 33% 18%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217 33% 18%);
+  --muted-foreground: hsl(215 20% 65%);
+  --accent: hsl(217 33% 18%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217 33% 18%);
+  --input: hsl(217 33% 18%);
+  --ring: hsl(168 72% 42%);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.85 0.12 176);
-  --sidebar-primary-foreground: oklch(0.15 0.05 176);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.85 0.12 176);
+  --sidebar: hsl(222 47% 11%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(168 65% 48%);
+  --sidebar-primary-foreground: hsl(222 47% 8%);
+  --sidebar-accent: hsl(217 33% 18%);
+  --sidebar-accent-foreground: hsl(210 40% 98%);
+  --sidebar-border: hsl(217 33% 18%);
+  --sidebar-ring: hsl(168 72% 42%);
 
-  /* Xcamp skin tokens — dark (Nox) overrides.
-   * The mockup is a light-only design, so these neutral and accent values
-   * are unchanged from Nox's existing dark identity (dark navy neutrals,
-   * purple accent) rather than derived from the light mockup palette —
-   * there's no dark-mode guidance in the source to derive them from, and
-   * overwriting Nox's established purple brand hue with a darkened version
-   * of the new light teal would erase the intentional Xcamp/Nox distinction.
-   * good/bad are new tokens with no prior dark-mode precedent, so those are
-   * derived here using the same lighten-for-dark-bg transform already used
-   * for --skin-danger below. */
-  --skin-bg:           hsl(222, 47%, 11%);
-  --skin-surface:      hsl(217, 33%, 17%);
-  --skin-surface2:     hsl(215, 28%, 22%);
-  --skin-ink:          hsl(210, 40%, 96%);
-  --skin-ink-soft:     hsl(215, 20%, 70%);
-  --skin-ink-faint:    hsl(215, 16%, 50%);
-  --skin-line:         hsl(215, 28%, 25%);
-  --skin-line-soft:    hsl(215, 28%, 20%);
-  --skin-accent:       #b689e6;
-  --skin-accent-soft:  hsl(291, 35%, 22%);
-  --skin-accent-gradient: linear-gradient(135deg, #731f7d, #b689e6, #34acbf);
+  /* Xcamp skin tokens — dark overrides. Neutrals sourced from tokens.json;
+   * accent is xcamp-companion's teal-for-dark override (see AMENDMENT
+   * comment above `.dark {` — single-brand Xcamp, not the canonical Nox
+   * purple). good/bad have no canonical dark entry in tokens.json (semantic
+   * block is theme-agnostic there), so those keep the previous
+   * lighten-for-dark-bg derivation, unrelated to this override. */
+  --skin-bg:           hsl(222, 47%, 8%);
+  --skin-surface:      hsl(222, 47%, 11%);
+  --skin-surface2:     hsl(222, 47%, 13%);
+  --skin-ink:          hsl(210, 40%, 98%);
+  --skin-ink-soft:     hsl(215, 20%, 65%);
+  --skin-ink-faint:    hsl(215, 15%, 50%);
+  --skin-line:         hsl(217, 33%, 18%);
+  --skin-line-soft:    hsl(217, 33%, 22%);
+  --skin-accent:       hsl(168 65% 48%);
+  --skin-accent-soft:  hsl(168, 40%, 18%);
+  --skin-accent-gradient: linear-gradient(135deg, #1f6b7a, hsl(168 65% 48%), #3cddc2);
   --skin-good:         hsl(142, 55%, 60%);
   --skin-good-soft:    hsl(142, 30%, 18%);
   --skin-bad:          hsl(8, 80%, 68%);
