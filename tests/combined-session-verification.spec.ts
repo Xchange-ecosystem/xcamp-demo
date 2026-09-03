@@ -1,6 +1,4 @@
-import { test, expect } from "@playwright/test";
-import path from "path";
-import fs from "fs";
+import { test, expect, type TestInfo } from "@playwright/test";
 import {
   installLiveHarness,
   OBJECTIVE_ID,
@@ -10,9 +8,7 @@ import {
   FAKE_TENANT_ID,
 } from "./helpers/liveAuth";
 
-const OUT =
-  "/tmp/claude-0/-home-user-xcamp-nox-founder-app/95aead38-cd87-58ae-9a07-71dd1d7edd30/scratchpad/combined-shots";
-fs.mkdirSync(OUT, { recursive: true });
+const shot = (testInfo: TestInfo, name: string) => testInfo.outputPath(name);
 
 const NOTE_ID2 = "00000000-0000-4000-8000-00000000000d";
 
@@ -92,7 +88,7 @@ async function installExtendedHarness(page: import("@playwright/test").Page) {
 test.describe("Combined session verification", () => {
   test("item1: nav rail expands on hover, collapses on leave, click still works", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await installLiveHarness(page);
     await page.goto("/navigator");
     await page.waitForTimeout(2000);
@@ -109,7 +105,7 @@ test.describe("Combined session verification", () => {
       await toggle.click();
       await page.waitForTimeout(300);
     }
-    await page.screenshot({ path: path.join(OUT, "1a-navrail-collapsed.png") });
+    await page.screenshot({ path: shot(testInfo, "1a-navrail-collapsed.png") });
 
     // Hover over the rail — should expand after the debounce delay.
     const box = await rail.boundingBox();
@@ -119,14 +115,14 @@ test.describe("Combined session verification", () => {
     const wrapperAfterHover = page.locator('[data-variant="sidebar"]').first();
     const stateAfterHover = await wrapperAfterHover.getAttribute("data-state");
     console.log("STATE AFTER HOVER:", stateAfterHover);
-    await page.screenshot({ path: path.join(OUT, "1b-navrail-hover-expanded.png") });
+    await page.screenshot({ path: shot(testInfo, "1b-navrail-hover-expanded.png") });
 
     // Move mouse away — should collapse again after the leave-debounce.
     await page.mouse.move(800, 400);
     await page.waitForTimeout(600);
     const stateAfterLeave = await wrapperAfterHover.getAttribute("data-state");
     console.log("STATE AFTER LEAVE:", stateAfterLeave);
-    await page.screenshot({ path: path.join(OUT, "1c-navrail-after-leave.png") });
+    await page.screenshot({ path: shot(testInfo, "1c-navrail-after-leave.png") });
 
     // Persisted localStorage should reflect the click state (collapsed),
     // not the transient hover-expanded state.
@@ -147,7 +143,9 @@ test.describe("Combined session verification", () => {
     expect(stateAfterClick).toBe("expanded");
   });
 
-  test("item2: objective attachment persists via RPC with correct payload", async ({ page }) => {
+  test("item2: objective attachment persists via RPC with correct payload", async ({
+    page,
+  }, testInfo) => {
     await installLiveHarness(page);
 
     let rpcCallBody: unknown = null;
@@ -166,7 +164,7 @@ test.describe("Combined session verification", () => {
     await page.waitForTimeout(1000);
     await page.getByTitle("Edit details").click();
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(OUT, "2a-objective-sidepanel.png") });
+    await page.screenshot({ path: shot(testInfo, "2a-objective-sidepanel.png") });
 
     const fileChooserPromise = page.waitForEvent("filechooser");
     await page.getByTitle("Attach file").click();
@@ -177,7 +175,7 @@ test.describe("Combined session verification", () => {
       buffer: Buffer.from("hello from item 2 verification"),
     });
     await page.waitForTimeout(1500);
-    await page.screenshot({ path: path.join(OUT, "2b-objective-attachment-added.png") });
+    await page.screenshot({ path: shot(testInfo, "2b-objective-attachment-added.png") });
 
     const attachmentVisible = await page.getByText("test-attachment.txt").isVisible();
     console.log("ATTACHMENT VISIBLE IN UI:", attachmentVisible);
@@ -191,7 +189,7 @@ test.describe("Combined session verification", () => {
 
   test("item3: auth screen shows hero background + glass card, form unchanged", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.route("**fonts.googleapis.com/**", (route) =>
       route.fulfill({ status: 200, contentType: "text/css", body: "/* stubbed */" }),
     );
@@ -217,7 +215,7 @@ test.describe("Combined session verification", () => {
     );
     await page.goto("/auth");
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(OUT, "3-auth-with-hero.png"), fullPage: true });
+    await page.screenshot({ path: shot(testInfo, "3-auth-with-hero.png"), fullPage: true });
 
     const hasHeroBg = await page.evaluate(() => {
       return Array.from(document.querySelectorAll("div")).some((d) =>
@@ -239,7 +237,7 @@ test.describe("Combined session verification", () => {
     expect(signInButton).toBe(true);
   });
 
-  test("item4a: task-type fullscreen unchanged", async ({ page }) => {
+  test("item4a: task-type fullscreen unchanged", async ({ page }, testInfo) => {
     await installExtendedHarness(page);
     await page.goto("/navigator?view=browser");
     await page.waitForTimeout(2000);
@@ -247,11 +245,11 @@ test.describe("Combined session verification", () => {
     await page.waitForTimeout(1000);
     await page.getByText("Audit task one", { exact: false }).first().click();
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(OUT, "4a-task-sidepanel.png") });
+    await page.screenshot({ path: shot(testInfo, "4a-task-sidepanel.png") });
 
     await page.getByTestId("sidepanel-open-fullscreen").click();
     await page.waitForTimeout(800);
-    await page.screenshot({ path: path.join(OUT, "4a-task-fullscreen-open.png") });
+    await page.screenshot({ path: shot(testInfo, "4a-task-fullscreen-open.png") });
 
     const taskModalOpen = await page.getByTestId("task-fullscreen-modal").getAttribute("data-open");
     const editorVisible = await page
@@ -268,7 +266,9 @@ test.describe("Combined session verification", () => {
   // editor for note_type: "note" (see NoteFullscreenModal / FullscreenDispatcher).
   // Other non-task, non-note types (idea/question/decision/reference) still
   // get the placeholder — unchanged, not re-tested here.
-  test("item4b: plain note shows fullscreen editor (not the placeholder), dismiss works", async ({ page }) => {
+  test("item4b: plain note shows fullscreen editor (not the placeholder), dismiss works", async ({
+    page,
+  }, testInfo) => {
     await installExtendedHarness(page);
     await page.goto("/navigator?view=browser");
     await page.waitForTimeout(2000);
@@ -276,13 +276,13 @@ test.describe("Combined session verification", () => {
     await page.waitForTimeout(1000);
     await page.getByText("Audit plain note", { exact: false }).first().click();
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(OUT, "4b-note-sidepanel.png") });
+    await page.screenshot({ path: shot(testInfo, "4b-note-sidepanel.png") });
 
     const fsBtn = page.getByTestId("sidepanel-open-fullscreen");
     await expect(fsBtn).toBeVisible();
     await fsBtn.click();
     await page.waitForTimeout(800);
-    await page.screenshot({ path: path.join(OUT, "4b-note-fullscreen-open.png") });
+    await page.screenshot({ path: shot(testInfo, "4b-note-fullscreen-open.png") });
 
     const noteModalOpen = await page.getByTestId("note-fullscreen-modal").getAttribute("data-open");
     const placeholderOpen = await page
@@ -314,18 +314,20 @@ test.describe("Combined session verification", () => {
     // Escape should dismiss it.
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
-    const noteModalOpenAfterEsc = await page.getByTestId("note-fullscreen-modal").getAttribute("data-open");
+    const noteModalOpenAfterEsc = await page
+      .getByTestId("note-fullscreen-modal")
+      .getAttribute("data-open");
     console.log("NOTE MODAL OPEN AFTER ESCAPE:", noteModalOpenAfterEsc);
     expect(noteModalOpenAfterEsc).toBe("false");
   });
 
   test("item4c: grep-verifiable — no old hard-coded message reachable via direct route", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await installExtendedHarness(page);
     await page.goto(`/task/${NOTE_ID2}`);
     await page.waitForTimeout(1500);
-    await page.screenshot({ path: path.join(OUT, "4c-direct-route-nontask.png") });
+    await page.screenshot({ path: shot(testInfo, "4c-direct-route-nontask.png") });
     const bodyText = await page.evaluate(() => document.body.innerText);
     console.log("DIRECT ROUTE BODY TEXT:", JSON.stringify(bodyText.slice(0, 200)));
     expect(bodyText).toContain("Detail view coming soon");
