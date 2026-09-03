@@ -1,0 +1,150 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build release artifact
+    runs-on: [self-hosted]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Build production bundle
+        run: bun run build
+
+      - name: Write build provenance summary
+        env:
+          VERCEL_ENABLED: ${{ vars.ENABLE_VERCEL_DEPLOY }}
+        run: |
+          {
+            echo "## Build provenance"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Built at: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "- dist size: $(du -sh dist | cut -f1) ($(du -sb dist | cut -f1) bytes)"
+            echo "- dist files: $(find dist -type f | wc -l)"
+            if [ "$VERCEL_ENABLED" != true ]; then
+              echo "- Deployment: skipped because repository variable \`ENABLE_VERCEL_DEPLOY\` is not \`true\`; Vercel Git integration remains authoritative."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-vercel:
+    name: Optional Vercel production deploy
+    needs: build-release
+    if: vars.ENABLE_VERCEL_DEPLOY == 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    runs-on: [self-hosted]
+    timeout-minutes: 30
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Check Vercel configuration
+        id: config
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          missing=""
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name:-}" ]; then missing="${missing} ${name}"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## Vercel deployment" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped cleanly: missing required secret(s):\`${missing}\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull Vercel project settings
+        if: steps.config.outputs.ready == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: bunx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build with Vercel
+        if: steps.config.outputs.ready == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: bunx vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt production bundle
+        id: deploy
+        if: steps.config.outputs.ready == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          url=$(bunx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN" | tail -n 1)
+          test -n "$url"
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Vercel deployment"
+            echo "Deployed \`${GITHUB_SHA}\` to $url"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    name: Production smoke test
+    needs: deploy-vercel
+    if: needs.deploy-vercel.outputs.deployed == 'true'
+    runs-on: [self-hosted]
+    timeout-minutes: 5
+    steps:
+      - name: Require HTTP 200 and an HTML document
+        env:
+          DEPLOYED_URL: ${{ needs.deploy-vercel.outputs.url }}
+        run: |
+          body=$(mktemp)
+          trap 'rm -f "$body"' EXIT
+          status=$(curl --silent --show-error --location --retry 3 --retry-all-errors \
+            --output "$body" --write-out '%{http_code}' "$DEPLOYED_URL")
+          if [ "$status" != 200 ]; then
+            echo "::error::Smoke test expected HTTP 200 from $DEPLOYED_URL, got $status"
+            exit 1
+          fi
+          if ! grep -Eiq '<!doctype[[:space:]]+html|<html([[:space:]>])' "$body"; then
+            echo "::error::Smoke test received HTTP 200 but did not receive index.html"
+            exit 1
+          fi
+          echo "Smoke test passed: HTTP 200 and HTML served from $DEPLOYED_URL"
