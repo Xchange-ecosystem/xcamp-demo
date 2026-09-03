@@ -14,6 +14,7 @@
 // fourth inline copy of it.
 import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { CardFeedConfig } from "./types";
@@ -56,6 +57,7 @@ function CardFeedCard<T>({ item, config }: { item: T; config: CardFeedConfig<T> 
   const description = config.getDescription?.(item);
   const meta = config.getMeta?.(item) ?? [];
   const timestamp = config.getTimestamp?.(item);
+  const actions = config.getActions?.(item) ?? [];
   const clickable = !!config.onItemClick;
 
   return (
@@ -65,9 +67,7 @@ function CardFeedCard<T>({ item, config }: { item: T; config: CardFeedConfig<T> 
       className={cn("border-l-4 transition-shadow", clickable && "cursor-pointer")}
       style={{ borderLeftColor: visual.accent, boxShadow: "var(--shadow-card)" }}
       onMouseEnter={
-        clickable
-          ? (e) => (e.currentTarget.style.boxShadow = "var(--shadow-dropdown)")
-          : undefined
+        clickable ? (e) => (e.currentTarget.style.boxShadow = "var(--shadow-dropdown)") : undefined
       }
       onMouseLeave={
         clickable ? (e) => (e.currentTarget.style.boxShadow = "var(--shadow-card)") : undefined
@@ -95,9 +95,7 @@ function CardFeedCard<T>({ item, config }: { item: T; config: CardFeedConfig<T> 
           </Badge>
         </div>
 
-        {description && (
-          <p className="line-clamp-2 text-sm text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="line-clamp-2 text-sm text-muted-foreground">{description}</p>}
 
         {(meta.length > 0 || timestamp) && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
@@ -111,11 +109,32 @@ function CardFeedCard<T>({ item, config }: { item: T; config: CardFeedConfig<T> 
               );
             })}
             {timestamp && (
-              <span className="ml-auto inline-flex items-center gap-1">
+              <span
+                className={cn(actions.length === 0 && "ml-auto", "inline-flex items-center gap-1")}
+              >
                 <Clock size={12} aria-hidden />
                 {formatTimestamp(timestamp)}
               </span>
             )}
+          </div>
+        )}
+
+        {actions.length > 0 && (
+          <div className="flex items-center gap-2 pt-1">
+            {actions.map((action) => (
+              <Button
+                key={action.key}
+                type="button"
+                size="sm"
+                variant={action.variant ?? "outline"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action.onClick(item);
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
           </div>
         )}
       </CardContent>
