@@ -1,7 +1,7 @@
 // P1.1 Part 1, 2, 3, 4 — Founder Home: input/upload composer, mock-processing
 // -> proposal modal, action-item card feed, right-column metrics.
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Handshake, Lightbulb, Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -51,12 +51,20 @@ function FounderHomePage() {
   const [processingStep, setProcessingStep] = useState(-1);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const processingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Part 1a — composer input modes. Selection persists within the session;
   // only Text and Transcript are wired to anything.
   const [inputMode, setInputMode] = useState<InputMode>("text");
   const [transcriptFile, setTranscriptFile] = useState<TranscriptFile | null>(null);
   const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false);
+
+  useEffect(
+    () => () => {
+      processingTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
 
   const openProposalFromItem = (item: FeedItem) => {
     const estimate = synthesizeEstimate(item.id);
@@ -116,27 +124,31 @@ function FounderHomePage() {
     setDraft("");
     setProcessing(true);
     setProcessingStep(0);
+    processingTimers.current.forEach(clearTimeout);
+    processingTimers.current = [];
 
     PROCESSING_STEPS.forEach((_, i) => {
-      setTimeout(() => setProcessingStep(i), i * 550);
+      processingTimers.current.push(setTimeout(() => setProcessingStep(i), i * 550));
     });
 
-    setTimeout(
-      () => {
-        setProcessing(false);
-        setProcessingStep(-1);
-        const estimate = synthesizeEstimate(seed);
-        const objective = matchObjective(seed);
-        setProposal({
-          id: `draft-${Date.now()}`,
-          title: seed.length > 72 ? `${seed.slice(0, 72)}…` : seed,
-          sourceLabel: `Read from your update · matched to the ${objective.title} objective`,
-          assigneeId: DEFAULT_ASSIGNEE_ID,
-          time: estimate.time,
-          value: estimate.value,
-        });
-      },
-      PROCESSING_STEPS.length * 550 + 200,
+    processingTimers.current.push(
+      setTimeout(
+        () => {
+          setProcessing(false);
+          setProcessingStep(-1);
+          const estimate = synthesizeEstimate(seed);
+          const objective = matchObjective(seed);
+          setProposal({
+            id: `draft-${Date.now()}`,
+            title: seed.length > 72 ? `${seed.slice(0, 72)}…` : seed,
+            sourceLabel: `Read from your update · matched to the ${objective.title} objective`,
+            assigneeId: DEFAULT_ASSIGNEE_ID,
+            time: estimate.time,
+            value: estimate.value,
+          });
+        },
+        PROCESSING_STEPS.length * 550 + 200,
+      ),
     );
   };
 
@@ -165,13 +177,14 @@ function FounderHomePage() {
 
   const handleTranscriptComplete = (people: ExtractedPerson[]) => {
     const now = Date.now();
+    const projectId = transcriptFile?.projectId ?? "proj-1";
     const newItems: FeedItem[] = people.flatMap((p, i) =>
       p.tasks.map((t, j) => ({
         id: `transcript-${now}-${i}-${j}`,
         kind: "action_item" as const,
         title: t.title,
         description: `Sketched from a meeting transcript for ${p.name}. Informational until the objective is formalized into an agreement.`,
-        projectId: "proj-1",
+        projectId,
         actorId: "person-1",
         assigneeId: null,
         status: "active" as const,
@@ -182,6 +195,7 @@ function FounderHomePage() {
     );
     setItems((prev) => [...newItems, ...prev]);
     setShowTranscriptOverlay(false);
+    setTranscriptFile(null);
     toast.success(
       `${newItems.length} sketch ${newItems.length === 1 ? "task" : "tasks"} added to your feed`,
     );

@@ -47,7 +47,84 @@ function extractErrorMessage(rawText: string, status: number): string {
   }
 }
 
-export async function extractTranscript(text: string): Promise<ExtractedPerson[]> {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isExtractedTask(value: unknown): value is ExtractedTask {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.est === "string" &&
+    typeof value.due === "string"
+  );
+}
+
+function isExtractedPerson(value: unknown): value is ExtractedPerson {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.initials === "string" &&
+    typeof value.role === "string" &&
+    typeof value.matched === "boolean" &&
+    typeof value.email === "string" &&
+    Array.isArray(value.tasks) &&
+    value.tasks.length > 0 &&
+    value.tasks.every(isExtractedTask)
+  );
+}
+
+function parseExtractionResponse(rawText: string): ExtractedPerson[] {
+  let body: unknown;
+  try {
+    body = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    throw new TranscriptExtractionError("The extraction service returned invalid JSON.", 502);
+  }
+
+  if (!isRecord(body) || !Array.isArray(body.people) || !body.people.every(isExtractedPerson)) {
+    throw new TranscriptExtractionError(
+      "The extraction service returned an invalid response.",
+      502,
+    );
+  }
+  if (body.people.length === 0) {
+    throw new TranscriptExtractionError(
+      "Chi could not find any assigned work in this transcript. Check the file and try again.",
+      422,
+    );
+  }
+
+  const personIds = new Set<string>();
+  const taskIds = new Set<string>();
+  for (const person of body.people) {
+    if (personIds.has(person.id)) {
+      throw new TranscriptExtractionError(
+        "The extraction response contains duplicate people.",
+        502,
+      );
+    }
+    personIds.add(person.id);
+    for (const task of person.tasks) {
+      if (taskIds.has(task.id)) {
+        throw new TranscriptExtractionError(
+          "The extraction response contains duplicate tasks.",
+          502,
+        );
+      }
+      taskIds.add(task.id);
+    }
+  }
+
+  return body.people;
+}
+
+export async function extractTranscript(
+  text: string,
+  signal?: AbortSignal,
+): Promise<ExtractedPerson[]> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new TranscriptExtractionError("You need to be signed in.", 401);
@@ -61,8 +138,10 @@ export async function extractTranscript(text: string): Promise<ExtractedPerson[]
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ text }),
+      signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw error;
     throw new TranscriptExtractionError(
       "Could not reach the extraction service. Check your connection and try again.",
       0,
@@ -74,6 +153,5 @@ export async function extractTranscript(text: string): Promise<ExtractedPerson[]
     throw new TranscriptExtractionError(extractErrorMessage(rawText, res.status), res.status);
   }
 
-  const body = rawText ? (JSON.parse(rawText) as { people?: ExtractedPerson[] }) : {};
-  return Array.isArray(body.people) ? body.people : [];
+  return parseExtractionResponse(rawText);
 }

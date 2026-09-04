@@ -1,6 +1,6 @@
-// Ready-made CardFeedConfig<FeedItem> for the three P1 use cases, built
-// against src/fixtures/feed.ts. See README.md for the usage example these
-// implement.
+// Ready-made CardFeedConfig<FeedItem> values built against
+// src/fixtures/feed.ts. The collaborator screen now uses its richer
+// Assignment fixture through a screen-local config.
 import { CheckCircle2, ClipboardCheck, Lightbulb, TrendingDown, TrendingUp } from "lucide-react";
 import type { FeedItem } from "@/fixtures/types";
 import { getPersonById } from "@/fixtures/people";

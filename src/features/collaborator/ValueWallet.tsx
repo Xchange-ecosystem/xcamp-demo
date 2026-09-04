@@ -6,10 +6,10 @@
 // (Yuki Tanaka, person-9) rather than re-deriving them — her wallet rows
 // already match this screen's settled assignments exactly (see
 // src/fixtures/assignments.ts).
-import { useMemo } from "react";
 import { fmt } from "@/components/project-home/MetricPrimitives";
 import { getWalletByPerson } from "@/fixtures/wallet";
 import type { Assignment } from "@/fixtures/assignments";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 // Donut radius/gap match the P1.3 mockup exactly (viewBox 0 0 132 132,
 // r=52, stroke-width 15). Arcs are drawn as stroke-dasharray/-dashoffset on
@@ -19,10 +19,6 @@ import type { Assignment } from "@/fixtures/assignments";
 const RADIUS = 52;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const SEGMENT_GAP = 3;
-
-function usePrefersReducedMotion(): boolean {
-  return useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
-}
 
 const ROWS: {
   key: Assignment["valueState"];

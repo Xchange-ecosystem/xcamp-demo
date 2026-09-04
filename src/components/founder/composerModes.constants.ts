@@ -15,6 +15,6 @@ export const MODE_HINTS: Record<InputMode, string> = {
   text: "Chi reads it, matches it to an objective, and proposes the work. You decide what lands.",
   voice: "Voice capture isn't wired up in this demo.",
   upload: "File analysis isn't wired up in this demo.",
-  transcript: "This is the one input that runs end to end: real extraction, real email.",
+  transcript: "This demo uses real extraction and an editable review; sending is simulated.",
   agent: "Agent connections aren't wired up in this demo.",
 };

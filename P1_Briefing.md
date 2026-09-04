@@ -4,25 +4,24 @@ Read this before any P1 session prompt. It's the context every P1.0 prompt refer
 
 ## What P1 is
 
-A standalone presentation demo — **not** a production feature. Built to be shown live on a video call to investors and operators, demonstrating that the three value propositions fit all four stakeholder groups (Founder, Investor/Operator, Collaborator, Admin). Mock data throughout, except the Admin transcript-extraction feature, which calls chi-orchestration for real AI extraction.
+A standalone presentation demo — **not** a production feature. Built to be shown live on a video call to investors and operators, demonstrating that the three value propositions fit Founder, Investor/Operator, and Collaborator workflows. Mock data throughout, except the Founder composer's Transcript mode, which calls chi-orchestration for real AI extraction.
 
 **Timeline: live in 1 week.** **Team:** Fabian, Pascal, Alex, working in parallel with Claude.ai + Claude Code.
 
-## What P1 needs to deliver (5 screens)
+## What P1 needs to deliver (4 stakeholder views)
 
-1. **Founder** — input/upload field, action-item card feed, right-column metrics, mock-processing → proposal modal, plus lighter Companion/Navigator/Dashboard screens
+1. **Founder** — input/upload field, action-item card feed, right-column metrics, mock-processing → proposal modal, lighter Companion/Navigator/Dashboard screens, and the P1.4 Transcript composer mode
 2. **Investor/Operator Portfolio** — animated ranked bar list, horizontal project selector, update-card feed, ecosystem metrics
 3. **Investor Dashboard** _(new)_ — central hub combining a Companion chat panel with a key-metrics summary, analogous to the Founder's Companion Home
 4. **Collaborator** — assignment feed, metrics + value wallet
-5. **Admin** — transcript upload → real chi-orchestration extraction → editable task/assignee list → email preview → send
 
 ## Repos
 
-**xcamp-companion** — new standalone repo, primary repo for all 5 screens. Not xcamp-nox-founder-app.
+**xcamp-companion** — new standalone repo, primary repo for all four stakeholder views. Not xcamp-nox-founder-app.
 
-**Most of P1 has no backend dependency.** Founder, Investor/Operator Portfolio, Investor Dashboard, and Collaborator (P1.1, P1.2, P1.6, P1.3) are pure frontend against mock fixtures — no xcamp-backend, no production auth. P2 is what wires these to real data.
+**Most of P1 has no backend dependency.** Founder, Investor/Operator Portfolio, Investor Dashboard, and Collaborator (P1.1, P1.2, P1.6, P1.3) are frontend demos against mock fixtures. P2 is what wires those views to real data.
 
-**P1.4 (Admin) is the one exception.** It genuinely needs **xcamp-backend** for two real endpoints: the transcript-extraction passthrough (which calls chi-orchestration for real AI extraction) and the email-send endpoint. This is intentional — real extraction is a much stronger demo moment than faking it, for roughly the same effort. Anyone picking up P1.4 works across both xcamp-companion (UI) and xcamp-backend (these two endpoints), following the existing auth pattern already used for chi-orchestration calls (SEC-02 enforcement).
+**P1.4 is the one exception.** Per the 2026-09-04 amendment, it is a Transcript mode in the Founder composer, not a separate Admin screen. It uses **xcamp-backend** for real transcript extraction through chi-orchestration, following the existing authenticated backend pattern. Email sending in P1 is explicitly simulated until a provider-backed send endpoint exists.
 
 ## What to reuse (read-only reference during Phase 0 of every session)
 

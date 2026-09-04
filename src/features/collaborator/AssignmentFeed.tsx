@@ -95,6 +95,7 @@ export function AssignmentFeed({
   };
 
   const declineTerms = (a: Assignment) => {
+    onChange(assignments.filter((assignment) => assignment.id !== a.id));
     setReviewing(null);
     toast("Terms declined", { description: "The owner has been notified." });
   };
@@ -232,8 +233,11 @@ export function AssignmentFeed({
             </p>
 
             <DialogFooter>
-              <Button variant="ghost" onClick={() => declineTerms(reviewing)}>
+              <Button variant="ghost" onClick={() => setReviewing(null)}>
                 Not now
+              </Button>
+              <Button variant="outline" onClick={() => declineTerms(reviewing)}>
+                Decline terms
               </Button>
               <Button onClick={() => acceptTerms(reviewing)}>Accept terms</Button>
             </DialogFooter>

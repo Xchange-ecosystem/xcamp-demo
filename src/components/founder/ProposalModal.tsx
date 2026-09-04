@@ -71,6 +71,13 @@ export function ProposalModal({
 
   if (!proposal) return null;
   const assignee = getPersonById(proposal.assigneeId);
+  const parsedValue = Number(value);
+  const canAccept =
+    title.trim().length > 0 &&
+    time.trim().length > 0 &&
+    Number.isFinite(parsedValue) &&
+    Number.isInteger(parsedValue) &&
+    parsedValue > 0;
 
   return (
     <Dialog open={!!proposal} onOpenChange={onOpenChange}>
@@ -124,8 +131,17 @@ export function ProposalModal({
             </Label>
             <Input
               id="proposal-value"
+              type="number"
+              min={1}
+              step={1}
               value={value}
               onChange={(e) => setValue(e.target.value)}
+              aria-invalid={
+                value.length > 0 &&
+                (!Number.isFinite(parsedValue) ||
+                  !Number.isInteger(parsedValue) ||
+                  parsedValue <= 0)
+              }
               className="flex-1"
             />
           </div>
@@ -157,8 +173,14 @@ export function ProposalModal({
               Keep editing
             </Button>
             <Button
+              disabled={!canAccept}
               onClick={() =>
-                onAccept({ ...proposal, title, time, value: Number(value) || proposal.value })
+                onAccept({
+                  ...proposal,
+                  title: title.trim(),
+                  time: time.trim(),
+                  value: parsedValue,
+                })
               }
             >
               Accept as sketch

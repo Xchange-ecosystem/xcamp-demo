@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Play, Square } from "lucide-react";
 import { getProjectById, getRankedPortfolio } from "@/fixtures";
 import { PORTFOLIO_WEEKS } from "@/fixtures/portfolio";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 // Part 1 — animated ranked portfolio bar list (P1.2 centerpiece), corrected
 // in P1-CORR Part 2 to reorder against a real eight-week series
@@ -54,10 +55,6 @@ function deltaText(delta: number): string {
   return "±0";
 }
 
-function usePrefersReducedMotion(): boolean {
-  return useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
-}
-
 export function RankedPortfolioBars({
   selectedProjectId,
   onSelect,
@@ -75,7 +72,6 @@ export function RankedPortfolioBars({
   const [playing, setPlaying] = useState(false);
 
   const bootTimerRef = useRef<number | null>(null);
-  const playTimerRef = useRef<number | null>(null);
 
   const clearBootTimer = useCallback(() => {
     if (bootTimerRef.current !== null) {
@@ -85,27 +81,18 @@ export function RankedPortfolioBars({
   }, []);
 
   const stopPlay = useCallback(() => {
-    if (playTimerRef.current !== null) {
-      clearInterval(playTimerRef.current);
-      playTimerRef.current = null;
-    }
     setPlaying(false);
   }, []);
 
   const startPlay = useCallback(() => {
-    stopPlay();
+    if (prefersReducedMotion) {
+      setWeek(LAST_WEEK);
+      setPlaying(false);
+      return;
+    }
     setWeek(0);
     setPlaying(true);
-    playTimerRef.current = window.setInterval(() => {
-      setWeek((w) => {
-        if (w >= LAST_WEEK) {
-          stopPlay();
-          return w;
-        }
-        return w + 1;
-      });
-    }, PLAY_INTERVAL_MS);
-  }, [stopPlay]);
+  }, [prefersReducedMotion]);
 
   // Boot: grow bars in from zero, then autoplay the eight weeks once — but
   // never under reduced motion, which renders the current week directly.
@@ -129,7 +116,23 @@ export function RankedPortfolioBars({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => () => stopPlay(), [stopPlay]);
+  useEffect(() => {
+    if (!playing || week >= LAST_WEEK) return;
+    const timer = window.setTimeout(() => {
+      const nextWeek = Math.min(week + 1, LAST_WEEK);
+      setWeek(nextWeek);
+      if (nextWeek === LAST_WEEK) setPlaying(false);
+    }, PLAY_INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [playing, week]);
+
+  useEffect(() => {
+    if (!prefersReducedMotion) return;
+    clearBootTimer();
+    setRevealed(true);
+    setWeek(LAST_WEEK);
+    setPlaying(false);
+  }, [clearBootTimer, prefersReducedMotion]);
 
   const rank = useMemo(() => {
     const ordered = [...rows].sort((a, b) => b.scores[week] - a.scores[week]);
@@ -242,6 +245,7 @@ export function RankedPortfolioBars({
         value={week}
         onChange={(e) => handleScrub(Number(e.target.value))}
         aria-label="Week"
+        aria-valuetext={`Week of ${PORTFOLIO_WEEKS[week]}`}
         style={{ width: "100%", margin: "0 0 20px", accentColor: "var(--skin-accent)" }}
       />
 
