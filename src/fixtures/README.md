@@ -1,7 +1,7 @@
 # P1 shared mock-data layer
 
 One shared fixture module for all P1 screens (Founder, Investor/Operator
-Portfolio, Investor Dashboard, Collaborator, Admin). Import from the barrel,
+Portfolio, Investor Dashboard, Collaborator). Import from the barrel,
 not individual files:
 
 ```ts
@@ -18,7 +18,7 @@ import { PEOPLE, PROJECTS, getFeedByKind, getProjectMetrics } from "@/fixtures";
 | `metrics.ts` | `PROJECT_METRICS`, `ECOSYSTEM_METRICS`, `getProjectMetrics` | Founder (right-column), Investor/Operator, Investor Dashboard |
 | `portfolio.ts` | `PORTFOLIO`, `getPortfolioEntry`, `getRankedPortfolio` | Investor/Operator ranked bar list |
 | `feed.ts` | `FEED_ITEMS`, `getFeedByKind`, `getFeedByAssignee`, `getFeedByProject` | Card Feed (Part 3) — all three feed use cases |
-| `transcripts.ts` | `TRANSCRIPTS`, `getTranscriptById` | Admin (upload demo inputs only — extraction itself is real, not mocked) |
+| `transcripts.ts` | `TRANSCRIPTS`, `getTranscriptById` | Founder composer's Transcript input mode (upload demo inputs only — extraction itself is real, not mocked) |
 | `chat.ts` | `CHAT_MESSAGES` | Investor Dashboard companion chat panel |
 | `wallet.ts` | `WALLET_ENTRIES`, `getWalletByPerson`, `getWalletBalance` | Collaborator value wallet |
 
@@ -44,6 +44,6 @@ are **not** folded into this layer — they stay as-is. They serve a
 different purpose: small illustrative placeholders bolted onto *existing,
 live* Supabase-backed screens (Project Home metrics, Ecosystem Navigator
 user tiles) where most of the data on screen is already real. This fixture
-layer is for the five *new*, fully-mocked P1 screens. Folding the two
+layer is for the four *new*, fully-mocked P1 screens. Folding the two
 together would make already-working live-data screens depend on the P1
 demo dataset for no benefit.

@@ -1,9 +1,10 @@
 import type { Transcript } from "./types";
 
-// 3 sample meeting transcripts for the Admin screen (P1.4) demo — these are
-// upload *inputs*: the Admin flow runs them through real chi-orchestration
-// extraction rather than mocking the extraction output itself (per
-// P1_Briefing.md, P1.4 is the one non-mock part of P1).
+// 3 sample meeting transcripts for the Founder composer's Transcript input
+// mode (P1.4) — these are upload *inputs*: the flow runs them through real
+// chi-orchestration extraction rather than mocking the extraction output
+// itself (per the P1 briefing amendment, this is the one non-mock part of
+// P1; there is no separate Admin screen — see P1_Briefing_amendment).
 export const TRANSCRIPTS: Transcript[] = [
   {
     id: "transcript-1",
