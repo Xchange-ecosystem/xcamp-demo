@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
-allowlist=.github/audit-allowlist.txt
+allowlist=${AUDIT_ALLOWLIST:-.github/audit-allowlist.txt}
 
 if [ ! -f "$allowlist" ]; then
   echo "::error file=$allowlist::Dependency audit allowlist is missing."
@@ -11,35 +11,68 @@ if [ ! -f "$allowlist" ]; then
 fi
 
 raw_audit=$(mktemp)
-filtered_audit=$(mktemp)
 audit_stderr=$(mktemp)
-trap 'rm -f "$raw_audit" "$filtered_audit" "$audit_stderr"' EXIT
+trap 'rm -f "$raw_audit" "$audit_stderr"' EXIT
 
-audit_timeout_seconds=${AUDIT_TIMEOUT_SECONDS:-30}
-audit_max_attempts=${AUDIT_MAX_ATTEMPTS:-3}
+audit_timeout_seconds=${AUDIT_TIMEOUT_SECONDS:-900}
+audit_max_attempts=${AUDIT_MAX_ATTEMPTS:-2}
+
+normalize_audit_json() {
+  python3 - "$1" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+match = re.search(r"(?m)^\s*\{", text)
+if match is None:
+    raise SystemExit(1)
+payload = json.loads(text[match.start():])
+if not isinstance(payload, dict) or not all(isinstance(items, list) for items in payload.values()):
+    raise SystemExit(1)
+path.write_text(json.dumps(payload, separators=(",", ":")) + "\n", encoding="utf-8")
+PY
+}
 
 run_audit_json() {
-  local output=$1
-  shift
-  local attempt status
+  local attempt status transient
   for ((attempt = 1; attempt <= audit_max_attempts; attempt++)); do
     : >"$audit_stderr"
     if timeout --signal=TERM --kill-after=5 "${audit_timeout_seconds}s" \
-      bun audit --json "$@" >"$output" 2>"$audit_stderr"; then
+      bun audit --json >"$raw_audit" 2>"$audit_stderr"; then
       status=0
     else
       status=$?
     fi
 
-    # A valid JSON response means the registry answered. Preserve bun's status:
-    # non-zero may represent a real advisory and must remain blocking.
-    if python3 -c 'import json, sys; json.load(open(sys.argv[1], encoding="utf-8"))' "$output" 2>/dev/null; then
+    # Bun can prefix its JSON with dotenv/version diagnostics, and returns
+    # non-zero when advisories exist. Parse from the first object line through
+    # EOF; a parseable audit object is a completed audit, not a transient error.
+    if normalize_audit_json "$raw_audit" 2>/dev/null; then
       cat "$audit_stderr" >&2
-      return "$status"
+      return 0
     fi
 
+    transient=0
+    if ((status == 124)); then
+      transient=1
+    elif ((status != 0)) && [[ ! -s "$raw_audit" ]]; then
+      transient=1
+    elif ((status != 0)) && grep -Eqi \
+      'timeout|timed out|network|connection|dns|eai_again|econn|socket|fetch|request failed' \
+      "$audit_stderr"; then
+      transient=1
+    fi
+
+    if ((transient == 0)); then
+      cat "$audit_stderr" >&2
+      echo "::error::Dependency audit returned non-transient, unparseable output (exit $status)."
+      return 1
+    fi
     if ((attempt < audit_max_attempts)); then
-      echo "::warning::Dependency audit attempt $attempt/$audit_max_attempts failed or returned invalid JSON; retrying after $((attempt * 5))s."
+      echo "::warning::Dependency audit command failed (exit $status) or returned no parseable result on attempt $attempt/$audit_max_attempts; retrying after $((attempt * 5))s."
       sleep $((attempt * 5))
     fi
   done
@@ -49,20 +82,13 @@ run_audit_json() {
   return 75
 }
 
-# A non-zero status is expected while known advisories are present. The final,
-# filtered invocation below remains the blocking audit gate. Invalid/network
-# responses are never treated as advisory results.
-if run_audit_json "$raw_audit"; then
-  raw_status=0
-else
-  raw_status=$?
-fi
-if ((raw_status == 75)); then
-  exit "$raw_status"
-fi
+# One complete audit response is enough to validate stale suppressions and
+# enforce the high/critical threshold locally. This avoids a second network
+# request while keeping malformed/empty/network responses fail-closed.
+run_audit_json
 
 current_date=$(date -u +%F)
-ignore_args=()
+allowlisted_ids=()
 entries=0
 while IFS= read -r line; do
   case "$line" in
@@ -87,7 +113,7 @@ while IFS= read -r line; do
     echo "::error file=$allowlist::Allowlist entry $id is stale: bun audit no longer reports it. Remove the entry."
     exit 1
   fi
-  ignore_args+=("--ignore=$id")
+  allowlisted_ids+=("$id")
 done < "$allowlist"
 
 if [ "$entries" -eq 0 ]; then
@@ -96,14 +122,38 @@ else
   echo "Validated $entries unexpired, currently reported advisory suppressions."
 fi
 
-# Bun 1.3.11 accepts repeated --ignore=<GHSA-ID> arguments. Any new high or
-# critical advisory is not in ignore_args and therefore fails this command.
-# Printing the JSON response keeps actual findings visible without making a
-# transient registry timeout indistinguishable from a vulnerability.
-if run_audit_json "$filtered_audit" --audit-level=high "${ignore_args[@]}"; then
-  filtered_status=0
-else
-  filtered_status=$?
-fi
-cat "$filtered_audit"
-exit "$filtered_status"
+# Match Bun's configured --audit-level=high policy using the successfully
+# parsed response. Moderate/low advisories remain visible but do not block.
+python3 - "$raw_audit" "${allowlisted_ids[@]}" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+allowed = set(sys.argv[2:])
+blocking = []
+nonblocking = []
+for package, advisories in report.items():
+    for advisory in advisories:
+        match = re.search(r"GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}", advisory.get("url", ""))
+        if match is None:
+            print(f"::error::Audit result for {package} has no valid GHSA URL.")
+            raise SystemExit(1)
+        item = (match.group(), package, advisory.get("severity", "unknown"))
+        if item[2] in {"high", "critical"}:
+            blocking.append(item)
+        else:
+            nonblocking.append(item)
+
+unknown = sorted({item for item in blocking if item[0] not in allowed})
+for advisory_id, package, severity in unknown:
+    print(f"::error::Unallowlisted {severity} advisory: {advisory_id} ({package})")
+for advisory_id, package, severity in sorted(set(nonblocking)):
+    print(f"::notice::{severity} advisory below audit-level=high: {advisory_id} ({package})")
+print(
+    f"Audit policy evaluated {len(blocking)} high/critical result(s) and "
+    f"{len(nonblocking)} lower-severity result(s)."
+)
+raise SystemExit(1 if unknown else 0)
+PY

@@ -178,7 +178,7 @@ docker run --rm -v "$PWD:/repo:ro" ghcr.io/trufflesecurity/trufflehog:3.97.4 \
   git file:///repo --branch HEAD --fail --no-update --results=verified,unknown
 ```
 
-The dependency audit makes at most three 30-second attempts, with bounded backoff, when the registry times out or returns invalid JSON. A valid audit response is never softened: any unallowlisted high/critical advisory still fails immediately. This bounds a transient audit-service incident that made the `Dependency audit` job take 7m57s on rerun after an earlier timeout, instead of converting network failure into a false security result.
+The dependency audit can legitimately take about eight minutes on the self-hosted runners. Each attempt therefore has a 15-minute bound, with at most two attempts and one 5-second backoff; the job allows 35 minutes (30m05s plus setup/cleanup headroom). Only a timeout or a non-zero command with empty/network-error output is retried. Bun diagnostics may precede the JSON, so the parser locates the first object line and parses through EOF. Any parseable response is evaluated exactly once: stale/expired suppressions or unallowlisted high/critical advisories hard-fail, while moderate/low advisories remain visible below the configured `high` threshold.
 
 TruffleHog is AGPL-3.0 OSS and its action/container are free to run for private organization repositories; no TruffleHog license key is required. PR scans explicitly compare the checked-out base and head SHAs. Push, scheduled, and manual scans use the complete checked-out Git history rather than the action's narrower push-event default.
 
