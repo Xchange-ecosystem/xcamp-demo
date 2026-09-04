@@ -12,16 +12,16 @@ Vercel Git integration is the default deployment authority. Keep `ENABLE_VERCEL_
 
 CI distinguishes regressions from debt that already exists on `main`:
 
-| Check                                           | Policy today              | Enforcement                                                                                |
-| ----------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| Repository guards                               | Hard gate                 | Any violation fails `guards`.                                                              |
-| Production build and generated route-tree drift | Hard gate                 | Any failure fails `verify` (`Build`).                                                      |
-| Playwright E2E                                  | Hard gate                 | Any failure fails `e2e`.                                                                   |
-| Security scans and dependency/action policy     | Hard gates                | Any failure fails its Security workflow job; findings are not suppressed.                  |
-| Prettier                                        | Soft report, hard ratchet | The report step may fail, but more than **165 unformatted files** fails the final ratchet. |
-| ESLint errors                                   | Soft report, hard ratchet | The report step may fail, but more than **10,819 errors** fails the final ratchet.         |
-| ESLint warnings                                 | Soft report, hard ratchet | More than **44 warnings** fails the final ratchet.                                         |
-| TypeScript                                      | Soft report, hard ratchet | The report step may fail, but more than **14 errors** fails the final ratchet.             |
+| Check                                           | Policy today               | Enforcement                                                                                                 |
+| ----------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Repository guards                               | Hard gate                  | Any violation fails `guards`.                                                                               |
+| Production build and generated route-tree drift | Hard gate                  | Any failure fails `verify` (`Build`).                                                                       |
+| Playwright E2E                                  | Hard known-failure ratchet | New failures, missing tests, overdue reviews, and policy-specific signature/recovery violations fail `e2e`. |
+| Security scans and dependency/action policy     | Hard gates                 | Any failure fails its Security workflow job; findings are not suppressed.                                   |
+| Prettier                                        | Soft report, hard ratchet  | The report step may fail, but more than **165 unformatted files** fails the final ratchet.                  |
+| ESLint errors                                   | Soft report, hard ratchet  | The report step may fail, but more than **10,819 errors** fails the final ratchet.                          |
+| ESLint warnings                                 | Soft report, hard ratchet  | More than **44 warnings** fails the final ratchet.                                                          |
+| TypeScript                                      | Soft report, hard ratchet  | The report step may fail, but more than **14 errors** fails the final ratchet.                              |
 
 The exact baselines live in `.github/quality-baseline.json`; `.github/scripts/quality-ratchet.sh` measures current results using Prettier check output, ESLint's JSON formatter, and `tsc --noEmit`. Existing debt is visible in separate `quality` steps, while the final ratchet step is blocking. Debt may shrink, never grow.
 
@@ -32,6 +32,36 @@ When a count reaches zero, promote that gate to hard:
 1. In `.github/workflows/ci.yml`, find the matching `Report formatting debt`, `Report lint debt`, or `Report TypeScript debt` step under `jobs.quality` and remove `continue-on-error: true`.
 2. Remove that metric from `.github/quality-baseline.json` and from the baseline parsing, row construction, and comparison logic in `.github/scripts/quality-ratchet.sh`. ESLint errors and warnings share one command; promote the lint step only when both are zero.
 3. Update this table, run the workflow checks locally, and keep `quality` in the `ci-ok` dependency/result assertions.
+
+### E2E known-failures ratchet
+
+`.github/e2e-known-failures.txt` records the exact Playwright identity (`file` plus full test title), expected error signature, date added, 90-day `REVIEW-BY` deadline, and a semantic classification. This is not a skip list: Playwright still runs every test and writes JUnit to `playwright-report/results.xml`. The blocking `.github/scripts/e2e-gate.sh` applies these policies:
+
+| Classification  | Passing observation                                                                   | Failing observation                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ALWAYS-FAILS`  | **FAIL** the gate and print the exact line to delete; this is a recovered test.       | Pass only when the JUnit failure signature exactly matches the recorded signature; a changed signature **fails**.                              |
+| `FLAKY`         | Pass the gate and emit a `::notice::`; the summary's **Flaky** column records `PASS`. | Pass and emit a `::notice::` for the recorded signature. A varied signature emits `::warning::` rather than failing because flaky modes vary.  |
+| `ENV-SENSITIVE` | Pass and emit a `::notice::`; this is the expected developer-host outcome.            | Pass and emit a `::notice::`; a varied signature emits `::warning::`. This classification tracks a CI-only failure mode pending investigation. |
+
+`FLAKY` means the outcome varies across repeated observations in the same environment. `ENV-SENSITIVE` means the test is expected to fail on the CI runner and pass on a developer machine; its underlying cause is still unidentified and must be investigated. Both remain visible, tracked debt; neither is permission to hide a new failure. Every classification still fails when its testcase is absent from the report or its `REVIEW-BY` date is overdue. Unknown failures always block.
+
+The list may **only shrink** after bootstrap. Never add, mutate, or reclassify an entry merely to make CI pass. Fix the underlying test or application behavior instead. When an `ALWAYS-FAILS` test recovers, copy the exact line printed by the gate, delete that line from `.github/e2e-known-failures.txt`, and commit the deletion with the fix. Remove `FLAKY` or `ENV-SENSITIVE` entries only after repeated evidence shows that the tracked instability is gone; a tolerated pass alone does not prove that the underlying debt is fixed. Every entry must be reviewed by its deadline or the gate fails.
+
+Run the ratchet locally after a full E2E run:
+
+```bash
+CI=1 bun run test:e2e || true
+bash .github/scripts/e2e-gate.sh
+```
+
+The first command is allowed to return non-zero only so the blocking second command can inspect its real JUnit report. Do not use the Playwright exit code alone while known failures remain.
+
+To inspect a copied report or allowlist without altering checked-in evidence:
+
+```bash
+E2E_RESULTS_XML=/tmp/results.xml E2E_ALLOWLIST=/tmp/allowlist.txt \
+  bash .github/scripts/e2e-gate.sh
+```
 
 ## Self-hosted runner requirements
 
@@ -147,6 +177,8 @@ bash .github/scripts/dependency-audit.sh
 docker run --rm -v "$PWD:/repo:ro" ghcr.io/trufflesecurity/trufflehog:3.97.4 \
   git file:///repo --branch HEAD --fail --no-update --results=verified,unknown
 ```
+
+The dependency audit can legitimately take about eight minutes on the self-hosted runners. Each attempt therefore has a 15-minute bound, with at most two attempts and one 5-second backoff; the job allows 35 minutes (30m05s plus setup/cleanup headroom). Only a timeout or a non-zero command with empty/network-error output is retried. Bun diagnostics may precede the JSON, so the parser locates the first object line and parses through EOF. Any parseable response is evaluated exactly once: stale/expired suppressions or unallowlisted high/critical advisories hard-fail, while moderate/low advisories remain visible below the configured `high` threshold.
 
 TruffleHog is AGPL-3.0 OSS and its action/container are free to run for private organization repositories; no TruffleHog license key is required. PR scans explicitly compare the checked-out base and head SHAs. Push, scheduled, and manual scans use the complete checked-out Git history rather than the action's narrower push-event default.
 

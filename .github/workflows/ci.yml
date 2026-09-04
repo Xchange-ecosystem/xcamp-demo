@@ -115,6 +115,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
           clean: true
 
@@ -149,8 +150,17 @@ jobs:
             printf 'VITE_BACKEND_API_URL=%s\n' "${BACKEND_API_URL:-https://xcampapi.xchange.eco}"
           } > .env
 
-      - name: Run Playwright tests
+      # Playwright must finish and write JUnit even when legacy failures remain.
+      # continue-on-error is scoped to this producer step only; the following
+      # ratchet is the hard, blocking authority for the E2E job.
+      - name: Run Playwright tests and produce JUnit
+        continue-on-error: true
         run: bun run test:e2e
+
+      - name: Enforce E2E known-failures ratchet
+        env:
+          E2E_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        run: bash .github/scripts/e2e-gate.sh
 
       - name: Upload Playwright reports
         if: always()
