@@ -79,7 +79,7 @@ const ECOSYSTEM_NAV: NavItem[] = [
   { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
   { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator", personas: ["founder", "investor"] },
   { title: "portfolio", url: "/portfolio",            icon: LayoutGrid,    label: "Portfolio", personas: ["founder", "collaborator"] },
-  { title: "investor-portfolio", url: "/investor-portfolio", icon: LayoutGrid, label: "Portfolio", personas: ["investor"] },
+  { title: "investor-portfolio", url: "/demo/investor/portfolio", icon: LayoutGrid, label: "Portfolio", personas: ["investor"] },
   { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder", personas: ["founder"] },
   { title: "dashboard", url: "/ecosystem-dashboard",  icon: BarChart3, label: "Dashboard", personas: ["investor"] },
 ];

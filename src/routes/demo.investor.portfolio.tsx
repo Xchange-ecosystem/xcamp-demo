@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { InvestorPortfolioScreen } from "@/features/investor-portfolio/InvestorPortfolioScreen";
 
-export const Route = createFileRoute("/investor-portfolio")({
+export const Route = createFileRoute("/demo/investor/portfolio")({
   head: () => ({
     meta: [
       { title: "Portfolio — Xcamp" },

@@ -14,19 +14,22 @@ import { OBJECTIVES, TASKS } from "@/fixtures/objectives";
 import { PEOPLE } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
 
-const STATUS_LABEL: Record<string, string> = {
-  done: "Done",
-  in_progress: "In progress",
-  open: "Open",
-  suggested: "Suggested",
+// Agreement-lifecycle labels for the progress legend below (P1-CORR Part 1)
+// — a presentation-only relabeling of Objective.status, which keeps its
+// original values and meaning everywhere else. "open" and "suggested" both
+// mean nothing has been formalized yet, so they share one bucket here.
+const AGREEMENT_LABEL: Record<string, string> = {
+  done: "Complete",
+  in_progress: "Under agreement",
+  open: "Still a sketch",
+  suggested: "Still a sketch",
 };
-const STATUS_COLOR: Record<string, string> = {
-  done: "var(--skin-good)",
-  in_progress: "var(--skin-accent)",
-  open: "var(--skin-line)",
-  suggested: "var(--skin-warn, var(--skin-accent))",
+const LABEL_ORDER = ["Complete", "Under agreement", "Still a sketch"] as const;
+const LABEL_COLOR: Record<string, string> = {
+  Complete: "var(--skin-good)",
+  "Under agreement": "var(--skin-accent)",
+  "Still a sketch": "var(--skin-line)",
 };
-const STATUS_ORDER = ["done", "in_progress", "open", "suggested"] as const;
 
 function initials(name: string) {
   return name
@@ -38,9 +41,9 @@ function initials(name: string) {
 }
 
 export function RightColumn() {
-  const counts = STATUS_ORDER.map((status) => ({
-    status,
-    count: OBJECTIVES.filter((o) => o.status === status).length,
+  const counts = LABEL_ORDER.map((label) => ({
+    label,
+    count: OBJECTIVES.filter((o) => AGREEMENT_LABEL[o.status] === label).length,
   })).filter((c) => c.count > 0);
   const total = OBJECTIVES.length;
 
@@ -69,17 +72,17 @@ export function RightColumn() {
         <h2 className="mb-2.5 text-sm font-semibold text-muted-foreground">Objective progress</h2>
         <div className="mb-2.5 flex h-2 gap-0.5 overflow-hidden rounded-full">
           {counts.map((c) => (
-            <span key={c.status} style={{ flex: c.count, background: STATUS_COLOR[c.status] }} />
+            <span key={c.label} style={{ flex: c.count, background: LABEL_COLOR[c.label] }} />
           ))}
         </div>
         <div className="flex flex-col gap-1.5">
           {counts.map((c) => (
-            <div key={c.status} className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div key={c.label} className="flex items-center gap-2 text-xs text-muted-foreground">
               <span
                 className="h-2 w-2 shrink-0 rounded-sm"
-                style={{ background: STATUS_COLOR[c.status] }}
+                style={{ background: LABEL_COLOR[c.label] }}
               />
-              {STATUS_LABEL[c.status]}
+              {c.label}
               <b className="ml-auto text-foreground">{c.count}</b>
             </div>
           ))}
