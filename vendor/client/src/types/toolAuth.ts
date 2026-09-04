@@ -1,7 +1,12 @@
 import type { AIWriteTool } from "./ai";
 
 export type AuthRequirement =
-  "HARD_GATE" | "ELEVATED" | "ANNOTATED" | "LOW" | "NONE" | "NOT_EXECUTABLE";
+  | "HARD_GATE"
+  | "ELEVATED"
+  | "ANNOTATED"
+  | "LOW"
+  | "NONE"
+  | "NOT_EXECUTABLE";
 
 // Maps every write tool to its authorization tier.
 // HARD_GATE  — blocked entirely; requires out-of-band approval flow.

@@ -199,7 +199,9 @@ export interface DesignTokens {
 // ============================================================================
 
 export type ColorToken =
-  keyof ThemeColors["surfaces"] | keyof ThemeColors["text"] | keyof BrandColors;
+  | keyof ThemeColors["surfaces"]
+  | keyof ThemeColors["text"]
+  | keyof BrandColors;
 
 export type SpacingToken = keyof SpacingScale;
 

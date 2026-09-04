@@ -5,7 +5,12 @@
 // ─── Primitive enums ──────────────────────────────────────────────────────────
 
 export type ProofType =
-  "strategy" | "validation" | "capability" | "relationship" | "artifact" | "traction";
+  | "strategy"
+  | "validation"
+  | "capability"
+  | "relationship"
+  | "artifact"
+  | "traction";
 
 export type Stage = "idea" | "pre_seed" | "seed" | "growth";
 
@@ -14,7 +19,13 @@ export type ProofSource = "framework" | "ai";
 export type NoteOutputType = "note" | "insight" | "context";
 
 export type ArchetypeSlug =
-  "saas" | "marketplace" | "fund_impact" | "services" | "hardware" | "nonprofit" | "research";
+  | "saas"
+  | "marketplace"
+  | "fund_impact"
+  | "services"
+  | "hardware"
+  | "nonprofit"
+  | "research";
 
 // ─── Taxonomy types ───────────────────────────────────────────────────────────
 

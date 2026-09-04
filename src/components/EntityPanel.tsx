@@ -63,7 +63,8 @@ export function EntityPanel({ onClose, type, id, prefillText, user }: EntityPane
               ? `<p>${safeText}</p>`
               : "";
           const existingProjectId = (row.detail as Record<string, unknown>)?.project_id as
-            string | undefined;
+            | string
+            | undefined;
           const effectiveDetail = {
             ...((row.detail as Record<string, unknown>) ?? {}),
             project_id: existingProjectId || activeProjectId || undefined,

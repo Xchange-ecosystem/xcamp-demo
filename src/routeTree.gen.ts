@@ -9,88 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AiPlanRouteImport } from './routes/ai-plan'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as EcosystemDashboardRouteImport } from './routes/ecosystem-dashboard'
-import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as JournalRouteImport } from './routes/journal'
-import { Route as NavigatorRouteImport } from './routes/navigator'
-import { Route as NotesRouteImport } from './routes/notes'
-import { Route as PortfolioRouteImport } from './routes/portfolio'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
 import { Route as ProjectDetailsRouteImport } from './routes/project-details'
-import { Route as DemoCollaboratorRouteImport } from './routes/demo.collaborator'
-import { Route as DemoFounderRouteImport } from './routes/demo.founder'
+import { Route as ProjectBuilderRouteImport } from './routes/project-builder'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as NotesRouteImport } from './routes/notes'
+import { Route as NavigatorRouteImport } from './routes/navigator'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
+import { Route as EcosystemDashboardRouteImport } from './routes/ecosystem-dashboard'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AiPlanRouteImport } from './routes/ai-plan'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
-import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
-import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
-import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-panel-live'
-import { Route as SandboxTaskPanelV3RouteImport } from './routes/sandbox.task-panel-v3'
 import { Route as TaskTaskIdRouteImport } from './routes/task.$taskId'
+import { Route as SandboxTaskPanelV3RouteImport } from './routes/sandbox.task-panel-v3'
+import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-panel-live'
+import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
+import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
+import { Route as DemoFounderRouteImport } from './routes/demo.founder'
+import { Route as DemoCollaboratorRouteImport } from './routes/demo.collaborator'
 import { Route as DemoFounderIndexRouteImport } from './routes/demo.founder.index'
-import { Route as DemoFounderCompanionRouteImport } from './routes/demo.founder.companion'
-import { Route as DemoFounderDashboardRouteImport } from './routes/demo.founder.dashboard'
-import { Route as DemoFounderNavigatorRouteImport } from './routes/demo.founder.navigator'
-import { Route as DemoInvestorPortfolioRouteImport } from './routes/demo.investor.portfolio'
-import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
 import { Route as ProjectProjectIdProjectDashboardRouteImport } from './routes/project.$projectId_.project-dashboard'
+import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
+import { Route as DemoInvestorPortfolioRouteImport } from './routes/demo.investor.portfolio'
+import { Route as DemoFounderNavigatorRouteImport } from './routes/demo.founder.navigator'
+import { Route as DemoFounderDashboardRouteImport } from './routes/demo.founder.dashboard'
+import { Route as DemoFounderCompanionRouteImport } from './routes/demo.founder.companion'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiPlanRoute = AiPlanRouteImport.update({
-  id: '/ai-plan',
-  path: '/ai-plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EcosystemDashboardRoute = EcosystemDashboardRouteImport.update({
-  id: '/ecosystem-dashboard',
-  path: '/ecosystem-dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EcosystemNavigatorRoute = EcosystemNavigatorRouteImport.update({
-  id: '/ecosystem-navigator',
-  path: '/ecosystem-navigator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NavigatorRoute = NavigatorRouteImport.update({
-  id: '/navigator',
-  path: '/navigator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortfolioRoute = PortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
+  id: '/project-details',
+  path: '/project-details',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
@@ -98,19 +48,59 @@ const ProjectBuilderRoute = ProjectBuilderRouteImport.update({
   path: '/project-builder',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
-  id: '/project-details',
-  path: '/project-details',
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoCollaboratorRoute = DemoCollaboratorRouteImport.update({
-  id: '/demo/collaborator',
-  path: '/demo/collaborator',
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoFounderRoute = DemoFounderRouteImport.update({
-  id: '/demo/founder',
-  path: '/demo/founder',
+const NotesRoute = NotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NavigatorRoute = NavigatorRouteImport.update({
+  id: '/navigator',
+  path: '/navigator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EcosystemNavigatorRoute = EcosystemNavigatorRouteImport.update({
+  id: '/ecosystem-navigator',
+  path: '/ecosystem-navigator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EcosystemDashboardRoute = EcosystemDashboardRouteImport.update({
+  id: '/ecosystem-dashboard',
+  path: '/ecosystem-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiPlanRoute = AiPlanRouteImport.update({
+  id: '/ai-plan',
+  path: '/ai-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
@@ -118,19 +108,9 @@ const ProfileIndexRoute = ProfileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfileRoute,
 } as any)
-const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
-  id: '/appearance',
-  path: '/appearance',
-  getParentRoute: () => ProfileRoute,
-} as any)
-const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
-  id: '/project/$projectId',
-  path: '/project/$projectId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SandboxTaskPanelLiveRoute = SandboxTaskPanelLiveRouteImport.update({
-  id: '/sandbox/task-panel-live',
-  path: '/sandbox/task-panel-live',
+const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
+  id: '/task/$taskId',
+  path: '/task/$taskId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SandboxTaskPanelV3Route = SandboxTaskPanelV3RouteImport.update({
@@ -138,9 +118,29 @@ const SandboxTaskPanelV3Route = SandboxTaskPanelV3RouteImport.update({
   path: '/sandbox/task-panel-v3',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
-  id: '/task/$taskId',
-  path: '/task/$taskId',
+const SandboxTaskPanelLiveRoute = SandboxTaskPanelLiveRouteImport.update({
+  id: '/sandbox/task-panel-live',
+  path: '/sandbox/task-panel-live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
+  id: '/project/$projectId',
+  path: '/project/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => ProfileRoute,
+} as any)
+const DemoFounderRoute = DemoFounderRouteImport.update({
+  id: '/demo/founder',
+  path: '/demo/founder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoCollaboratorRoute = DemoCollaboratorRouteImport.update({
+  id: '/demo/collaborator',
+  path: '/demo/collaborator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoFounderIndexRoute = DemoFounderIndexRouteImport.update({
@@ -148,9 +148,25 @@ const DemoFounderIndexRoute = DemoFounderIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DemoFounderRoute,
 } as any)
-const DemoFounderCompanionRoute = DemoFounderCompanionRouteImport.update({
-  id: '/companion',
-  path: '/companion',
+const ProjectProjectIdProjectDashboardRoute =
+  ProjectProjectIdProjectDashboardRouteImport.update({
+    id: '/project/$projectId_/project-dashboard',
+    path: '/project/$projectId/project-dashboard',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectProjectIdGoalsRoute = ProjectProjectIdGoalsRouteImport.update({
+  id: '/project/$projectId_/goals',
+  path: '/project/$projectId/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoInvestorPortfolioRoute = DemoInvestorPortfolioRouteImport.update({
+  id: '/demo/investor/portfolio',
+  path: '/demo/investor/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoFounderNavigatorRoute = DemoFounderNavigatorRouteImport.update({
+  id: '/navigator',
+  path: '/navigator',
   getParentRoute: () => DemoFounderRoute,
 } as any)
 const DemoFounderDashboardRoute = DemoFounderDashboardRouteImport.update({
@@ -158,27 +174,11 @@ const DemoFounderDashboardRoute = DemoFounderDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => DemoFounderRoute,
 } as any)
-const DemoFounderNavigatorRoute = DemoFounderNavigatorRouteImport.update({
-  id: '/navigator',
-  path: '/navigator',
+const DemoFounderCompanionRoute = DemoFounderCompanionRouteImport.update({
+  id: '/companion',
+  path: '/companion',
   getParentRoute: () => DemoFounderRoute,
 } as any)
-const DemoInvestorPortfolioRoute = DemoInvestorPortfolioRouteImport.update({
-  id: '/demo/investor/portfolio',
-  path: '/demo/investor/portfolio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectProjectIdGoalsRoute = ProjectProjectIdGoalsRouteImport.update({
-  id: '/project/$projectId_/goals',
-  path: '/project/$projectId/goals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectProjectIdProjectDashboardRoute =
-  ProjectProjectIdProjectDashboardRouteImport.update({
-    id: '/project/$projectId_/project-dashboard',
-    path: '/project/$projectId/project-dashboard',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -387,81 +387,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ai-plan': {
-      id: '/ai-plan'
-      path: '/ai-plan'
-      fullPath: '/ai-plan'
-      preLoaderRoute: typeof AiPlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ecosystem-dashboard': {
-      id: '/ecosystem-dashboard'
-      path: '/ecosystem-dashboard'
-      fullPath: '/ecosystem-dashboard'
-      preLoaderRoute: typeof EcosystemDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ecosystem-navigator': {
-      id: '/ecosystem-navigator'
-      path: '/ecosystem-navigator'
-      fullPath: '/ecosystem-navigator'
-      preLoaderRoute: typeof EcosystemNavigatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/navigator': {
-      id: '/navigator'
-      path: '/navigator'
-      fullPath: '/navigator'
-      preLoaderRoute: typeof NavigatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portfolio': {
-      id: '/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof PortfolioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
+    '/project-details': {
+      id: '/project-details'
+      path: '/project-details'
+      fullPath: '/project-details'
+      preLoaderRoute: typeof ProjectDetailsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project-builder': {
@@ -471,25 +401,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectBuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/project-details': {
-      id: '/project-details'
-      path: '/project-details'
-      fullPath: '/project-details'
-      preLoaderRoute: typeof ProjectDetailsRouteImport
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/collaborator': {
-      id: '/demo/collaborator'
-      path: '/demo/collaborator'
-      fullPath: '/demo/collaborator'
-      preLoaderRoute: typeof DemoCollaboratorRouteImport
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/founder': {
-      id: '/demo/founder'
-      path: '/demo/founder'
-      fullPath: '/demo/founder'
-      preLoaderRoute: typeof DemoFounderRouteImport
+    '/notes': {
+      id: '/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/navigator': {
+      id: '/navigator'
+      path: '/navigator'
+      fullPath: '/navigator'
+      preLoaderRoute: typeof NavigatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ecosystem-navigator': {
+      id: '/ecosystem-navigator'
+      path: '/ecosystem-navigator'
+      fullPath: '/ecosystem-navigator'
+      preLoaderRoute: typeof EcosystemNavigatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ecosystem-dashboard': {
+      id: '/ecosystem-dashboard'
+      path: '/ecosystem-dashboard'
+      fullPath: '/ecosystem-dashboard'
+      preLoaderRoute: typeof EcosystemDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-plan': {
+      id: '/ai-plan'
+      path: '/ai-plan'
+      fullPath: '/ai-plan'
+      preLoaderRoute: typeof AiPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile/': {
@@ -499,25 +485,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/profile/appearance': {
-      id: '/profile/appearance'
-      path: '/appearance'
-      fullPath: '/profile/appearance'
-      preLoaderRoute: typeof ProfileAppearanceRouteImport
-      parentRoute: typeof ProfileRoute
-    }
-    '/project/$projectId': {
-      id: '/project/$projectId'
-      path: '/project/$projectId'
-      fullPath: '/project/$projectId'
-      preLoaderRoute: typeof ProjectProjectIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sandbox/task-panel-live': {
-      id: '/sandbox/task-panel-live'
-      path: '/sandbox/task-panel-live'
-      fullPath: '/sandbox/task-panel-live'
-      preLoaderRoute: typeof SandboxTaskPanelLiveRouteImport
+    '/task/$taskId': {
+      id: '/task/$taskId'
+      path: '/task/$taskId'
+      fullPath: '/task/$taskId'
+      preLoaderRoute: typeof TaskTaskIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sandbox/task-panel-v3': {
@@ -527,11 +499,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SandboxTaskPanelV3RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/task/$taskId': {
-      id: '/task/$taskId'
-      path: '/task/$taskId'
-      fullPath: '/task/$taskId'
-      preLoaderRoute: typeof TaskTaskIdRouteImport
+    '/sandbox/task-panel-live': {
+      id: '/sandbox/task-panel-live'
+      path: '/sandbox/task-panel-live'
+      fullPath: '/sandbox/task-panel-live'
+      preLoaderRoute: typeof SandboxTaskPanelLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/project/$projectId': {
+      id: '/project/$projectId'
+      path: '/project/$projectId'
+      fullPath: '/project/$projectId'
+      preLoaderRoute: typeof ProjectProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/appearance': {
+      id: '/profile/appearance'
+      path: '/appearance'
+      fullPath: '/profile/appearance'
+      preLoaderRoute: typeof ProfileAppearanceRouteImport
+      parentRoute: typeof ProfileRoute
+    }
+    '/demo/founder': {
+      id: '/demo/founder'
+      path: '/demo/founder'
+      fullPath: '/demo/founder'
+      preLoaderRoute: typeof DemoFounderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/collaborator': {
+      id: '/demo/collaborator'
+      path: '/demo/collaborator'
+      fullPath: '/demo/collaborator'
+      preLoaderRoute: typeof DemoCollaboratorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/founder/': {
@@ -541,32 +541,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoFounderIndexRouteImport
       parentRoute: typeof DemoFounderRoute
     }
-    '/demo/founder/companion': {
-      id: '/demo/founder/companion'
-      path: '/companion'
-      fullPath: '/demo/founder/companion'
-      preLoaderRoute: typeof DemoFounderCompanionRouteImport
-      parentRoute: typeof DemoFounderRoute
-    }
-    '/demo/founder/dashboard': {
-      id: '/demo/founder/dashboard'
-      path: '/dashboard'
-      fullPath: '/demo/founder/dashboard'
-      preLoaderRoute: typeof DemoFounderDashboardRouteImport
-      parentRoute: typeof DemoFounderRoute
-    }
-    '/demo/founder/navigator': {
-      id: '/demo/founder/navigator'
-      path: '/navigator'
-      fullPath: '/demo/founder/navigator'
-      preLoaderRoute: typeof DemoFounderNavigatorRouteImport
-      parentRoute: typeof DemoFounderRoute
-    }
-    '/demo/investor/portfolio': {
-      id: '/demo/investor/portfolio'
-      path: '/demo/investor/portfolio'
-      fullPath: '/demo/investor/portfolio'
-      preLoaderRoute: typeof DemoInvestorPortfolioRouteImport
+    '/project/$projectId_/project-dashboard': {
+      id: '/project/$projectId_/project-dashboard'
+      path: '/project/$projectId/project-dashboard'
+      fullPath: '/project/$projectId/project-dashboard'
+      preLoaderRoute: typeof ProjectProjectIdProjectDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project/$projectId_/goals': {
@@ -576,12 +555,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdGoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/project/$projectId_/project-dashboard': {
-      id: '/project/$projectId_/project-dashboard'
-      path: '/project/$projectId/project-dashboard'
-      fullPath: '/project/$projectId/project-dashboard'
-      preLoaderRoute: typeof ProjectProjectIdProjectDashboardRouteImport
+    '/demo/investor/portfolio': {
+      id: '/demo/investor/portfolio'
+      path: '/demo/investor/portfolio'
+      fullPath: '/demo/investor/portfolio'
+      preLoaderRoute: typeof DemoInvestorPortfolioRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/demo/founder/navigator': {
+      id: '/demo/founder/navigator'
+      path: '/navigator'
+      fullPath: '/demo/founder/navigator'
+      preLoaderRoute: typeof DemoFounderNavigatorRouteImport
+      parentRoute: typeof DemoFounderRoute
+    }
+    '/demo/founder/dashboard': {
+      id: '/demo/founder/dashboard'
+      path: '/dashboard'
+      fullPath: '/demo/founder/dashboard'
+      preLoaderRoute: typeof DemoFounderDashboardRouteImport
+      parentRoute: typeof DemoFounderRoute
+    }
+    '/demo/founder/companion': {
+      id: '/demo/founder/companion'
+      path: '/companion'
+      fullPath: '/demo/founder/companion'
+      preLoaderRoute: typeof DemoFounderCompanionRouteImport
+      parentRoute: typeof DemoFounderRoute
     }
   }
 }

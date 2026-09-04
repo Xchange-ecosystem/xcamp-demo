@@ -12,7 +12,10 @@ import { EntityTypeSelector, type EntityType } from "@/components/JournalFlow";
 
 // Legacy inline component types
 type LegacyComponentType =
-  "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
+  | "project-grid"
+  | "backcaster-stub"
+  | "action-cards-stub"
+  | "action-cards";
 // Spec-contracted inline component types (CC_SPEC_inline_component_contract)
 type SpecComponentType = "line_chart" | "bar_chart" | "data_table" | "kpi_card" | "rubric_mini";
 
