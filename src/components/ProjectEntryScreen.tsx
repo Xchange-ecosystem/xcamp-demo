@@ -12,14 +12,14 @@ import type { ProjectFull, XcampUser } from "@/types/xcamp";
 // "amend dark-theme brand color" session).
 const ORB_GRADIENT: Record<"light" | "dark", { from: string; to: string }> = {
   light: { from: "#1d9e8f", to: "#1f5fae" },
-  dark:  { from: "#1f6b7a", to: "#3cddc2" },
+  dark: { from: "#1f6b7a", to: "#3cddc2" },
 };
 
 // Altitude accent RGB values — mirrors the token map used for altitude state
 // in sidepanel/Vox. Same teal family in both modes now (was purple for dark).
 const ALTITUDE_ACCENT: Record<"light" | "dark", Record<"glide" | "cruise" | "cockpit", string>> = {
-  light: { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
-  dark:  { glide: "77,224,193",  cruise: "22,184,154",  cockpit: "52,172,191"  },
+  light: { glide: "77,224,193", cruise: "22,184,154", cockpit: "52,172,191" },
+  dark: { glide: "77,224,193", cruise: "22,184,154", cockpit: "52,172,191" },
 };
 const ALTITUDE_SLUG = ["glide", "cruise", "cockpit"] as const;
 const OVERLAY_STRENGTH = 0.35;
@@ -37,7 +37,13 @@ interface Props {
   onEnterEcosystem: () => void;
 }
 
-export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewProject, onEnterEcosystem }: Props) {
+export function ProjectEntryScreen({
+  projects,
+  authUser,
+  onProjectSelect,
+  onNewProject,
+  onEnterEcosystem,
+}: Props) {
   const { resolved, setMode } = useTheme();
   const brand = useBrand();
   const isDark = resolved === "dark";
@@ -149,7 +155,13 @@ export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewP
           active={!isDark}
           onClick={() => setMode("light")}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ width: 13, height: 13 }}
+            >
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
             </svg>
@@ -161,7 +173,13 @@ export function ProjectEntryScreen({ projects, authUser, onProjectSelect, onNewP
           dark
           onClick={() => setMode("dark")}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ width: 13, height: 13 }}
+            >
               <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />
             </svg>
           }

@@ -54,9 +54,7 @@ export function KpiCard({ value, label, unit, delta, title }: KpiCardProps) {
         >
           {value}
         </span>
-        {unit && (
-          <span style={{ fontSize: 13, color: "var(--skin-ink-soft)" }}>{unit}</span>
-        )}
+        {unit && <span style={{ fontSize: 13, color: "var(--skin-ink-soft)" }}>{unit}</span>}
       </div>
       <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>{label}</span>
       {delta && (
@@ -67,8 +65,7 @@ export function KpiCard({ value, label, unit, delta, title }: KpiCardProps) {
             fontWeight: 600,
           }}
         >
-          {DELTA_ICON[delta.direction]}{" "}
-          {delta.value > 0 ? "+" : ""}
+          {DELTA_ICON[delta.direction]} {delta.value > 0 ? "+" : ""}
           {delta.value}
         </span>
       )}

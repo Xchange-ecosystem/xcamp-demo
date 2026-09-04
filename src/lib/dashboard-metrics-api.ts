@@ -44,7 +44,9 @@ async function fetchTaskRowsForNoteIds(noteIds: string[]): Promise<TaskRow[]> {
   return (data ?? []).map((r) => ({
     id: r.id as string,
     done: !!r.done,
-    text: ((r.body_text as string | null) || htmlToText((r.body_html as string | null) ?? "")).trim(),
+    text: (
+      (r.body_text as string | null) || htmlToText((r.body_html as string | null) ?? "")
+    ).trim(),
   }));
 }
 

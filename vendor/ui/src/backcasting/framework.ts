@@ -5,27 +5,16 @@
 // ─── Primitive enums ──────────────────────────────────────────────────────────
 
 export type ProofType =
-  | 'strategy'
-  | 'validation'
-  | 'capability'
-  | 'relationship'
-  | 'artifact'
-  | 'traction';
+  "strategy" | "validation" | "capability" | "relationship" | "artifact" | "traction";
 
-export type Stage = 'idea' | 'pre_seed' | 'seed' | 'growth';
+export type Stage = "idea" | "pre_seed" | "seed" | "growth";
 
-export type ProofSource = 'framework' | 'ai';
+export type ProofSource = "framework" | "ai";
 
-export type NoteOutputType = 'note' | 'insight' | 'context';
+export type NoteOutputType = "note" | "insight" | "context";
 
 export type ArchetypeSlug =
-  | 'saas'
-  | 'marketplace'
-  | 'fund_impact'
-  | 'services'
-  | 'hardware'
-  | 'nonprofit'
-  | 'research';
+  "saas" | "marketplace" | "fund_impact" | "services" | "hardware" | "nonprofit" | "research";
 
 // ─── Taxonomy types ───────────────────────────────────────────────────────────
 
@@ -70,7 +59,7 @@ export interface FrameworkArchetype {
   emphasis?: Record<string, number>;
   remove_categories?: string[];
   add_categories?: FrameworkCategory[];
-  override_categories?: Record<string, Partial<Pick<FrameworkCategory, 'label' | 'scope'>>>;
+  override_categories?: Record<string, Partial<Pick<FrameworkCategory, "label" | "scope">>>;
   signature_metrics?: string[];
 }
 
@@ -160,7 +149,7 @@ export interface GenerationConfig {
 // ─── Materialization types ────────────────────────────────────────────────────
 
 export interface ProofNoteDetail {
-  kind: 'proof';
+  kind: "proof";
   proof_type: ProofType;
   stage: Stage;
   early_signal: boolean;
@@ -175,7 +164,7 @@ export interface ProofNoteDetail {
 }
 
 export interface MaterializationConfig {
-  project_from: 'root';
+  project_from: "root";
   objective_from: string;
   proof_task_from: string;
   tag_fields: Record<string, string>;

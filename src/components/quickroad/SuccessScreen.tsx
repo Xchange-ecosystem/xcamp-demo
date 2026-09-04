@@ -21,7 +21,8 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           Your project is live!
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--skin-ink-soft)" }}>
-          {state.projectTitleOverride || state.outputTree?.title || "Your project"} is ready in Xcamp.
+          {state.projectTitleOverride || state.outputTree?.title || "Your project"} is ready in
+          Xcamp.
         </p>
       </div>
 
@@ -41,7 +42,11 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium"
-            style={{ background: "var(--skin-surface)", color: "var(--skin-ink-soft)", border: "1px solid var(--skin-line)" }}
+            style={{
+              background: "var(--skin-surface)",
+              color: "var(--skin-ink-soft)",
+              border: "1px solid var(--skin-line)",
+            }}
           >
             Open in Xcamp <ExternalLink size={14} />
           </a>
@@ -53,7 +58,11 @@ export function SuccessScreen({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           type="button"
           onClick={() => navigate({ to: "/" })}
           className="rounded-xl px-5 py-2.5 text-sm font-medium"
-          style={{ background: "var(--skin-surface)", color: "var(--skin-ink-soft)", border: "1px solid var(--skin-line)" }}
+          style={{
+            background: "var(--skin-surface)",
+            color: "var(--skin-ink-soft)",
+            border: "1px solid var(--skin-line)",
+          }}
         >
           Close
         </button>

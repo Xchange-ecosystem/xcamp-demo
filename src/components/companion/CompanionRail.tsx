@@ -1,5 +1,17 @@
 import { useState, useEffect } from "react";
-import { PanelRightOpen, Rocket, Zap, Palette, Gauge, Sun, Moon, Monitor, X, Search, Loader2 } from "lucide-react";
+import {
+  PanelRightOpen,
+  Rocket,
+  Zap,
+  Palette,
+  Gauge,
+  Sun,
+  Moon,
+  Monitor,
+  X,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSidepanel } from "@/contexts/sidepanel";
@@ -112,7 +124,12 @@ function RailTooltip({ title, desc, mock }: { title: string; desc: string; mock:
 const ROLES: { key: Persona; name: string; note: string; paid?: boolean }[] = [
   { key: "founder", name: "Founder", note: "Full orchestration — objectives, value, completion." },
   { key: "collaborator", name: "Collaborator", note: "Your move, your tasks, your earnings." },
-  { key: "investor", name: "Investor/ Operator", note: "Provenance only. No edit affordances.", paid: true },
+  {
+    key: "investor",
+    name: "Investor/ Operator",
+    note: "Provenance only. No edit affordances.",
+    paid: true,
+  },
 ];
 
 function RolePanel() {
@@ -153,7 +170,9 @@ function RolePanel() {
                 justifyContent: "center",
               }}
             >
-              {active && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+              {active && (
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -184,7 +203,9 @@ function RolePanel() {
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{r.note}</div>
+              <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>
+                {r.note}
+              </div>
             </div>
           </button>
         );
@@ -234,7 +255,9 @@ function AltitudePanel() {
                 justifyContent: "center",
               }}
             >
-              {active && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+              {active && (
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--skin-ink)" }}>
@@ -303,8 +326,8 @@ function MoodPanel() {
     val < 40
       ? "Chi will lean toward step-by-step guidance and shorter check-ins."
       : val > 60
-      ? "Chi will lean toward deeper analysis and fewer interruptions."
-      : "Balanced — Chi adapts per message.";
+        ? "Chi will lean toward deeper analysis and fewer interruptions."
+        : "Balanced — Chi adapts per message.";
 
   return (
     <div style={{ padding: 20 }}>
@@ -331,14 +354,25 @@ function MoodPanel() {
       <p style={{ marginTop: 14, fontSize: 13, color: "var(--skin-ink-soft)", lineHeight: 1.5 }}>
         {description}
       </p>
-      <p style={{ marginTop: 10, fontSize: 12, color: "var(--skin-ink-faint)", fontStyle: "italic" }}>
+      <p
+        style={{ marginTop: 10, fontSize: 12, color: "var(--skin-ink-faint)", fontStyle: "italic" }}
+      >
         Mood-adaptive tone is not wired yet.
       </p>
     </div>
   );
 }
 
-const TYPE_CHIPS = ["all", "objective", "note", "task", "idea", "question", "decision", "reference"] as const;
+const TYPE_CHIPS = [
+  "all",
+  "objective",
+  "note",
+  "task",
+  "idea",
+  "question",
+  "decision",
+  "reference",
+] as const;
 
 function DetailPanelSearch() {
   const sidepanel = useSidepanel();
@@ -349,14 +383,10 @@ function DetailPanelSearch() {
   const debouncedQuery = useDebounce(query, 300);
 
   const kindsToSearch: ItemKind[] =
-    activeType === "all" ? [] :
-    activeType === "objective" ? ["objective"] :
-    ["note"];
+    activeType === "all" ? [] : activeType === "objective" ? ["objective"] : ["note"];
 
   const noteTypeFilter: string | null =
-    activeType === "all" || activeType === "objective" || activeType === "note"
-      ? null
-      : activeType;
+    activeType === "all" || activeType === "objective" || activeType === "note" ? null : activeType;
 
   const tenantId = user?.tenantId ?? "";
 
@@ -387,7 +417,11 @@ function DetailPanelSearch() {
           }}
         >
           {isFetching ? (
-            <Loader2 size={14} className="animate-spin" style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+            <Loader2
+              size={14}
+              className="animate-spin"
+              style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }}
+            />
           ) : (
             <Search size={14} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
           )}
@@ -410,7 +444,14 @@ function DetailPanelSearch() {
           {query && (
             <button
               onClick={() => setQuery("")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 0, display: "flex" }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--skin-ink-faint)",
+                padding: 0,
+                display: "flex",
+              }}
             >
               <X size={13} />
             </button>
@@ -441,14 +482,39 @@ function DetailPanelSearch() {
       {/* Results */}
       <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
         {debouncedQuery.trim().length === 0 || tenantId.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, textAlign: "center", paddingTop: 32 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              gap: 10,
+              textAlign: "center",
+              paddingTop: 32,
+            }}
+          >
             <PanelRightOpen size={24} style={{ color: "var(--skin-ink-faint)" }} />
-            <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", lineHeight: 1.5, maxWidth: 180 }}>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--skin-ink-faint)",
+                lineHeight: 1.5,
+                maxWidth: 180,
+              }}
+            >
               Type to search for a note or objective to view its details.
             </p>
           </div>
         ) : results.length === 0 && !isFetching ? (
-          <p style={{ fontSize: 13, color: "var(--skin-ink-faint)", textAlign: "center", marginTop: 24 }}>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+              textAlign: "center",
+              marginTop: 24,
+            }}
+          >
             No matches.
           </p>
         ) : (
@@ -470,11 +536,24 @@ function DetailPanelSearch() {
                 marginBottom: 2,
                 transition: "background 120ms ease",
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--skin-surface2)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--skin-surface2)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "none";
+              }}
             >
               <ItemBadge kind={item.kind} noteType={item.noteType} />
-              <span style={{ flex: 1, fontSize: 13, color: "var(--skin-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  color: "var(--skin-ink)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {item.title}
               </span>
             </button>
@@ -573,20 +652,14 @@ export function CompanionRail() {
                   justifyContent: "center",
                   background: "transparent",
                   color: "var(--skin-ink-soft)",
-                  borderBottom:
-                    i < RAIL_ITEMS.length - 1 ? "1px solid var(--skin-line)" : "none",
+                  borderBottom: i < RAIL_ITEMS.length - 1 ? "1px solid var(--skin-line)" : "none",
                   borderRadius:
-                    i === 0
-                      ? "12px 0 0 0"
-                      : i === RAIL_ITEMS.length - 1
-                      ? "0 0 0 12px"
-                      : 0,
+                    i === 0 ? "12px 0 0 0" : i === RAIL_ITEMS.length - 1 ? "0 0 0 12px" : 0,
                   transition: "color 0.15s, background 0.15s",
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.color = "var(--skin-accent)";
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "var(--skin-surface2)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--skin-surface2)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.color = "var(--skin-ink-soft)";
@@ -642,7 +715,9 @@ export function CompanionRail() {
                 color: "var(--skin-ink-faint)",
               }}
             >
-              {activePanel === "detail" ? "Detail" : RAIL_ITEMS.find((i) => i.key === activePanel)?.title}
+              {activePanel === "detail"
+                ? "Detail"
+                : RAIL_ITEMS.find((i) => i.key === activePanel)?.title}
             </span>
             <button
               onClick={closeInlinePanel}

@@ -25,9 +25,7 @@ export function ProjectCard({ project, onClick, selected }: Props) {
         flexDirection: "column",
         borderRadius: 12,
         overflow: "hidden",
-        border: selected
-          ? "2px solid var(--skin-accent)"
-          : "2px solid var(--skin-line)",
+        border: selected ? "2px solid var(--skin-accent)" : "2px solid var(--skin-line)",
         background: "var(--skin-surface)",
         transition: "border-color 0.15s",
         width: "100%",

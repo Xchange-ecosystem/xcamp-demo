@@ -18,7 +18,11 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function PortfolioProjectCard({ project, progress, user, onClick, selected }: Props) {
   const isOwner = project.owner_central_id === user.centralId;
-  const roleLabel = isOwner ? "Owner" : (project.collab_role ? ROLE_LABELS[project.collab_role] ?? project.collab_role : null);
+  const roleLabel = isOwner
+    ? "Owner"
+    : project.collab_role
+      ? (ROLE_LABELS[project.collab_role] ?? project.collab_role)
+      : null;
 
   const coverStyle: React.CSSProperties = project.feature_image
     ? {
@@ -45,9 +49,7 @@ export function PortfolioProjectCard({ project, progress, user, onClick, selecte
         flexDirection: "column",
         borderRadius: "var(--xr-lg, 10px)",
         overflow: "hidden",
-        border: selected
-          ? "2px solid var(--skin-accent)"
-          : "2px solid var(--skin-line)",
+        border: selected ? "2px solid var(--skin-accent)" : "2px solid var(--skin-line)",
         background: "var(--skin-surface)",
         boxShadow: "var(--shadow-card)",
         transition: "border-color 0.15s, box-shadow 0.15s",
@@ -78,7 +80,15 @@ export function PortfolioProjectCard({ project, progress, user, onClick, selecte
       </div>
 
       {/* Body */}
-      <div style={{ padding: "10px 12px 8px", flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div
+        style={{
+          padding: "10px 12px 8px",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
         <p
           style={{
             margin: 0,
@@ -186,12 +196,12 @@ export function PortfolioProjectCard({ project, progress, user, onClick, selecte
           }}
         >
           <span>
-            {total > 0
-              ? `${done}/${total} objective${total !== 1 ? "s" : ""}`
-              : "No objectives"}
+            {total > 0 ? `${done}/${total} objective${total !== 1 ? "s" : ""}` : "No objectives"}
           </span>
           {project.collaborator_count > 0 && (
-            <span>{project.collaborator_count} member{project.collaborator_count !== 1 ? "s" : ""}</span>
+            <span>
+              {project.collaborator_count} member{project.collaborator_count !== 1 ? "s" : ""}
+            </span>
           )}
         </div>
       </div>

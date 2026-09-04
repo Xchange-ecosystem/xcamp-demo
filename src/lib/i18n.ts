@@ -81,7 +81,8 @@ const resources = {
         name: "Nombre",
         namePlaceholder: "Tu nombre",
         email: "Correo electrónico",
-        emailHint: "Cambiar tu correo requiere confirmación mediante un enlace enviado a la nueva dirección.",
+        emailHint:
+          "Cambiar tu correo requiere confirmación mediante un enlace enviado a la nueva dirección.",
         updateEmail: "Actualizar correo",
         password: "Contraseña",
         passwordReset: "Envía un enlace para restablecer tu contraseña.",
@@ -125,7 +126,8 @@ const resources = {
         name: "Nom affiché",
         namePlaceholder: "Votre nom",
         email: "E-mail",
-        emailHint: "Changer votre e-mail nécessite une confirmation via un lien envoyé à la nouvelle adresse.",
+        emailHint:
+          "Changer votre e-mail nécessite une confirmation via un lien envoyé à la nouvelle adresse.",
         updateEmail: "Mettre à jour l'e-mail",
         password: "Mot de passe",
         passwordReset: "Envoyez un lien de réinitialisation à votre e-mail.",
@@ -169,7 +171,8 @@ const resources = {
         name: "Anzeigename",
         namePlaceholder: "Dein Name",
         email: "E-Mail",
-        emailHint: "Eine E-Mail-Änderung erfordert eine Bestätigung über einen Link an die neue Adresse.",
+        emailHint:
+          "Eine E-Mail-Änderung erfordert eine Bestätigung über einen Link an die neue Adresse.",
         updateEmail: "E-Mail aktualisieren",
         password: "Passwort",
         passwordReset: "Sende einen Link zum Zurücksetzen des Passworts an deine E-Mail.",

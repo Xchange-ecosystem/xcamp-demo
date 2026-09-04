@@ -1,8 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { initLegacyUi, isLegacyUi } from "@/lib/uiVersion";
-import { EcosystemHomeView, ProjectHomeView, ExperimentalChatView } from "@/components/ExperimentalHome";
+import {
+  EcosystemHomeView,
+  ProjectHomeView,
+  ExperimentalChatView,
+} from "@/components/ExperimentalHome";
 import { ProjectEntryScreen } from "@/components/ProjectEntryScreen";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useActiveProject } from "@/contexts/active-project";
 import { useQuery } from "@tanstack/react-query";
@@ -67,11 +71,18 @@ const GLASS_STYLE: React.CSSProperties = {
 
 // Navigation pills shown below the glass panel — simple route shortcuts.
 const NAV_PILLS = [
-  { id: "journal",    label: "My Journal",    icon: BookOpen,   to: "/journal" },
-  { id: "notes",      label: "My Notes",      icon: StickyNote, to: "/notes" },
-  { id: "navigator",  label: "Navigator",     icon: Navigation, to: "/navigator" },
-  { id: "backcaster", label: "Start Project", icon: Zap,        to: "/project-builder" },
+  { id: "journal", label: "My Journal", icon: BookOpen, to: "/journal" },
+  { id: "notes", label: "My Notes", icon: StickyNote, to: "/notes" },
+  { id: "navigator", label: "Navigator", icon: Navigation, to: "/navigator" },
+  { id: "backcaster", label: "Start Project", icon: Zap, to: "/project-builder" },
 ] as const;
+
+const waitForTyping = (text: string) =>
+  new Promise<void>((resolve) => setTimeout(resolve, (text?.length ?? 0) * 38));
+
+function isNewDay(dateStr: string) {
+  return new Date(dateStr).toDateString() !== new Date().toDateString();
+}
 
 export const Route = createFileRoute("/home")({
   validateSearch: (search: Record<string, unknown>): { ui?: "v1"; view?: "companion" } => ({
@@ -138,13 +149,11 @@ function CompanionHomePage() {
   const isLegacy = isLegacyUi();
 
   const [experimentalView, setExperimentalView] = useState<"home" | "chat">(() =>
-    viewParam === "companion" ? "chat" : "home"
+    viewParam === "companion" ? "chat" : "home",
   );
 
   // Show the project-picker entry screen when opening with no active project (experimental is now default).
-  const [showEntry, setShowEntry] = useState(() =>
-    !isLegacy && !activeProjectId
-  );
+  const [showEntry, setShowEntry] = useState(() => !isLegacy && !activeProjectId);
 
   useEffect(() => {
     // Skip while the user is actively viewing Companion — a navMode change here isn't
@@ -194,9 +203,7 @@ function CompanionHomePage() {
   const [mentionedEntities, setMentionedEntities] = useState<MentionEntity[]>([]);
 
   const projectBgUrl =
-    step === "inside-project" && activeProject?.feature_image
-      ? activeProject.feature_image
-      : null;
+    step === "inside-project" && activeProject?.feature_image ? activeProject.feature_image : null;
   const { url: heroBgUrl, reload: reloadHero } = useHeroImage();
   const bgUrl = projectBgUrl ?? heroBgUrl;
 
@@ -214,18 +221,31 @@ function CompanionHomePage() {
   }, [bgUrl]);
 
   // ── TTS setup effects ──────────────────────────────────────────────────────
-  useEffect(() => { installAudioUnlock(); }, []);
+  useEffect(() => {
+    installAudioUnlock();
+  }, []);
   useEffect(() => subscribeMuted((v) => setMutedState(v)), []);
   useEffect(() => subscribeVoice((id) => setVoiceIdState(id)), []);
-  useEffect(() => subscribeTTSError((err) => {
-    setTtsError(err);
-    if (err) setDismissedTtsError(false);
-  }), []);
-  useEffect(() => () => { stopSpeaking(); }, []);
+  useEffect(
+    () =>
+      subscribeTTSError((err) => {
+        setTtsError(err);
+        if (err) setDismissedTtsError(false);
+      }),
+    [],
+  );
+  useEffect(
+    () => () => {
+      stopSpeaking();
+    },
+    [],
+  );
 
   // ── Load available voices from ElevenLabs on mount ────────────────────────
   useEffect(() => {
-    fetchVoices().then(setAvailableVoices).catch(() => {});
+    fetchVoices()
+      .then(setAvailableVoices)
+      .catch(() => {});
   }, []);
 
   // ── Wire voice transcript into draft ───────────────────────────────────────
@@ -239,25 +259,16 @@ function CompanionHomePage() {
   const [panelTarget, setPanelTarget] = useState<PanelTarget | null>(null);
   const [dismissedCardIds, setDismissedCardIds] = useState<Set<string>>(new Set());
 
-
-  const { data: projects = [] } = useQuery({
+  const { data: projectsData } = useQuery({
     queryKey: ["projects-full", authUser?.centralId],
     queryFn: () => listProjectsFull(authUser!),
     enabled: !!authUser,
   });
+  const projects = useMemo(() => projectsData ?? [], [projectsData]);
 
   const vox = useVox();
   const { altitude } = useAltitudeStore();
   const { persona } = usePersona();
-
-  const waitForTyping = (text: string) =>
-    new Promise<void>((resolve) => setTimeout(resolve, (text?.length ?? 0) * 38));
-
-  const isNewDay = (dateStr: string) => {
-    const sessionDate = new Date(dateStr).toDateString();
-    const today = new Date().toDateString();
-    return sessionDate !== today;
-  };
 
   const prevAuthUserRef = useRef(authUser);
   useEffect(() => {
@@ -267,7 +278,6 @@ function CompanionHomePage() {
       void session.closeSession();
     }
   }, [authUser]); // eslint-disable-line react-hooks/exhaustive-deps
-
 
   const projectRestoredRef = useRef(false);
   const welcomeFiredRef = useRef(false);
@@ -309,12 +319,14 @@ function CompanionHomePage() {
     }
     welcomeFiredRef.current = true;
 
-    const scopedProject = navMode === "project" ? projects.find((p) => p.id === activeProjectId) : undefined;
+    const scopedProject =
+      navMode === "project" ? projects.find((p) => p.id === activeProjectId) : undefined;
 
     async function dispatchWelcome() {
       const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
       const hour = new Date().getHours();
-      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+      const timeGreeting =
+        hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
       const MSG1 = `${timeGreeting}, ${firstName}! Let's make the most of today. What would you like to work on?`;
       const id1 = await session.appendChiMessage(MSG1);
@@ -344,7 +356,8 @@ function CompanionHomePage() {
     async function dispatchProjectWelcome(project: ProjectFull) {
       const firstName = authUser?.displayName?.split(" ")?.[0] ?? "there";
       const hour = new Date().getHours();
-      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+      const timeGreeting =
+        hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
       const MSG1 = `${timeGreeting}, ${firstName}! Here's what's happening in ${project.name}.`;
       const id1 = await session.appendChiMessage(MSG1);
@@ -388,7 +401,18 @@ function CompanionHomePage() {
       setActiveProjectId(null);
       void dispatchWelcome();
     }
-  }, [session.loading, session.messages.length, session.conversationCreatedAt, session.conversationProjectId, projects.length, navMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    activeProjectId,
+    altitude,
+    authUser,
+    navMode,
+    persona,
+    projects,
+    session,
+    setActiveProjectId,
+    setNavMode,
+    vox,
+  ]);
 
   const handleProjectSelect = useCallback(
     async (project: ProjectFull, silent = false) => {
@@ -465,7 +489,8 @@ function CompanionHomePage() {
         .then();
     }
 
-    const msg = "Project unlinked — you're in general chat mode. Pick a project from the grid, or just ask me anything.";
+    const msg =
+      "Project unlinked — you're in general chat mode. Pick a project from the grid, or just ask me anything.";
     const msgId = await session.appendChiMessage(msg);
     speak(msg);
     setTypingMessageId(msgId);
@@ -475,7 +500,7 @@ function CompanionHomePage() {
     const gridId = await session.appendComponentMessage("project-grid");
     gridMsgIdRef.current = gridId;
     setStep("project-select");
-  }, [session, setActiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session, setActiveProjectId]);
 
   const branchFiredRef = useRef(false);
   const switchingProjectRef = useRef(false);
@@ -533,7 +558,7 @@ function CompanionHomePage() {
           .then();
       }
     }
-  }, [activeProjectId, session.conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeProjectId, session.conversationId]);
 
   // ── Experimental mode: a project-session boundary is now handled inside
   // useCompanionSession itself (see its `scope` param, passed above) — it loads the
@@ -577,69 +602,90 @@ function CompanionHomePage() {
     setNavMode("ecosystem");
   }, [setNavMode]);
 
-  const handleCardConfirm = useCallback(async (card: AICard, selectedType: EntityType) => {
-    if (!card.proposal) return;
+  const handleCardConfirm = useCallback(
+    async (card: AICard, selectedType: EntityType) => {
+      if (!card.proposal) return;
 
-    if (card.proposal.tool === "navigate") {
-      const payload = card.proposal.payload as { url?: string };
-      if (payload.url) void navigate({ to: payload.url });
-      setDismissedCardIds((prev) => new Set([...prev, card.id]));
-      return;
-    }
-
-    if (selectedType === "objective") {
-      const modifiedProposal = buildContextCardProposal(card, selectedType) ?? card.proposal;
-      try {
-        const token = await supabase.auth.getSession().then((r) => r.data.session?.access_token ?? "");
-        const result = await executeProposal(
-          modifiedProposal,
-          () => Promise.resolve(token || null),
-          (import.meta.env.VITE_BACKEND_URL as string) ?? "",
-        );
-        if (result.ok) {
-          const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> }).payload;
-          const payloadTitle = typeof rawPayload?.title === "string" ? rawPayload.title : card.title;
-          const objId = typeof rawPayload?.objective_id === "string" ? rawPayload.objective_id : undefined;
-          setDismissedCardIds((prev) => new Set([...prev, card.id]));
-          setPanelTarget({ type: "objective", id: result.committed_id ?? objId ?? "", prefillText: card.body, initialTitle: payloadTitle });
-          toast.success("Done — card applied.");
-        } else {
-          toast.error(result.error ?? "Could not apply card.");
-        }
-      } catch (err) {
-        console.error("[Chi] objective proposal failed:", err);
-        toast.error("Something went wrong applying the card.");
+      if (card.proposal.tool === "navigate") {
+        const payload = card.proposal.payload as { url?: string };
+        if (payload.url) void navigate({ to: payload.url });
+        setDismissedCardIds((prev) => new Set([...prev, card.id]));
+        return;
       }
-      return;
-    }
 
-    const noteType = selectedType === "task" ? "task" : selectedType === "resource" ? "reference" : "note";
-    const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> };
-    const title = typeof rawProposal?.payload?.title === "string" ? rawProposal.payload.title : (card.title ?? "Untitled");
+      if (selectedType === "objective") {
+        const modifiedProposal = buildContextCardProposal(card, selectedType) ?? card.proposal;
+        try {
+          const token = await supabase.auth
+            .getSession()
+            .then((r) => r.data.session?.access_token ?? "");
+          const result = await executeProposal(
+            modifiedProposal,
+            () => Promise.resolve(token || null),
+            (import.meta.env.VITE_BACKEND_URL as string) ?? "",
+          );
+          if (result.ok) {
+            const rawPayload = (modifiedProposal as unknown as { payload: Record<string, unknown> })
+              .payload;
+            const payloadTitle =
+              typeof rawPayload?.title === "string" ? rawPayload.title : card.title;
+            const objId =
+              typeof rawPayload?.objective_id === "string" ? rawPayload.objective_id : undefined;
+            setDismissedCardIds((prev) => new Set([...prev, card.id]));
+            setPanelTarget({
+              type: "objective",
+              id: result.committed_id ?? objId ?? "",
+              prefillText: card.body,
+              initialTitle: payloadTitle,
+            });
+            toast.success("Done — card applied.");
+          } else {
+            toast.error(result.error ?? "Could not apply card.");
+          }
+        } catch (err) {
+          console.error("[Chi] objective proposal failed:", err);
+          toast.error("Something went wrong applying the card.");
+        }
+        return;
+      }
 
-    try {
-      const note = await createNote(authUser!, {
-        title,
-        bodyHtml: "",
-        noteType,
-        projectId: null,
-        objectiveIds: [],
-        tags: [],
-      });
-      const panelType: PanelTarget["type"] = selectedType === "task" ? "task" : "note";
-      setDismissedCardIds((prev) => new Set([...prev, card.id]));
-      setPanelTarget({ type: panelType, id: note.id, prefillText: card.body, initialTitle: title });
-      toast.success("Done — card applied.");
-    } catch (err) {
-      console.error("[Chi] createNote failed:", err);
-      toast.error((err as Error).message ?? "Could not create note.");
-    }
-  }, [authUser, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+      const noteType =
+        selectedType === "task" ? "task" : selectedType === "resource" ? "reference" : "note";
+      const rawProposal = card.proposal as unknown as { payload?: Record<string, unknown> };
+      const title =
+        typeof rawProposal?.payload?.title === "string"
+          ? rawProposal.payload.title
+          : (card.title ?? "Untitled");
+
+      try {
+        const note = await createNote(authUser!, {
+          title,
+          bodyHtml: "",
+          noteType,
+          projectId: null,
+          objectiveIds: [],
+          tags: [],
+        });
+        const panelType: PanelTarget["type"] = selectedType === "task" ? "task" : "note";
+        setDismissedCardIds((prev) => new Set([...prev, card.id]));
+        setPanelTarget({
+          type: panelType,
+          id: note.id,
+          prefillText: card.body,
+          initialTitle: title,
+        });
+        toast.success("Done — card applied.");
+      } catch (err) {
+        console.error("[Chi] createNote failed:", err);
+        toast.error((err as Error).message ?? "Could not create note.");
+      }
+    },
+    [authUser, navigate],
+  );
 
   const handleCardDismiss = useCallback((card: AICard) => {
     setDismissedCardIds((prev) => new Set([...prev, card.id]));
   }, []);
-
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
@@ -746,7 +792,7 @@ function CompanionHomePage() {
       search: (prev: { ui?: "v1"; view?: "companion" }) => ({ ...prev, view: "companion" }),
     });
     void handleSend();
-  }, [handleSend, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleSend, navigate]);
 
   return (
     <>
@@ -768,341 +814,383 @@ function CompanionHomePage() {
             context for how this route still tracks its panel width below). */}
 
         {/* Centered column: glass panel + pill bar below — renders in both default and experimental modes */}
-        {isLegacy && <LegacyCenteredColumnFrame>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 10,
-              width: "min(580px, 92vw)",
-              height: "100%",
-              pointerEvents: "auto",
-            }}
-          >
-            <TopChrome
-              muted={muted}
-              voiceId={voiceId}
-              availableVoices={availableVoices}
-              onMuteToggle={() => setMuted(!muted)}
-              onVoiceChange={(id) => { stopSpeaking(); setVoiceId(id); }}
-              onReload={reloadHero}
-              onNewSession={handleNewSession}
-              activeProject={activeProject}
-              onDeselectProject={handleProjectDeselect}
-            />
-            {/* Glass panel */}
+        {isLegacy && (
+          <LegacyCenteredColumnFrame>
             <div
               style={{
-                ...GLASS_STYLE,
-                flex: 1,
-                minHeight: 0,
-                width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                borderRadius: 20,
-                background: "var(--glass-bg)",
-                border: "1px solid var(--glass-border-color)",
-                boxShadow: "var(--glass-shadow)",
-                backdropFilter: "blur(var(--glass-blur, 18px))",
-                WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
-                color: "var(--glass-text)",
-                overflow: "hidden",
+                alignItems: "center",
+                gap: 10,
+                width: "min(580px, 92vw)",
+                height: "100%",
+                pointerEvents: "auto",
               }}
             >
-              {/* Chat thread scroll area */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
-                <ChatThread
-                  messages={session.messages}
-                  projects={projects}
-                  onProjectSelect={handleProjectSelect}
-                  onCreateProject={handleCreateProject}
-                  typingMessageId={typingMessageId ?? undefined}
-                  isLoading={isLoading}
-                  onCardConfirm={handleCardConfirm}
-                  onCardDismiss={handleCardDismiss}
-                  hiddenCardIds={dismissedCardIds}
-                />
-              </div>
-
-              {/* TTS error banner */}
-              {ttsError && !dismissedTtsError && !muted && (
-                <div
-                  role="alert"
-                  style={{
-                    margin: "0 14px",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: "1px solid rgba(239,68,68,0.4)",
-                    background: "rgba(239,68,68,0.1)",
-                    fontSize: 12,
-                    color: "rgba(239,68,68,0.9)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                  }}
-                >
-                  <span>
-                    {ttsError.kind === "missing_key"
-                      ? "Voice off — ElevenLabs key not configured"
-                      : ttsError.kind === "network_error"
-                      ? "Voice off — TTS function unreachable"
-                      : `Voice error (${ttsError.status ?? "unknown"})`}
-                  </span>
-                  <button
-                    onClick={() => { setDismissedTtsError(true); clearTTSError(); }}
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 14, padding: "0 2px" }}
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
-              {/* Input section */}
+              <TopChrome
+                muted={muted}
+                voiceId={voiceId}
+                availableVoices={availableVoices}
+                onMuteToggle={() => setMuted(!muted)}
+                onVoiceChange={(id) => {
+                  stopSpeaking();
+                  setVoiceId(id);
+                }}
+                onReload={reloadHero}
+                onNewSession={handleNewSession}
+                activeProject={activeProject}
+                onDeselectProject={handleProjectDeselect}
+              />
+              {/* Glass panel */}
               <div
                 style={{
-                  flexShrink: 0,
-                  borderTop: "1px solid var(--glass-divider)",
-                  padding: "10px 14px 12px",
+                  ...GLASS_STYLE,
+                  flex: 1,
+                  minHeight: 0,
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  borderRadius: 20,
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "var(--glass-shadow)",
+                  backdropFilter: "blur(var(--glass-blur, 18px))",
+                  WebkitBackdropFilter: "blur(var(--glass-blur, 18px))",
+                  color: "var(--glass-text)",
+                  overflow: "hidden",
                 }}
               >
-                {/* Mentioned entity chips */}
-                {mentionedEntities.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-                    {mentionedEntities.map((e) => (
-                      <span
-                        key={e.id}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "2px 8px",
-                          borderRadius: 999,
-                          background: "var(--skin-accent, #4de0c1)",
-                          color: "var(--skin-bg, #fff)",
-                          fontSize: 11,
-                          fontWeight: 500,
-                        }}
-                      >
-                        @{e.title}
-                        <button
-                          onClick={() => setMentionedEntities((prev) => prev.filter((x) => x.id !== e.id))}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 13, lineHeight: 1 }}
-                          aria-label={`Remove ${e.title}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input row: large textarea + vertical icon stack to the right */}
-                <div style={{ position: "relative" }}>
-                  <MentionMenu
-                    isOpen={mentionMenuOpen}
-                    query={mentionQuery}
-                    projectId={activeProject?.id}
-                    onSelect={handleMentionSelect}
-                    onClose={() => {
-                      setMentionMenuOpen(false);
-                      setMentionQuery("");
-                      setMentionAtIndex(-1);
-                    }}
+                {/* Chat thread scroll area */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 8px" }}>
+                  <ChatThread
+                    messages={session.messages}
+                    projects={projects}
+                    onProjectSelect={handleProjectSelect}
+                    onCreateProject={handleCreateProject}
+                    typingMessageId={typingMessageId ?? undefined}
+                    isLoading={isLoading}
+                    onCardConfirm={handleCardConfirm}
+                    onCardDismiss={handleCardDismiss}
+                    hiddenCardIds={dismissedCardIds}
                   />
-
-                  <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
-                    {/* Hidden file input */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      style={{ display: "none" }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] ?? null;
-                        setAttachment(file);
-                        if (file) toast.info(`File selected: ${file.name} — attachment will be sent once backend support lands.`);
-                        e.target.value = "";
-                      }}
-                    />
-
-                    <textarea
-                      ref={textareaRef}
-                      value={draft}
-                      onChange={handleDraftChange}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setMentionMenuOpen(false);
-                          return;
-                        }
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void handleSend();
-                        }
-                      }}
-                      rows={4}
-                      placeholder={
-                        voice.isListening
-                          ? "Listening…"
-                          : isLoading
-                          ? "Chi is thinking…"
-                          : "Ask Chi anything… (type @ to mention)"
-                      }
-                      disabled={isLoading}
-                      style={{
-                        flex: 1,
-                        resize: "none",
-                        background: "var(--glass-input-bg)",
-                        border: voice.isListening
-                          ? "1px solid var(--skin-accent, #4de0c1)"
-                          : "1px solid var(--glass-input-border)",
-                        borderRadius: 10,
-                        color: "var(--glass-text)",
-                        fontSize: 14,
-                        padding: "8px 12px",
-                        outline: "none",
-                        fontFamily: "inherit",
-                        opacity: isLoading ? 0.5 : 1,
-                        transition: "border-color 0.2s",
-                      }}
-                    />
-
-                    {/* Vertical icon stack — top to bottom: + Paperclip Mic Send */}
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        flexShrink: 0,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <InputActionButton
-                        title="Add entity (@mention)"
-                        onClick={() => {
-                          setMentionMenuOpen((v) => !v);
-                          setMentionQuery("");
-                        }}
-                        active={mentionMenuOpen}
-                      >
-                        <Plus size={14} />
-                      </InputActionButton>
-                      <InputActionButton
-                        title="Attach file"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Paperclip size={14} />
-                      </InputActionButton>
-                      <InputActionButton
-                        title={
-                          !voice.supported
-                            ? "Voice input not supported in this browser"
-                            : voice.isListening
-                            ? "Stop recording"
-                            : "Voice input"
-                        }
-                        onClick={() => (voice.isListening ? voice.stop() : voice.start())}
-                        disabled={!voice.supported}
-                        active={voice.isListening}
-                      >
-                        {voice.isListening ? <MicOff size={14} /> : <Mic size={14} />}
-                      </InputActionButton>
-                      <button
-                        onClick={() => void handleSend()}
-                        disabled={!draft.trim() || isLoading}
-                        title="Send"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 8,
-                          background: "var(--skin-accent-gradient)",
-                          border: "none",
-                          color: "white",
-                          cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
-                          opacity: draft.trim() && !isLoading ? 1 : 0.4,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 15,
-                          flexShrink: 0,
-                        }}
-                      >
-                        &#x27a4;
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Attachment badge */}
-                {attachment && (
+                {/* TTS error banner */}
+                {ttsError && !dismissedTtsError && !muted && (
                   <div
+                    role="alert"
                     style={{
-                      marginTop: 6,
+                      margin: "0 14px",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(239,68,68,0.4)",
+                      background: "rgba(239,68,68,0.1)",
+                      fontSize: 12,
+                      color: "rgba(239,68,68,0.9)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
-                      fontSize: 11,
-                      color: "var(--glass-text-soft)",
+                      justifyContent: "space-between",
+                      gap: 8,
                     }}
                   >
-                    <Paperclip size={10} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
-                      {attachment.name}
+                    <span>
+                      {ttsError.kind === "missing_key"
+                        ? "Voice off — ElevenLabs key not configured"
+                        : ttsError.kind === "network_error"
+                          ? "Voice off — TTS function unreachable"
+                          : `Voice error (${ttsError.status ?? "unknown"})`}
                     </span>
                     <button
-                      onClick={() => setAttachment(null)}
-                      style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }}
-                      aria-label="Remove attachment"
+                      onClick={() => {
+                        setDismissedTtsError(true);
+                        clearTTSError();
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "inherit",
+                        fontSize: 14,
+                        padding: "0 2px",
+                      }}
+                      aria-label="Dismiss"
                     >
                       ×
                     </button>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Pill bar — outside and below the glass panel */}
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                width: "100%",
-                overflowX: "auto",
-                scrollbarWidth: "none",
-                flexShrink: 0,
-                paddingBottom: 4,
-              }}
-            >
-              {NAV_PILLS.map((pill) => (
-                <button
-                  key={pill.id}
-                  onClick={() => void navigate({ to: pill.to })}
+                {/* Input section */}
+                <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "6px 14px",
-                    borderRadius: "var(--xr-pill, 999px)",
-                    border: "1px solid var(--glass-pill-border)",
-                    background: "var(--glass-pill-bg)",
-                    backdropFilter: "blur(8px)",
-                    WebkitBackdropFilter: "blur(8px)",
-                    color: "var(--glass-text)",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    whiteSpace: "nowrap",
                     flexShrink: 0,
+                    borderTop: "1px solid var(--glass-divider)",
+                    padding: "10px 14px 12px",
                   }}
                 >
-                  <pill.icon size={12} />
-                  {pill.label}
-                </button>
-              ))}
+                  {/* Mentioned entity chips */}
+                  {mentionedEntities.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+                      {mentionedEntities.map((e) => (
+                        <span
+                          key={e.id}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: "var(--skin-accent, #4de0c1)",
+                            color: "var(--skin-bg, #fff)",
+                            fontSize: 11,
+                            fontWeight: 500,
+                          }}
+                        >
+                          @{e.title}
+                          <button
+                            onClick={() =>
+                              setMentionedEntities((prev) => prev.filter((x) => x.id !== e.id))
+                            }
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "inherit",
+                              padding: 0,
+                              fontSize: 13,
+                              lineHeight: 1,
+                            }}
+                            aria-label={`Remove ${e.title}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input row: large textarea + vertical icon stack to the right */}
+                  <div style={{ position: "relative" }}>
+                    <MentionMenu
+                      isOpen={mentionMenuOpen}
+                      query={mentionQuery}
+                      projectId={activeProject?.id}
+                      onSelect={handleMentionSelect}
+                      onClose={() => {
+                        setMentionMenuOpen(false);
+                        setMentionQuery("");
+                        setMentionAtIndex(-1);
+                      }}
+                    />
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                      {/* Hidden file input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          setAttachment(file);
+                          if (file)
+                            toast.info(
+                              `File selected: ${file.name} — attachment will be sent once backend support lands.`,
+                            );
+                          e.target.value = "";
+                        }}
+                      />
+
+                      <textarea
+                        ref={textareaRef}
+                        value={draft}
+                        onChange={handleDraftChange}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setMentionMenuOpen(false);
+                            return;
+                          }
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void handleSend();
+                          }
+                        }}
+                        rows={4}
+                        placeholder={
+                          voice.isListening
+                            ? "Listening…"
+                            : isLoading
+                              ? "Chi is thinking…"
+                              : "Ask Chi anything… (type @ to mention)"
+                        }
+                        disabled={isLoading}
+                        style={{
+                          flex: 1,
+                          resize: "none",
+                          background: "var(--glass-input-bg)",
+                          border: voice.isListening
+                            ? "1px solid var(--skin-accent, #4de0c1)"
+                            : "1px solid var(--glass-input-border)",
+                          borderRadius: 10,
+                          color: "var(--glass-text)",
+                          fontSize: 14,
+                          padding: "8px 12px",
+                          outline: "none",
+                          fontFamily: "inherit",
+                          opacity: isLoading ? 0.5 : 1,
+                          transition: "border-color 0.2s",
+                        }}
+                      />
+
+                      {/* Vertical icon stack — top to bottom: + Paperclip Mic Send */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          flexShrink: 0,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <InputActionButton
+                          title="Add entity (@mention)"
+                          onClick={() => {
+                            setMentionMenuOpen((v) => !v);
+                            setMentionQuery("");
+                          }}
+                          active={mentionMenuOpen}
+                        >
+                          <Plus size={14} />
+                        </InputActionButton>
+                        <InputActionButton
+                          title="Attach file"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Paperclip size={14} />
+                        </InputActionButton>
+                        <InputActionButton
+                          title={
+                            !voice.supported
+                              ? "Voice input not supported in this browser"
+                              : voice.isListening
+                                ? "Stop recording"
+                                : "Voice input"
+                          }
+                          onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+                          disabled={!voice.supported}
+                          active={voice.isListening}
+                        >
+                          {voice.isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                        </InputActionButton>
+                        <button
+                          onClick={() => void handleSend()}
+                          disabled={!draft.trim() || isLoading}
+                          title="Send"
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: "var(--skin-accent-gradient)",
+                            border: "none",
+                            color: "white",
+                            cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
+                            opacity: draft.trim() && !isLoading ? 1 : 0.4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 15,
+                            flexShrink: 0,
+                          }}
+                        >
+                          &#x27a4;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Attachment badge */}
+                  {attachment && (
+                    <div
+                      style={{
+                        marginTop: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 11,
+                        color: "var(--glass-text-soft)",
+                      }}
+                    >
+                      <Paperclip size={10} />
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: 220,
+                        }}
+                      >
+                        {attachment.name}
+                      </span>
+                      <button
+                        onClick={() => setAttachment(null)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "inherit",
+                          fontSize: 13,
+                          padding: 0,
+                        }}
+                        aria-label="Remove attachment"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pill bar — outside and below the glass panel */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  width: "100%",
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  flexShrink: 0,
+                  paddingBottom: 4,
+                }}
+              >
+                {NAV_PILLS.map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => void navigate({ to: pill.to })}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "6px 14px",
+                      borderRadius: "var(--xr-pill, 999px)",
+                      border: "1px solid var(--glass-pill-border)",
+                      background: "var(--glass-pill-bg)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)",
+                      color: "var(--glass-text)",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <pill.icon size={12} />
+                    {pill.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </LegacyCenteredColumnFrame>}
+          </LegacyCenteredColumnFrame>
+        )}
 
         {/* ── Experimental nav views (Phase 2–4) ─────────────────────────── */}
 
@@ -1135,8 +1223,15 @@ function CompanionHomePage() {
             onMentionSelect={handleMentionSelect}
             mentionedEntities={mentionedEntities}
             onMentionedEntitiesChange={setMentionedEntities}
-            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
-            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            onMentionMenuClose={() => {
+              setMentionMenuOpen(false);
+              setMentionQuery("");
+              setMentionAtIndex(-1);
+            }}
+            onMentionToggle={() => {
+              setMentionMenuOpen((v) => !v);
+              setMentionQuery("");
+            }}
             activeProject={activeProject}
             authUser={authUser}
           />
@@ -1159,8 +1254,15 @@ function CompanionHomePage() {
             onMentionSelect={handleMentionSelect}
             mentionedEntities={mentionedEntities}
             onMentionedEntitiesChange={setMentionedEntities}
-            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
-            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            onMentionMenuClose={() => {
+              setMentionMenuOpen(false);
+              setMentionQuery("");
+              setMentionAtIndex(-1);
+            }}
+            onMentionToggle={() => {
+              setMentionMenuOpen((v) => !v);
+              setMentionQuery("");
+            }}
             activeProject={activeProject}
             authUser={authUser}
           />
@@ -1188,8 +1290,15 @@ function CompanionHomePage() {
             onMentionSelect={handleMentionSelect}
             mentionedEntities={mentionedEntities}
             onMentionedEntitiesChange={setMentionedEntities}
-            onMentionMenuClose={() => { setMentionMenuOpen(false); setMentionQuery(""); setMentionAtIndex(-1); }}
-            onMentionToggle={() => { setMentionMenuOpen((v) => !v); setMentionQuery(""); }}
+            onMentionMenuClose={() => {
+              setMentionMenuOpen(false);
+              setMentionQuery("");
+              setMentionAtIndex(-1);
+            }}
+            onMentionToggle={() => {
+              setMentionMenuOpen((v) => !v);
+              setMentionQuery("");
+            }}
             activeProject={activeProject}
             navMode={navMode}
             muted={muted}
@@ -1206,25 +1315,27 @@ function CompanionHomePage() {
       </CompanionShell>
 
       {panelTarget && (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: "relative" }}>
           {panelTarget.fromSidePanel && (
             <button
               onClick={() => setPanelTarget(null)}
               style={{
-                position: 'fixed',
+                position: "fixed",
                 zIndex: 51,
                 top: 12,
-                right: 'calc(min(390px, 94vw) + 12px)',
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: 'var(--glass-bg, rgba(20,24,32,0.85))',
-                border: '1px solid var(--glass-border-color, rgba(255,255,255,0.12))',
+                right: "calc(min(390px, 94vw) + 12px)",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                background: "var(--glass-bg, rgba(20,24,32,0.85))",
+                border: "1px solid var(--glass-border-color, rgba(255,255,255,0.12))",
                 borderRadius: 8,
-                padding: '5px 10px',
-                color: 'var(--glass-text-soft)',
+                padding: "5px 10px",
+                color: "var(--glass-text-soft)",
                 fontSize: 12,
                 fontWeight: 500,
-                cursor: 'pointer',
-                backdropFilter: 'blur(12px)',
+                cursor: "pointer",
+                backdropFilter: "blur(12px)",
               }}
               aria-label="Back to companion"
             >

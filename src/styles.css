@@ -127,73 +127,74 @@
  * ============================================================ */
 :root {
   /* Sourced from tokens.json themes.light.colors.surfaces/brand/semantic. */
-  --skin-bg:           hsl(0 0% 97%);
-  --skin-surface:      #ffffff;
-  --skin-surface2:     hsl(220 13% 95%);
-  --skin-ink:          hsl(220 13% 10%);
-  --skin-ink-soft:     hsl(220 9% 46%);
-  --skin-ink-faint:    hsl(220 6% 64%);
-  --skin-line:         hsl(220 13% 91%);
-  --skin-line-soft:    hsl(220 13% 95%);
-  --skin-accent:       hsl(168 72% 42%);
-  --skin-accent-soft:  hsl(168 72% 94%);
+  --skin-bg: hsl(0 0% 97%);
+  --skin-surface: #ffffff;
+  --skin-surface2: hsl(220 13% 95%);
+  --skin-ink: hsl(220 13% 10%);
+  --skin-ink-soft: hsl(220 9% 46%);
+  --skin-ink-faint: hsl(220 6% 64%);
+  --skin-line: hsl(220 13% 91%);
+  --skin-line-soft: hsl(220 13% 95%);
+  --skin-accent: hsl(168 72% 42%);
+  --skin-accent-soft: hsl(168 72% 94%);
   --skin-accent-gradient: linear-gradient(120deg, hsl(190 57% 47%) 0%, hsl(170 70% 59%) 100%);
-  --skin-good:         hsl(142 76% 36%);
-  --skin-good-soft:    hsl(142 76% 94%);
-  --skin-bad:          hsl(0 84% 60%);
-  --skin-bad-soft:     hsl(0 84% 95%);
+  --skin-good: hsl(142 76% 36%);
+  --skin-good-soft: hsl(142 76% 94%);
+  --skin-bad: hsl(0 84% 60%);
+  --skin-bad-soft: hsl(0 84% 95%);
 
-  --success:           hsl(142, 76%, 36%);
-  --warning:           hsl(38, 92%, 50%);
-  --danger:            hsl(0, 84%, 60%);
+  --success: hsl(142, 76%, 36%);
+  --warning: hsl(38, 92%, 50%);
+  --danger: hsl(0, 84%, 60%);
 
-  --xr:                6px;
-  --xr-lg:             10px;
-  --xr-pill:           999px;
+  --xr: 6px;
+  --xr-lg: 10px;
+  --xr-pill: 999px;
 
   /* Not part of the light/dark split — radius and heading typeface read the
    * same in both themes. Values from the mockup's T token object. */
-  --skin-radius:       14px;
-  --skin-radius-lg:    22px;
-  --skin-radius-pill:  999px;
+  --skin-radius: 14px;
+  --skin-radius-lg: 22px;
+  --skin-radius-pill: 999px;
   /* Resolves CONFLICTS.md #1: aligned to tokens.json
    * objectiveSkins.scientific.fontHead (Claude Design export). The
    * Scientific/Playful axis is retired, so this is the one going-forward
    * heading font rather than a per-tone choice. */
-  --skin-font-head:    'Rubik', 'IBM Plex Sans', sans-serif;
+  --skin-font-head: "Rubik", "IBM Plex Sans", sans-serif;
+  --skin-font-body: "IBM Plex Sans", system-ui, sans-serif;
 
-  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 
   /* ── Skin tokens not previously declared (only used via fallback) ──────── */
-  --skin-danger:       #e0503a;
-  --skin-on-accent:    #ffffff;
+  --skin-danger: #e0503a;
+  --skin-on-accent: #ffffff;
 
   /* ── Item type tokens — single source of truth for all item type colours.
    * Use var(--item-<type>) for fills, var(--item-<type>-fg) for text.
    * Badge text is guaranteed WCAG contrast against its paired fill.
    * No hex literals in component files — reference these tokens only. ──── */
-  --item-objective:           oklch(0.68 0.18 290);
-  --item-objective-fg:        oklch(0.98 0.01 290);
-  --item-note:                oklch(0.62 0.14 248);
-  --item-note-fg:             oklch(0.98 0.01 248);
-  --item-task:                oklch(0.65 0.18 162);
-  --item-task-fg:             oklch(0.98 0.01 162);
-  --item-idea:                oklch(0.78 0.16 68);
-  --item-idea-fg:             oklch(0.20 0.05 68);
-  --item-question:            oklch(0.68 0.20 30);
-  --item-question-fg:         oklch(0.98 0.01 30);
-  --item-decision:            oklch(0.66 0.20 335);
-  --item-decision-fg:         oklch(0.98 0.01 335);
-  --item-reference:           oklch(0.58 0.04 248);
-  --item-reference-fg:        oklch(0.98 0.01 248);
+  --item-objective: oklch(0.68 0.18 290);
+  --item-objective-fg: oklch(0.98 0.01 290);
+  --item-note: oklch(0.62 0.14 248);
+  --item-note-fg: oklch(0.98 0.01 248);
+  --item-task: oklch(0.65 0.18 162);
+  --item-task-fg: oklch(0.98 0.01 162);
+  --item-idea: oklch(0.78 0.16 68);
+  --item-idea-fg: oklch(0.2 0.05 68);
+  --item-question: oklch(0.68 0.2 30);
+  --item-question-fg: oklch(0.98 0.01 30);
+  --item-decision: oklch(0.66 0.2 335);
+  --item-decision-fg: oklch(0.98 0.01 335);
+  --item-reference: oklch(0.58 0.04 248);
+  --item-reference-fg: oklch(0.98 0.01 248);
 
   /* Objective status tokens — reuse amber/green/purple accent palette */
-  --item-status-open:         oklch(0.80 0.16 70);
-  --item-status-open-fg:      oklch(0.18 0.05 70);
-  --item-status-done:         oklch(0.70 0.18 145);
-  --item-status-done-fg:      oklch(0.98 0.01 145);
-  --item-status-suggested:    oklch(0.68 0.18 290);
+  --item-status-open: oklch(0.8 0.16 70);
+  --item-status-open-fg: oklch(0.18 0.05 70);
+  --item-status-done: oklch(0.7 0.18 145);
+  --item-status-done-fg: oklch(0.98 0.01 145);
+  --item-status-suggested: oklch(0.68 0.18 290);
   --item-status-suggested-fg: oklch(0.98 0.01 290);
 
   /* ── Glass-panel tokens (Companion page / home.tsx + ChatThread.tsx) ─────
@@ -201,19 +202,19 @@
    * existing dark-glass aesthetic. Never inline these as rgba() literals
    * in components — reference the token instead.
    * ──────────────────────────────────────────────────────────────────────── */
-  --glass-bg:            rgba(255,255,255,0.72);
-  --glass-border-color:  rgba(0,0,0,0.12);
-  --glass-shadow:        0 8px 40px rgba(0,0,0,0.18);
-  --glass-text:          rgba(0,0,0,0.87);
-  --glass-text-soft:     rgba(0,0,0,0.55);
-  --glass-bubble-bg:     rgba(0,0,0,0.06);
-  --glass-chrome-bg:     rgba(0,0,0,0.12);
-  --glass-chrome-border: rgba(0,0,0,0.18);
-  --glass-pill-bg:       rgba(255,255,255,0.82);
-  --glass-pill-border:   rgba(0,0,0,0.12);
-  --glass-input-bg:      rgba(0,0,0,0.06);
-  --glass-input-border:  rgba(0,0,0,0.18);
-  --glass-divider:       rgba(0,0,0,0.1);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border-color: rgba(0, 0, 0, 0.12);
+  --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  --glass-text: rgba(0, 0, 0, 0.87);
+  --glass-text-soft: rgba(0, 0, 0, 0.55);
+  --glass-bubble-bg: rgba(0, 0, 0, 0.06);
+  --glass-chrome-bg: rgba(0, 0, 0, 0.12);
+  --glass-chrome-border: rgba(0, 0, 0, 0.18);
+  --glass-pill-bg: rgba(255, 255, 255, 0.82);
+  --glass-pill-border: rgba(0, 0, 0, 0.12);
+  --glass-input-bg: rgba(0, 0, 0, 0.06);
+  --glass-input-border: rgba(0, 0, 0, 0.18);
+  --glass-divider: rgba(0, 0, 0, 0.1);
 }
 
 /*
@@ -269,65 +270,65 @@
    * purple). good/bad have no canonical dark entry in tokens.json (semantic
    * block is theme-agnostic there), so those keep the previous
    * lighten-for-dark-bg derivation, unrelated to this override. */
-  --skin-bg:           hsl(222, 47%, 8%);
-  --skin-surface:      hsl(222, 47%, 11%);
-  --skin-surface2:     hsl(222, 47%, 13%);
-  --skin-ink:          hsl(210, 40%, 98%);
-  --skin-ink-soft:     hsl(215, 20%, 65%);
-  --skin-ink-faint:    hsl(215, 15%, 50%);
-  --skin-line:         hsl(217, 33%, 18%);
-  --skin-line-soft:    hsl(217, 33%, 22%);
-  --skin-accent:       hsl(168 65% 48%);
-  --skin-accent-soft:  hsl(168, 40%, 18%);
+  --skin-bg: hsl(222, 47%, 8%);
+  --skin-surface: hsl(222, 47%, 11%);
+  --skin-surface2: hsl(222, 47%, 13%);
+  --skin-ink: hsl(210, 40%, 98%);
+  --skin-ink-soft: hsl(215, 20%, 65%);
+  --skin-ink-faint: hsl(215, 15%, 50%);
+  --skin-line: hsl(217, 33%, 18%);
+  --skin-line-soft: hsl(217, 33%, 22%);
+  --skin-accent: hsl(168 65% 48%);
+  --skin-accent-soft: hsl(168, 40%, 18%);
   --skin-accent-gradient: linear-gradient(135deg, #1f6b7a, hsl(168 65% 48%), #3cddc2);
-  --skin-good:         hsl(142, 55%, 60%);
-  --skin-good-soft:    hsl(142, 30%, 18%);
-  --skin-bad:          hsl(8, 80%, 68%);
-  --skin-bad-soft:     hsl(8, 30%, 18%);
+  --skin-good: hsl(142, 55%, 60%);
+  --skin-good-soft: hsl(142, 30%, 18%);
+  --skin-bad: hsl(8, 80%, 68%);
+  --skin-bad-soft: hsl(8, 30%, 18%);
 
-  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow-dropdown:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 
   /* ── Item type tokens — dark overrides ── */
-  --item-objective:           oklch(0.42 0.18 290);
-  --item-objective-fg:        oklch(0.92 0.06 290);
-  --item-note:                oklch(0.38 0.14 248);
-  --item-note-fg:             oklch(0.92 0.06 248);
-  --item-task:                oklch(0.40 0.16 162);
-  --item-task-fg:             oklch(0.92 0.06 162);
-  --item-idea:                oklch(0.48 0.16 68);
-  --item-idea-fg:             oklch(0.92 0.06 68);
-  --item-question:            oklch(0.42 0.18 30);
-  --item-question-fg:         oklch(0.92 0.06 30);
-  --item-decision:            oklch(0.42 0.18 335);
-  --item-decision-fg:         oklch(0.92 0.06 335);
-  --item-reference:           oklch(0.36 0.04 248);
-  --item-reference-fg:        oklch(0.88 0.02 248);
-  --item-status-open:         oklch(0.50 0.16 70);
-  --item-status-open-fg:      oklch(0.92 0.06 70);
-  --item-status-done:         oklch(0.42 0.16 145);
-  --item-status-done-fg:      oklch(0.92 0.06 145);
-  --item-status-suggested:    oklch(0.42 0.18 290);
+  --item-objective: oklch(0.42 0.18 290);
+  --item-objective-fg: oklch(0.92 0.06 290);
+  --item-note: oklch(0.38 0.14 248);
+  --item-note-fg: oklch(0.92 0.06 248);
+  --item-task: oklch(0.4 0.16 162);
+  --item-task-fg: oklch(0.92 0.06 162);
+  --item-idea: oklch(0.48 0.16 68);
+  --item-idea-fg: oklch(0.92 0.06 68);
+  --item-question: oklch(0.42 0.18 30);
+  --item-question-fg: oklch(0.92 0.06 30);
+  --item-decision: oklch(0.42 0.18 335);
+  --item-decision-fg: oklch(0.92 0.06 335);
+  --item-reference: oklch(0.36 0.04 248);
+  --item-reference-fg: oklch(0.88 0.02 248);
+  --item-status-open: oklch(0.5 0.16 70);
+  --item-status-open-fg: oklch(0.92 0.06 70);
+  --item-status-done: oklch(0.42 0.16 145);
+  --item-status-done-fg: oklch(0.92 0.06 145);
+  --item-status-suggested: oklch(0.42 0.18 290);
   --item-status-suggested-fg: oklch(0.92 0.06 290);
 
   /* ── Skin tokens — dark overrides ── */
-  --skin-danger:       hsl(8, 80%, 68%);
-  --skin-on-accent:    #fff;
+  --skin-danger: hsl(8, 80%, 68%);
+  --skin-on-accent: #fff;
 
   /* ── Glass-panel tokens — dark overrides ── */
-  --glass-bg:            rgba(18,10,30,0.55);
-  --glass-border-color:  rgba(255,255,255,0.18);
-  --glass-shadow:        0 8px 40px rgba(0,0,0,0.28);
-  --glass-text:          rgba(255,255,255,0.92);
-  --glass-text-soft:     rgba(255,255,255,0.6);
-  --glass-bubble-bg:     rgba(255,255,255,0.1);
-  --glass-chrome-bg:     rgba(255,255,255,0.15);
-  --glass-chrome-border: rgba(255,255,255,0.2);
-  --glass-pill-bg:       rgba(18,10,30,0.6);
-  --glass-pill-border:   rgba(255,255,255,0.18);
-  --glass-input-bg:      rgba(255,255,255,0.1);
-  --glass-input-border:  rgba(255,255,255,0.18);
-  --glass-divider:       rgba(255,255,255,0.1);
+  --glass-bg: rgba(18, 10, 30, 0.55);
+  --glass-border-color: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.28);
+  --glass-text: rgba(255, 255, 255, 0.92);
+  --glass-text-soft: rgba(255, 255, 255, 0.6);
+  --glass-bubble-bg: rgba(255, 255, 255, 0.1);
+  --glass-chrome-bg: rgba(255, 255, 255, 0.15);
+  --glass-chrome-border: rgba(255, 255, 255, 0.2);
+  --glass-pill-bg: rgba(18, 10, 30, 0.6);
+  --glass-pill-border: rgba(255, 255, 255, 0.18);
+  --glass-input-bg: rgba(255, 255, 255, 0.1);
+  --glass-input-border: rgba(255, 255, 255, 0.18);
+  --glass-divider: rgba(255, 255, 255, 0.1);
 }
 
 /*
@@ -339,7 +340,7 @@
 }
 
 body {
-  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   background-color: transparent;
   color: var(--skin-ink);
 }
@@ -363,10 +364,17 @@ select {
     padding: 8px 16px;
     border: none;
     cursor: pointer;
-    transition: opacity 150ms ease, box-shadow 150ms ease;
+    transition:
+      opacity 150ms ease,
+      box-shadow 150ms ease;
   }
-  .x-btn-primary:hover { opacity: 0.9; }
-  .x-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .x-btn-primary:hover {
+    opacity: 0.9;
+  }
+  .x-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .x-btn-secondary {
     background: transparent;
@@ -378,7 +386,9 @@ select {
     cursor: pointer;
     transition: background 150ms ease;
   }
-  .x-btn-secondary:hover { background: var(--skin-surface2); }
+  .x-btn-secondary:hover {
+    background: var(--skin-surface2);
+  }
 
   .x-input {
     background: var(--skin-bg);
@@ -389,14 +399,18 @@ select {
     font-size: 14px;
     padding: 8px 12px;
     width: 100%;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
   }
   .x-input:focus {
     outline: none;
     border-color: var(--skin-accent);
     box-shadow: 0 0 0 2px var(--skin-accent-soft);
   }
-  .x-input::placeholder { color: var(--skin-ink-faint); }
+  .x-input::placeholder {
+    color: var(--skin-ink-faint);
+  }
 
   /* x-input on a <select>: hide native OS arrow, draw a custom chevron */
   select.x-input {
@@ -416,7 +430,9 @@ select {
     box-shadow: var(--shadow-card);
     padding: 16px;
     cursor: pointer;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
   }
   .x-note-card:hover {
     border-color: var(--skin-accent);
@@ -459,8 +475,18 @@ select {
     border-radius: var(--xr-pill);
     padding: 3px 10px;
   }
-  .x-tag button { background: none; border: none; cursor: pointer; display: inline-flex; color: inherit; padding: 0; }
-  .x-tag--sm { font-size: 11px; padding: 1px 8px; }
+  .x-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    color: inherit;
+    padding: 0;
+  }
+  .x-tag--sm {
+    font-size: 11px;
+    padding: 1px 8px;
+  }
 
   /* ---- TipTap editor ---- */
   .x-tt-wrap {
@@ -492,27 +518,54 @@ select {
     color: var(--skin-ink-soft);
     border-radius: var(--xr);
     cursor: pointer;
-    transition: background 120ms ease, color 120ms ease;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
   }
-  .x-tt-btn:hover { background: var(--skin-surface2); color: var(--skin-ink); }
-  .x-tt-btn[data-active="true"] { background: var(--skin-accent-soft); color: var(--skin-accent); }
-  .x-tt-sep { width: 1px; height: 20px; background: var(--skin-line); margin: 0 4px; }
+  .x-tt-btn:hover {
+    background: var(--skin-surface2);
+    color: var(--skin-ink);
+  }
+  .x-tt-btn[data-active="true"] {
+    background: var(--skin-accent-soft);
+    color: var(--skin-accent);
+  }
+  .x-tt-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--skin-line);
+    margin: 0 4px;
+  }
 
-  .x-editor-title { font-size: 26px; }
+  .x-editor-title {
+    font-size: 26px;
+  }
 
   /* ---- Mobile editor tuning ---- */
   @media (max-width: 640px) {
-    .x-editor { padding: 16px; border-radius: var(--xr); }
-    .x-editor-title { font-size: 21px; }
+    .x-editor {
+      padding: 16px;
+      border-radius: var(--xr);
+    }
+    .x-editor-title {
+      font-size: 21px;
+    }
     .x-tt-toolbar {
       flex-wrap: nowrap;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
-    .x-tt-toolbar::-webkit-scrollbar { display: none; }
-    .x-tt-btn { flex: 0 0 auto; }
-    .x-tiptap { min-height: 220px; padding: 14px 16px; }
+    .x-tt-toolbar::-webkit-scrollbar {
+      display: none;
+    }
+    .x-tt-btn {
+      flex: 0 0 auto;
+    }
+    .x-tiptap {
+      min-height: 220px;
+      padding: 14px 16px;
+    }
   }
 
   .x-tiptap {
@@ -528,23 +581,91 @@ select {
 
   /* ---- NoteFullscreenModal: stretch the editor to fill the modal instead of
      sitting at .x-tiptap's normal min-height with dead space below it. ---- */
-  .x-note-fullscreen-body { display: flex; flex-direction: column; }
-  .x-note-fullscreen-body .x-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .x-note-fullscreen-body .x-tt-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .x-note-fullscreen-body .x-tiptap { flex: 1; min-height: 0; }
-  .x-tiptap:focus { outline: none; }
-  .x-tiptap p { margin: 0 0 12px; }
-  .x-tiptap h1 { font-size: 26px; font-weight: 700; margin: 18px 0 10px; }
-  .x-tiptap h2 { font-size: 21px; font-weight: 700; margin: 16px 0 8px; }
-  .x-tiptap h3 { font-size: 17px; font-weight: 600; margin: 14px 0 6px; }
-  .x-tiptap ul { list-style: disc; padding-left: 24px; margin: 0 0 12px; }
-  .x-tiptap ol { list-style: decimal; padding-left: 24px; margin: 0 0 12px; }
-  .x-tiptap blockquote { border-left: 3px solid var(--skin-accent); padding-left: 12px; color: var(--skin-ink-soft); margin: 0 0 12px; }
-  .x-tiptap pre { background: var(--skin-surface2); padding: 12px; border-radius: var(--xr); overflow-x: auto; font-size: 13px; margin: 0 0 12px; }
-  .x-tiptap code { background: var(--skin-surface2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
-  .x-tiptap pre code { background: none; padding: 0; }
-  .x-tiptap a { color: var(--skin-accent); text-decoration: underline; cursor: pointer; }
-  .x-tiptap img { max-width: 100%; border-radius: var(--xr); margin: 6px 0; }
+  .x-note-fullscreen-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .x-note-fullscreen-body .x-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .x-note-fullscreen-body .x-tt-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .x-note-fullscreen-body .x-tiptap {
+    flex: 1;
+    min-height: 0;
+  }
+  .x-tiptap:focus {
+    outline: none;
+  }
+  .x-tiptap p {
+    margin: 0 0 12px;
+  }
+  .x-tiptap h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 18px 0 10px;
+  }
+  .x-tiptap h2 {
+    font-size: 21px;
+    font-weight: 700;
+    margin: 16px 0 8px;
+  }
+  .x-tiptap h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 14px 0 6px;
+  }
+  .x-tiptap ul {
+    list-style: disc;
+    padding-left: 24px;
+    margin: 0 0 12px;
+  }
+  .x-tiptap ol {
+    list-style: decimal;
+    padding-left: 24px;
+    margin: 0 0 12px;
+  }
+  .x-tiptap blockquote {
+    border-left: 3px solid var(--skin-accent);
+    padding-left: 12px;
+    color: var(--skin-ink-soft);
+    margin: 0 0 12px;
+  }
+  .x-tiptap pre {
+    background: var(--skin-surface2);
+    padding: 12px;
+    border-radius: var(--xr);
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 0 0 12px;
+  }
+  .x-tiptap code {
+    background: var(--skin-surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .x-tiptap pre code {
+    background: none;
+    padding: 0;
+  }
+  .x-tiptap a {
+    color: var(--skin-accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .x-tiptap img {
+    max-width: 100%;
+    border-radius: var(--xr);
+    margin: 6px 0;
+  }
   .x-tiptap p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     color: var(--skin-ink-faint);
@@ -554,7 +675,9 @@ select {
   }
 
   /* ---- Preview sections (attachments + links) ---- */
-  .x-preview-section { margin-top: 24px; }
+  .x-preview-section {
+    margin-top: 24px;
+  }
   .x-preview-title {
     font-size: 12px;
     font-weight: 600;
@@ -569,8 +692,18 @@ select {
     gap: 10px;
     margin-bottom: 10px;
   }
-  .x-attach-img { border: 1px solid var(--skin-line); border-radius: var(--xr); overflow: hidden; background: var(--skin-bg); }
-  .x-attach-img img { width: 100%; height: 110px; object-fit: cover; display: block; }
+  .x-attach-img {
+    border: 1px solid var(--skin-line);
+    border-radius: var(--xr);
+    overflow: hidden;
+    background: var(--skin-bg);
+  }
+  .x-attach-img img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+  }
   .x-attach-img figcaption {
     display: flex;
     align-items: center;
@@ -580,8 +713,15 @@ select {
     font-size: 11px;
     color: var(--skin-ink-soft);
   }
-  .x-attach-img figcaption button { background: none; border: none; cursor: pointer; color: var(--skin-ink-faint); display: inline-flex; }
-  .x-file-card, .x-link-card {
+  .x-attach-img figcaption button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--skin-ink-faint);
+    display: inline-flex;
+  }
+  .x-file-card,
+  .x-link-card {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -593,7 +733,9 @@ select {
     color: var(--skin-ink);
     text-decoration: none;
   }
-  .x-link-card:hover { border-color: var(--skin-accent); }
+  .x-link-card:hover {
+    border-color: var(--skin-accent);
+  }
   .x-icon-link {
     display: inline-flex;
     align-items: center;
@@ -606,7 +748,10 @@ select {
     border-radius: var(--xr);
     cursor: pointer;
   }
-  .x-icon-link:hover { background: var(--skin-surface2); color: var(--skin-ink); }
+  .x-icon-link:hover {
+    background: var(--skin-surface2);
+    color: var(--skin-ink);
+  }
 
   /* ---- Item type badge ---- */
   .x-item-badge {
@@ -631,12 +776,14 @@ select {
     z-index: 50;
     background: var(--skin-bg);
     border-left: 1px solid var(--skin-line);
-    box-shadow: -4px 0 32px rgba(0,0,0,0.12);
+    box-shadow: -4px 0 32px rgba(0, 0, 0, 0.12);
     display: flex;
     flex-direction: column;
     transition: transform 150ms ease;
   }
-  .x-sidepanel[aria-hidden="true"] { transform: translateX(100%); }
+  .x-sidepanel[aria-hidden="true"] {
+    transform: translateX(100%);
+  }
 
   .x-sidepanel-header {
     display: flex;
@@ -674,13 +821,17 @@ select {
     background: transparent;
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    transition: color 150ms ease, border-color 150ms ease;
+    transition:
+      color 150ms ease,
+      border-color 150ms ease;
   }
   .x-sidepanel-tab[data-active="true"] {
     color: var(--skin-accent);
     border-bottom-color: var(--skin-accent);
   }
-  .x-sidepanel-tab:hover:not([data-active="true"]) { color: var(--skin-ink); }
+  .x-sidepanel-tab:hover:not([data-active="true"]) {
+    color: var(--skin-ink);
+  }
 
   .x-sidepanel-scroll {
     flex: 1;
@@ -698,7 +849,9 @@ select {
     transition: background 100ms ease;
     cursor: pointer;
   }
-  .x-linked-row:hover { background: var(--skin-surface2); }
+  .x-linked-row:hover {
+    background: var(--skin-surface2);
+  }
   .x-linked-row__remove {
     opacity: 0;
     transition: opacity 100ms ease;
@@ -711,7 +864,9 @@ select {
     margin-left: auto;
     flex-shrink: 0;
   }
-  .x-linked-row:hover .x-linked-row__remove { opacity: 1; }
+  .x-linked-row:hover .x-linked-row__remove {
+    opacity: 1;
+  }
 
   /* ---- Add-link search panel ---- */
   .x-add-link-panel {
@@ -723,15 +878,30 @@ select {
   }
 
   /* ---- Journal scroll container — refined custom scrollbar ---- */
-  .jrn-scroll { scrollbar-width: thin; scrollbar-color: var(--skin-line) transparent; }
-  .jrn-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-  .jrn-scroll::-webkit-scrollbar-thumb { background: var(--skin-line); border-radius: 999px; }
-  .jrn-scroll::-webkit-scrollbar-track { background: transparent; }
+  .jrn-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--skin-line) transparent;
+  }
+  .jrn-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .jrn-scroll::-webkit-scrollbar-thumb {
+    background: var(--skin-line);
+    border-radius: 999px;
+  }
+  .jrn-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 @keyframes xFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .x-fade-in {
   animation: xFadeIn 0.5s ease-out;
@@ -750,10 +920,24 @@ select {
 
 /* ---- Voice orb animations ---- */
 @keyframes orb-pulse-outer {
-  0%, 100% { transform: scale(1);    opacity: 0.6; }
-  50%       { transform: scale(1.18); opacity: 0.25; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.25;
+  }
 }
 @keyframes orb-pulse-inner {
-  0%, 100% { transform: scale(1);    opacity: 0.9; }
-  50%       { transform: scale(1.10); opacity: 0.6; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
 }

@@ -121,10 +121,7 @@ function ProjectPage() {
       return;
     }
     if (!savedContent || fetchLoading) return;
-    if (
-      debouncedTitle === savedContent.title &&
-      debouncedDescription === savedContent.description
-    )
+    if (debouncedTitle === savedContent.title && debouncedDescription === savedContent.description)
       return;
 
     const doSave = async () => {
@@ -179,10 +176,7 @@ function ProjectPage() {
   const hiddenCount = tags.length - 3;
 
   // Objectives (read-only list)
-  const { data: objectives, isLoading: objectivesLoading } = useObjectives(
-    user,
-    projectId,
-  );
+  const { data: objectives, isLoading: objectivesLoading } = useObjectives(user, projectId);
 
   if (fetchLoading) {
     return (
@@ -240,7 +234,8 @@ function ProjectPage() {
                     color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
                     background: "none",
                     border: "none",
-                    borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                    borderBottom:
+                      activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
                     marginBottom: -1,
                     cursor: "pointer",
                   }}
@@ -259,157 +254,150 @@ function ProjectPage() {
         )}
 
         {activeTab === "overview" && (
-        <div className="px-4 sm:px-5 pb-6 pt-3 space-y-5">
-          {/* Editable title */}
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 bg-transparent text-xl sm:text-2xl font-semibold outline-none rounded px-1 -mx-1"
-              style={{
-                color: "var(--skin-ink)",
-                border: "1px solid transparent",
-              }}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onFocus={(e) => {
-                (e.currentTarget as HTMLInputElement).style.border =
-                  "1px solid var(--skin-line)";
-              }}
-              onBlur={(e) => {
-                (e.currentTarget as HTMLInputElement).style.border =
-                  "1px solid transparent";
-              }}
-              aria-label="Project title"
-              placeholder="Project title"
-            />
-            <span
-              className="text-xs shrink-0"
-              style={{
-                color: saving ? "var(--skin-ink-soft)" : "var(--skin-accent)",
-                opacity: saving || saved ? 1 : 0,
-                transition: "opacity 0.2s",
-              }}
-            >
-              {saving ? "Saving…" : "Saved"}
-            </span>
-          </div>
-
-          {saveError && (
-            <p style={{ color: "var(--skin-danger, #d4524e)", fontSize: 13 }}>
-              {saveError}
-            </p>
-          )}
-
-          {/* Tags — projects.tags column (ARRAY) confirmed in schema */}
-          <div className="flex flex-wrap items-center gap-2">
-            {visibleTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+          <div className="px-4 sm:px-5 pb-6 pt-3 space-y-5">
+            {/* Editable title */}
+            <div className="flex items-center gap-2">
+              <input
+                className="flex-1 bg-transparent text-xl sm:text-2xl font-semibold outline-none rounded px-1 -mx-1"
                 style={{
-                  background: "var(--skin-surface)",
-                  border: "1px solid var(--skin-line)",
                   color: "var(--skin-ink)",
+                  border: "1px solid transparent",
+                }}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onFocus={(e) => {
+                  (e.currentTarget as HTMLInputElement).style.border = "1px solid var(--skin-line)";
+                }}
+                onBlur={(e) => {
+                  (e.currentTarget as HTMLInputElement).style.border = "1px solid transparent";
+                }}
+                aria-label="Project title"
+                placeholder="Project title"
+              />
+              <span
+                className="text-xs shrink-0"
+                style={{
+                  color: saving ? "var(--skin-ink-soft)" : "var(--skin-accent)",
+                  opacity: saving || saved ? 1 : 0,
+                  transition: "opacity 0.2s",
                 }}
               >
-                {tag}
+                {saving ? "Saving…" : "Saved"}
+              </span>
+            </div>
+
+            {saveError && (
+              <p style={{ color: "var(--skin-danger, #d4524e)", fontSize: 13 }}>{saveError}</p>
+            )}
+
+            {/* Tags — projects.tags column (ARRAY) confirmed in schema */}
+            <div className="flex flex-wrap items-center gap-2">
+              {visibleTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    background: "var(--skin-surface)",
+                    border: "1px solid var(--skin-line)",
+                    color: "var(--skin-ink)",
+                  }}
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="ml-0.5 opacity-60 hover:opacity-100 cursor-pointer"
+                    aria-label={`Remove tag ${tag}`}
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+              {!showAllTags && hiddenCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => removeTag(tag)}
-                  className="ml-0.5 opacity-60 hover:opacity-100 cursor-pointer"
-                  aria-label={`Remove tag ${tag}`}
+                  onClick={() => setShowAllTags(true)}
+                  className="text-xs"
+                  style={{ color: "var(--skin-ink-soft)" }}
                 >
-                  <X size={11} />
+                  +{hiddenCount} more
                 </button>
-              </span>
-            ))}
-            {!showAllTags && hiddenCount > 0 && (
+              )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addTag(newTag);
+                }}
+                className="inline-flex"
+              >
+                <input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="+ Add tag"
+                  className="rounded-full px-3 py-1 text-xs outline-none"
+                  style={{
+                    background: "var(--skin-surface)",
+                    border: "1px solid var(--skin-line)",
+                    color: "var(--skin-ink)",
+                    width: newTag ? "auto" : 72,
+                  }}
+                />
+              </form>
+              {/* Suggest tags — STUB: no AI tagging endpoint exists yet */}
               <button
                 type="button"
-                onClick={() => setShowAllTags(true)}
-                className="text-xs"
-                style={{ color: "var(--skin-ink-soft)" }}
+                disabled
+                title="AI tag suggestions coming soon"
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs opacity-40 cursor-not-allowed"
+                style={{
+                  border: "1px solid var(--skin-line)",
+                  color: "var(--skin-ink-soft)",
+                }}
               >
-                +{hiddenCount} more
+                <Sparkles size={11} />
+                Suggest tags
+                {/* TODO: call an AI suggest-tags endpoint once available */}
               </button>
-            )}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                addTag(newTag);
-              }}
-              className="inline-flex"
-            >
-              <input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="+ Add tag"
-                className="rounded-full px-3 py-1 text-xs outline-none"
+            </div>
+
+            {/* Description — projects.description column (text) confirmed in schema */}
+            <div>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={showFullDescription ? 8 : 3}
+                placeholder="Add a description…"
+                className="w-full rounded-xl p-3 text-sm outline-none resize-none leading-relaxed"
                 style={{
                   background: "var(--skin-surface)",
                   border: "1px solid var(--skin-line)",
                   color: "var(--skin-ink)",
-                  width: newTag ? "auto" : 72,
+                }}
+                onFocus={(e) => {
+                  setShowFullDescription(true);
+                  (e.currentTarget as HTMLTextAreaElement).style.border =
+                    "1px solid var(--skin-accent)";
+                }}
+                onBlur={(e) => {
+                  (e.currentTarget as HTMLTextAreaElement).style.border =
+                    "1px solid var(--skin-line)";
                 }}
               />
-            </form>
-            {/* Suggest tags — STUB: no AI tagging endpoint exists yet */}
-            <button
-              type="button"
-              disabled
-              title="AI tag suggestions coming soon"
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs opacity-40 cursor-not-allowed"
-              style={{
-                border: "1px solid var(--skin-line)",
-                color: "var(--skin-ink-soft)",
-              }}
-            >
-              <Sparkles size={11} />
-              Suggest tags
-              {/* TODO: call an AI suggest-tags endpoint once available */}
-            </button>
-          </div>
+              {description.length > 150 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullDescription((v) => !v)}
+                  className="text-xs mt-1"
+                  style={{ color: "var(--skin-ink-soft)" }}
+                >
+                  {showFullDescription ? "Show less" : "Show more"}
+                </button>
+              )}
+            </div>
 
-          {/* Description — projects.description column (text) confirmed in schema */}
-          <div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={showFullDescription ? 8 : 3}
-              placeholder="Add a description…"
-              className="w-full rounded-xl p-3 text-sm outline-none resize-none leading-relaxed"
-              style={{
-                background: "var(--skin-surface)",
-                border: "1px solid var(--skin-line)",
-                color: "var(--skin-ink)",
-              }}
-              onFocus={(e) => {
-                setShowFullDescription(true);
-                (e.currentTarget as HTMLTextAreaElement).style.border =
-                  "1px solid var(--skin-accent)";
-              }}
-              onBlur={(e) => {
-                (e.currentTarget as HTMLTextAreaElement).style.border =
-                  "1px solid var(--skin-line)";
-              }}
-            />
-            {description.length > 150 && (
-              <button
-                type="button"
-                onClick={() => setShowFullDescription((v) => !v)}
-                className="text-xs mt-1"
-                style={{ color: "var(--skin-ink-soft)" }}
-              >
-                {showFullDescription ? "Show less" : "Show more"}
-              </button>
-            )}
+            {/* Objectives — read-only list */}
+            <ProjectObjectivesSection objectives={objectives ?? []} loading={objectivesLoading} />
           </div>
-
-          {/* Objectives — read-only list */}
-          <ProjectObjectivesSection
-            objectives={objectives ?? []}
-            loading={objectivesLoading}
-          />
-        </div>
         )}
       </PageHeroShell>
     </AppShell>
@@ -425,17 +413,11 @@ function ProjectObjectivesSection({
 }) {
   return (
     <div className="mt-2">
-      <h2
-        className="text-base font-semibold mb-3"
-        style={{ color: "var(--skin-ink)" }}
-      >
+      <h2 className="text-base font-semibold mb-3" style={{ color: "var(--skin-ink)" }}>
         Objectives
       </h2>
       {loading ? (
-        <div
-          className="flex items-center gap-2 text-sm"
-          style={{ color: "var(--skin-ink-soft)" }}
-        >
+        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--skin-ink-soft)" }}>
           <Loader2 size={14} className="animate-spin" /> Loading…
         </div>
       ) : objectives.length > 0 ? (
@@ -449,10 +431,7 @@ function ProjectObjectivesSection({
                 border: "1px solid var(--skin-line)",
               }}
             >
-              <span
-                className="text-sm font-medium"
-                style={{ color: "var(--skin-ink)" }}
-              >
+              <span className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
                 {o.title}
               </span>
               {o.status && (

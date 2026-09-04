@@ -7,9 +7,9 @@
  * tokens (via applySkin / SkinProvider) before this component renders.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { applySkin, resolveSkin } from '@xchange/ui';
-import type { SkinConfig } from '@xchange/ui';
+import React, { useState, useEffect, useRef } from "react";
+import { applySkin, resolveSkin } from "@xchange/ui";
+import type { SkinConfig } from "@xchange/ui";
 
 /* ============================================================================
    Type Definitions
@@ -17,7 +17,16 @@ import type { SkinConfig } from '@xchange/ui';
 
 export interface AICard {
   id: string;
-  kind: 'content' | 'action_item' | 'urgency' | 'opportunity' | 'metric' | 'celebration' | 'update' | 'web_result';
+  kind:
+    | "content"
+    | "action_item"
+    | "urgency"
+    | "opportunity"
+    | "metric"
+    | "celebration"
+    | "update"
+    | "web_result"
+    | "task";
   title: string;
   body: string;
   dismissible?: boolean;
@@ -30,7 +39,7 @@ export interface VoxReply {
 }
 
 export type ProposalStatus = {
-  status: 'pending' | 'success' | 'error';
+  status: "pending" | "success" | "error";
   message?: string;
 };
 
@@ -55,15 +64,16 @@ export interface CompanionCardStackProps {
    Kind → CSS accent variable mapping
    ============================================================================ */
 
-const KIND_ACCENT: Record<AICard['kind'], string> = {
-  content:     'var(--skin-accent)',
-  action_item: 'var(--gravity-border)',
-  urgency:     'var(--skin-warn)',
-  opportunity: 'var(--skin-accent-cool)',
-  metric:      'var(--skin-good)',
-  celebration: 'var(--skin-accent-warm)',
-  update:      'var(--skin-line)',
-  web_result:  'var(--skin-line)',
+const KIND_ACCENT: Record<AICard["kind"], string> = {
+  content: "var(--skin-accent)",
+  task: "var(--gravity-border)",
+  action_item: "var(--gravity-border)",
+  urgency: "var(--skin-warn)",
+  opportunity: "var(--skin-accent-cool)",
+  metric: "var(--skin-good)",
+  celebration: "var(--skin-accent-warm)",
+  update: "var(--skin-line)",
+  web_result: "var(--skin-line)",
 };
 
 /* ============================================================================
@@ -219,17 +229,17 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ card, altitude, onDismiss, onConfirm, proposalResult }) => {
-  const isGravity = card.kind === 'action_item' && card.confirmable;
+  const isGravity = card.kind === "action_item" && card.confirmable;
   const accentVar = KIND_ACCENT[card.kind];
-  const isPending = proposalResult?.status === 'pending';
+  const isPending = proposalResult?.status === "pending";
 
   // At altitude 0 (Glide), confirmable cards suppress the dismiss button
   const showDismiss = card.dismissible && !(altitude === 0 && card.confirmable);
 
   return (
     <div
-      className={`xcc-card${isGravity ? ' xcc-card--gravity' : ''}`}
-      style={{ '--xcc-accent': accentVar } as React.CSSProperties}
+      className={`xcc-card${isGravity ? " xcc-card--gravity" : ""}`}
+      style={{ "--xcc-accent": accentVar } as React.CSSProperties}
     >
       <div className="xcc-card__badge">{card.kind}</div>
 
@@ -243,40 +253,35 @@ const Card: React.FC<CardProps> = ({ card, altitude, onDismiss, onConfirm, propo
         </button>
       )}
 
-      <div
-        className="xcc-card__title"
-        style={{ marginRight: showDismiss ? '32px' : '0' }}
-      >
+      <div className="xcc-card__title" style={{ marginRight: showDismiss ? "32px" : "0" }}>
         {card.title}
       </div>
 
-      <div
-        className="xcc-card__body"
-        style={{ marginBottom: card.confirmable ? '12px' : '0' }}
-      >
+      <div className="xcc-card__body" style={{ marginBottom: card.confirmable ? "12px" : "0" }}>
         {card.body}
       </div>
 
       {proposalResult && (
         <div
           className={`xcc-card__status xcc-card__status--${proposalResult.status}`}
-          style={{ marginBottom: card.confirmable ? '8px' : '0' }}
+          style={{ marginBottom: card.confirmable ? "8px" : "0" }}
         >
-          {proposalResult.status === 'pending' && 'Executing…'}
-          {proposalResult.status === 'success' && `✓ Done${proposalResult.message ? ` · ${proposalResult.message}` : ''}`}
-          {proposalResult.status === 'error' && `✗ ${proposalResult.message ?? 'Error'}`}
+          {proposalResult.status === "pending" && "Executing…"}
+          {proposalResult.status === "success" &&
+            `✓ Done${proposalResult.message ? ` · ${proposalResult.message}` : ""}`}
+          {proposalResult.status === "error" && `✗ ${proposalResult.message ?? "Error"}`}
         </div>
       )}
 
       {card.confirmable && (
         <div className="xcc-card__actions">
           <button
-            className={`xcc-card__accept${isGravity ? ' xcc-card__accept--gravity' : ''}`}
+            className={`xcc-card__accept${isGravity ? " xcc-card__accept--gravity" : ""}`}
             onClick={() => !isPending && onConfirm(card.id)}
             disabled={isPending}
             aria-label={`Accept "${card.title}"`}
           >
-            {isPending ? 'Executing…' : 'Accept'}
+            {isPending ? "Executing…" : "Accept"}
           </button>
         </div>
       )}
@@ -307,7 +312,7 @@ export const CompanionCardStack: React.FC<CompanionCardStackProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(
-    new Set(cards.map((c) => c.id))
+    new Set(cards.map((c) => c.id)),
   );
 
   // Apply skin scoped to this element when skinConfig is provided

@@ -1,4 +1,5 @@
 # Task Fullscreen Modal — Phase 0 Discovery Report
+
 **Date:** 2026-08-21
 **Type:** Discovery only — two audits (token/skin system, database schema) + shell confirmation. No implementation, no migrations applied.
 **Source of truth for design:** `TaskFullscreenMockup.jsx` (provided separately, not in this repo — six tabs: About this Task, Do & Document, Match & Collaborate, Linked Items, Actions & Artefacts [inactive], Review & Complete [inactive]).
@@ -17,27 +18,27 @@ Only two CSS files exist in the repo: `src/styles.css` and `vendor/ui/src/styles
 
 `src/styles.css` defines **13 `--skin-*` tokens**, each a flat light/dark pair (no third branch):
 
-| Token | `:root` (light / Xcamp) | `.dark` (Nox) |
-|---|---|---|
-| `--skin-bg` | `hsl(0, 0%, 100%)` — L116 | `hsl(222, 47%, 11%)` — L225 |
-| `--skin-surface` | `hsl(210, 20%, 98%)` — L117 | `hsl(217, 33%, 17%)` — L226 |
-| `--skin-surface2` | `hsl(210, 20%, 95%)` — L118 | `hsl(215, 28%, 22%)` — L227 |
-| `--skin-ink` | `hsl(222, 47%, 11%)` — L119 | `hsl(210, 40%, 96%)` — L228 |
-| `--skin-ink-soft` | `hsl(215, 16%, 47%)` — L120 | `hsl(215, 20%, 70%)` — L229 |
-| `--skin-ink-faint` | `hsl(215, 16%, 65%)` — L121 | `hsl(215, 16%, 50%)` — L230 |
-| `--skin-line` | `hsl(214, 32%, 91%)` — L122 | `hsl(215, 28%, 25%)` — L231 |
-| `--skin-line-soft` | `hsl(214, 32%, 96%)` — L123 | `hsl(215, 28%, 20%)` — L232 |
-| `--skin-accent` | `#4de0c1` — L124 | `#b689e6` — L233 |
-| `--skin-accent-soft` | `#dcf8f2` — L125 | `hsl(291, 35%, 22%)` — L234 |
+| Token                    | `:root` (light / Xcamp)                            | `.dark` (Nox)                                               |
+| ------------------------ | -------------------------------------------------- | ----------------------------------------------------------- |
+| `--skin-bg`              | `hsl(0, 0%, 100%)` — L116                          | `hsl(222, 47%, 11%)` — L225                                 |
+| `--skin-surface`         | `hsl(210, 20%, 98%)` — L117                        | `hsl(217, 33%, 17%)` — L226                                 |
+| `--skin-surface2`        | `hsl(210, 20%, 95%)` — L118                        | `hsl(215, 28%, 22%)` — L227                                 |
+| `--skin-ink`             | `hsl(222, 47%, 11%)` — L119                        | `hsl(210, 40%, 96%)` — L228                                 |
+| `--skin-ink-soft`        | `hsl(215, 16%, 47%)` — L120                        | `hsl(215, 20%, 70%)` — L229                                 |
+| `--skin-ink-faint`       | `hsl(215, 16%, 65%)` — L121                        | `hsl(215, 16%, 50%)` — L230                                 |
+| `--skin-line`            | `hsl(214, 32%, 91%)` — L122                        | `hsl(215, 28%, 25%)` — L231                                 |
+| `--skin-line-soft`       | `hsl(214, 32%, 96%)` — L123                        | `hsl(215, 28%, 20%)` — L232                                 |
+| `--skin-accent`          | `#4de0c1` — L124                                   | `#b689e6` — L233                                            |
+| `--skin-accent-soft`     | `#dcf8f2` — L125                                   | `hsl(291, 35%, 22%)` — L234                                 |
 | `--skin-accent-gradient` | `linear-gradient(135deg, #34acbf, #4de0c1)` — L126 | `linear-gradient(135deg, #731f7d, #b689e6, #34acbf)` — L235 |
-| `--skin-danger` | `hsl(0, 72%, 50%)` — L140 | `hsl(0, 84%, 65%)` — L263 |
-| `--skin-on-accent` | `hsl(222, 47%, 11%)` — L141 | `#fff` — L264 |
+| `--skin-danger`          | `hsl(0, 72%, 50%)` — L140                          | `hsl(0, 84%, 65%)` — L263                                   |
+| `--skin-on-accent`       | `hsl(222, 47%, 11%)` — L141                        | `#fff` — L264                                               |
 
 `src/styles.css:61-70` also bridges these into Tailwind-consumable `--color-skin-*` aliases — a passthrough, not an additional definition.
 
 **Comment at `src/styles.css:110`** already labels this block `/* Xcamp skin tokens (Scientific / Platform — the default/light skin) */` — i.e. the file itself only ever held the Scientific values; no Playful counterpart exists in this file.
 
-Four more `--skin-*` tokens are *referenced* by components but not defined in `styles.css` at all: `--skin-font-head`, `--skin-radius` (inline fallback `10px`), `--skin-surface-raised`, `--skin-warning` (inline fallback `#B85E08`). These only resolve at runtime via the vendor skin injection described in A2.
+Four more `--skin-*` tokens are _referenced_ by components but not defined in `styles.css` at all: `--skin-font-head`, `--skin-radius` (inline fallback `10px`), `--skin-surface-raised`, `--skin-warning` (inline fallback `#B85E08`). These only resolve at runtime via the vendor skin injection described in A2.
 
 ### A2. Is Scientific/Playful actually wired live? — `CONFIRMED`: engine exists, is dead code, never reaches a user
 
@@ -58,22 +59,22 @@ This needs a more precise answer than "live" or "never existed" — both are par
 
 ### A4. Proposed `--skin-*` values from the mockup palette — `NEEDS DECISION`
 
-The mockup's `T` token object (ink, inkSoft, surface, surface2, line, accent, accentGrad, good, bad, radius, radiusLg, radiusPill) maps cleanly onto the existing 13-token convention in `styles.css` — it's largely the same *shape* already:
+The mockup's `T` token object (ink, inkSoft, surface, surface2, line, accent, accentGrad, good, bad, radius, radiusLg, radiusPill) maps cleanly onto the existing 13-token convention in `styles.css` — it's largely the same _shape_ already:
 
-| Mockup `T` token | Existing app token | Notes |
-|---|---|---|
-| `ink` | `--skin-ink` | direct match |
-| `inkSoft` | `--skin-ink-soft` | direct match |
-| `surface` | `--skin-surface` | direct match |
-| `surface2` | `--skin-surface2` | direct match |
-| `line` | `--skin-line` | direct match |
-| `accent` | `--skin-accent` | value differs from current teal (`#4de0c1`) — needs the actual hex from the mockup file to reconcile |
-| `accentGrad` | `--skin-accent-gradient` | direct match |
-| `good` | *(no existing token)* | would need a new `--skin-good` (or reuse semantics — check against `--skin-on-accent`/success usage) |
-| `bad` | `--skin-danger` | closest existing match, confirm semantics line up |
-| `radius` | `--skin-radius` | **referenced by components today but never defined in `styles.css`** (see A1) — this is the one token where "propose a value" is also "fill an existing gap" |
-| `radiusLg` | *(no existing token)* | new |
-| `radiusPill` | *(no existing token)* | new |
+| Mockup `T` token | Existing app token       | Notes                                                                                                                                                        |
+| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ink`            | `--skin-ink`             | direct match                                                                                                                                                 |
+| `inkSoft`        | `--skin-ink-soft`        | direct match                                                                                                                                                 |
+| `surface`        | `--skin-surface`         | direct match                                                                                                                                                 |
+| `surface2`       | `--skin-surface2`        | direct match                                                                                                                                                 |
+| `line`           | `--skin-line`            | direct match                                                                                                                                                 |
+| `accent`         | `--skin-accent`          | value differs from current teal (`#4de0c1`) — needs the actual hex from the mockup file to reconcile                                                         |
+| `accentGrad`     | `--skin-accent-gradient` | direct match                                                                                                                                                 |
+| `good`           | _(no existing token)_    | would need a new `--skin-good` (or reuse semantics — check against `--skin-on-accent`/success usage)                                                         |
+| `bad`            | `--skin-danger`          | closest existing match, confirm semantics line up                                                                                                            |
+| `radius`         | `--skin-radius`          | **referenced by components today but never defined in `styles.css`** (see A1) — this is the one token where "propose a value" is also "fill an existing gap" |
+| `radiusLg`       | _(no existing token)_    | new                                                                                                                                                          |
+| `radiusPill`     | _(no existing token)_    | new                                                                                                                                                          |
 
 I don't have the mockup file's actual hex/px values in this session (it's provided separately and wasn't present in the repo or attached) — **the mapping above is structural only; final values need to come from a session with the actual `TaskFullscreenMockup.jsx` file to fill in `accent`, `good`, `radius`, `radiusLg`, `radiusPill`.** Flagging as `NEEDS DECISION` rather than proposing placeholder hex values, since this table is shared app-wide (52 files in `src/` + 7 in `vendor/` consume `var(--skin-*)`, listed below) — a wrong guess here has real blast radius, not just a task-modal-local one.
 
@@ -99,10 +100,12 @@ Meanwhile, **the actual live attachment mechanism this repo's editor uses is a t
 ### Needs a real live check
 
 **B1. Timeframe (Start/End dates) on a task** — `CONFIRMED` gap. Live `notes` columns (full list, confirmed via `information_schema.columns`): `id, owner_central_id, note_type, title, body_html, body_text, body_markdown, done, visibility, price_credits, created_at, updated_at, detail, preferred_external_container_id, visibility_scope, is_restricted, tenant_id, tags`. No due/start/end-date-shaped column exists. **Notably, `objectives` (the parent entity) already has exactly this shape** — `objectives.start_date date` and `objectives.end_date date`, both nullable. Proposal: mirror that naming/type exactly for consistency —
+
 ```
 notes.start_date  date  null
 notes.end_date    date  null
 ```
+
 (Not applied — proposal only.)
 
 **B2. Match & Collaborate per-assignment fields (Role, Remuneration mode, Value in Xcoins, Max hours, Status)** — `CONFIRMED` none exist on `task_assignments` today (see B0d). This is a real architectural fork, not just a column-add — reporting both options and my read, per instructions, rather than picking one:
@@ -122,19 +125,23 @@ notes.end_date    date  null
 **B3. Project / Objectives / Dimension / Category (Labels and tags section)** — `CONFIRMED`, resolves via existing links, no new columns needed. Chain: `notes` (task) → `objective_notes` (`objective_id, note_id` — confirmed live columns) → `objectives` (`project_id, dimension text, category text` — confirmed live columns, both nullable text). So Project/Objective/Dimension/Category can all be resolved by joining `objective_notes` → `objectives` from the task's note id; nothing needs to be added to `notes`.
 
 **B4. Archive (kebab menu)** — `CONFIRMED`: exists and is already wired to live UI, but as a `detail.archived` jsonb flag, not a dedicated column.
+
 - `xcamp-api.ts:97` — `listNotes()` excludes archived via `.or("detail->>archived.is.null,detail->>archived.eq.false")`.
 - `xcamp-api.ts:235-246` — `archiveNote()` sets `detail: { ...note.detail, archived: true }`.
 - `ItemSidepanel.tsx:1004-1020` — the kebab menu's **"Delete"** item (labeled Delete, `Trash2` icon) actually calls `archiveNote()` under the hood — it's a soft-archive, not a real row delete, already.
-No dedicated `archived`/`is_archived`/`deleted_at` column exists or is needed — the mockup's Archive kebab option can call the same `archiveNote()` path already used elsewhere. (No migration needed for this item at all — noting the naming mismatch between "Delete" in the current kebab and "Archive" in the mockup for Phase 1's attention, not a schema question.)
+  No dedicated `archived`/`is_archived`/`deleted_at` column exists or is needed — the mockup's Archive kebab option can call the same `archiveNote()` path already used elsewhere. (No migration needed for this item at all — noting the naming mismatch between "Delete" in the current kebab and "Archive" in the mockup for Phase 1's attention, not a schema question.)
 
-**B5. Created by vs. Owned by** — `CONFIRMED`: `owner_central_id` is set to the creating user on every insert and is the *only* creator concept that exists; there is no separate "created by" tracking anywhere.
+**B5. Created by vs. Owned by** — `CONFIRMED`: `owner_central_id` is set to the creating user on every insert and is the _only_ creator concept that exists; there is no separate "created by" tracking anywhere.
+
 - `xcamp-api.ts:130` `createNote()` and `navigator-api.ts:180` `createTaskNote()` both stamp `owner_central_id: user.centralId` at creation time (comment: "central_users.id — not authId").
 - Every place the UI shows "created by" (`xcamp-api.ts:73`, `navigator-api.ts:41`, `task.$taskId.tsx:153`, `ItemSidepanel.tsx:750,1010`, `EntityPanel.tsx:56`) does `created_by: raw.owner_central_id` — a **client-side rename of the same value**, not a distinct DB column. There's no `detail.created_by`, no audit table, nothing that could ever diverge from "owner." **If "Created by" and "Owned by" are meant to be able to differ (e.g. reassignment changes owner but not original creator), that needs a new column** — `notes` has no way to represent that today. If they're meant to always be the same value (just shown twice with different labels per the mockup's Set-up accordion), no schema change is needed. Flagging as `NEEDS DECISION` on intent, not a schema gap I can resolve alone.
 
 **B6. Status pill (task-level, top bar)** — `CONFIRMED` gap: `notes.done` (boolean) is the only status-shaped field on notes/tasks, and it's binary. A real multi-value status enum exists in this codebase, but it's `objectives.status` (`STATUS_OPTIONS = ["draft","active","in_progress","blocked","done"]`, wired in `ItemSidepanel.tsx:50-57,515,572-575`) — a **different entity**, not reusable as-is without a schema link. No `detail.status` usage exists anywhere on notes. If the mockup's top-bar status pill needs more than open/done, propose:
+
 ```
 notes.status  text  not null default 'active'
 ```
+
 with an app-level vocabulary to define (possibly mirroring `objectives.status`'s five values for consistency, or task-specific values — needs the mockup's actual pill states to pin down). `done` boolean could either stay as a derived/synced field or be replaced by `status='done'` — that migration-shape question is itself worth flagging for Phase 1 rather than deciding here.
 
 ---

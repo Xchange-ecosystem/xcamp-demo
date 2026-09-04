@@ -61,10 +61,7 @@ export function MultiSelectDropdown({
   return (
     <div ref={ref} className="relative" style={{ width: "100%" }}>
       {label && (
-        <label
-          className="mb-1 block text-xs font-medium"
-          style={{ color: "var(--skin-ink-soft)" }}
-        >
+        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
           {label}
         </label>
       )}
@@ -136,9 +133,7 @@ export function MultiSelectDropdown({
                       flexShrink: 0,
                     }}
                   >
-                    {isSelected && (
-                      <Check size={10} style={{ color: "#fff" }} />
-                    )}
+                    {isSelected && <Check size={10} style={{ color: "#fff" }} />}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 </button>

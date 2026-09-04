@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type Persona = 'founder' | 'investor' | 'collaborator';
+export type Persona = "founder" | "investor" | "collaborator";
 
-export const DEFAULT_PERSONA: Persona = 'founder';
+export const DEFAULT_PERSONA: Persona = "founder";
 
 interface PersonaStore {
   persona: Persona;
@@ -17,9 +17,9 @@ export const usePersonaStore = create<PersonaStore>()(
       setPersona: (persona) => set({ persona }),
     }),
     {
-      name: 'nox-founder-persona',
-    }
-  )
+      name: "nox-founder-persona",
+    },
+  ),
 );
 
 // Convenience hook mirroring the shape the CompanionRail/home.tsx call sites want —

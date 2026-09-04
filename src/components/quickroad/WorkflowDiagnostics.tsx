@@ -66,12 +66,28 @@ export function WorkflowDiagnostics({ qr }: { qr: ReturnType<typeof useQuickRoad
             className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 pt-1"
             style={{ color: "var(--skin-ink-soft)", borderTop: "1px solid var(--skin-line)" }}
           >
-            <span>mode_id: <code>{short(state.selectedModeId)}</code></span>
-            <span>session_id: <code>{short(state.sessionId)}</code></span>
-            <span>interpreted_input: <code>{(state.interpretation ?? "").trim() ? "present" : "—"}</code></span>
-            <span>tree: <code>{state.outputTree ? `${state.outputTree.root_nodes.length} root node(s)` : "—"}</code></span>
-            <span>project_id: <code>{short(state.materializedProjectId)}</code></span>
-            <span>last endpoint: <code>{diag.lastEndpoint ?? "—"}</code></span>
+            <span>
+              mode_id: <code>{short(state.selectedModeId)}</code>
+            </span>
+            <span>
+              session_id: <code>{short(state.sessionId)}</code>
+            </span>
+            <span>
+              interpreted_input:{" "}
+              <code>{(state.interpretation ?? "").trim() ? "present" : "—"}</code>
+            </span>
+            <span>
+              tree:{" "}
+              <code>
+                {state.outputTree ? `${state.outputTree.root_nodes.length} root node(s)` : "—"}
+              </code>
+            </span>
+            <span>
+              project_id: <code>{short(state.materializedProjectId)}</code>
+            </span>
+            <span>
+              last endpoint: <code>{diag.lastEndpoint ?? "—"}</code>
+            </span>
           </div>
 
           {diag.lastError && (

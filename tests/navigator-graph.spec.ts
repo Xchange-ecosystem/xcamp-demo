@@ -76,9 +76,30 @@ const OBJ_B = "7e944950-90a7-4093-98cb-edabff82b519";
 const OBJ_C = "4f877da8-7381-4d39-b412-947aecbbd96d";
 
 const MOCK_OBJECTIVES = [
-  { id: OBJ_A, title: "Business Strategy", status: "inactive", project_id: PROJECT_ID, sort_order: 1, description: null },
-  { id: OBJ_B, title: "Product Development", status: "active",   project_id: PROJECT_ID, sort_order: 2, description: null },
-  { id: OBJ_C, title: "Market Strategy",    status: "completed", project_id: PROJECT_ID, sort_order: 3, description: null },
+  {
+    id: OBJ_A,
+    title: "Business Strategy",
+    status: "inactive",
+    project_id: PROJECT_ID,
+    sort_order: 1,
+    description: null,
+  },
+  {
+    id: OBJ_B,
+    title: "Product Development",
+    status: "active",
+    project_id: PROJECT_ID,
+    sort_order: 2,
+    description: null,
+  },
+  {
+    id: OBJ_C,
+    title: "Market Strategy",
+    status: "completed",
+    project_id: PROJECT_ID,
+    sort_order: 3,
+    description: null,
+  },
 ];
 
 const TASK_1 = "task-note-0001";
@@ -91,23 +112,55 @@ const MOCK_OBJ_NOTES = [
 ];
 
 const MOCK_NOTES_BASE = [
-  { id: TASK_1, title: "Research competitors", note_type: "task", done: false, body_html: null, body_markdown: null, tags: [], detail: {}, owner_central_id: CENTRAL_USER_ID, tenant_id: TENANT_ID, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" },
-  { id: TASK_2, title: "Define pricing model", note_type: "task", done: true,  body_html: null, body_markdown: null, tags: [], detail: {}, owner_central_id: CENTRAL_USER_ID, tenant_id: TENANT_ID, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" },
+  {
+    id: TASK_1,
+    title: "Research competitors",
+    note_type: "task",
+    done: false,
+    body_html: null,
+    body_markdown: null,
+    tags: [],
+    detail: {},
+    owner_central_id: CENTRAL_USER_ID,
+    tenant_id: TENANT_ID,
+    created_at: "2026-07-01T00:00:00Z",
+    updated_at: "2026-07-01T00:00:00Z",
+  },
+  {
+    id: TASK_2,
+    title: "Define pricing model",
+    note_type: "task",
+    done: true,
+    body_html: null,
+    body_markdown: null,
+    tags: [],
+    detail: {},
+    owner_central_id: CENTRAL_USER_ID,
+    tenant_id: TENANT_ID,
+    created_at: "2026-07-01T00:00:00Z",
+    updated_at: "2026-07-01T00:00:00Z",
+  },
 ];
 
 const MOCK_NEW_NOTE = {
-  id: NEW_TASK_ID, title: "", note_type: "task", done: false,
-  body_html: null, body_markdown: null, tags: [], detail: {},
-  owner_central_id: CENTRAL_USER_ID, tenant_id: TENANT_ID,
-  created_at: "2026-07-25T00:00:00Z", updated_at: "2026-07-25T00:00:00Z",
+  id: NEW_TASK_ID,
+  title: "",
+  note_type: "task",
+  done: false,
+  body_html: null,
+  body_markdown: null,
+  tags: [],
+  detail: {},
+  owner_central_id: CENTRAL_USER_ID,
+  tenant_id: TENANT_ID,
+  created_at: "2026-07-25T00:00:00Z",
+  updated_at: "2026-07-25T00:00:00Z",
 };
 
 // ── Route setup helper ────────────────────────────────────────────────────────
 
 async function setupRoutes(page: Page, opts: { noteCreated?: boolean } = {}) {
-  const notesPool = opts.noteCreated
-    ? [...MOCK_NOTES_BASE, MOCK_NEW_NOTE]
-    : MOCK_NOTES_BASE;
+  const notesPool = opts.noteCreated ? [...MOCK_NOTES_BASE, MOCK_NEW_NOTE] : MOCK_NOTES_BASE;
 
   // Mock external assets that would hang in the proxy and block JS execution
   await page.route("**fonts.googleapis.com/**", (route) => {
@@ -125,21 +178,36 @@ async function setupRoutes(page: Page, opts: { noteCreated?: boolean } = {}) {
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/auth/v1/token**`, (route) => {
     if (route.request().method() !== "POST") return route.continue();
     route.fulfill({
-      status: 200, contentType: "application/json",
+      status: 200,
+      contentType: "application/json",
       body: JSON.stringify({ ...SUPABASE_SESSION, refresh_token: REFRESH_TOKEN }),
     });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/central_users**`, (route) => {
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([MOCK_CENTRAL_USER]) });
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([MOCK_CENTRAL_USER]),
+    });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/projects**`, (route) => {
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([MOCK_PROJECT]) });
+    const wantsSingle = (route.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(wantsSingle ? MOCK_PROJECT : [MOCK_PROJECT]),
+    });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/objectives**`, (route) => {
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_OBJECTIVES) });
+    const wantsSingle = (route.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(wantsSingle ? MOCK_OBJECTIVES[0] : MOCK_OBJECTIVES),
+    });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/objective_notes**`, (route) => {
@@ -148,26 +216,46 @@ async function setupRoutes(page: Page, opts: { noteCreated?: boolean } = {}) {
       // Linking a new task to an objective
       route.fulfill({ status: 201, contentType: "application/json", body: "[]" });
     } else {
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_OBJ_NOTES) });
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(MOCK_OBJ_NOTES),
+      });
     }
   });
 
   // Notes: handle GET (return pool) and POST (create new note)
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/notes**`, (route) => {
     const method = route.request().method();
+    const wantsSingle = (route.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
     if (method === "POST") {
-      route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify([MOCK_NEW_NOTE]) });
+      route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(wantsSingle ? MOCK_NEW_NOTE : [MOCK_NEW_NOTE]),
+      });
     } else {
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(notesPool) });
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(notesPool),
+      });
     }
   });
 }
 
 async function injectSession(page: Page) {
   await page.addInitScript(
-    ({ authKey, session, projectKey, projectId }: {
-      authKey: string; session: typeof SUPABASE_SESSION;
-      projectKey: string; projectId: string;
+    ({
+      authKey,
+      session,
+      projectKey,
+      projectId,
+    }: {
+      authKey: string;
+      session: typeof SUPABASE_SESSION;
+      projectKey: string;
+      projectId: string;
     }) => {
       localStorage.setItem(authKey, JSON.stringify(session));
       localStorage.setItem(projectKey, projectId);
@@ -228,17 +316,17 @@ test.describe("Navigator — Network graph", () => {
     await page.goto("/navigator?view=network");
 
     // Wait for graph to render
-    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Click the first objective node body (not the + button)
     const objNode = page.locator(".react-flow__node-objective-node").first();
     // Click the inner div (not the handle)
     await objNode.click({ position: { x: 60, y: 60 } });
 
-    // EntityPanel is a Sheet — Radix renders a dialog
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible({ timeout: 8_000 });
-    console.log("✓ EntityPanel dialog opened after clicking objective node");
+    await expect(page.getByLabel("Objective title")).toBeVisible({ timeout: 8_000 });
+    console.log("✓ EntityPanel opened after clicking objective node");
   });
 
   // ── 3. "+" button → creates task + panel opens ─────────────────────────────
@@ -247,16 +335,19 @@ test.describe("Navigator — Network graph", () => {
     await setupRoutes(page, { noteCreated: true });
     await page.goto("/navigator?view=network");
 
-    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Find and click the + button in the first objective node
-    const addBtn = page.locator(".react-flow__node-objective-node button[title='Add task']").first();
+    const addBtn = page
+      .locator(".react-flow__node-objective-node button[title='Add task']")
+      .first();
     await expect(addBtn).toBeVisible({ timeout: 5_000 });
     await addBtn.click();
 
     // EntityPanel should open (createTaskNote → setPanel)
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByPlaceholder("Note title")).toBeVisible({ timeout: 8_000 });
     console.log("✓ EntityPanel opened after clicking + button");
   });
 
@@ -264,7 +355,9 @@ test.describe("Navigator — Network graph", () => {
   test("4 · dragging a node persists positions to localStorage", async ({ page }) => {
     await page.goto("/navigator?view=network");
 
-    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Get the first objective node bounding box
     const node = page.locator(".react-flow__node-objective-node").first();
@@ -281,34 +374,33 @@ test.describe("Navigator — Network graph", () => {
     await page.mouse.up();
 
     // Wait briefly for onNodeDragStop to fire and write to localStorage
-    await page.waitForFunction(
-      (key) => localStorage.getItem(key) !== null,
-      POSITIONS_LS_KEY,
-      { timeout: 3_000 },
-    );
+    await page.waitForFunction((key) => localStorage.getItem(key) !== null, POSITIONS_LS_KEY, {
+      timeout: 3_000,
+    });
 
-    const stored = await page.evaluate(
-      (key) => localStorage.getItem(key),
-      POSITIONS_LS_KEY,
-    );
+    const stored = await page.evaluate((key) => localStorage.getItem(key), POSITIONS_LS_KEY);
     expect(stored).not.toBeNull();
 
     const positions = JSON.parse(stored!) as Record<string, { x: number; y: number }>;
     const nodeIds = Object.keys(positions);
     expect(nodeIds.length).toBeGreaterThan(0);
-    console.log(`✓ Positions saved to localStorage: ${nodeIds.length} nodes, key ${POSITIONS_LS_KEY}`);
+    console.log(
+      `✓ Positions saved to localStorage: ${nodeIds.length} nodes, key ${POSITIONS_LS_KEY}`,
+    );
   });
 
   // ── 5. "Arrange" button → clears saved positions ───────────────────────────
   test("5 · Arrange button resets layout and clears localStorage positions", async ({ page }) => {
     await page.goto("/navigator?view=network");
-    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Pre-seed a positions entry so we can verify it's cleared
-    await page.evaluate(
-      ({ key, val }) => localStorage.setItem(key, val),
-      { key: POSITIONS_LS_KEY, val: JSON.stringify({ "proj-fake": { x: 999, y: 999 } }) },
-    );
+    await page.evaluate(({ key, val }) => localStorage.setItem(key, val), {
+      key: POSITIONS_LS_KEY,
+      val: JSON.stringify({ "proj-fake": { x: 999, y: 999 } }),
+    });
 
     const arrangeBtn = page.getByRole("button", { name: "Arrange" });
     await expect(arrangeBtn).toBeVisible({ timeout: 5_000 });
@@ -320,7 +412,9 @@ test.describe("Navigator — Network graph", () => {
     console.log("✓ Arrange button cleared localStorage positions key");
 
     // Nodes should still be on canvas
-    await expect(page.locator(".react-flow__node-objective-node")).toHaveCount(3, { timeout: 5_000 });
+    await expect(page.locator(".react-flow__node-objective-node")).toHaveCount(3, {
+      timeout: 5_000,
+    });
     console.log("✓ Objective nodes still present after Arrange");
   });
 
@@ -367,7 +461,9 @@ test.describe("Navigator — Network graph", () => {
   // ── 8. Cross-objective edge → migration toast ────────────────────────────────
   test("8 · drawing edge between objectives shows migration-required toast", async ({ page }) => {
     await page.goto("/navigator?view=network");
-    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".react-flow__node-objective-node").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Use the actual handle elements for precise targeting
     const objNodes = page.locator(".react-flow__node-objective-node");

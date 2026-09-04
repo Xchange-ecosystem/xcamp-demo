@@ -70,15 +70,9 @@ const ALL_ITEM_TYPES = ["note", "task", "idea", "question", "decision", "referen
 
 // ── Breadcrumb ─────────────────────────────────────────────────────────────
 
-function Breadcrumb({
-  stack,
-  onGoTo,
-}: {
-  stack: PanelItem[];
-  onGoTo: (index: number) => void;
-}) {
+function Breadcrumb({ stack, onGoTo }: { stack: PanelItem[]; onGoTo: (index: number) => void }) {
   const MAX_VISIBLE = 3;
-  const crumbs = stack.length > MAX_VISIBLE ? stack.slice(-(MAX_VISIBLE)) : stack;
+  const crumbs = stack.length > MAX_VISIBLE ? stack.slice(-MAX_VISIBLE) : stack;
   const offset = stack.length - crumbs.length;
   const showEllipsis = offset > 0;
 
@@ -88,7 +82,15 @@ function Breadcrumb({
         <>
           <button
             onClick={() => onGoTo(0)}
-            style={{ fontSize: 11, color: "var(--skin-ink-faint)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
+            style={{
+              fontSize: 11,
+              color: "var(--skin-ink-faint)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px 4px",
+              borderRadius: 4,
+            }}
           >
             …
           </button>
@@ -99,8 +101,13 @@ function Breadcrumb({
         const stackIndex = offset + i;
         const isLast = stackIndex === stack.length - 1;
         return (
-          <div key={`${item.id}-${stackIndex}`} style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-            {i > 0 && <ChevronRight size={10} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />}
+          <div
+            key={`${item.id}-${stackIndex}`}
+            style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}
+          >
+            {i > 0 && (
+              <ChevronRight size={10} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+            )}
             {isLast ? (
               <span
                 style={{
@@ -160,11 +167,29 @@ function LinkedRow({
       className="x-linked-row"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, cursor: "pointer", background: hovered ? "var(--skin-surface2)" : "transparent" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "7px 10px",
+        borderRadius: 6,
+        cursor: "pointer",
+        background: hovered ? "var(--skin-surface2)" : "transparent",
+      }}
       onClick={onOpen}
     >
       <ItemBadge kind={item.kind} noteType={item.noteType} />
-      <span style={{ flex: 1, fontSize: 13, color: "var(--skin-ink)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: 13,
+          color: "var(--skin-ink)",
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
         {item.title}
       </span>
       {item.status && (
@@ -175,7 +200,10 @@ function LinkedRow({
       <button
         className="x-linked-row__remove"
         aria-label="Remove link"
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         style={{
           display: hovered ? "flex" : "none",
           alignItems: "center",
@@ -216,9 +244,12 @@ function AddLinkPanel({
   const [activeTypes, setActiveTypes] = useState<string[]>([]);
   const debouncedQuery = useDebounce(query, 300);
 
-  const kindsToSearch: ItemKind[] = activeTypes.length === 0
-    ? (currentKind === "note" ? ["objective"] : ["note"])
-    : activeTypes.filter((t): t is ItemKind => t === "note" || t === "objective");
+  const kindsToSearch: ItemKind[] =
+    activeTypes.length === 0
+      ? currentKind === "note"
+        ? ["objective"]
+        : ["note"]
+      : activeTypes.filter((t): t is ItemKind => t === "note" || t === "objective");
 
   const { data: results = [], isFetching } = useQuery({
     queryKey: ["item-search", debouncedQuery, activeTypes, currentId, tenantId],
@@ -227,30 +258,80 @@ function AddLinkPanel({
   });
 
   const toggleType = (t: string) =>
-    setActiveTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+    setActiveTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   return (
-    <div className="x-add-link-panel" style={{ border: "1px solid var(--skin-line)", borderRadius: 8, padding: 12, background: "var(--skin-surface2)", marginTop: 8 }}>
+    <div
+      className="x-add-link-panel"
+      style={{
+        border: "1px solid var(--skin-line)",
+        borderRadius: 8,
+        padding: 12,
+        background: "var(--skin-surface2)",
+        marginTop: 8,
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 6, background: "var(--skin-surface)", border: "1px solid var(--skin-line)", borderRadius: 6, padding: "5px 8px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flex: 1,
+            gap: 6,
+            background: "var(--skin-surface)",
+            border: "1px solid var(--skin-line)",
+            borderRadius: 6,
+            padding: "5px 8px",
+          }}
+        >
           <Search size={13} style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
           <input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search items to link…"
-            style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 13, color: "var(--skin-ink)" }}
+            style={{
+              flex: 1,
+              background: "none",
+              border: "none",
+              outline: "none",
+              fontSize: 13,
+              color: "var(--skin-ink)",
+            }}
           />
-          {isFetching && <Loader2 size={12} className="animate-spin" style={{ color: "var(--skin-ink-faint)" }} />}
+          {isFetching && (
+            <Loader2
+              size={12}
+              className="animate-spin"
+              style={{ color: "var(--skin-ink-faint)" }}
+            />
+          )}
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 4 }}>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--skin-ink-faint)",
+            padding: 4,
+          }}
+        >
           <X size={14} />
         </button>
       </div>
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-        {(currentKind === "note" ? ["objective"] : ["note", "task", "idea", "question", "decision", "reference"]).map((t) => (
-          <ItemTypeChip key={t} typeKey={t} active={activeTypes.includes(t)} onClick={() => toggleType(t)} />
+        {(currentKind === "note"
+          ? ["objective"]
+          : ["note", "task", "idea", "question", "decision", "reference"]
+        ).map((t) => (
+          <ItemTypeChip
+            key={t}
+            typeKey={t}
+            active={activeTypes.includes(t)}
+            onClick={() => toggleType(t)}
+          />
         ))}
       </div>
 
@@ -280,7 +361,17 @@ function AddLinkPanel({
               onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             >
               <ItemBadge kind={r.kind} noteType={r.noteType} />
-              <span style={{ fontSize: 13, color: "var(--skin-ink)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "var(--skin-ink)",
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {r.title}
               </span>
             </button>
@@ -293,13 +384,7 @@ function AddLinkPanel({
 
 // ── Linked items tab ───────────────────────────────────────────────────────
 
-export function LinkedItemsTab({
-  itemId,
-  itemKind,
-}: {
-  itemId: string;
-  itemKind: ItemKind;
-}) {
+export function LinkedItemsTab({ itemId, itemKind }: { itemId: string; itemKind: ItemKind }) {
   const { user } = useAuth();
   const { push } = useSidepanel();
   const qc = useQueryClient();
@@ -312,9 +397,7 @@ export function LinkedItemsTab({
   const { data: linked = [], isLoading: loadingLinked } = useQuery({
     queryKey: linkedKey,
     queryFn: () =>
-      itemKind === "note"
-        ? fetchLinkedItemsForNote(itemId)
-        : fetchLinkedItemsForObjective(itemId),
+      itemKind === "note" ? fetchLinkedItemsForNote(itemId) : fetchLinkedItemsForObjective(itemId),
   });
 
   const graphKey = ["item-graph", itemId, itemKind];
@@ -377,9 +460,7 @@ export function LinkedItemsTab({
       });
     }
     return [...items].sort((a, b) =>
-      sortDir === "asc"
-        ? a.title.localeCompare(b.title)
-        : b.title.localeCompare(a.title),
+      sortDir === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title),
     );
   }, [linked, filterType, sortDir]);
 
@@ -425,17 +506,19 @@ export function LinkedItemsTab({
             fontWeight: 500,
           }}
         >
-          {suggesting ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Sparkles size={12} />
-          )}
+          {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
           Suggest links
         </button>
         <div style={{ flex: 1 }} />
         <button
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-          style={{ background: "none", border: "none", fontSize: 11, color: "var(--skin-ink-faint)", cursor: "pointer" }}
+          style={{
+            background: "none",
+            border: "none",
+            fontSize: 11,
+            color: "var(--skin-ink-faint)",
+            cursor: "pointer",
+          }}
         >
           {sortDir === "asc" ? "A–Z" : "Z–A"}
         </button>
@@ -449,8 +532,15 @@ export function LinkedItemsTab({
             active={filterType === null}
             onClick={() => setFilterType(null)}
           />
-          {[...new Set(linked.map((l) => (l.kind === "note" && l.noteType ? l.noteType : l.kind)))].map((t) => (
-            <ItemTypeChip key={t} typeKey={t} active={filterType === t} onClick={() => setFilterType(filterType === t ? null : t)} />
+          {[
+            ...new Set(linked.map((l) => (l.kind === "note" && l.noteType ? l.noteType : l.kind))),
+          ].map((t) => (
+            <ItemTypeChip
+              key={t}
+              typeKey={t}
+              active={filterType === t}
+              onClick={() => setFilterType(filterType === t ? null : t)}
+            />
           ))}
         </div>
       )}
@@ -469,7 +559,16 @@ export function LinkedItemsTab({
 
       {/* Linked items list */}
       {loadingLinked ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", fontSize: 13, padding: "16px 0" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--skin-ink-faint)",
+            fontSize: 13,
+            padding: "16px 0",
+          }}
+        >
           <Loader2 size={14} className="animate-spin" />
           Loading…
         </div>
@@ -483,7 +582,9 @@ export function LinkedItemsTab({
             <LinkedRow
               key={item.id}
               item={item}
-              onOpen={() => push({ id: item.id, kind: item.kind, title: item.title, noteType: item.noteType })}
+              onOpen={() =>
+                push({ id: item.id, kind: item.kind, title: item.title, noteType: item.noteType })
+              }
               onRemove={() => removeLink.mutate(item)}
             />
           ))}
@@ -493,7 +594,16 @@ export function LinkedItemsTab({
       {/* Graph */}
       {graphData && graphData.nodes.length > 1 && (
         <div style={{ marginTop: 8 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--skin-ink-faint)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              margin: "0 0 8px",
+            }}
+          >
             Relationship graph
           </p>
           <ItemGraph
@@ -536,7 +646,11 @@ function UserProfileContent({ item }: { item: PanelItem }) {
           }}
         >
           {meta.avatarUrl && (
-            <img src={meta.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={meta.avatarUrl}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           )}
         </div>
         <div>
@@ -661,8 +775,12 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
 
   useEffect(() => {
     if (!objective) return;
-    if (!initialLoadDone.current) { initialLoadDone.current = true; return; }
-    if (debouncedTitle === prevTitle.current && debouncedDescription === prevDescription.current) return;
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
+    if (debouncedTitle === prevTitle.current && debouncedDescription === prevDescription.current)
+      return;
     if (!user) return;
     prevTitle.current = debouncedTitle;
     prevDescription.current = debouncedDescription;
@@ -752,7 +870,15 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
 
   if (isLoading || !objective) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", padding: "24px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          color: "var(--skin-ink-faint)",
+          padding: "24px 0",
+        }}
+      >
         <Loader2 size={16} className="animate-spin" />
         Loading…
       </div>
@@ -779,7 +905,11 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
 
       {/* Status */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", minWidth: 60 }}>Status</label>
+        <label
+          style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", minWidth: 60 }}
+        >
+          Status
+        </label>
         <select
           value={status}
           onChange={(e) => void handleStatusChange(e.target.value)}
@@ -787,7 +917,9 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
           style={{ fontSize: 13, padding: "4px 8px" }}
         >
           {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+            <option key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </option>
           ))}
         </select>
       </div>
@@ -795,7 +927,9 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
       {/* Tags */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", flex: 1 }}>Tags</label>
+          <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)", flex: 1 }}>
+            Tags
+          </label>
           <button
             onClick={handleAutoTag}
             disabled={autoTagging}
@@ -834,7 +968,14 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
               {t}
               <button
                 onClick={() => setTags(tags.filter((x) => x !== t))}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--skin-ink-faint)", display: "flex" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  color: "var(--skin-ink-faint)",
+                  display: "flex",
+                }}
               >
                 <X size={10} />
               </button>
@@ -844,7 +985,10 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); }
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                addTag();
+              }
             }}
             placeholder="Add tag…"
             style={{
@@ -863,11 +1007,16 @@ export function ObjectiveContent({ itemId }: { itemId: string }) {
 
       {/* Metrics + AI summary — placed above the (often long/empty) description editor
           so they're visible without scrolling past it. */}
-      <ObjectiveMetricsAndSummary objectiveId={itemId} objectiveTitle={title || "Untitled objective"} />
+      <ObjectiveMetricsAndSummary
+        objectiveId={itemId}
+        objectiveTitle={title || "Untitled objective"}
+      />
 
       {/* Description */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>Description</label>
+        <label style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+          Description
+        </label>
         <RichTextEditor
           content={description}
           onChange={setDescription}
@@ -976,7 +1125,15 @@ function ObjectiveMetricsAndSummary({
       <div>
         <h4 className="x-preview-title">Metrics</h4>
         {metricsLoading || !metrics ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", fontSize: 13 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              color: "var(--skin-ink-faint)",
+              fontSize: 13,
+            }}
+          >
             <Loader2 size={14} className="animate-spin" />
             Loading…
           </div>
@@ -987,11 +1144,20 @@ function ObjectiveMetricsAndSummary({
               <StatRow big={metrics.tasksCompleted.toLocaleString()} small="completed" />
             </MetricCard>
             <MetricCard label="Words / chars">
-              <StatRow big={metrics.wordsTotal.toLocaleString()} small={`${fmt(metrics.wordsAvgPerTask)} av. words/task`} />
-              <StatRow big={metrics.charsTotal.toLocaleString()} small={`${fmt(metrics.charsAvgPerTask)} av. chars/task`} />
+              <StatRow
+                big={metrics.wordsTotal.toLocaleString()}
+                small={`${fmt(metrics.wordsAvgPerTask)} av. words/task`}
+              />
+              <StatRow
+                big={metrics.charsTotal.toLocaleString()}
+                small={`${fmt(metrics.charsAvgPerTask)} av. chars/task`}
+              />
             </MetricCard>
             <MetricCard label="Proof">
-              <StatRow big={metrics.proofAttachmentsTotal.toLocaleString()} small="attachments total" />
+              <StatRow
+                big={metrics.proofAttachmentsTotal.toLocaleString()}
+                small="attachments total"
+              />
               <StatRow big={fmt(metrics.proofAttachmentsAvgPerTask)} small="av. per task" />
             </MetricCard>
             <MetricCard label="Linked items">
@@ -1039,7 +1205,15 @@ function ObjectiveMetricsAndSummary({
         </div>
         {error && <p style={{ fontSize: 12, color: "var(--skin-danger)", margin: 0 }}>{error}</p>}
         {summary ? (
-          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--skin-ink)", margin: 0, whiteSpace: "pre-wrap" }}>
+          <p
+            style={{
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--skin-ink)",
+              margin: 0,
+              whiteSpace: "pre-wrap",
+            }}
+          >
             {summary}
           </p>
         ) : (
@@ -1074,25 +1248,32 @@ function NoteContent({ itemId }: { itemId: string }) {
     Promise.all([
       supabase
         .from("notes")
-        .select("id, title, body_html, body_markdown, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done")
+        .select(
+          "id, title, body_html, body_markdown, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done",
+        )
         .eq("id", itemId)
         .single(),
       listProjects(user),
-    ]).then(([{ data }, projs]) => {
-      if (data) {
-        const raw = data as unknown as Record<string, unknown>;
-        setNoteRow({ ...raw, created_by: raw.owner_central_id } as unknown as NoteRow);
-      }
-      setProjects(projs);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    ])
+      .then(([{ data }, projs]) => {
+        if (data) {
+          const raw = data as unknown as Record<string, unknown>;
+          setNoteRow({ ...raw, created_by: raw.owner_central_id } as unknown as NoteRow);
+        }
+        setProjects(projs);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [itemId, user?.centralId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async (v: NoteEditorValues) => {
     if (!user || !noteRow) return;
     setSaving(true);
     try {
-      await updateNote(user, itemId, { ...v, existingDetail: (noteRow.detail as Record<string, unknown>) ?? {} });
+      await updateNote(user, itemId, {
+        ...v,
+        existingDetail: (noteRow.detail as Record<string, unknown>) ?? {},
+      });
       // Keep the sidepanel stack's cached noteType in sync so anything reading it in
       // this session (e.g. FullscreenButton) doesn't act on a stale value from
       // whenever the panel was originally opened.
@@ -1118,7 +1299,15 @@ function NoteContent({ itemId }: { itemId: string }) {
 
   if (loading || !noteRow) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", padding: "24px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          color: "var(--skin-ink-faint)",
+          padding: "24px 0",
+        }}
+      >
         <Loader2 size={16} className="animate-spin" />
         Loading…
       </div>
@@ -1233,7 +1422,15 @@ function TaskAiSummary({ noteRow, user }: { noteRow: NoteRow; user: XcampUser })
       {error && <p style={{ fontSize: 12, color: "var(--skin-danger)", margin: 0 }}>{error}</p>}
 
       {summary ? (
-        <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--skin-ink)", margin: 0, whiteSpace: "pre-wrap" }}>
+        <p
+          style={{
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "var(--skin-ink)",
+            margin: 0,
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {summary}
         </p>
       ) : !generating ? (
@@ -1242,7 +1439,15 @@ function TaskAiSummary({ noteRow, user }: { noteRow: NoteRow; user: XcampUser })
           proof notes.
         </p>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", fontSize: 13 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--skin-ink-faint)",
+            fontSize: 13,
+          }}
+        >
           <Loader2 size={14} className="animate-spin" />
           Generating…
         </div>
@@ -1288,8 +1493,11 @@ export function ItemSidepanel() {
 
   const canGoBack = stack.length > 1;
   const typeLabel =
-    current.kind === "user" ? "Viewing profile" :
-    current.kind === "objective" ? "Editing objective" : `Editing ${current.kind}`;
+    current.kind === "user"
+      ? "Viewing profile"
+      : current.kind === "objective"
+        ? "Editing objective"
+        : `Editing ${current.kind}`;
 
   return (
     <div
@@ -1396,7 +1604,8 @@ export function ItemSidepanel() {
                 color: activeTab === key ? "var(--skin-accent)" : "var(--skin-ink-soft)",
                 background: "none",
                 border: "none",
-                borderBottom: activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                borderBottom:
+                  activeTab === key ? "2px solid var(--skin-accent)" : "2px solid transparent",
                 marginBottom: -1,
                 cursor: "pointer",
                 letterSpacing: "0.01em",
@@ -1409,10 +1618,7 @@ export function ItemSidepanel() {
       )}
 
       {/* ── Scrollable body ── */}
-      <div
-        className="x-sidepanel-scroll"
-        style={{ flex: 1, overflowY: "auto", padding: 16 }}
-      >
+      <div className="x-sidepanel-scroll" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
         {current.kind === "user" ? (
           <UserProfileContent item={current} />
         ) : activeTab === "content" ? (
@@ -1422,11 +1628,7 @@ export function ItemSidepanel() {
             <NoteContent key={current.id} itemId={current.id} />
           )
         ) : activeTab === "linked" ? (
-          <LinkedItemsTab
-            key={current.id}
-            itemId={current.id}
-            itemKind={current.kind}
-          />
+          <LinkedItemsTab key={current.id} itemId={current.id} itemKind={current.kind} />
         ) : activeTab === "artifacts-actions" ? (
           <ComingSoonTab icon={Zap} label="Artifacts & Actions" />
         ) : (
@@ -1479,7 +1681,13 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
   const handleDelete = async () => {
     if (!user || !confirm("Delete this item? This action cannot be undone.")) return;
     if (item.kind === "note") {
-      const { data } = await supabase.from("notes").select("id, title, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done, body_html, body_markdown").eq("id", item.id).single();
+      const { data } = await supabase
+        .from("notes")
+        .select(
+          "id, title, note_type, tags, detail, tenant_id, owner_central_id, created_at, updated_at, done, body_html, body_markdown",
+        )
+        .eq("id", item.id)
+        .single();
       if (data) {
         const raw = data as unknown as Record<string, unknown>;
         const row = { ...raw, created_by: raw.owner_central_id } as unknown as NoteRow;
@@ -1518,7 +1726,10 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
       <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
         {/* "Open fullscreen" now lives in the panel header as an always-visible
             control (see FullscreenButton) rather than buried behind this menu. */}
-        <DropdownMenuItem onClick={handleCopyLink} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <DropdownMenuItem
+          onClick={handleCopyLink}
+          style={{ display: "flex", alignItems: "center", gap: 8 }}
+        >
           <LinkIcon size={13} />
           Copy link
         </DropdownMenuItem>
@@ -1535,7 +1746,12 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => void handleDelete()}
-          style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-danger, #d4524e)" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--skin-danger, #d4524e)",
+          }}
         >
           <Trash2 size={13} />
           Delete

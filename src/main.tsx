@@ -15,6 +15,14 @@ import "./styles.css";
 // route validator cannot strip the param before the escape hatch has seen it.
 initUiVersionFromUrl();
 
+// The experimental navigation became the default in PR #95. Remove its retired
+// opt-in flag before the router mounts so old bookmarks have one canonical URL.
+const initialUrl = new URL(window.location.href);
+if (initialUrl.searchParams.get("nav") === "experimental") {
+  initialUrl.searchParams.delete("nav");
+  window.history.replaceState(null, "", initialUrl);
+}
+
 async function main() {
   if (!i18n.isInitialized) {
     await i18n.init();

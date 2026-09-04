@@ -42,7 +42,9 @@ const NOTE_TYPE_LABELS: Record<string, string> = {
   reference: "Reference",
 };
 
-export type Editing = { mode: "new"; initialBody?: string; initialProjectId?: string } | { mode: "edit"; note: NoteRow };
+export type Editing =
+  | { mode: "new"; initialBody?: string; initialProjectId?: string }
+  | { mode: "edit"; note: NoteRow };
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -122,7 +124,7 @@ export function NoteEditor({
   const initial = editing.mode === "edit" ? editing.note : null;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(
-    editing.mode === "new" ? editing.initialBody ?? "" : initial?.body_html ?? "",
+    editing.mode === "new" ? (editing.initialBody ?? "") : (initial?.body_html ?? ""),
   );
   const [noteType, setNoteType] = useState<string>(initial?.note_type ?? "note");
   const [projectId, setProjectId] = useState<string>(
@@ -220,8 +222,7 @@ export function NoteEditor({
       attachments === initialAttachmentsRef.current;
     if (unchanged) return;
     const isNonEmpty =
-      debouncedTitle.trim().length > 0 ||
-      debouncedBody.replace(/<[^>]+>/g, "").trim().length > 0;
+      debouncedTitle.trim().length > 0 || debouncedBody.replace(/<[^>]+>/g, "").trim().length > 0;
     if (!isNonEmpty) return;
     setSaveStatus("saving");
     onSaveRef.current(currentValuesRef.current);
@@ -233,10 +234,7 @@ export function NoteEditor({
     if (prevSaving.current && !saving) {
       setSaveStatus("saved");
       hasUnsavedChanges.current = false;
-      const t = setTimeout(
-        () => setSaveStatus((s) => (s === "saved" ? "idle" : s)),
-        2000,
-      );
+      const t = setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2000);
       return () => clearTimeout(t);
     }
     prevSaving.current = saving;
@@ -272,9 +270,7 @@ export function NoteEditor({
   };
 
   const toggleObjective = (id: string) =>
-    setObjectiveIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setObjectiveIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // Type pills are a discrete, deliberate action — save immediately rather than
   // waiting on the body/title debounce, which would make the click feel unresponsive.
@@ -296,70 +292,98 @@ export function NoteEditor({
   return (
     <div className="x-editor" style={{ width: "100%" }}>
       {/* Header row — hidden when embedded inside sidepanel */}
-      {!embedded && <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <button
-            className="x-btn-secondary"
-            aria-label="Back to history"
-            title="Back to history"
-            onClick={handleBack}
-            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-          >
-            <ArrowLeft size={14} />
-          </button>
-          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
-            {editing.mode === "new" ? "New note" : "Editing note"}
-          </span>
-          {saveStatus === "saving" && (
-            <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saving…</span>
-          )}
-          {saveStatus === "saved" && (
-            <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saved</span>
-          )}
-        </div>
-        <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
-          {onExpand && (
+      {!embedded && (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-2">
             <button
               className="x-btn-secondary"
-              aria-label="Open fullscreen"
-              title="Open fullscreen"
-              onClick={onExpand}
-              style={{ height: 32, width: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              aria-label="Back to history"
+              title="Back to history"
+              onClick={handleBack}
+              style={{
+                height: 28,
+                width: 28,
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
             >
-              <Maximize2 size={14} />
+              <ArrowLeft size={14} />
             </button>
-          )}
-          {onOrganise && (
-            <button className="x-btn-secondary w-full sm:w-auto" onClick={onOrganise} title="Organise with Chi">
-              <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
-              Organise with Chi
-            </button>
-          )}
-          {onArchive && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="x-btn-secondary"
-                  aria-label="More options"
-                  style={{ height: 32, width: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <MoreVertical size={14} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={onArchive}
-                  disabled={archiving}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {archiving ? "Deleting…" : "Delete note"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+              {editing.mode === "new" ? "New note" : "Editing note"}
+            </span>
+            {saveStatus === "saving" && (
+              <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saving…</span>
+            )}
+            {saveStatus === "saved" && (
+              <span style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>Saved</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
+            {onExpand && (
+              <button
+                className="x-btn-secondary"
+                aria-label="Open fullscreen"
+                title="Open fullscreen"
+                onClick={onExpand}
+                style={{
+                  height: 32,
+                  width: 32,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Maximize2 size={14} />
+              </button>
+            )}
+            {onOrganise && (
+              <button
+                className="x-btn-secondary w-full sm:w-auto"
+                onClick={onOrganise}
+                title="Organise with Chi"
+              >
+                <Sparkles size={13} style={{ display: "inline", marginRight: 4 }} />
+                Organise with Chi
+              </button>
+            )}
+            {onArchive && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="x-btn-secondary"
+                    aria-label="More options"
+                    style={{
+                      height: 32,
+                      width: 32,
+                      padding: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={onArchive}
+                    disabled={archiving}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {archiving ? "Deleting…" : "Delete note"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
-      </div>}
+      )}
 
       {/* Unsaved changes confirmation dialog */}
       <Dialog open={showUnsavedModal} onOpenChange={setShowUnsavedModal}>
@@ -409,123 +433,145 @@ export function NoteEditor({
       />
 
       {!hideMeta && (
-      <>
-      {/* Collapsible meta: type / project / objectives / tags */}
-      <button
-        type="button"
-        onClick={() => setMetaOpen((o) => !o)}
-        aria-expanded={metaOpen}
-        className="mb-4 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2"
-        style={{ border: "1px solid var(--skin-line)", background: "transparent", cursor: "pointer" }}
-      >
-        <span className="flex min-w-0 items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: "var(--skin-ink-soft)" }}>
-          <SlidersHorizontal size={14} style={{ flexShrink: 0 }} />
-          <span className="truncate">
-            {NOTE_TYPE_LABELS[noteType] ?? noteType}
-            {tags.length > 0 ? ` · ${tags.length} tag${tags.length > 1 ? "s" : ""}` : ""}
-          </span>
-        </span>
-        <ChevronDown
-          size={16}
-          style={{ flexShrink: 0, transition: "transform 0.2s", transform: metaOpen ? "rotate(180deg)" : "none", color: "var(--skin-ink-faint)" }}
-        />
-      </button>
-
-      {metaOpen && (
-      <>
-      {/* Note type pill selector */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {NOTE_TYPES.map((t) => {
-          const active = noteType === t;
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => handleTypeChange(t)}
-              className="x-pill"
-              style={{
-                padding: "5px 12px",
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
-                background: active ? "var(--skin-accent)" : "transparent",
-                color: active ? "#fff" : "var(--skin-ink-soft)",
-              }}
-            >
-              {NOTE_TYPE_LABELS[t] ?? t}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mb-4" style={{ maxWidth: 320 }}>
-        <MultiSelectDropdown
-          label="Project (optional)"
-          placeholder="No project"
-          single
-          options={projects.map((p) => ({ value: p.id, label: p.name }))}
-          selected={projectId ? [projectId] : []}
-          onChange={(ids) => {
-            const next = ids[0] ?? "";
-            setProjectId(next);
-            setObjectiveIds([]);
-          }}
-        />
-      </div>
-
-      {/* Objective selector — only when a project is chosen */}
-      {projectId && (
-        <div className="mb-4" style={{ maxWidth: 420 }}>
-          {objectivesQuery.isLoading ? (
-            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>Loading objectives…</p>
-          ) : objectives.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>No objectives in this project.</p>
-          ) : (
-            <MultiSelectDropdown
-              label="Objectives (optional)"
-              placeholder="Select objectives…"
-              options={objectives.map((o) => ({ value: o.id, label: o.title }))}
-              selected={objectiveIds}
-              onChange={setObjectiveIds}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Tags */}
-      <div className="mb-4">
-        <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-          <TagIcon size={12} /> Tags
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
-          {tags.map((t) => (
-            <span key={t} className="x-tag">
-              {t}
-              <button onClick={() => setTags(tags.filter((x) => x !== t))} aria-label={`Remove ${t}`}>
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-          <input
-            className="x-input"
-            style={{ width: 160, height: 30, fontSize: 13 }}
-            placeholder="Add tag…"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addTag();
-              }
+        <>
+          {/* Collapsible meta: type / project / objectives / tags */}
+          <button
+            type="button"
+            onClick={() => setMetaOpen((o) => !o)}
+            aria-expanded={metaOpen}
+            className="mb-4 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2"
+            style={{
+              border: "1px solid var(--skin-line)",
+              background: "transparent",
+              cursor: "pointer",
             }}
-          />
-        </div>
-      </div>
-      </>
-      )}
-      </>
+          >
+            <span
+              className="flex min-w-0 items-center gap-2"
+              style={{ fontSize: 13, fontWeight: 500, color: "var(--skin-ink-soft)" }}
+            >
+              <SlidersHorizontal size={14} style={{ flexShrink: 0 }} />
+              <span className="truncate">
+                {NOTE_TYPE_LABELS[noteType] ?? noteType}
+                {tags.length > 0 ? ` · ${tags.length} tag${tags.length > 1 ? "s" : ""}` : ""}
+              </span>
+            </span>
+            <ChevronDown
+              size={16}
+              style={{
+                flexShrink: 0,
+                transition: "transform 0.2s",
+                transform: metaOpen ? "rotate(180deg)" : "none",
+                color: "var(--skin-ink-faint)",
+              }}
+            />
+          </button>
+
+          {metaOpen && (
+            <>
+              {/* Note type pill selector */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                {NOTE_TYPES.map((t) => {
+                  const active = noteType === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => handleTypeChange(t)}
+                      className="x-pill"
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 999,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
+                        background: active ? "var(--skin-accent)" : "transparent",
+                        color: active ? "#fff" : "var(--skin-ink-soft)",
+                      }}
+                    >
+                      {NOTE_TYPE_LABELS[t] ?? t}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mb-4" style={{ maxWidth: 320 }}>
+                <MultiSelectDropdown
+                  label="Project (optional)"
+                  placeholder="No project"
+                  single
+                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                  selected={projectId ? [projectId] : []}
+                  onChange={(ids) => {
+                    const next = ids[0] ?? "";
+                    setProjectId(next);
+                    setObjectiveIds([]);
+                  }}
+                />
+              </div>
+
+              {/* Objective selector — only when a project is chosen */}
+              {projectId && (
+                <div className="mb-4" style={{ maxWidth: 420 }}>
+                  {objectivesQuery.isLoading ? (
+                    <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>
+                      Loading objectives…
+                    </p>
+                  ) : objectives.length === 0 ? (
+                    <p style={{ fontSize: 13, color: "var(--skin-ink-faint)" }}>
+                      No objectives in this project.
+                    </p>
+                  ) : (
+                    <MultiSelectDropdown
+                      label="Objectives (optional)"
+                      placeholder="Select objectives…"
+                      options={objectives.map((o) => ({ value: o.id, label: o.title }))}
+                      selected={objectiveIds}
+                      onChange={setObjectiveIds}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Tags */}
+              <div className="mb-4">
+                <label
+                  className="mb-1 flex items-center gap-1 text-xs font-medium"
+                  style={{ color: "var(--skin-ink-soft)" }}
+                >
+                  <TagIcon size={12} /> Tags
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {tags.map((t) => (
+                    <span key={t} className="x-tag">
+                      {t}
+                      <button
+                        onClick={() => setTags(tags.filter((x) => x !== t))}
+                        aria-label={`Remove ${t}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    className="x-input"
+                    style={{ width: 160, height: 30, fontSize: 13 }}
+                    placeholder="Add tag…"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addTag();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {renderBody ? (
@@ -549,7 +595,10 @@ export function NoteEditor({
                   <img src={a.dataUrl} alt={a.name} />
                   <figcaption>
                     <span className="truncate">{a.name}</span>
-                    <button onClick={() => setAttachments((p) => p.filter((x) => x.id !== a.id))} aria-label="Remove">
+                    <button
+                      onClick={() => setAttachments((p) => p.filter((x) => x.id !== a.id))}
+                      aria-label="Remove"
+                    >
                       <X size={12} />
                     </button>
                   </figcaption>
@@ -564,12 +613,18 @@ export function NoteEditor({
                 <div className="truncate" style={{ fontSize: 13, fontWeight: 500 }}>
                   {a.name}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>{formatBytes(a.size)}</div>
+                <div style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+                  {formatBytes(a.size)}
+                </div>
               </div>
               <a href={a.dataUrl} download={a.name} className="x-icon-link" title="Download">
                 <Download size={16} />
               </a>
-              <button className="x-icon-link" onClick={() => setAttachments((p) => p.filter((x) => x.id !== a.id))} title="Remove">
+              <button
+                className="x-icon-link"
+                onClick={() => setAttachments((p) => p.filter((x) => x.id !== a.id))}
+                title="Remove"
+              >
                 <X size={16} />
               </button>
             </div>
@@ -582,7 +637,13 @@ export function NoteEditor({
         <div className="x-preview-section">
           <h4 className="x-preview-title">Links ({links.length})</h4>
           {links.map((l) => (
-            <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className="x-link-card">
+            <a
+              key={l.href}
+              href={l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="x-link-card"
+            >
               <img
                 src={`https://www.google.com/s2/favicons?domain=${hostname(l.href)}&sz=32`}
                 alt=""

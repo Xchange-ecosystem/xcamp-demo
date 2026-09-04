@@ -19,7 +19,11 @@ export const Route = createFileRoute("/journal")({
   head: () => ({
     meta: [
       { title: "Journal — Xcamp Journal" },
-      { name: "description", content: "Turn journal entries and voice notes into project-linked notes in the Xcamp ecosystem." },
+      {
+        name: "description",
+        content:
+          "Turn journal entries and voice notes into project-linked notes in the Xcamp ecosystem.",
+      },
     ],
   }),
   component: JournalPage,

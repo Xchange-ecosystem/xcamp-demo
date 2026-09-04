@@ -8,7 +8,10 @@ import { voxFetch } from "@/integrations/vox/client";
 
 export type { CommitResultItem };
 
-const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? "").replace(
+  /\/$/,
+  "",
+);
 
 export type SuggestedNoteType = "note" | "task" | "resource" | (string & {});
 
@@ -119,7 +122,10 @@ export async function analyse(args: {
       project_id: args.projectId,
     }),
   });
-  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
+  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<
+    string,
+    unknown
+  >;
   const topics = asArray(root.topics);
   return topics.map((raw, i) => {
     const o = (raw ?? {}) as Record<string, unknown>;
@@ -154,8 +160,11 @@ export async function answerWithContext(args: {
     const rawText = await res.text().catch(() => "");
     throw new JournalError(extractErrorMessage(rawText, res.status), res.status);
   }
-  const data = await res.json() as Record<string, unknown>;
-  const root = (data?.data && typeof data.data === "object" ? data.data : data) as Record<string, unknown>;
+  const data = (await res.json()) as Record<string, unknown>;
+  const root = (data?.data && typeof data.data === "object" ? data.data : data) as Record<
+    string,
+    unknown
+  >;
   const answer =
     (typeof root.reply_markdown === "string" && root.reply_markdown) ||
     (typeof root.answer === "string" && root.answer) ||
@@ -174,7 +183,12 @@ export interface CommitResult {
 /** Delegates to organiser-api.confirm to avoid duplicate request logic. */
 export async function confirmSession(
   sessionId: string,
-  approvals: { proposal_id: string; approved: boolean; proposal_type?: string; note_type?: string }[],
+  approvals: {
+    proposal_id: string;
+    approved: boolean;
+    proposal_type?: string;
+    note_type?: string;
+  }[],
 ): Promise<void> {
   return confirm(sessionId, approvals);
 }
@@ -198,7 +212,9 @@ export interface HistoricalProposal {
 }
 
 export async function getSessionProposals(sessionId: string): Promise<HistoricalProposal[]> {
-  const res = await request<{ proposals: HistoricalProposal[] }>(`/api/organiser/sessions/${sessionId}/proposals`);
+  const res = await request<{ proposals: HistoricalProposal[] }>(
+    `/api/organiser/sessions/${sessionId}/proposals`,
+  );
   return res.proposals;
 }
 
@@ -282,16 +298,14 @@ export async function getJournalSession(
     id: s.id as string,
     created_at: (s.created_at as string) ?? new Date().toISOString(),
     status: (s.status as SessionStatus) ?? "pending",
-    context: s.context && typeof s.context === "object" ? (s.context as Record<string, unknown>) : {},
+    context:
+      s.context && typeof s.context === "object" ? (s.context as Record<string, unknown>) : {},
   };
 }
 
 export function placementLabel(p: JournalProposal): string {
   const title = p.payload.title || p.payload.objective_title || p.payload.project_title || "";
-  const kind = p.proposal_type
-    .replace(/_/g, " ")
-    .replace("link to ", "")
-    .replace("new ", "");
+  const kind = p.proposal_type.replace(/_/g, " ").replace("link to ", "").replace("new ", "");
   const pretty = kind.charAt(0).toUpperCase() + kind.slice(1);
   return title ? `→ ${pretty}: ${title}` : `→ ${pretty}`;
 }

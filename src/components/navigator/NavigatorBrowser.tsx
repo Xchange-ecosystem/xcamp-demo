@@ -5,11 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import { useActiveProject } from "@/contexts/active-project";
 import { useSidepanel } from "@/contexts/sidepanel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import {
   useObjectives,
   useObjectiveTasks,
@@ -23,7 +19,12 @@ import {
   type NavTask,
   type NavSearchResult,
 } from "@/lib/navigator-api";
-import { ColumnToolbar, type ToolbarState, type ObjSortKey, type ObjGroupBy } from "@/components/navigator/ColumnToolbar";
+import {
+  ColumnToolbar,
+  type ToolbarState,
+  type ObjSortKey,
+  type ObjGroupBy,
+} from "@/components/navigator/ColumnToolbar";
 import { ItemBadge } from "@/components/sidepanel/ItemBadge";
 
 const UNASSIGNED = "__unassigned__";
@@ -52,23 +53,34 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
   const createTask = useCreateTask(user!, activeProjectId ?? "");
   const toggleTask = useToggleTask(activeProjectId ?? "");
 
-  const openTask = useCallback((task: NavTask) => {
-    openSidepanel({ id: task.id, kind: "note", title: task.title ?? undefined, noteType: task.note_type ?? undefined });
-  }, [openSidepanel]);
+  const openTask = useCallback(
+    (task: NavTask) => {
+      openSidepanel({
+        id: task.id,
+        kind: "note",
+        title: task.title ?? undefined,
+        noteType: task.note_type ?? undefined,
+      });
+    },
+    [openSidepanel],
+  );
 
   const searching = toolbar.search.trim().length > 0;
   const { data: allObjectives = [] } = useObjectives(user, activeProjectId);
   const objectiveIds = allObjectives.map((o) => o.id);
   const searchResults = useNavigatorSearch(user, activeProjectId, objectiveIds, toolbar.search);
 
-  const openSearchResult = useCallback((r: NavSearchResult) => {
-    if (r.kind === "objective") {
-      setSelectedObj(r.id);
-      onToolbarChange({ search: "" });
-    } else {
-      openSidepanel({ id: r.id, kind: "note", title: r.title, noteType: r.noteType });
-    }
-  }, [openSidepanel]);
+  const openSearchResult = useCallback(
+    (r: NavSearchResult) => {
+      if (r.kind === "objective") {
+        setSelectedObj(r.id);
+        onToolbarChange({ search: "" });
+      } else {
+        openSidepanel({ id: r.id, kind: "note", title: r.title, noteType: r.noteType });
+      }
+    },
+    [openSidepanel],
+  );
 
   if (!user) return null;
 
@@ -91,28 +103,44 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
       style={{ borderBottom: "1px solid var(--skin-line)", background: "var(--skin-surface)" }}
     >
       <Compass size={18} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />
-      <h1 style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>
-        Navigator
-      </h1>
+      <h1 style={{ fontSize: 16, fontWeight: 600, color: "var(--skin-ink)" }}>Navigator</h1>
     </div>
   );
 
   // Mobile: one column at a time
   if (isMobile) {
     return (
-      <div style={{ background: "var(--skin-bg)", height: hideHeader ? "100%" : "100vh", display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          background: "var(--skin-bg)",
+          height: hideHeader ? "100%" : "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {header}
         <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
         <div style={{ flex: 1, minHeight: 0 }}>
           {searching ? (
-            <NavigatorSearchResults query={toolbar.search} results={searchResults.data ?? []} isLoading={searchResults.isLoading} onOpen={openSearchResult} />
+            <NavigatorSearchResults
+              query={toolbar.search}
+              results={searchResults.data ?? []}
+              isLoading={searchResults.isLoading}
+              onOpen={openSearchResult}
+            />
           ) : selectedObj === null ? (
             <ObjectivesColumn
               user={user}
               projectId={activeProjectId}
               selected={selectedObj}
               onSelect={setSelectedObj}
-              onOpenObjective={(o) => openSidepanel({ id: o.id, kind: "objective", title: o.title ?? "Untitled objective" })}
+              onOpenObjective={(o) =>
+                openSidepanel({
+                  id: o.id,
+                  kind: "objective",
+                  title: o.title ?? "Untitled objective",
+                })
+              }
               createObj={createObj}
               toolbar={toolbar}
             />
@@ -133,36 +161,54 @@ export function NavigatorBrowser({ hideHeader }: { hideHeader?: boolean } = {}) 
 
   // Desktop: two resizable panes
   return (
-    <div style={{ background: "var(--skin-bg)", height: hideHeader ? "100%" : "100vh", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        background: "var(--skin-bg)",
+        height: hideHeader ? "100%" : "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {header}
       <ColumnToolbar state={toolbar} onChange={onToolbarChange} />
       <div style={{ flex: 1, minHeight: 0 }}>
         {searching ? (
-          <NavigatorSearchResults query={toolbar.search} results={searchResults.data ?? []} isLoading={searchResults.isLoading} onOpen={openSearchResult} />
+          <NavigatorSearchResults
+            query={toolbar.search}
+            results={searchResults.data ?? []}
+            isLoading={searchResults.isLoading}
+            onOpen={openSearchResult}
+          />
         ) : (
-        <ResizablePanelGroup orientation="horizontal">
-          <ResizablePanel defaultSize={34} minSize={20}>
-            <ObjectivesColumn
-              user={user}
-              projectId={activeProjectId}
-              selected={selectedObj}
-              onSelect={setSelectedObj}
-              onOpenObjective={(o) => openSidepanel({ id: o.id, kind: "objective", title: o.title ?? "Untitled objective" })}
-              createObj={createObj}
-              toolbar={toolbar}
-            />
-          </ResizablePanel>
-          <ResizableHandle />
-          <ResizablePanel defaultSize={66} minSize={30}>
-            <TasksColumn
-              projectId={activeProjectId}
-              objectiveId={selectedObj}
-              onOpenTask={openTask}
-              createTask={createTask}
-              toggleTask={toggleTask}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          <ResizablePanelGroup orientation="horizontal">
+            <ResizablePanel defaultSize={34} minSize={20}>
+              <ObjectivesColumn
+                user={user}
+                projectId={activeProjectId}
+                selected={selectedObj}
+                onSelect={setSelectedObj}
+                onOpenObjective={(o) =>
+                  openSidepanel({
+                    id: o.id,
+                    kind: "objective",
+                    title: o.title ?? "Untitled objective",
+                  })
+                }
+                createObj={createObj}
+                toolbar={toolbar}
+              />
+            </ResizablePanel>
+            <ResizableHandle />
+            <ResizablePanel defaultSize={66} minSize={30}>
+              <TasksColumn
+                projectId={activeProjectId}
+                objectiveId={selectedObj}
+                onOpenTask={openTask}
+                createTask={createTask}
+                toggleTask={toggleTask}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
       </div>
     </div>
@@ -268,23 +314,42 @@ function ObjectivesColumn({
           <Target size={14} style={{ flexShrink: 0, color: "var(--skin-accent)" }} />
           <span
             className="flex-1 truncate"
-            style={{ fontSize: 14, color: isActive ? "var(--skin-accent)" : "var(--skin-ink)", fontWeight: isActive ? 600 : 400 }}
+            style={{
+              fontSize: 14,
+              color: isActive ? "var(--skin-accent)" : "var(--skin-ink)",
+              fontWeight: isActive ? 600 : 400,
+            }}
           >
             {o.title || "Untitled objective"}
           </span>
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenObjective(o); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenObjective(o);
+            }}
             title="Edit details"
-            style={{ fontSize: 11, color: "var(--skin-accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{
+              fontSize: 11,
+              color: "var(--skin-accent)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
           >
             Open
           </button>
         </div>
-        <div className="flex items-center justify-between gap-2" style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>
+        <div
+          className="flex items-center justify-between gap-2"
+          style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}
+        >
           <span style={{ textTransform: "capitalize" }}>
             {(o.status ?? "").replace("_", " ") || "draft"}
           </span>
-          <span>{o.completedTasksCount}/{o.tasksCount} tasks</span>
+          <span>
+            {o.completedTasksCount}/{o.tasksCount} tasks
+          </span>
         </div>
       </div>
     );
@@ -303,8 +368,12 @@ function ObjectivesColumn({
       <div key={key}>
         <div
           style={{
-            fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
-            color: "var(--skin-ink-faint)", padding: "8px 4px 4px",
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.07em",
+            color: "var(--skin-ink-faint)",
+            padding: "8px 4px 4px",
           }}
         >
           {STATUS_GROUP_LABELS[key] ?? key}
@@ -315,14 +384,32 @@ function ObjectivesColumn({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--skin-surface)" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: "var(--skin-surface)",
+      }}
+    >
       <ColumnHeader title="Objectives" count={objectives.length} />
-      <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
+      >
         <button
           onClick={() => onSelect(UNASSIGNED)}
           className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left"
           style={{
-            fontSize: 14, cursor: "pointer", border: "none",
+            fontSize: 14,
+            cursor: "pointer",
+            border: "none",
             background: selected === UNASSIGNED ? "var(--skin-surface2)" : "transparent",
             color: selected === UNASSIGNED ? "var(--skin-accent)" : "var(--skin-ink-soft)",
           }}
@@ -331,7 +418,14 @@ function ObjectivesColumn({
         </button>
 
         {isLoading && (
-          <p style={{ padding: "16px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+          <p
+            style={{
+              padding: "16px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+            }}
+          >
             Loading…
           </p>
         )}
@@ -375,44 +469,86 @@ function NavigatorSearchResults({
   onOpen: (r: NavSearchResult) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--skin-surface)" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: "var(--skin-surface)",
+      }}
+    >
       <ColumnHeader title="Search results" count={results.length} />
-      <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
         {isLoading && (
-          <p style={{ padding: "16px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+          <p
+            style={{
+              padding: "16px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+            }}
+          >
             Searching…
           </p>
         )}
         {!isLoading && results.length === 0 && (
-          <p style={{ padding: "16px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+          <p
+            style={{
+              padding: "16px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+            }}
+          >
             No matches for "{query}".
           </p>
         )}
-        {!isLoading && results.map((r) => (
-          <div
-            key={`${r.kind}-${r.id}`}
-            onClick={() => onOpen(r)}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2"
-            style={{ cursor: "pointer", border: "1px solid var(--skin-line)", background: "var(--skin-bg)" }}
-          >
-            <ItemBadge kind={r.kind} noteType={r.noteType} />
-            <span
-              className="flex-1 truncate"
+        {!isLoading &&
+          results.map((r) => (
+            <div
+              key={`${r.kind}-${r.id}`}
+              onClick={() => onOpen(r)}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2"
               style={{
-                fontSize: 14,
-                color: "var(--skin-ink)",
-                textDecoration: r.kind === "note" && r.done ? "line-through" : "none",
+                cursor: "pointer",
+                border: "1px solid var(--skin-line)",
+                background: "var(--skin-bg)",
               }}
             >
-              {r.title || "Untitled"}
-            </span>
-            {r.kind === "objective" && r.status && (
-              <span style={{ fontSize: 11, color: "var(--skin-ink-faint)", textTransform: "capitalize", flexShrink: 0 }}>
-                {r.status.replace("_", " ")}
+              <ItemBadge kind={r.kind} noteType={r.noteType} />
+              <span
+                className="flex-1 truncate"
+                style={{
+                  fontSize: 14,
+                  color: "var(--skin-ink)",
+                  textDecoration: r.kind === "note" && r.done ? "line-through" : "none",
+                }}
+              >
+                {r.title || "Untitled"}
               </span>
-            )}
-          </div>
-        ))}
+              {r.kind === "objective" && r.status && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--skin-ink-faint)",
+                    textTransform: "capitalize",
+                    flexShrink: 0,
+                  }}
+                >
+                  {r.status.replace("_", " ")}
+                </span>
+              )}
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -440,8 +576,10 @@ function TasksColumn({
   const isUnassigned = objectiveId === UNASSIGNED;
   const tasksQ = useObjectiveTasks(!isUnassigned && objectiveId ? objectiveId : null);
   const unassignedQ = useUnassignedTasks(projectId, isUnassigned);
-  const genStatusQ = useObjectiveGenerationStatus(!isUnassigned && objectiveId ? objectiveId : null);
-  const tasks: NavTask[] = isUnassigned ? unassignedQ.data ?? [] : tasksQ.data ?? [];
+  const genStatusQ = useObjectiveGenerationStatus(
+    !isUnassigned && objectiveId ? objectiveId : null,
+  );
+  const tasks: NavTask[] = isUnassigned ? (unassignedQ.data ?? []) : (tasksQ.data ?? []);
   const isLoading = isUnassigned ? unassignedQ.isLoading : tasksQ.isLoading;
   const isGenerating = !isUnassigned && genStatusQ.data === "generating";
   const prevGenStatus = useRef<string | null | undefined>(undefined);
@@ -450,7 +588,7 @@ function TasksColumn({
       tasksQ.refetch();
     }
     prevGenStatus.current = genStatusQ.data;
-  }, [genStatusQ.data]);
+  }, [genStatusQ.data, tasksQ]);
 
   const [draft, setDraft] = useState("");
 
@@ -467,7 +605,13 @@ function TasksColumn({
     return (
       <div
         className="flex items-center justify-center text-center"
-        style={{ height: "100%", background: "var(--skin-bg)", padding: 24, fontSize: 14, color: "var(--skin-ink-faint)" }}
+        style={{
+          height: "100%",
+          background: "var(--skin-bg)",
+          padding: 24,
+          fontSize: 14,
+          color: "var(--skin-ink-faint)",
+        }}
       >
         Select an objective to see its tasks.
       </div>
@@ -475,7 +619,14 @@ function TasksColumn({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--skin-bg)" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: "var(--skin-bg)",
+      }}
+    >
       <div
         className="flex items-center gap-2 px-3 py-2"
         style={{ borderBottom: "1px solid var(--skin-line)" }}
@@ -485,31 +636,82 @@ function TasksColumn({
             onClick={onBack}
             className="x-btn-secondary"
             aria-label="Back to objectives"
-            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{
+              height: 28,
+              width: 28,
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
             <ArrowLeft size={14} />
           </button>
         )}
-        <h3 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--skin-ink-faint)" }}>
+        <h3
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+            color: "var(--skin-ink-faint)",
+          }}
+        >
           Tasks
         </h3>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--skin-ink-faint)" }}>{tasks.length}</span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--skin-ink-faint)" }}>
+          {tasks.length}
+        </span>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
         {isLoading && (
-          <p style={{ padding: "24px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+          <p
+            style={{
+              padding: "24px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+            }}
+          >
             Loading…
           </p>
         )}
         {!isLoading && tasks.length === 0 && isGenerating && (
-          <p style={{ padding: "24px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <p
+            style={{
+              padding: "24px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
             <Sparkles size={13} className="animate-pulse" />
             Generating tasks…
           </p>
         )}
         {!isLoading && tasks.length === 0 && !isGenerating && (
-          <p style={{ padding: "24px 8px", textAlign: "center", fontSize: 13, color: "var(--skin-ink-faint)" }}>
+          <p
+            style={{
+              padding: "24px 8px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+            }}
+          >
             No tasks yet.
           </p>
         )}
@@ -531,7 +733,10 @@ function TasksColumn({
                 onClick={() => onOpenTask(t)}
                 className="flex-1 truncate text-left"
                 style={{
-                  fontSize: 14, background: "none", border: "none", cursor: "pointer",
+                  fontSize: 14,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
                   textDecoration: done ? "line-through" : "none",
                   color: done ? "var(--skin-ink-faint)" : "var(--skin-ink)",
                 }}
@@ -564,7 +769,15 @@ function ColumnHeader({ title, count }: { title: string; count: number }) {
       className="flex items-center justify-between px-3 py-2"
       style={{ borderBottom: "1px solid var(--skin-line)" }}
     >
-      <h3 style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--skin-ink-faint)" }}>
+      <h3
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          color: "var(--skin-ink-faint)",
+        }}
+      >
         {title}
       </h3>
       <span style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>{count}</span>
@@ -600,7 +813,14 @@ function ColumnFooter({
           className="x-btn-primary"
           onClick={onSubmit}
           disabled={disabled}
-          style={{ height: 34, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{
+            height: 34,
+            width: 36,
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           <Plus size={15} />
         </button>

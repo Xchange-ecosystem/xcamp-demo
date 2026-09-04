@@ -17,15 +17,10 @@ function VoxOrb({
   const gradientBg = brand.isNox
     ? "radial-gradient(circle at 30% 30%, #b689e6, #731f7d 55%, var(--skin-surface) 100%)"
     : "radial-gradient(circle at 30% 30%, #4de0c1, #34acbf 55%, var(--skin-surface) 100%)";
-  const glowColor = brand.isNox
-    ? "rgba(115,31,125,0.55)"
-    : "rgba(77,224,193,0.55)";
+  const glowColor = brand.isNox ? "rgba(115,31,125,0.55)" : "rgba(77,224,193,0.55)";
 
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: size, height: size }}
-    >
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
       {/* Outer glow ring — orb-pulse-outer: scale + opacity breathe at 1.8s */}
       <div
         aria-hidden
@@ -106,11 +101,19 @@ export function VoiceTranscriber({
       <VoxOrb state={voice.isListening ? "listening" : "idle"} size={160} onClick={toggle} />
 
       <div className="flex items-center gap-3">
-        <button className="x-btn-primary" style={{ width: "auto", paddingInline: 18 }} onClick={toggle}>
+        <button
+          className="x-btn-primary"
+          style={{ width: "auto", paddingInline: 18 }}
+          onClick={toggle}
+        >
           {voice.isListening ? (
-            <><Square size={14} style={{ display: "inline", marginRight: 6 }} /> Stop</>
+            <>
+              <Square size={14} style={{ display: "inline", marginRight: 6 }} /> Stop
+            </>
           ) : (
-            <><Mic size={14} style={{ display: "inline", marginRight: 6 }} /> Start recording</>
+            <>
+              <Mic size={14} style={{ display: "inline", marginRight: 6 }} /> Start recording
+            </>
           )}
         </button>
       </div>
@@ -120,7 +123,9 @@ export function VoiceTranscriber({
         style={{ background: "var(--skin-surface2)", border: "1px solid var(--skin-line)" }}
       >
         {voice.transcript ? (
-          <p style={{ fontSize: 16, color: "var(--skin-ink)", lineHeight: 1.6 }}>{voice.transcript}</p>
+          <p style={{ fontSize: 16, color: "var(--skin-ink)", lineHeight: 1.6 }}>
+            {voice.transcript}
+          </p>
         ) : (
           <p style={{ fontSize: 14, color: "var(--skin-ink-faint)" }}>
             {voice.supported

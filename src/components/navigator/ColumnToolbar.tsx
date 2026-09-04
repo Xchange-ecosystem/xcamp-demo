@@ -56,11 +56,24 @@ export function ColumnToolbar({
       <div style={{ position: "relative", flex: 1 }}>
         <Search
           size={13}
-          style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--skin-ink-faint)", pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            left: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--skin-ink-faint)",
+            pointerEvents: "none",
+          }}
         />
         <input
           className="x-input"
-          style={{ paddingLeft: 26, paddingRight: state.search ? 26 : 8, height: 30, fontSize: 13, width: "100%" }}
+          style={{
+            paddingLeft: 26,
+            paddingRight: state.search ? 26 : 8,
+            height: 30,
+            fontSize: 13,
+            width: "100%",
+          }}
           placeholder="Search objectives, tasks & notes…"
           value={state.search}
           onChange={(e) => onChange({ search: e.target.value })}
@@ -69,7 +82,18 @@ export function ColumnToolbar({
           <button
             aria-label="Clear search"
             onClick={() => onChange({ search: "" })}
-            style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--skin-ink-faint)", padding: 2, lineHeight: 0 }}
+            style={{
+              position: "absolute",
+              right: 6,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--skin-ink-faint)",
+              padding: 2,
+              lineHeight: 0,
+            }}
           >
             <X size={13} />
           </button>
@@ -82,26 +106,54 @@ export function ColumnToolbar({
           className="x-btn-secondary"
           aria-label="Sort objectives"
           title={`Sort: ${SORT_LABELS[state.sort]} (${state.sortDir === "asc" ? "ascending" : "descending"})`}
-          style={{ height: 30, width: 34, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => { setSortOpen((v) => !v); setFiltersOpen(false); }}
+          style={{
+            height: 30,
+            width: 34,
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onClick={() => {
+            setSortOpen((v) => !v);
+            setFiltersOpen(false);
+          }}
         >
           <ArrowUpDown size={14} />
         </button>
         {sortOpen && (
           <div
             style={{
-              position: "absolute", right: 0, top: 36, zIndex: 20, width: 180,
-              background: "var(--skin-surface)", border: "1px solid var(--skin-line)",
-              borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", padding: 6,
+              position: "absolute",
+              right: 0,
+              top: 36,
+              zIndex: 20,
+              width: 180,
+              background: "var(--skin-surface)",
+              border: "1px solid var(--skin-line)",
+              borderRadius: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+              padding: 6,
             }}
           >
             {(Object.keys(SORT_LABELS) as ObjSortKey[]).map((k) => (
               <button
                 key={k}
-                onClick={() => { onChange({ sort: k }); setSortOpen(false); }}
+                onClick={() => {
+                  onChange({ sort: k });
+                  setSortOpen(false);
+                }}
                 style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  gap: 8, padding: "7px 8px", fontSize: 13, borderRadius: 6, border: "none", cursor: "pointer",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: "7px 8px",
+                  fontSize: 13,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
                   background: state.sort === k ? "var(--skin-surface2)" : "transparent",
                   color: "var(--skin-ink)",
                 }}
@@ -114,8 +166,17 @@ export function ColumnToolbar({
             <button
               onClick={() => onChange({ sortDir: state.sortDir === "asc" ? "desc" : "asc" })}
               style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
-                fontSize: 13, borderRadius: 6, border: "none", cursor: "pointer", background: "transparent", color: "var(--skin-ink)",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 8px",
+                fontSize: 13,
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+                background: "transparent",
+                color: "var(--skin-ink)",
               }}
             >
               {state.sortDir === "asc" ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
@@ -131,20 +192,36 @@ export function ColumnToolbar({
           className="x-btn-secondary"
           aria-label="Filter objectives"
           style={{
-            height: 30, padding: "0 9px", display: "flex", alignItems: "center", gap: 5, fontSize: 12,
+            height: 30,
+            padding: "0 9px",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 12,
             borderColor: activeFilterCount ? "var(--skin-accent)" : undefined,
             color: activeFilterCount ? "var(--skin-accent)" : undefined,
           }}
-          onClick={() => { setFiltersOpen((v) => !v); setSortOpen(false); }}
+          onClick={() => {
+            setFiltersOpen((v) => !v);
+            setSortOpen(false);
+          }}
         >
           <SlidersHorizontal size={13} />
           Filters
           {activeFilterCount > 0 && (
             <span
               style={{
-                minWidth: 15, height: 15, borderRadius: 8, fontSize: 10, fontWeight: 600,
-                display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
-                background: "var(--skin-accent)", color: "var(--skin-on-accent, #fff)",
+                minWidth: 15,
+                height: 15,
+                borderRadius: 8,
+                fontSize: 10,
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 3px",
+                background: "var(--skin-accent)",
+                color: "var(--skin-on-accent, #fff)",
               }}
             >
               {activeFilterCount}
@@ -154,12 +231,27 @@ export function ColumnToolbar({
         {filtersOpen && (
           <div
             style={{
-              position: "absolute", right: 0, top: 36, zIndex: 20, width: 230,
-              background: "var(--skin-surface)", border: "1px solid var(--skin-line)",
-              borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", padding: 12,
+              position: "absolute",
+              right: 0,
+              top: 36,
+              zIndex: 20,
+              width: 230,
+              background: "var(--skin-surface)",
+              border: "1px solid var(--skin-line)",
+              borderRadius: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+              padding: 12,
             }}
           >
-            <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 6 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--skin-ink-faint)",
+                marginBottom: 6,
+              }}
+            >
               Status
             </span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
@@ -170,7 +262,10 @@ export function ColumnToolbar({
                     key={s}
                     onClick={() => toggleStatus(s)}
                     style={{
-                      fontSize: 12, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+                      fontSize: 12,
+                      padding: "3px 9px",
+                      borderRadius: 999,
+                      cursor: "pointer",
                       border: `1px solid ${on ? "var(--skin-accent)" : "var(--skin-line)"}`,
                       background: on ? "var(--skin-accent)" : "transparent",
                       color: on ? "var(--skin-on-accent, #fff)" : "var(--skin-ink)",
@@ -182,7 +277,15 @@ export function ColumnToolbar({
               })}
             </div>
 
-            <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--skin-ink-faint)", marginBottom: 6 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--skin-ink-faint)",
+                marginBottom: 6,
+              }}
+            >
               Group by
             </span>
             <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
@@ -193,7 +296,10 @@ export function ColumnToolbar({
                     key={g}
                     onClick={() => onChange({ groupBy: g })}
                     style={{
-                      fontSize: 12, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+                      fontSize: 12,
+                      padding: "3px 9px",
+                      borderRadius: 999,
+                      cursor: "pointer",
                       border: `1px solid ${on ? "var(--skin-accent)" : "var(--skin-line)"}`,
                       background: on ? "var(--skin-accent)" : "transparent",
                       color: on ? "var(--skin-on-accent, #fff)" : "var(--skin-ink)",

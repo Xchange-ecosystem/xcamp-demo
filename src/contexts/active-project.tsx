@@ -22,7 +22,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
   // navMode is independently toggleable — not derived from activeProjectId at runtime.
   // Initializes from whether a project was previously selected (so reload restores expected mode).
   const [navMode, setNavMode] = useState<NavMode>(() =>
-    typeof window !== "undefined" && !!localStorage.getItem(STORAGE_KEY) ? "project" : "ecosystem"
+    typeof window !== "undefined" && !!localStorage.getItem(STORAGE_KEY) ? "project" : "ecosystem",
   );
 
   const setActiveProjectId = (id: string | null) => {
@@ -44,7 +44,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({ activeProjectId, setActiveProjectId, navMode, setNavMode }),
-    [activeProjectId, navMode], // eslint-disable-line react-hooks/exhaustive-deps
+    [activeProjectId, navMode],
   );
 
   return <ActiveProjectContext.Provider value={value}>{children}</ActiveProjectContext.Provider>;

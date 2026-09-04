@@ -57,33 +57,33 @@ function EcosystemNavigatorContent() {
 
   return (
     <div style={{ padding: "32px 32px 48px" }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--skin-ink)", marginBottom: 4 }}>
-            Ecosystem Navigator
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", margin: 0 }}>
-            Everyone in the Xcamp ecosystem.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>Loading…</div>
-        ) : members.length === 0 ? (
-          <div style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>No members found.</div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {members.map((member) => (
-              <MemberTile key={member.id} member={member} onClick={() => handleTileClick(member)} />
-            ))}
-          </div>
-        )}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--skin-ink)", marginBottom: 4 }}>
+          Ecosystem Navigator
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", margin: 0 }}>
+          Everyone in the Xcamp ecosystem.
+        </p>
       </div>
+
+      {isLoading ? (
+        <div style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>Loading…</div>
+      ) : members.length === 0 ? (
+        <div style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>No members found.</div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {members.map((member) => (
+            <MemberTile key={member.id} member={member} onClick={() => handleTileClick(member)} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -126,7 +126,11 @@ function MemberTile({ member, onClick }: { member: TenantMemberSummary; onClick:
           }}
         >
           {member.avatarUrl ? (
-            <img src={member.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={member.avatarUrl}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           ) : (
             <Users size={18} />
           )}
@@ -157,11 +161,15 @@ function MemberTile({ member, onClick }: { member: TenantMemberSummary; onClick:
 
       <div style={{ display: "flex", gap: 16, marginTop: "auto" }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>{member.projectCount}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>
+            {member.projectCount}
+          </div>
           <div style={{ fontSize: 11, color: "var(--skin-ink-soft)" }}>Projects</div>
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>{contributionCount}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--skin-ink)" }}>
+            {contributionCount}
+          </div>
           <div style={{ fontSize: 11, color: "var(--skin-ink-soft)" }}>Contributions</div>
         </div>
       </div>

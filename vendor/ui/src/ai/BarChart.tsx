@@ -65,13 +65,12 @@ export function BarChart({ x_key, series, data, y_label, gravity = false, title 
       )}
       <ResponsiveContainer width="100%" height={180}>
         <RBarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--skin-line-soft, var(--border))" vertical={false} />
-          <XAxis
-            dataKey={x_key}
-            tick={TICK_STYLE}
-            axisLine={false}
-            tickLine={false}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--skin-line-soft, var(--border))"
+            vertical={false}
           />
+          <XAxis dataKey={x_key} tick={TICK_STYLE} axisLine={false} tickLine={false} />
           <YAxis
             tick={TICK_STYLE}
             axisLine={false}
@@ -88,7 +87,10 @@ export function BarChart({ x_key, series, data, y_label, gravity = false, title 
                 : undefined
             }
           />
-          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "var(--skin-surface2, var(--muted))", opacity: 0.5 }} />
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            cursor={{ fill: "var(--skin-surface2, var(--muted))", opacity: 0.5 }}
+          />
           {series.length > 1 && (
             <Legend wrapperStyle={{ fontSize: 11, color: "var(--skin-ink-soft)" }} />
           )}

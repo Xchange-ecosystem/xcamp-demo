@@ -16,7 +16,10 @@ export const Route = createFileRoute("/notes")({
   head: () => ({
     meta: [
       { title: "Notes — Xcamp Journal" },
-      { name: "description", content: "Capture and manage your notes natively in the Xcamp ecosystem." },
+      {
+        name: "description",
+        content: "Capture and manage your notes natively in the Xcamp ecosystem.",
+      },
     ],
   }),
   component: NotesPage,

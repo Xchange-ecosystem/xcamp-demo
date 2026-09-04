@@ -7,10 +7,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 export function MiniPie({ value, total, color }: { value: number; total: number; color: string }) {
   const safeTotal = Math.max(total, 1);
-  const data = [
-    { value: Math.min(value, safeTotal) },
-    { value: Math.max(safeTotal - value, 0) },
-  ];
+  const data = [{ value: Math.min(value, safeTotal) }, { value: Math.max(safeTotal - value, 0) }];
   return (
     <ResponsiveContainer width={52} height={52}>
       <PieChart>
@@ -64,7 +61,9 @@ export function MetricCard({ label, children }: { label: string; children: React
 export function StatRow({ big, small }: { big: string; small: string }) {
   return (
     <div style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "var(--skin-ink)", lineHeight: 1.1 }}>{big}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: "var(--skin-ink)", lineHeight: 1.1 }}>
+        {big}
+      </div>
       <div style={{ fontSize: 11, color: "var(--skin-ink-soft)" }}>{small}</div>
     </div>
   );

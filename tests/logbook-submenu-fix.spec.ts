@@ -16,7 +16,7 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     const sidebar = page.locator('[data-sidebar="sidebar"]');
 
     // Expand the Logbook submenu.
-    await sidebar.getByRole("button", { name: "Logbook", exact: true }).click({ timeout: 10000 });
+    await sidebar.getByRole("button", { name: "Expand Logbook" }).click({ timeout: 10000 });
     await page.waitForTimeout(300);
 
     const items = await page.$$eval(
@@ -58,7 +58,7 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     // Back to home, expand again, click "New Note".
     await page.goto("/home");
     await page.waitForTimeout(800);
-    await sidebar.getByRole("button", { name: "Logbook", exact: true }).click({ timeout: 10000 });
+    await sidebar.getByRole("button", { name: "Expand Logbook" }).click({ timeout: 10000 });
     await page.waitForTimeout(300);
     await sidebar.getByText("New Note", { exact: true }).click();
     await page.waitForTimeout(1200);

@@ -95,12 +95,20 @@ export function NetworkBuildAnimation({ caption }: { caption?: string }) {
           <defs>
             <radialGradient id="qrCenter" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--skin-accent)" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--skin-accent) 55%, #0a6b5c)" />
+              <stop
+                offset="100%"
+                stopColor="color-mix(in oklab, var(--skin-accent) 55%, #0a6b5c)"
+              />
             </radialGradient>
           </defs>
           <circle cx={50} cy={50} r={7} fill="var(--skin-accent)" opacity={0.18}>
             <animate attributeName="r" values="6;9;6" dur="2.4s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.22;0.08;0.22" dur="2.4s" repeatCount="indefinite" />
+            <animate
+              attributeName="opacity"
+              values="0.22;0.08;0.22"
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
           </circle>
           <circle cx={50} cy={50} r={4.5} fill="url(#qrCenter)" />
         </svg>

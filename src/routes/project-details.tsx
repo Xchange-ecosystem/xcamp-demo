@@ -60,7 +60,9 @@ function ProjectDetailsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [featureImage, setFeatureImage] = useState<string | null>(null);
-  const [savedContent, setSavedContent] = useState<{ title: string; description: string } | null>(null);
+  const [savedContent, setSavedContent] = useState<{ title: string; description: string } | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -119,10 +121,7 @@ function ProjectDetailsPage() {
       return;
     }
     if (!savedContent || fetchLoading || !activeProjectId) return;
-    if (
-      debouncedTitle === savedContent.title &&
-      debouncedDescription === savedContent.description
-    )
+    if (debouncedTitle === savedContent.title && debouncedDescription === savedContent.description)
       return;
 
     const doSave = async () => {
@@ -163,9 +162,9 @@ function ProjectDetailsPage() {
         .upload(path, file, { upsert: true, contentType: file.type });
       if (uploadError) throw new Error(uploadError.message);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("App media")
-        .getPublicUrl(path);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("App media").getPublicUrl(path);
 
       const { error } = await (supabase
         .from("projects")
@@ -218,7 +217,10 @@ function ProjectDetailsPage() {
   if (fetchError) {
     return (
       <AppShell>
-        <div className="px-4 py-10 text-center" style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}>
+        <div
+          className="px-4 py-10 text-center"
+          style={{ color: "var(--skin-ink-soft)", fontSize: 14 }}
+        >
           {fetchError}
         </div>
       </AppShell>
@@ -234,7 +236,6 @@ function ProjectDetailsPage() {
         showImageReload={false}
       >
         <div className="px-4 py-6 max-w-2xl space-y-6">
-
           {/* Metrics row */}
           {metrics && (
             <div className="flex gap-3">
@@ -311,7 +312,9 @@ function ProjectDetailsPage() {
                   gap: 6,
                   padding: "6px 14px",
                   borderRadius: 6,
-                  border: featureImage ? "1px solid rgba(255,255,255,0.3)" : "1px solid var(--skin-accent, #4de0c1)",
+                  border: featureImage
+                    ? "1px solid rgba(255,255,255,0.3)"
+                    : "1px solid var(--skin-accent, #4de0c1)",
                   background: featureImage ? "rgba(0,0,0,0.45)" : "var(--skin-accent, #4de0c1)",
                   color: featureImage ? "#fff" : "var(--skin-bg, #0a0a0a)",
                   fontSize: 12,
@@ -369,11 +372,8 @@ function ProjectDetailsPage() {
           <div style={{ fontSize: 12, color: "var(--skin-ink-faint)", minHeight: 16 }}>
             {saving && "Saving…"}
             {saved && !saving && "Saved"}
-            {saveError && (
-              <span style={{ color: "var(--skin-error, #ef4444)" }}>{saveError}</span>
-            )}
+            {saveError && <span style={{ color: "var(--skin-error, #ef4444)" }}>{saveError}</span>}
           </div>
-
         </div>
       </PageHeroShell>
     </AppShell>

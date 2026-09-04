@@ -3,20 +3,20 @@
 import { supabase } from "@/lib/supabase";
 import { voxFetch } from "@/integrations/vox/client";
 import type { Json } from "@/integrations/supabase/types";
-import type { CollabRole, NoteAttachment, NoteRow, ProjectFull, ProjectRow, XcampUser } from "@/types/xcamp";
+import type {
+  CollabRole,
+  NoteAttachment,
+  NoteRow,
+  ProjectFull,
+  ProjectRow,
+  XcampUser,
+} from "@/types/xcamp";
 
 const NOTE_COLUMNS =
   "id, title, body_markdown, body_html, note_type, done, status, tags, detail, owner_central_id, tenant_id, created_at, updated_at";
 
 // Allowed note types selectable in the editor.
-export const NOTE_TYPES = [
-  "note",
-  "task",
-  "idea",
-  "question",
-  "decision",
-  "reference",
-] as const;
+export const NOTE_TYPES = ["note", "task", "idea", "question", "decision", "reference"] as const;
 export type NoteType = (typeof NOTE_TYPES)[number];
 
 // In this schema central_users.id is the auth user id; tenant comes from the row.
@@ -188,7 +188,7 @@ export async function createNote(user: XcampUser, input: NoteInput): Promise<Not
 
   if (error) throw error;
   const note = rowToNote(data);
-  await syncObjectiveLinks(user, note.id, input.projectId ? input.objectiveIds ?? [] : []);
+  await syncObjectiveLinks(user, note.id, input.projectId ? (input.objectiveIds ?? []) : []);
   return note;
 }
 
@@ -287,7 +287,6 @@ export async function getNoteObjectiveIds(noteId: string): Promise<string[]> {
     .eq("note_id", noteId);
   return (data ?? []).map((r) => r.objective_id as string);
 }
-
 
 // About tab's own field slice: title / main body / tags. Deliberately does NOT
 // touch `detail` or objective_notes links (unlike updateNote, which is a full
@@ -465,7 +464,9 @@ export async function listProjects(user: XcampUser): Promise<ProjectRow[]> {
     .from("projects")
     .select("id, title")
     .eq("tenant_id", user.tenantId)
-    .or(`owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`)
+    .or(
+      `owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`,
+    )
     .order("title");
 
   if (error) throw error;
@@ -484,7 +485,9 @@ export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> 
     .from("projects")
     .select("id, title, feature_image, color, description, updated_at")
     .eq("tenant_id", user.tenantId)
-    .or(`owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`)
+    .or(
+      `owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`,
+    )
     .order("title") as unknown as Promise<{
     data: Array<Record<string, unknown>> | null;
     error: { message: string } | null;
@@ -505,10 +508,7 @@ export async function listProjectsFull(user: XcampUser): Promise<ProjectFull[]> 
 
 export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> {
   if (noteIds.length === 0) return new Set();
-  const { data } = await supabase
-    .from("objective_notes")
-    .select("note_id")
-    .in("note_id", noteIds);
+  const { data } = await supabase.from("objective_notes").select("note_id").in("note_id", noteIds);
   return new Set((data ?? []).map((r) => r.note_id as string));
 }
 
@@ -520,9 +520,7 @@ export async function getLinkedNoteIds(noteIds: string[]): Promise<Set<string>> 
 // the editor) is a third, independent source — merged in here too so a note
 // counts as "in" a project via any of the ways it can actually be associated
 // with one, not just whichever one happens to be set.
-export async function getNoteProjectIds(
-  noteIds: string[],
-): Promise<Map<string, Set<string>>> {
+export async function getNoteProjectIds(noteIds: string[]): Promise<Map<string, Set<string>>> {
   const result = new Map<string, Set<string>>();
   if (noteIds.length === 0) return result;
 
@@ -617,15 +615,15 @@ export interface ObjectiveProgress {
 }
 export type ObjectiveProgressMap = Record<string, ObjectiveProgress>;
 
-export async function listProjectsForPortfolio(
-  user: XcampUser,
-): Promise<ProjectPortfolioItem[]> {
+export async function listProjectsForPortfolio(user: XcampUser): Promise<ProjectPortfolioItem[]> {
   const memberIds = await getAccessibleProjectIds(user);
   const memberFilter = memberIds.length > 0 ? `,id.in.(${memberIds.join(",")})` : "";
 
   const { data: projectData, error: projectError } = await (supabase
     .from("projects")
-    .select("id, title, feature_image, color, description, updated_at, owner_central_id, tags, status")
+    .select(
+      "id, title, feature_image, color, description, updated_at, owner_central_id, tags, status",
+    )
     .eq("tenant_id", user.tenantId)
     .or(
       `owner_central_id.eq.${user.centralId},visibility_scope.eq.global,visibility_scope.eq.organization_only${memberFilter}`,
@@ -636,9 +634,7 @@ export async function listProjectsForPortfolio(
   }>);
 
   if (projectError) throw new Error(projectError.message);
-  const projects = (projectData ?? []).filter(
-    (p) => (p["title"] as string) !== "__general__",
-  );
+  const projects = (projectData ?? []).filter((p) => (p["title"] as string) !== "__general__");
 
   if (projects.length === 0) return [];
 
@@ -683,8 +679,8 @@ export async function listProjectsForPortfolio(
     owner_central_id: (p["owner_central_id"] as string) ?? "",
     tags: (p["tags"] as string[] | null) ?? null,
     status: (p["status"] as string | null) ?? null,
-    collab_role: collabRoleByProject[(p["id"] as string)] ?? null,
-    collaborator_count: collabCountByProject[(p["id"] as string)] ?? 0,
+    collab_role: collabRoleByProject[p["id"] as string] ?? null,
+    collaborator_count: collabCountByProject[p["id"] as string] ?? 0,
   }));
 }
 

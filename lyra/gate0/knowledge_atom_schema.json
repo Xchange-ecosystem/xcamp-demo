@@ -47,12 +47,7 @@
     },
     "layer": {
       "type": "string",
-      "enum": [
-        "explicit",
-        "implicit",
-        "reasoning",
-        "contextual"
-      ]
+      "enum": ["explicit", "implicit", "reasoning", "contextual"]
     },
     "domain": {
       "type": "string"
@@ -62,15 +57,7 @@
     },
     "scope": {
       "type": "string",
-      "enum": [
-        "personal",
-        "SGA",
-        "framework",
-        "project",
-        "client",
-        "ecosystem",
-        "external"
-      ]
+      "enum": ["personal", "SGA", "framework", "project", "client", "ecosystem", "external"]
     },
     "graph_triple": {
       "type": "object",
@@ -107,10 +94,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "source_type",
-          "source_id"
-        ],
+        "required": ["source_type", "source_id"],
         "properties": {
           "source_type": {
             "type": "string",
@@ -166,13 +150,7 @@
     },
     "review_status": {
       "type": "string",
-      "enum": [
-        "candidate",
-        "reviewed",
-        "confirmed",
-        "rejected",
-        "superseded"
-      ]
+      "enum": ["candidate", "reviewed", "confirmed", "rejected", "superseded"]
     },
     "confirmed_by": {
       "type": "string"
@@ -196,24 +174,13 @@
     },
     "sensitivity": {
       "type": "string",
-      "enum": [
-        "public",
-        "internal",
-        "confidential",
-        "restricted"
-      ]
+      "enum": ["public", "internal", "confidential", "restricted"]
     },
     "export_targets": {
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "knowledge_graph",
-          "vector_store",
-          "agent_prompt",
-          "evaluation",
-          "human_reference"
-        ]
+        "enum": ["knowledge_graph", "vector_store", "agent_prompt", "evaluation", "human_reference"]
       }
     },
     "version": {

@@ -44,11 +44,22 @@ export function ObjectiveEditor({
             aria-label="Back"
             title="Back"
             onClick={onCancel}
-            style={{ height: 28, width: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            style={{
+              height: 28,
+              width: 28,
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
           >
             <ArrowLeft size={14} />
           </button>
-          <span className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}>
+          <span
+            className="flex items-center gap-1.5"
+            style={{ fontSize: 12, fontWeight: 500, color: "var(--skin-ink-faint)" }}
+          >
             <Compass size={14} style={{ color: "var(--skin-accent)" }} /> Editing objective
           </span>
         </div>
@@ -56,7 +67,11 @@ export function ObjectiveEditor({
           <button className="x-btn-secondary flex-1 sm:flex-none" onClick={onCancel}>
             Cancel
           </button>
-          <button className="x-btn-primary flex-1 sm:flex-none" onClick={save} disabled={!canSave || saving}>
+          <button
+            className="x-btn-primary flex-1 sm:flex-none"
+            onClick={save}
+            disabled={!canSave || saving}
+          >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -86,8 +101,16 @@ export function ObjectiveEditor({
         <label className="mb-1 block text-xs font-medium" style={{ color: "var(--skin-ink-soft)" }}>
           Status
         </label>
-        <div style={{ height: 34, fontSize: 13, display: "flex", alignItems: "center", color: "var(--skin-ink-soft)" }}>
-          {STATUS_LABELS[objective.status ?? "inactive"] ?? (objective.status ?? "Inactive")}
+        <div
+          style={{
+            height: 34,
+            fontSize: 13,
+            display: "flex",
+            alignItems: "center",
+            color: "var(--skin-ink-soft)",
+          }}
+        >
+          {STATUS_LABELS[objective.status ?? "inactive"] ?? objective.status ?? "Inactive"}
         </div>
       </div>
 
@@ -97,7 +120,14 @@ export function ObjectiveEditor({
         </label>
         <textarea
           className="x-input"
-          style={{ width: "100%", minHeight: 160, fontSize: 14, lineHeight: 1.5, padding: 12, resize: "vertical" }}
+          style={{
+            width: "100%",
+            minHeight: 160,
+            fontSize: 14,
+            lineHeight: 1.5,
+            padding: 12,
+            resize: "vertical",
+          }}
           placeholder="Describe this objective…"
           value={description}
           onChange={(e) => setDescription(e.target.value)}

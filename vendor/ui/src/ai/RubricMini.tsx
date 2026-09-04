@@ -26,12 +26,8 @@ export function RubricMini({ dimensions, overall_pct, gravity = false, title }: 
                 marginBottom: 4,
               }}
             >
-              <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>
-                {dim.label}
-              </span>
-              <span
-                style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}
-              >
+              <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>{dim.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>
                 {dim.score_pct}%
               </span>
             </div>
@@ -66,12 +62,8 @@ export function RubricMini({ dimensions, overall_pct, gravity = false, title }: 
             justifyContent: "space-between",
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>
-            Overall
-          </span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: accent }}>
-            {overall_pct}%
-          </span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>Overall</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: accent }}>{overall_pct}%</span>
         </div>
       )}
     </div>

@@ -4,31 +4,42 @@
  * Pure types — no runtime side effects.
  */
 
-import type { AIPersona } from '../skin/types';
+import type { AIPersona } from "../skin/types";
 export type { AIPersona };
 
 /* ---------- CollabRole ----------
    Canonical objective collaboration role union.
    NOTE: xcamp-foundation should re-export this from @xchange/ui rather than
    maintaining a second definition. */
-export type CollabRole = 'creator' | 'manager' | 'editor' | 'viewer';
+export type CollabRole = "creator" | "manager" | "editor" | "viewer";
 
 /* ---------- Card kinds ---------- */
 export const AI_CARD_KINDS = [
-  'update', 'metric', 'opportunity', 'web_result',
-  'urgency', 'celebration', 'content', 'action_item',
+  "update",
+  "metric",
+  "opportunity",
+  "web_result",
+  "urgency",
+  "celebration",
+  "content",
+  "action_item",
 ] as const;
 export type AICardKind = (typeof AI_CARD_KINDS)[number];
 
 /* ---------- Write tools ---------- */
 export const AI_WRITE_TOOLS = [
-  'create_task', 'complete_task', 'assign_user', 'add_note',
-  'add_attachment', 'set_objective_fields', 'link_notes',
+  "create_task",
+  "complete_task",
+  "assign_user",
+  "add_note",
+  "add_attachment",
+  "set_objective_fields",
+  "link_notes",
   // lifecycle tools
-  'promote_to_agreement',
-  'accept_agreement',
-  'initiate_completion',
-  'record_completion_decision',
+  "promote_to_agreement",
+  "accept_agreement",
+  "initiate_completion",
+  "record_completion_decision",
 ] as const;
 export type AIWriteTool = (typeof AI_WRITE_TOOLS)[number];
 
@@ -38,7 +49,7 @@ export type AIWriteTool = (typeof AI_WRITE_TOOLS)[number];
 export interface CreateTaskPayload {
   title: string;
   body_markdown?: string;
-  start_date?: string;            // ISO date
+  start_date?: string; // ISO date
   end_date?: string;
   assignee_central_ids?: string[];
 }
@@ -58,7 +69,7 @@ export interface CompleteTaskPayload {
  */
 export interface AssignUserPayload {
   /** The type of object being assigned to. Matches collaborators.object_type. */
-  object_type: 'project' | 'objective' | 'note' | 'task';
+  object_type: "project" | "objective" | "note" | "task";
   /** UUID of the target object (project_id, objective_id, note_id, or task note_id). */
   object_id: string;
   /**
@@ -90,16 +101,16 @@ export interface AssignUserPayload {
   message?: string;
 }
 export interface AddNotePayload {
-  note_type: 'note' | 'proof' | 'reference';
+  note_type: "note" | "proof" | "reference";
   title: string;
   body_markdown?: string;
-  link_to_task_note_id?: string;  // => note_links edge to a task note
+  link_to_task_note_id?: string; // => note_links edge to a task note
 }
 export interface AddAttachmentPayload {
-  entity_table: 'notes' | 'objectives';
+  entity_table: "notes" | "objectives";
   entity_id: string;
-  attachment_id?: string;         // already uploaded
-  upload_ref?: string;            // client-side handle pending upload
+  attachment_id?: string; // already uploaded
+  upload_ref?: string; // client-side handle pending upload
   label?: string;
 }
 export interface SetObjectiveFieldsPayload {
@@ -125,13 +136,13 @@ export interface PromoteToAgreementPayload {
   idempotency_key: string; // client generates: `${objective_id}-promote-${Date.now()}`
 }
 export interface AcceptAgreementPayload {
-  assignment_id: string;   // uuid of the specific assignment being accepted
+  assignment_id: string; // uuid of the specific assignment being accepted
 }
 export interface InitiateCompletionPayload {
   deadline_hours?: number; // default 72 if omitted
 }
 export interface RecordCompletionDecisionPayload {
-  decision: 'confirmed' | 'dissented';
+  decision: "confirmed" | "dissented";
   note?: string;
 }
 
@@ -147,17 +158,17 @@ export interface RecordCompletionDecisionPayload {
  */
 export interface CollaboratorRow {
   id: string;
-  object_type: 'project' | 'objective' | 'note' | 'task' | 'bundle' | 'init';
+  object_type: "project" | "objective" | "note" | "task" | "bundle" | "init";
   object_id: string;
-  user_id: string;           // central_users.id
+  user_id: string; // central_users.id
   role: CollabRole;
   is_external: boolean;
-  access_source: string;     // 'direct' | 'invited' | 'inherited'
+  access_source: string; // 'direct' | 'invited' | 'inherited'
   invited_by: string | null; // central_users.id of the person who invited them
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   tenant_id: string;
-  created_at: string;        // ISO timestamp
-  updated_at: string;        // ISO timestamp
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
 }
 
 /**
@@ -169,15 +180,15 @@ export interface InvitationRow {
   id: string;
   object_type: string;
   object_id: string;
-  invitee_user_id: string | null;   // null for email-only invitations
-  invitee_email: string | null;     // null when invitee_user_id is known
+  invitee_user_id: string | null; // null for email-only invitations
+  invitee_email: string | null; // null when invitee_user_id is known
   role: CollabRole;
-  status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
-  invited_by: string;               // central_users.id
+  status: "pending" | "accepted" | "declined" | "revoked" | "expired";
+  invited_by: string; // central_users.id
   is_external: boolean;
   message: string | null;
   assignment_offer_id: string | null;
-  expires_at: string | null;        // ISO timestamp
+  expires_at: string | null; // ISO timestamp
   tenant_id: string;
   created_at: string;
   updated_at: string;
@@ -198,43 +209,52 @@ export interface GeneralObjects {
 interface AIProposalBase {
   objective_id: string;
   rationale?: string;
-  requires_reconfirmation?: boolean;             // binding-field change in agreement mode
+  requires_reconfirmation?: boolean; // binding-field change in agreement mode
   preview?: { before?: unknown; after?: unknown };
 }
 export type AIProposal =
-  | (AIProposalBase & { tool: 'create_task';          payload: CreateTaskPayload })
-  | (AIProposalBase & { tool: 'complete_task';        payload: CompleteTaskPayload })
-  | (AIProposalBase & { tool: 'assign_user';          payload: AssignUserPayload })
-  | (AIProposalBase & { tool: 'add_note';             payload: AddNotePayload })
-  | (AIProposalBase & { tool: 'add_attachment';       payload: AddAttachmentPayload })
-  | (AIProposalBase & { tool: 'set_objective_fields'; payload: SetObjectiveFieldsPayload })
-  | (AIProposalBase & { tool: 'link_notes';           payload: LinkNotesPayload })
-  | (AIProposalBase & { tool: 'promote_to_agreement';        payload: PromoteToAgreementPayload })
-  | (AIProposalBase & { tool: 'accept_agreement';           payload: AcceptAgreementPayload })
-  | (AIProposalBase & { tool: 'initiate_completion';        payload: InitiateCompletionPayload })
-  | (AIProposalBase & { tool: 'record_completion_decision'; payload: RecordCompletionDecisionPayload });
+  | (AIProposalBase & { tool: "create_task"; payload: CreateTaskPayload })
+  | (AIProposalBase & { tool: "complete_task"; payload: CompleteTaskPayload })
+  | (AIProposalBase & { tool: "assign_user"; payload: AssignUserPayload })
+  | (AIProposalBase & { tool: "add_note"; payload: AddNotePayload })
+  | (AIProposalBase & { tool: "add_attachment"; payload: AddAttachmentPayload })
+  | (AIProposalBase & { tool: "set_objective_fields"; payload: SetObjectiveFieldsPayload })
+  | (AIProposalBase & { tool: "link_notes"; payload: LinkNotesPayload })
+  | (AIProposalBase & { tool: "promote_to_agreement"; payload: PromoteToAgreementPayload })
+  | (AIProposalBase & { tool: "accept_agreement"; payload: AcceptAgreementPayload })
+  | (AIProposalBase & { tool: "initiate_completion"; payload: InitiateCompletionPayload })
+  | (AIProposalBase & {
+      tool: "record_completion_decision";
+      payload: RecordCompletionDecisionPayload;
+    });
 
 /* ---------- Card ---------- */
-export interface AICardRef { label: string; url: string; }
+export interface AICardRef {
+  label: string;
+  url: string;
+}
 export interface AICard {
   id: string;
   kind: AICardKind;
   title: string;
-  body?: string;            // markdown
-  proposal?: AIProposal;    // present on action_item cards
+  body?: string; // markdown
+  proposal?: AIProposal; // present on action_item cards
   refs?: AICardRef[];
   dismissible: boolean;
   confirmable: boolean;
-  is_gravity?: boolean;     // true for promote_to_agreement and initiate_completion cards
+  is_gravity?: boolean; // true for promote_to_agreement and initiate_completion cards
 }
 
 /* ---------- Conversational route envelopes ----------
    Shared by the integration client callers and the Vox routes. */
-export type ContextScope = 'project' | 'organization' | 'tenant';
+export type ContextScope = "project" | "organization" | "tenant";
 export type Altitude = 0 | 1 | 2;
 
 export interface AttachmentInput {
-  name: string; mime: string; url?: string; base64?: string;
+  name: string;
+  mime: string;
+  url?: string;
+  base64?: string;
 }
 
 export interface AnswerWithContextRequest {
@@ -244,8 +264,8 @@ export interface AnswerWithContextRequest {
   project_id: string;
   tenant_id: string;
   altitude: Altitude;
-  aiPersona?: AIPersona;          // matches the field name read by Vox (Session 4b)
-  context_scope?: ContextScope;   // default 'project'
+  aiPersona?: AIPersona; // matches the field name read by Vox (Session 4b)
+  context_scope?: ContextScope; // default 'project'
 }
 export interface AnswerWithContextResponse {
   reply_markdown: string;
@@ -259,23 +279,19 @@ export interface ExtractToObjectiveRequest {
   tenant_id: string;
   altitude: Altitude;
   source: {
-    type: 'chat' | 'attachment';
+    type: "chat" | "attachment";
     text?: string;
     attachment?: AttachmentInput;
   };
 }
 export interface ExtractToObjectiveResponse {
-  cards: AICard[];          // action_item cards carrying AIProposal
+  cards: AICard[]; // action_item cards carrying AIProposal
   summary_markdown?: string;
 }
 
 // ─── Focus FAB contracts ──────────────────────────────────────────────────────
 
-export type FocusSignalSource =
-  | 'notification'
-  | 'dynamix'
-  | 'objective_state'
-  | 'onboarding';
+export type FocusSignalSource = "notification" | "dynamix" | "objective_state" | "onboarding";
 
 export interface FocusRouteContext {
   objectiveId?: string;

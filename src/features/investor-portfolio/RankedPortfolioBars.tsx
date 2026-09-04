@@ -117,14 +117,16 @@ export function RankedPortfolioBars({
   }, []);
 
   useEffect(() => {
-    if (!playing || week >= LAST_WEEK) return;
-    const timer = window.setTimeout(() => {
-      const nextWeek = Math.min(week + 1, LAST_WEEK);
-      setWeek(nextWeek);
-      if (nextWeek === LAST_WEEK) setPlaying(false);
+    if (!playing) return;
+    const timer = window.setInterval(() => {
+      setWeek((currentWeek) => {
+        const nextWeek = Math.min(currentWeek + 1, LAST_WEEK);
+        if (nextWeek === LAST_WEEK) setPlaying(false);
+        return nextWeek;
+      });
     }, PLAY_INTERVAL_MS);
-    return () => clearTimeout(timer);
-  }, [playing, week]);
+    return () => clearInterval(timer);
+  }, [playing]);
 
   useEffect(() => {
     if (!prefersReducedMotion) return;

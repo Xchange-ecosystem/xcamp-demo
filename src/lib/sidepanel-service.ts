@@ -86,10 +86,7 @@ export async function addNoteObjectiveLink(
   if (error) throw error;
 }
 
-export async function removeNoteObjectiveLink(
-  noteId: string,
-  objectiveId: string,
-): Promise<void> {
+export async function removeNoteObjectiveLink(noteId: string, objectiveId: string): Promise<void> {
   const { error } = await supabase
     .from("objective_notes")
     .delete()
@@ -98,10 +95,7 @@ export async function removeNoteObjectiveLink(
   if (error) throw error;
 }
 
-export async function removeObjectiveNoteLink(
-  objectiveId: string,
-  noteId: string,
-): Promise<void> {
+export async function removeObjectiveNoteLink(objectiveId: string, noteId: string): Promise<void> {
   return removeNoteObjectiveLink(noteId, objectiveId);
 }
 
@@ -137,10 +131,7 @@ export async function fetchItemGraphData(
 
     const objIds = (links1 ?? []).map((l) => l.objective_id as string);
     if (objIds.length) {
-      const { data: objs } = await supabase
-        .from("objectives")
-        .select("id, title")
-        .in("id", objIds);
+      const { data: objs } = await supabase.from("objectives").select("id, title").in("id", objIds);
       for (const obj of objs ?? []) {
         addNode(obj.id as string, obj.title as string, "objective");
         addEdge(itemId, obj.id as string);
@@ -161,8 +152,7 @@ export async function fetchItemGraphData(
           .in("id", neighborNoteIds);
         for (const n of neighborNotes ?? [])
           addNode(n.id as string, n.title as string, "note", n.note_type as string);
-        for (const l of links2 ?? [])
-          addEdge(l.objective_id as string, l.note_id as string);
+        for (const l of links2 ?? []) addEdge(l.objective_id as string, l.note_id as string);
       }
     }
   } else {
@@ -198,8 +188,7 @@ export async function fetchItemGraphData(
           .in("id", neighborObjIds);
         for (const obj of neighborObjs ?? [])
           addNode(obj.id as string, obj.title as string, "objective");
-        for (const l of links2 ?? [])
-          addEdge(l.note_id as string, l.objective_id as string);
+        for (const l of links2 ?? []) addEdge(l.note_id as string, l.objective_id as string);
       }
     }
   }
@@ -230,7 +219,12 @@ export async function searchItems(
     if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
     const { data } = await q;
     for (const n of data ?? [])
-      results.push({ id: n.id as string, title: n.title as string, kind: "note", noteType: n.note_type as string });
+      results.push({
+        id: n.id as string,
+        title: n.title as string,
+        kind: "note",
+        noteType: n.note_type as string,
+      });
   }
 
   if (includeObjectives) {
@@ -243,7 +237,12 @@ export async function searchItems(
     if (excludeIds.length) q = q.not("id", "in", `(${excludeIds.join(",")})`);
     const { data } = await q;
     for (const o of data ?? [])
-      results.push({ id: o.id as string, title: o.title as string, kind: "objective", status: o.status as string | undefined });
+      results.push({
+        id: o.id as string,
+        title: o.title as string,
+        kind: "objective",
+        status: o.status as string | undefined,
+      });
   }
 
   return results;
@@ -260,10 +259,7 @@ export async function suggestLinks(
 }
 
 // TODO: Promote note to objective — DB RPC exists but UI flow not yet defined
-export async function promoteNoteToObjective(
-  _user: XcampUser,
-  _noteId: string,
-): Promise<void> {
+export async function promoteNoteToObjective(_user: XcampUser, _noteId: string): Promise<void> {
   // TODO: supabase.rpc('promote_objective_to_agreement', {...})
   throw new Error("Promote to objective: not yet implemented");
 }

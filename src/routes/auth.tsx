@@ -44,7 +44,8 @@ function AuthPage() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    const action = mode === "register" ? "Register" : mode === "forgot" ? "Reset password" : "Sign in";
+    const action =
+      mode === "register" ? "Register" : mode === "forgot" ? "Reset password" : "Sign in";
     document.title = `${action} — ${brand.name} App`;
   }, [mode, brand.name]);
 
@@ -168,8 +169,8 @@ function AuthPage() {
             {mode === "signin"
               ? "Sign in to capture your notes."
               : mode === "register"
-              ? "Create your account to get started."
-              : "Enter your email to receive a password reset link."}
+                ? "Create your account to get started."
+                : "Enter your email to receive a password reset link."}
           </p>
         </div>
 
@@ -178,7 +179,8 @@ function AuthPage() {
             className="mb-4 rounded-md px-4 py-3 text-sm"
             style={{ background: "var(--skin-accent-soft)", color: "var(--skin-ink)" }}
           >
-            Registration successful. Please check your email to confirm your account before signing in.
+            Registration successful. Please check your email to confirm your account before signing
+            in.
           </div>
         )}
 
@@ -276,7 +278,11 @@ function AuthPage() {
                   style={{ color: "var(--skin-ink-faint)" }}
                   aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -293,13 +299,13 @@ function AuthPage() {
               ? mode === "register"
                 ? "Creating account…"
                 : mode === "forgot"
-                ? "Sending…"
-                : "Signing in…"
+                  ? "Sending…"
+                  : "Signing in…"
               : mode === "register"
-              ? "Create account"
-              : mode === "forgot"
-              ? "Send reset link"
-              : "Sign in"}
+                ? "Create account"
+                : mode === "forgot"
+                  ? "Send reset link"
+                  : "Sign in"}
           </button>
         </form>
 

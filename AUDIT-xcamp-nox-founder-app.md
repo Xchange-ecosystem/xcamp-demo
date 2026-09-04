@@ -1,4 +1,5 @@
 # AUDIT — xcamp-nox-founder-app
+
 **Date:** 2026-07-16  
 **Auditor:** Claude (AI-assisted audit, investigation-only — no code changes)  
 **Branch audited:** main  
@@ -8,12 +9,12 @@
 
 ## 1. Secrets & API Keys
 
-| Variable | Where set | Value / notes |
-|---|---|---|
-| `VITE_SUPABASE_URL` | `.env.example` (committed) | `https://ueebzuleyrnsrxbowdfa.supabase.co` — Supabase project ref **leaked in plaintext** in committed file |
-| `VITE_SUPABASE_ANON_KEY` | `.env.example` blank | Must be provided via Vercel env dashboard; not committed |
-| `VITE_VOX_API_URL` | `.env.example` | `https://chiapi.xchange.eco/api` — chi-orchestration endpoint, **not direct vox7** |
-| `VITE_BACKEND_URL` | `.env.example` | `https://xcampapi.xchange.eco` |
+| Variable                 | Where set                  | Value / notes                                                                                               |
+| ------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | `.env.example` (committed) | `https://ueebzuleyrnsrxbowdfa.supabase.co` — Supabase project ref **leaked in plaintext** in committed file |
+| `VITE_SUPABASE_ANON_KEY` | `.env.example` blank       | Must be provided via Vercel env dashboard; not committed                                                    |
+| `VITE_VOX_API_URL`       | `.env.example`             | `https://chiapi.xchange.eco/api` — chi-orchestration endpoint, **not direct vox7**                          |
+| `VITE_BACKEND_URL`       | `.env.example`             | `https://xcampapi.xchange.eco`                                                                              |
 
 **Finding:** The Supabase project reference (`ueebzuleyrnsrxbowdfa`) is permanently in git history via `.env.example`. The anon key is not committed. The anon key is designed to be public (Supabase RLS enforces access), but the project ref leak means anyone can enumerate the Supabase API surface.
 
@@ -51,19 +52,19 @@ The app uses a **Supabase-native auth** model:
 
 Package versions from `package.json` (last checked 2026-07-16):
 
-| Package | Version | Notes |
-|---|---|---|
-| React | 19.2 | Latest major; hooks API only |
-| Vite | 7.3 | Build tool |
-| TanStack Router | 1.168 | File-based routing |
-| @supabase/supabase-js | 2.108 | Auth + DB client |
-| Zustand | 5 | State management |
-| Zod | 3.24 | Schema validation |
-| i18next | 26 | Internationalization |
-| react-hook-form | 7.71 | Forms |
-| Radix UI | full suite | Headless UI primitives |
-| Recharts | — | Charts |
-| TipTap editor | — | Rich text editing |
+| Package               | Version    | Notes                        |
+| --------------------- | ---------- | ---------------------------- |
+| React                 | 19.2       | Latest major; hooks API only |
+| Vite                  | 7.3        | Build tool                   |
+| TanStack Router       | 1.168      | File-based routing           |
+| @supabase/supabase-js | 2.108      | Auth + DB client             |
+| Zustand               | 5          | State management             |
+| Zod                   | 3.24       | Schema validation            |
+| i18next               | 26         | Internationalization         |
+| react-hook-form       | 7.71       | Forms                        |
+| Radix UI              | full suite | Headless UI primitives       |
+| Recharts              | —          | Charts                       |
+| TipTap editor         | —          | Rich text editing            |
 
 No obviously vulnerable packages flagged at audit time. Recommend running `bun audit` on a schedule.
 
@@ -74,6 +75,7 @@ No obviously vulnerable packages flagged at audit time. Recommend running `bun a
 This is a React 19 SPA deployed on Vercel. It authenticates users with Supabase (email/password or OAuth), then passes Supabase JWTs to the chi-orchestration proxy for all AI/memory operations. The frontend never touches vox7 directly. Build tooling is Bun/Vite; routing is file-based via TanStack Router.
 
 **Key facts:**
+
 - All AI calls route through chi-orchestration (`https://chiapi.xchange.eco/api`), not vox7 directly.
 - Supabase project ref is committed in `.env.example` (low severity — anon key not committed).
 - Boot fails loudly if env vars are missing — no silent degradation.

@@ -143,7 +143,10 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
       <div className="text-center py-8">
         <div
           className="mx-auto mb-4 max-w-md rounded-lg p-3 text-sm flex items-center justify-center gap-2"
-          style={{ background: "color-mix(in oklab, #dc2626 12%, transparent)", color: "var(--skin-ink)" }}
+          style={{
+            background: "color-mix(in oklab, #dc2626 12%, transparent)",
+            color: "var(--skin-ink)",
+          }}
         >
           <AlertCircle size={16} style={{ color: "#dc2626" }} />
           Cannot build the plan: {missing} is missing. Please go back and start again.
@@ -166,7 +169,10 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         {error && (
           <div
             className="mx-auto mt-2 max-w-md rounded-lg p-3 text-center text-sm flex items-center justify-center gap-2"
-            style={{ background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)", color: "var(--skin-ink)" }}
+            style={{
+              background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)",
+              color: "var(--skin-ink)",
+            }}
           >
             <AlertCircle size={16} style={{ color: "var(--accent-yellow, #E6A817)" }} />
             {error}
@@ -183,12 +189,19 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         <div className="text-center pb-6">
           <div
             className="mx-auto mb-4 max-w-md rounded-lg p-3 text-sm flex items-center justify-center gap-2"
-            style={{ background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)", color: "var(--skin-ink)" }}
+            style={{
+              background: "color-mix(in oklab, var(--accent-yellow, #E6A817) 12%, transparent)",
+              color: "var(--skin-ink)",
+            }}
           >
             <AlertCircle size={16} style={{ color: "var(--accent-yellow, #E6A817)" }} />
             {error}
           </div>
-          <button onClick={runGenerate} className="rounded-lg px-4 py-2 text-sm font-medium" style={{ background: "var(--skin-accent)", color: "#fff" }}>
+          <button
+            onClick={runGenerate}
+            className="rounded-lg px-4 py-2 text-sm font-medium"
+            style={{ background: "var(--skin-accent)", color: "#fff" }}
+          >
             Try again
           </button>
         </div>
@@ -240,8 +253,12 @@ export function GenerateStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
             }}
             value={state.projectTitleOverride || state.outputTree.title}
             onChange={(e) => patch({ projectTitleOverride: e.target.value })}
-            onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.border = "1px solid var(--skin-line)"; }}
-            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.border = "1px solid transparent"; }}
+            onFocus={(e) => {
+              (e.currentTarget as HTMLInputElement).style.border = "1px solid var(--skin-line)";
+            }}
+            onBlur={(e) => {
+              (e.currentTarget as HTMLInputElement).style.border = "1px solid transparent";
+            }}
             aria-label="Project title"
             placeholder="Project title"
           />

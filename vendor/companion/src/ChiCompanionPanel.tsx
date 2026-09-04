@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { answerWithContext, executeProposal, getSessionToken } from '@xchange/client';
-import type { AICard, Altitude } from '@xchange/client';
-import { CompanionCardStack } from './components/CompanionCardStack';
-import type { ProposalStatus } from './components/CompanionCardStack';
+import React, { useEffect, useRef, useState } from "react";
+import { answerWithContext, executeProposal, getSessionToken } from "@xchange/client";
+import type { AICard, Altitude } from "@xchange/client";
+import { CompanionCardStack } from "./components/CompanionCardStack";
+import type { ProposalStatus } from "./components/CompanionCardStack";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ export interface ChiCompanionPanelProps {
 
   /** Scope for Vox */
   context?: ChiContext;
-  onContextChange?: (level: 'project' | 'objective' | 'task', id: string) => void;
+  onContextChange?: (level: "project" | "objective" | "task", id: string) => void;
 
   /** Altitude */
   altitude?: Altitude;
@@ -50,7 +50,9 @@ export interface ChiCompanionPanelProps {
    * When provided, called instead of executeProposal for all confirmable cards.
    * Use this to route note/task/resource cards through createNote() when no objective is in scope.
    */
-  onConfirmProposal?: (card: AICard) => Promise<{ ok: boolean; committed_id?: string; error?: string }>;
+  onConfirmProposal?: (
+    card: AICard,
+  ) => Promise<{ ok: boolean; committed_id?: string; error?: string }>;
 
   className?: string;
   style?: React.CSSProperties;
@@ -60,7 +62,7 @@ export interface ChiCompanionPanelProps {
 
 type Message = {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   text: string;
   cards?: AICard[];
   // Stored as ProposalStatus to match CompanionCardStack; converted to ProposalResult for external callbacks
@@ -72,10 +74,10 @@ type Message = {
 
 // TODO: allow host to extend via a mentionOptions prop
 const MENTION_OPTIONS = [
-  { token: 'Project', icon: '📁', label: 'Project' },
-  { token: 'Objective', icon: '🎯', label: 'Objective' },
-  { token: 'Task', icon: '📝', label: 'Task/Note' },
-  { token: 'User', icon: '👤', label: 'User' },
+  { token: "Project", icon: "📁", label: "Project" },
+  { token: "Objective", icon: "🎯", label: "Objective" },
+  { token: "Task", icon: "📝", label: "Task/Note" },
+  { token: "User", icon: "👤", label: "User" },
 ];
 
 // ─── CSS — all colors via CSS vars, zero hex ──────────────────────────────────
@@ -341,7 +343,7 @@ export function ChiCompanionPanel({
   style,
 }: ChiCompanionPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
 
@@ -359,17 +361,17 @@ export function ChiCompanionPanel({
     const val = e.target.value;
     setInput(val);
     const ta = e.target;
-    ta.style.height = 'auto';
+    ta.style.height = "auto";
     ta.style.height = `${ta.scrollHeight}px`;
-    if (val.endsWith('@')) {
+    if (val.endsWith("@")) {
       setMentionOpen(true);
-    } else if (!val.includes('@')) {
+    } else if (!val.includes("@")) {
       setMentionOpen(false);
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSend();
     }
@@ -379,7 +381,7 @@ export function ChiCompanionPanel({
     const ta = textareaRef.current;
     if (!ta) return;
     const pos = ta.selectionStart ?? input.length;
-    const before = input.slice(0, pos).replace(/@$/, '');
+    const before = input.slice(0, pos).replace(/@$/, "");
     const after = input.slice(pos);
     const newVal = `${before}@${token} ${after}`;
     setInput(newVal);
@@ -397,21 +399,21 @@ export function ChiCompanionPanel({
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
-      role: 'user',
+      role: "user",
       text,
       timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
     setIsLoading(true);
 
     try {
       const res = await answerWithContext(
         {
           message: text,
-          objective_id: context?.objectiveId ?? '',
-          project_id: context?.projectId ?? '',
+          objective_id: context?.objectiveId ?? "",
+          project_id: context?.projectId ?? "",
           tenant_id: tenantId,
           altitude,
         },
@@ -419,21 +421,21 @@ export function ChiCompanionPanel({
       );
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
-        role: 'assistant',
+        role: "assistant",
         text: res.reply_markdown,
         cards: res.cards,
         cardStatuses: {},
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch {
       const errMsg: Message = {
         id: crypto.randomUUID(),
-        role: 'assistant',
-        text: 'Something went wrong — please try again.',
+        role: "assistant",
+        text: "Something went wrong — please try again.",
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errMsg]);
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -442,42 +444,54 @@ export function ChiCompanionPanel({
   const handleConfirm = async (msgId: string, card: AICard) => {
     if (!card.proposal) return;
 
-    setMessages(prev => prev.map(m =>
-      m.id !== msgId ? m : {
-        ...m,
-        cardStatuses: { ...m.cardStatuses, [card.id]: { status: 'pending' as const } },
-      }
-    ));
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id !== msgId
+          ? m
+          : {
+              ...m,
+              cardStatuses: { ...m.cardStatuses, [card.id]: { status: "pending" as const } },
+            },
+      ),
+    );
 
     const result = onConfirmProposal
       ? await onConfirmProposal(card)
-      : await executeProposal(card.proposal, getSessionToken, '');
+      : await executeProposal(card.proposal, getSessionToken, "");
 
-    setMessages(prev => prev.map(m =>
-      m.id !== msgId ? m : {
-        ...m,
-        cardStatuses: {
-          ...m.cardStatuses,
-          [card.id]: result.ok
-            ? { status: 'success' as const, message: result.committed_id }
-            : { status: 'error' as const, message: result.error },
-        },
-      }
-    ));
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id !== msgId
+          ? m
+          : {
+              ...m,
+              cardStatuses: {
+                ...m.cardStatuses,
+                [card.id]: result.ok
+                  ? { status: "success" as const, message: result.committed_id }
+                  : { status: "error" as const, message: result.error },
+              },
+            },
+      ),
+    );
 
     onCardAccept?.(card, { ok: result.ok, error: result.error });
   };
 
   const handleDismiss = (msgId: string, card: AICard) => {
-    setMessages(prev => prev.map(m =>
-      m.id !== msgId ? m : {
-        ...m,
-        cardStatuses: {
-          ...m.cardStatuses,
-          [card.id]: { status: 'error' as const, message: 'dismissed' },
-        },
-      }
-    ));
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id !== msgId
+          ? m
+          : {
+              ...m,
+              cardStatuses: {
+                ...m.cardStatuses,
+                [card.id]: { status: "error" as const, message: "dismissed" },
+              },
+            },
+      ),
+    );
     onCardDismiss?.(card);
   };
 
@@ -488,7 +502,11 @@ export function ChiCompanionPanel({
   };
 
   return (
-    <div className={`chi-companion-panel${className ? ` ${className}` : ''}`} ref={wrapperRef} style={style}>
+    <div
+      className={`chi-companion-panel${className ? ` ${className}` : ""}`}
+      ref={wrapperRef}
+      style={style}
+    >
       <style>{PANEL_STYLES}</style>
 
       {/* Header */}
@@ -496,7 +514,7 @@ export function ChiCompanionPanel({
         <span className="chi-title">Chi AI</span>
         <div className="chi-altitude-dots">
           <span
-            className={altitude === 0 ? 'chi-dot chi-dot--active' : 'chi-dot'}
+            className={altitude === 0 ? "chi-dot chi-dot--active" : "chi-dot"}
             onClick={() => onAltitudeChange?.(0)}
             title="Glide"
           />
@@ -504,7 +522,7 @@ export function ChiCompanionPanel({
             ✈
           </div>
           <span
-            className={altitude === 2 ? 'chi-dot chi-dot--active' : 'chi-dot'}
+            className={altitude === 2 ? "chi-dot chi-dot--active" : "chi-dot"}
             onClick={() => onAltitudeChange?.(2)}
             title="Cockpit"
           />
@@ -517,23 +535,25 @@ export function ChiCompanionPanel({
         <div className="chi-breadcrumb">
           <button
             className="chi-crumb"
-            onClick={() => context?.projectId && onContextChange?.('project', context.projectId)}
+            onClick={() => context?.projectId && onContextChange?.("project", context.projectId)}
           >
-            {context?.projectLabel ?? 'Project'}
+            {context?.projectLabel ?? "Project"}
           </button>
           <span className="chi-crumb-sep">›</span>
           <button
             className="chi-crumb"
-            onClick={() => context?.objectiveId && onContextChange?.('objective', context.objectiveId)}
+            onClick={() =>
+              context?.objectiveId && onContextChange?.("objective", context.objectiveId)
+            }
           >
-            {context?.objectiveLabel ?? 'Objective'}
+            {context?.objectiveLabel ?? "Objective"}
           </button>
           <span className="chi-crumb-sep">›</span>
           <button
             className="chi-crumb"
-            onClick={() => context?.taskId && onContextChange?.('task', context.taskId)}
+            onClick={() => context?.taskId && onContextChange?.("task", context.taskId)}
           >
-            {context?.taskLabel ?? 'Task/Note'}
+            {context?.taskLabel ?? "Task/Note"}
           </button>
         </div>
       </div>
@@ -545,31 +565,40 @@ export function ChiCompanionPanel({
             Hi! I'm your Chi AI companion. What would you like to work on today?
           </p>
         )}
-        {messages.map(msg => (
+        {messages.map((msg) => (
           <div
             key={msg.id}
-            className={msg.role === 'user' ? 'chi-msg chi-msg--user' : 'chi-msg chi-msg--assistant'}
+            className={msg.role === "user" ? "chi-msg chi-msg--user" : "chi-msg chi-msg--assistant"}
           >
             <span className="chi-msg-text">{msg.text}</span>
             {msg.cards && msg.cards.length > 0 && (
               <CompanionCardStack
-                cards={msg.cards.map(c => ({ ...c, body: c.body ?? '' }))}
+                cards={msg.cards.map((c) => ({ ...c, body: c.body ?? "" }))}
                 proposalResults={msg.cardStatuses ?? {}}
                 onConfirm={(cardId) => {
-                  const card = msg.cards!.find(c => c.id === cardId);
+                  const card = msg.cards!.find((c) => c.id === cardId);
                   if (card) void handleConfirm(msg.id, card);
                 }}
                 onDismiss={(cardId) => {
-                  const card = msg.cards!.find(c => c.id === cardId);
+                  const card = msg.cards!.find((c) => c.id === cardId);
                   if (card) handleDismiss(msg.id, card);
                 }}
               />
             )}
             {msg.cards && msg.cards.length > 1 && (
               <button
-                style={{ marginTop: 6, fontSize: 12, cursor: 'pointer', alignSelf: 'flex-end',
-                  background: 'none', border: '1px solid var(--skin-line)', borderRadius: 'var(--skin-radius)',
-                  color: 'var(--skin-ink-soft)', padding: '4px 10px', fontFamily: 'inherit' }}
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  alignSelf: "flex-end",
+                  background: "none",
+                  border: "1px solid var(--skin-line)",
+                  borderRadius: "var(--skin-radius)",
+                  color: "var(--skin-ink-soft)",
+                  padding: "4px 10px",
+                  fontFamily: "inherit",
+                }}
                 onClick={() => void handleAcceptAll(msg.id, msg.cards!)}
               >
                 Accept all
@@ -590,7 +619,7 @@ export function ChiCompanionPanel({
       <div className="chi-input-bar">
         {mentionOpen && (
           <div className="chi-mention-menu">
-            {MENTION_OPTIONS.map(opt => (
+            {MENTION_OPTIONS.map((opt) => (
               <button
                 key={opt.token}
                 className="chi-mention-item"
@@ -615,7 +644,7 @@ export function ChiCompanionPanel({
         <div className="chi-input-actions">
           <button
             className="chi-action-btn"
-            onClick={() => setMentionOpen(o => !o)}
+            onClick={() => setMentionOpen((o) => !o)}
             title="Add mention"
           >
             ＋

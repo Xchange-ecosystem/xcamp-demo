@@ -72,12 +72,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # Quality checks expose existing debt without making it invisible. Each report
-  # step is soft, but the final ratchet hard-fails if any baseline grows. When a
-  # baseline reaches zero, remove continue-on-error for that check, remove its
-  # baseline/ratchet entry, and keep the check as a normal hard CI step.
   quality:
-    name: Quality debt ratchet
+    name: Static quality gates
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted]
     timeout-minutes: 20
@@ -91,20 +87,14 @@ jobs:
       - name: Setup project
         uses: ./.github/actions/setup-project
 
-      - name: Report formatting debt
-        continue-on-error: true
+      - name: Check formatting
         run: bun run format:check
 
-      - name: Report lint debt
-        continue-on-error: true
+      - name: Lint
         run: bun run lint
 
-      - name: Report TypeScript debt
-        continue-on-error: true
+      - name: Typecheck
         run: bun run typecheck
-
-      - name: Enforce quality debt ratchet
-        run: bash .github/scripts/quality-ratchet.sh
 
   e2e:
     name: Playwright E2E

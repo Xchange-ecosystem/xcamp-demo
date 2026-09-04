@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import {
-  propose,
-  confirm,
-  commit,
-  type OrganiserProposal,
-} from "@/lib/organiser-api";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { propose, confirm, commit, type OrganiserProposal } from "@/lib/organiser-api";
 import type { XcampUser } from "@/types/xcamp";
 
 type Stage = "loading" | "empty" | "review" | "committing";
@@ -82,7 +83,9 @@ export function OrganiseSheet({
       if (n > 0) toast.success(`Organised into ${n} objective${n === 1 ? "" : "s"}`);
       if (result.failures.length > 0) {
         const titles = result.failures
-          .map((f) => f.title || proposals.find((p) => p.proposal_id === f.proposal_id)?.payload.title)
+          .map(
+            (f) => f.title || proposals.find((p) => p.proposal_id === f.proposal_id)?.payload.title,
+          )
           .filter(Boolean);
         toast.error(
           titles.length
@@ -110,7 +113,7 @@ export function OrganiseSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {(stage === "loading") && (
+        {stage === "loading" && (
           <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
             <Loader2 size={16} className="animate-spin" /> Asking Chi…
           </div>
@@ -122,7 +125,9 @@ export function OrganiseSheet({
               Chi couldn't find a clear home for this note — try adding more detail.
             </p>
             <div className="mt-6 flex justify-end">
-              <button className="x-btn-secondary" onClick={onClose}>Close</button>
+              <button className="x-btn-secondary" onClick={onClose}>
+                Close
+              </button>
             </div>
           </div>
         )}
@@ -139,8 +144,13 @@ export function OrganiseSheet({
                     style={{ borderColor: "var(--skin-line)" }}
                   >
                     <div className="min-w-0 flex-1">
-                      <Badge variant="secondary" className="mb-1">{badgeLabel(p.proposal_type)}</Badge>
-                      <div className="truncate text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
+                      <Badge variant="secondary" className="mb-1">
+                        {badgeLabel(p.proposal_type)}
+                      </Badge>
+                      <div
+                        className="truncate text-sm font-medium"
+                        style={{ color: "var(--skin-ink)" }}
+                      >
                         {p.payload.title || "Untitled"}
                       </div>
                     </div>
@@ -167,8 +177,14 @@ export function OrganiseSheet({
                     >
                       <span
                         style={{
-                          position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18,
-                          borderRadius: 999, background: "#fff", transition: "left .15s",
+                          position: "absolute",
+                          top: 2,
+                          left: on ? 18 : 2,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 999,
+                          background: "#fff",
+                          transition: "left .15s",
                         }}
                       />
                     </button>
@@ -178,10 +194,18 @@ export function OrganiseSheet({
             </ul>
 
             <div className="mt-6 flex justify-end gap-2">
-              <button className="x-btn-secondary" onClick={onClose} disabled={stage === "committing"}>
+              <button
+                className="x-btn-secondary"
+                onClick={onClose}
+                disabled={stage === "committing"}
+              >
                 Cancel
               </button>
-              <button className="x-btn-primary" onClick={handleConfirm} disabled={stage === "committing"}>
+              <button
+                className="x-btn-primary"
+                onClick={handleConfirm}
+                disabled={stage === "committing"}
+              >
                 {stage === "committing" ? "Organising…" : "Confirm"}
               </button>
             </div>

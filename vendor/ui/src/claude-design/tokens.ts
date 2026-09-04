@@ -74,10 +74,10 @@ export interface ThemeColors {
   gravity: GravityColors;
 }
 
-export type ThemeName = 'light' | 'dark';
+export type ThemeName = "light" | "dark";
 
 export interface Theme {
-  name: 'Xcamp' | 'Nox';
+  name: "Xcamp" | "Nox";
   colors: ThemeColors;
 }
 
@@ -85,10 +85,10 @@ export interface Theme {
 // ALTITUDE TOKENS
 // ============================================================================
 
-export type AltitudeLevel = 'altitude0' | 'altitude1' | 'altitude2';
+export type AltitudeLevel = "altitude0" | "altitude1" | "altitude2";
 
 export interface AltitudeToken {
-  name: 'Focus (AI-first)' | 'Balanced (AI-assisted)' | 'Deep Dive (full control)';
+  name: "Focus (AI-first)" | "Balanced (AI-assisted)" | "Deep Dive (full control)";
   accent: string;
   accentForeground: string;
 }
@@ -99,7 +99,7 @@ export type AltitudeTokens = Record<AltitudeLevel, AltitudeToken>;
 // OBJECTIVE SKIN TOKENS
 // ============================================================================
 
-export type ObjectiveSkinType = 'scientific' | 'playful';
+export type ObjectiveSkinType = "scientific" | "playful";
 
 export interface ObjectiveSkin {
   name: string;
@@ -198,13 +198,14 @@ export interface DesignTokens {
 // UTILITY TYPES FOR COMPONENT PROPS
 // ============================================================================
 
-export type ColorToken = keyof ThemeColors['surfaces'] | keyof ThemeColors['text'] | keyof BrandColors;
+export type ColorToken =
+  keyof ThemeColors["surfaces"] | keyof ThemeColors["text"] | keyof BrandColors;
 
 export type SpacingToken = keyof SpacingScale;
 
 export type RadiusToken = keyof RadiusTokens;
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = "light" | "dark";
 
 export interface ThemeContextValue {
   mode: ThemeMode;
@@ -234,24 +235,24 @@ export interface BaseComponentProps extends StyledComponentProps {
   /** Inline styles */
   style?: React.CSSProperties;
   /** Data attributes for testing */
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 // ============================================================================
 // PREDEFINED CONSTANTS
 // ============================================================================
 
-export const THEME_MODES = ['light', 'dark'] as const;
-export const ALTITUDE_LEVELS = ['altitude0', 'altitude1', 'altitude2'] as const;
-export const OBJECTIVE_SKINS = ['scientific', 'playful'] as const;
+export const THEME_MODES = ["light", "dark"] as const;
+export const ALTITUDE_LEVELS = ["altitude0", "altitude1", "altitude2"] as const;
+export const OBJECTIVE_SKINS = ["scientific", "playful"] as const;
 
 export const ALTITUDE_LABELS: Record<AltitudeLevel, string> = {
-  altitude0: 'Focus (AI-first)',
-  altitude1: 'Balanced (AI-assisted)',
-  altitude2: 'Deep Dive (full control)',
+  altitude0: "Focus (AI-first)",
+  altitude1: "Balanced (AI-assisted)",
+  altitude2: "Deep Dive (full control)",
 };
 
 export const SKIN_LABELS: Record<ObjectiveSkinType, string> = {
-  scientific: 'Scientific',
-  playful: 'Playful',
+  scientific: "Scientific",
+  playful: "Playful",
 };

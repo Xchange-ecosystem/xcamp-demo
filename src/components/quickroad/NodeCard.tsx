@@ -59,7 +59,11 @@ export function NodeCard({
           <input
             autoFocus
             className="w-full rounded-lg px-3 py-2 text-sm font-semibold outline-none"
-            style={{ background: "var(--skin-surface)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
+            style={{
+              background: "var(--skin-surface)",
+              border: "1px solid var(--skin-line)",
+              color: "var(--skin-ink)",
+            }}
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
             placeholder="Title"
@@ -67,7 +71,11 @@ export function NodeCard({
           />
           <textarea
             className="w-full rounded-lg px-3 py-2 text-sm outline-none resize-y"
-            style={{ background: "var(--skin-surface)", border: "1px solid var(--skin-line)", color: "var(--skin-ink-soft)" }}
+            style={{
+              background: "var(--skin-surface)",
+              border: "1px solid var(--skin-line)",
+              color: "var(--skin-ink-soft)",
+            }}
             rows={3}
             value={editDesc}
             onChange={(e) => setEditDesc(e.target.value)}
@@ -86,7 +94,11 @@ export function NodeCard({
               type="button"
               onClick={() => setIsEditing(false)}
               className="rounded-lg px-3 py-1.5 text-sm font-medium"
-              style={{ background: "var(--skin-surface)", color: "var(--skin-ink-soft)", border: "1px solid var(--skin-line)" }}
+              style={{
+                background: "var(--skin-surface)",
+                color: "var(--skin-ink-soft)",
+                border: "1px solid var(--skin-line)",
+              }}
             >
               Cancel
             </button>
@@ -169,7 +181,11 @@ export function NodeCard({
             onClick={onFill}
             disabled={filling}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60"
-            style={{ background: "var(--skin-surface)", color: "var(--skin-accent)", border: "1px solid var(--skin-line)" }}
+            style={{
+              background: "var(--skin-surface)",
+              color: "var(--skin-accent)",
+              border: "1px solid var(--skin-line)",
+            }}
           >
             {filling ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             Add a step

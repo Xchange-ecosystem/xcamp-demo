@@ -4,7 +4,16 @@
 // table in the schema today, so these are deterministic, illustrative placeholders
 // keyed by user id (stable across reloads, not randomized) until real data exists.
 
-const MOCK_TAG_POOL = ["Design", "Growth", "Product", "Engineering", "Ops", "Finance", "Marketing", "Research"];
+const MOCK_TAG_POOL = [
+  "Design",
+  "Growth",
+  "Product",
+  "Engineering",
+  "Ops",
+  "Finance",
+  "Marketing",
+  "Research",
+];
 
 function hashSeed(id: string): number {
   let h = 0;
@@ -12,7 +21,8 @@ function hashSeed(id: string): number {
   return h;
 }
 
-export function mockTagsForUser(userId: string): string[] { // MOCK — no user-tags table exists yet
+export function mockTagsForUser(userId: string): string[] {
+  // MOCK — no user-tags table exists yet
   const seed = hashSeed(userId);
   const count = 1 + (seed % 3);
   const tags: string[] = [];
@@ -22,6 +32,7 @@ export function mockTagsForUser(userId: string): string[] { // MOCK — no user-
   return [...new Set(tags)];
 }
 
-export function mockContributionCountForUser(userId: string): number { // MOCK — no contributions table exists yet
+export function mockContributionCountForUser(userId: string): number {
+  // MOCK — no contributions table exists yet
   return hashSeed(userId) % 47;
 }

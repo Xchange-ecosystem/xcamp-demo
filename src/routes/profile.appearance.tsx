@@ -64,10 +64,7 @@ function AppearancePage() {
           <CardDescription>{t("appearance.languageHint")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Select
-            value={i18n.language}
-            onValueChange={(v) => setLanguage(v as LanguageCode)}
-          >
+          <Select value={i18n.language} onValueChange={(v) => setLanguage(v as LanguageCode)}>
             <SelectTrigger className="w-full max-w-xs">
               <SelectValue />
             </SelectTrigger>

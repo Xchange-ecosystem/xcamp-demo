@@ -236,9 +236,15 @@ export function AboutTab({
 
       {/* ── Right column: Labels and tags / Set up / Attachments ── */}
       <div style={{ minWidth: 0 }}>
-        <Accordion type="multiple" defaultValue={["labels", "setup", "attachments"]} className="w-full">
+        <Accordion
+          type="multiple"
+          defaultValue={["labels", "setup", "attachments"]}
+          className="w-full"
+        >
           <AccordionItem value="labels" style={{ borderColor: "var(--skin-line)" }}>
-            <AccordionTrigger style={{ color: "var(--skin-ink)" }}>Labels and tags</AccordionTrigger>
+            <AccordionTrigger style={{ color: "var(--skin-ink)" }}>
+              Labels and tags
+            </AccordionTrigger>
             <AccordionContent>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {labels.length === 0 ? (
