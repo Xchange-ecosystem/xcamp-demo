@@ -12,6 +12,16 @@ import type { CardFeedConfig, CardFeedItemVisual } from "@/components/card-feed/
 import { ProposalModal, type Proposal } from "@/components/founder/ProposalModal";
 import { RightColumn } from "@/components/founder/RightColumn";
 import { matchObjective, synthesizeEstimate } from "@/components/founder/proposalUtils";
+import {
+  InertModeBody,
+  ModePillRow,
+  TranscriptModeBody,
+  type InputMode,
+  type TranscriptFile,
+} from "@/components/founder/ComposerModes";
+import { MODE_HINTS } from "@/components/founder/composerModes.constants";
+import { TranscriptOverlay } from "@/components/founder/TranscriptOverlay";
+import type { ExtractedPerson } from "@/lib/transcripts-api";
 import { getFeedByKind } from "@/fixtures/feed";
 import type { FeedItem } from "@/fixtures/types";
 
@@ -41,6 +51,12 @@ function FounderHomePage() {
   const [processingStep, setProcessingStep] = useState(-1);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Part 1a — composer input modes. Selection persists within the session;
+  // only Text and Transcript are wired to anything.
+  const [inputMode, setInputMode] = useState<InputMode>("text");
+  const [transcriptFile, setTranscriptFile] = useState<TranscriptFile | null>(null);
+  const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false);
 
   const openProposalFromItem = (item: FeedItem) => {
     const estimate = synthesizeEstimate(item.id);
@@ -147,6 +163,30 @@ function FounderHomePage() {
     toast.success("Accepted as a sketch · informational");
   };
 
+  const handleTranscriptComplete = (people: ExtractedPerson[]) => {
+    const now = Date.now();
+    const newItems: FeedItem[] = people.flatMap((p, i) =>
+      p.tasks.map((t, j) => ({
+        id: `transcript-${now}-${i}-${j}`,
+        kind: "action_item" as const,
+        title: t.title,
+        description: `Sketched from a meeting transcript for ${p.name}. Informational until the objective is formalized into an agreement.`,
+        projectId: "proj-1",
+        actorId: "person-1",
+        assigneeId: null,
+        status: "active" as const,
+        agreementState: "sketch" as const,
+        timestamp: new Date().toISOString(),
+        meta: { source: "transcript", time: t.est || "—" },
+      })),
+    );
+    setItems((prev) => [...newItems, ...prev]);
+    setShowTranscriptOverlay(false);
+    toast.success(
+      `${newItems.length} sketch ${newItems.length === 1 ? "task" : "tasks"} added to your feed`,
+    );
+  };
+
   const handleDismissProposal = (p: Proposal) => {
     setProposal(null);
     // Dismissing a proposal opened via a card's "Review" action should drop
@@ -167,54 +207,82 @@ function FounderHomePage() {
           <span className="font-normal text-muted-foreground">Here's what moved.</span>
         </h1>
 
+        {/* Part 1a — composer input modes */}
+        <ModePillRow mode={inputMode} onModeChange={setInputMode} />
+
         {/* Part 1 — input/upload composer */}
-        <div
-          className="rounded-2xl border p-4 shadow-sm transition-shadow focus-within:shadow-md"
-          style={{
-            borderColor: "var(--skin-line)",
-            background: "var(--skin-surface, var(--card))",
-          }}
-        >
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={3}
-            placeholder="What moved today? Type it, paste a transcript, or drop a file."
-            className="resize-none border-none bg-transparent px-0 shadow-none text-base focus-visible:ring-0"
-          />
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setDraft(file.name);
-                e.target.value = "";
-              }}
+        {inputMode === "text" ? (
+          <div
+            className="rounded-2xl border p-4 shadow-sm transition-shadow focus-within:shadow-md"
+            style={{
+              borderColor: "var(--skin-line)",
+              background: "var(--skin-surface, var(--card))",
+            }}
+          >
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              placeholder="What moved today? Type it, paste a transcript, or drop a file."
+              className="resize-none border-none bg-transparent px-0 shadow-none text-base focus-visible:ring-0"
             />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Paperclip size={14} /> Attach a file
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setDraft(SAMPLE_TEXT)}>
-              Paste an update
-            </Button>
-            <Button
-              size="sm"
-              className="ml-auto"
-              disabled={!draft.trim() || processing}
-              onClick={() => runProcessing(draft)}
-            >
-              Send to Chi <Send size={14} />
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setDraft(file.name);
+                  e.target.value = "";
+                }}
+              />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip size={14} /> Attach a file
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setDraft(SAMPLE_TEXT)}>
+                Paste an update
+              </Button>
+              <Button
+                size="sm"
+                className="ml-auto"
+                disabled={!draft.trim() || processing}
+                onClick={() => runProcessing(draft)}
+              >
+                Send to Chi <Send size={14} />
+              </Button>
+            </div>
           </div>
-        </div>
-        <p className="mt-2 px-1 text-xs text-muted-foreground">
-          Chi reads it, matches it to an objective, and proposes the work. You decide what lands.
-        </p>
+        ) : inputMode === "transcript" ? (
+          <div
+            className="rounded-2xl border p-4 shadow-sm"
+            style={{
+              borderColor: "var(--skin-line)",
+              background: "var(--skin-surface, var(--card))",
+            }}
+          >
+            <TranscriptModeBody
+              file={transcriptFile}
+              onFileSelected={setTranscriptFile}
+              onClear={() => setTranscriptFile(null)}
+              onSend={() => setShowTranscriptOverlay(true)}
+            />
+          </div>
+        ) : (
+          <InertModeBody mode={inputMode} />
+        )}
+        <p className="mt-2 px-1 text-xs text-muted-foreground">{MODE_HINTS[inputMode]}</p>
+
+        {showTranscriptOverlay && transcriptFile && (
+          <TranscriptOverlay
+            file={transcriptFile}
+            onClose={() => setShowTranscriptOverlay(false)}
+            onComplete={handleTranscriptComplete}
+          />
+        )}
 
         {/* Part 4 — mock-processing state */}
-        {processing && (
+        {processing && inputMode === "text" && (
           <div className="mt-3.5 rounded-lg border p-4" style={{ borderColor: "var(--skin-line)" }}>
             <div className="flex items-center gap-2.5 text-sm font-semibold">
               <span
