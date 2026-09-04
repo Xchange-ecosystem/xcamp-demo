@@ -227,7 +227,8 @@ export function AssignmentFeed({
               <span className="font-semibold text-foreground">{reviewing.value} cr</span> moves from
               informational to{" "}
               <span className="font-semibold text-foreground">committed under agreement</span> —
-              locked, and released to my wallet when the objective completes and is certified.
+              locked, and released to my wallet when the objective completes and is certified. This
+              can't be changed afterwards without both sides re-accepting.
             </p>
 
             <DialogFooter>
