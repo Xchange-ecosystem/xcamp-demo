@@ -24,6 +24,7 @@ test("changing a note's project alone (no title/body edit) is persisted", async 
   // this task fixture is visible without changing the user's saved defaults.
   await page.getByRole("button", { name: "Filter notes" }).click();
   await page.getByRole("button", { name: "Task", exact: true }).click();
+  await page.getByRole("button", { name: "Filter notes" }).click();
 
   await page.getByText(TASK_TITLE, { exact: true }).first().click({ timeout: 10_000 });
   await page.waitForTimeout(800);

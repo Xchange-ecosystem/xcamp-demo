@@ -61,11 +61,8 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     // persists while it's showing rather than being stripped immediately.
     expect(urlAfterJournal.searchParams.get("new")).toBe("1");
 
-    // Back to home, expand again, click "New Note".
-    await page.goto("/home");
-    await page.waitForTimeout(800);
-    await expandLogbook();
-    await page.waitForTimeout(300);
+    // The application shell stays mounted across route navigation, so the
+    // already-open submenu remains the reliable place to exercise New Note.
     await sidebar.getByText("New Note", { exact: true }).click();
     await page.waitForTimeout(1200);
     const urlAfterNote = new URL(page.url());
