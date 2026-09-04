@@ -12,7 +12,7 @@ A standalone presentation demo — **not** a production feature. Built to be sho
 
 1. **Founder** — input/upload field, action-item card feed, right-column metrics, mock-processing → proposal modal, plus lighter Companion/Navigator/Dashboard screens
 2. **Investor/Operator Portfolio** — animated ranked bar list, horizontal project selector, update-card feed, ecosystem metrics
-3. **Investor Dashboard** *(new)* — central hub combining a Companion chat panel with a key-metrics summary, analogous to the Founder's Companion Home
+3. **Investor Dashboard** _(new)_ — central hub combining a Companion chat panel with a key-metrics summary, analogous to the Founder's Companion Home
 4. **Collaborator** — assignment feed, metrics + value wallet
 5. **Admin** — transcript upload → real chi-orchestration extraction → editable task/assignee list → email preview → send
 
