@@ -18,10 +18,10 @@ import { getPersonById } from "@/fixtures/people";
 const DEMO_FOUNDER = getPersonById("person-1")!;
 
 const sections = [
-  { to: "/founder", label: "Home", icon: Home, exact: true },
-  { to: "/founder/companion", label: "Companion", icon: MessageCircle, exact: false },
-  { to: "/founder/navigator", label: "Navigator", icon: NavigationIcon, exact: false },
-  { to: "/founder/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: false },
+  { to: "/demo/founder", label: "Home", icon: Home, exact: true },
+  { to: "/demo/founder/companion", label: "Companion", icon: MessageCircle, exact: false },
+  { to: "/demo/founder/navigator", label: "Navigator", icon: NavigationIcon, exact: false },
+  { to: "/demo/founder/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: false },
 ] as const;
 
 function initials(name: string) {

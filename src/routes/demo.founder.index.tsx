@@ -2,33 +2,26 @@
 // -> proposal modal, action-item card feed, right-column metrics.
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Paperclip, Send } from "lucide-react";
+import { CheckCircle2, Handshake, Lightbulb, Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CardFeed } from "@/components/card-feed/CardFeed";
 import { founderActionItemConfig } from "@/components/card-feed/configs";
-import type { CardFeedConfig } from "@/components/card-feed/types";
+import type { CardFeedConfig, CardFeedItemVisual } from "@/components/card-feed/types";
 import { ProposalModal, type Proposal } from "@/components/founder/ProposalModal";
 import { RightColumn } from "@/components/founder/RightColumn";
-import { synthesizeEstimate } from "@/components/founder/proposalUtils";
+import { matchObjective, synthesizeEstimate } from "@/components/founder/proposalUtils";
 import { getFeedByKind } from "@/fixtures/feed";
 import type { FeedItem } from "@/fixtures/types";
 
-export const Route = createFileRoute("/founder/")({
+export const Route = createFileRoute("/demo/founder/")({
   head: () => ({ meta: [{ title: "Founder — Xcamp" }] }),
   component: FounderHomePage,
 });
 
 const SAMPLE_TEXT =
   "Kenya Power sent positive feedback after the site visit — let's get a follow-up proposal deck together and get the pilot signed.";
-
-const SOURCE_LABEL: Record<string, string> = {
-  "voice-note": "From your voice note",
-  "email-forward": "Forwarded from an email",
-  "text-input": "From your text update",
-  upload: "From an uploaded file",
-};
 
 const PROCESSING_STEPS = [
   "Reading your update",
@@ -51,10 +44,11 @@ function FounderHomePage() {
 
   const openProposalFromItem = (item: FeedItem) => {
     const estimate = synthesizeEstimate(item.id);
+    const objective = matchObjective(item.id, item.projectId);
     setProposal({
       id: item.id,
       title: item.title,
-      sourceLabel: SOURCE_LABEL[String(item.meta?.source ?? "")] ?? "Suggested from your activity",
+      sourceLabel: `Read from your update · matched to the ${objective.title} objective`,
       assigneeId: item.assigneeId ?? DEFAULT_ASSIGNEE_ID,
       time: estimate.time,
       value: estimate.value,
@@ -68,6 +62,29 @@ function FounderHomePage() {
 
   const founderFeedConfig: CardFeedConfig<FeedItem> = {
     ...founderActionItemConfig,
+    // Agreement-lifecycle badge instead of founderActionItemConfig's
+    // done/active status badge — every action item now carries
+    // `agreementState`, so this replaces rather than falls back to it.
+    getVisual: (item): CardFeedItemVisual => {
+      switch (item.agreementState) {
+        case "settled":
+          return { icon: CheckCircle2, badgeLabel: "Settled", accent: "var(--skin-good)" };
+        case "agreement":
+          return { icon: Handshake, badgeLabel: "Under agreement", accent: "var(--skin-accent)" };
+        default:
+          return { icon: Lightbulb, badgeLabel: "Added as a sketch", accent: "var(--skin-accent)" };
+      }
+    },
+    getMeta: (item) => {
+      const entries = founderActionItemConfig.getMeta?.(item) ?? [];
+      if (typeof item.meta?.time === "string") {
+        entries.push({ key: "time", label: `~${item.meta.time}` });
+      }
+      if (typeof item.meta?.value === "number") {
+        entries.push({ key: "value", label: `${item.meta.value} cr · informational` });
+      }
+      return entries;
+    },
     getActions: (item) =>
       item.status === "completed" || item.status === "done"
         ? []
@@ -93,10 +110,11 @@ function FounderHomePage() {
         setProcessing(false);
         setProcessingStep(-1);
         const estimate = synthesizeEstimate(seed);
+        const objective = matchObjective(seed);
         setProposal({
           id: `draft-${Date.now()}`,
           title: seed.length > 72 ? `${seed.slice(0, 72)}…` : seed,
-          sourceLabel: "Read from your update · matched to an open objective",
+          sourceLabel: `Read from your update · matched to the ${objective.title} objective`,
           assigneeId: DEFAULT_ASSIGNEE_ID,
           time: estimate.time,
           value: estimate.value,
@@ -114,18 +132,19 @@ function FounderHomePage() {
         id: existing?.id ?? accepted.id,
         kind: "action_item",
         title: accepted.title,
-        description: `Assigned to this task · ~${accepted.time} · ${accepted.value} cr`,
+        description: `${accepted.value} cr is informational until the objective is formalized into an agreement.`,
         projectId: existing?.projectId ?? "proj-1",
         actorId: existing?.actorId ?? "person-1",
         assigneeId: accepted.assigneeId,
         status: "active",
+        agreementState: "sketch",
         timestamp: new Date().toISOString(),
-        meta: { source: "composer" },
+        meta: { source: "composer", time: accepted.time, value: accepted.value },
       };
       const withoutExisting = prev.filter((i) => i.id !== next.id);
       return [next, ...withoutExisting];
     });
-    toast.success("Accepted as an active task");
+    toast.success("Accepted as a sketch · informational");
   };
 
   const handleDismissProposal = (p: Proposal) => {

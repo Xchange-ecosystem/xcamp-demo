@@ -16,27 +16,27 @@ import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as NavigatorRouteImport } from './routes/navigator'
 import { Route as JournalRouteImport } from './routes/journal'
-import { Route as InvestorPortfolioRouteImport } from './routes/investor-portfolio'
 import { Route as HomeRouteImport } from './routes/home'
-import { Route as FounderRouteImport } from './routes/founder'
 import { Route as EcosystemNavigatorRouteImport } from './routes/ecosystem-navigator'
 import { Route as EcosystemDashboardRouteImport } from './routes/ecosystem-dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AiPlanRouteImport } from './routes/ai-plan'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
-import { Route as FounderIndexRouteImport } from './routes/founder.index'
 import { Route as TaskTaskIdRouteImport } from './routes/task.$taskId'
 import { Route as SandboxTaskPanelV3RouteImport } from './routes/sandbox.task-panel-v3'
 import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-panel-live'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
-import { Route as FounderNavigatorRouteImport } from './routes/founder.navigator'
-import { Route as FounderDashboardRouteImport } from './routes/founder.dashboard'
-import { Route as FounderCompanionRouteImport } from './routes/founder.companion'
+import { Route as DemoFounderRouteImport } from './routes/demo.founder'
 import { Route as DemoCollaboratorRouteImport } from './routes/demo.collaborator'
+import { Route as DemoFounderIndexRouteImport } from './routes/demo.founder.index'
 import { Route as ProjectProjectIdProjectDashboardRouteImport } from './routes/project.$projectId_.project-dashboard'
 import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
+import { Route as DemoInvestorPortfolioRouteImport } from './routes/demo.investor.portfolio'
+import { Route as DemoFounderNavigatorRouteImport } from './routes/demo.founder.navigator'
+import { Route as DemoFounderDashboardRouteImport } from './routes/demo.founder.dashboard'
+import { Route as DemoFounderCompanionRouteImport } from './routes/demo.founder.companion'
 
 const ProjectDetailsRoute = ProjectDetailsRouteImport.update({
   id: '/project-details',
@@ -73,19 +73,9 @@ const JournalRoute = JournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InvestorPortfolioRoute = InvestorPortfolioRouteImport.update({
-  id: '/investor-portfolio',
-  path: '/investor-portfolio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FounderRoute = FounderRouteImport.update({
-  id: '/founder',
-  path: '/founder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EcosystemNavigatorRoute = EcosystemNavigatorRouteImport.update({
@@ -118,11 +108,6 @@ const ProfileIndexRoute = ProfileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfileRoute,
 } as any)
-const FounderIndexRoute = FounderIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FounderRoute,
-} as any)
 const TaskTaskIdRoute = TaskTaskIdRouteImport.update({
   id: '/task/$taskId',
   path: '/task/$taskId',
@@ -148,25 +133,20 @@ const ProfileAppearanceRoute = ProfileAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => ProfileRoute,
 } as any)
-const FounderNavigatorRoute = FounderNavigatorRouteImport.update({
-  id: '/navigator',
-  path: '/navigator',
-  getParentRoute: () => FounderRoute,
-} as any)
-const FounderDashboardRoute = FounderDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => FounderRoute,
-} as any)
-const FounderCompanionRoute = FounderCompanionRouteImport.update({
-  id: '/companion',
-  path: '/companion',
-  getParentRoute: () => FounderRoute,
+const DemoFounderRoute = DemoFounderRouteImport.update({
+  id: '/demo/founder',
+  path: '/demo/founder',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DemoCollaboratorRoute = DemoCollaboratorRouteImport.update({
   id: '/demo/collaborator',
   path: '/demo/collaborator',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DemoFounderIndexRoute = DemoFounderIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DemoFounderRoute,
 } as any)
 const ProjectProjectIdProjectDashboardRoute =
   ProjectProjectIdProjectDashboardRouteImport.update({
@@ -179,6 +159,26 @@ const ProjectProjectIdGoalsRoute = ProjectProjectIdGoalsRouteImport.update({
   path: '/project/$projectId/goals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoInvestorPortfolioRoute = DemoInvestorPortfolioRouteImport.update({
+  id: '/demo/investor/portfolio',
+  path: '/demo/investor/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoFounderNavigatorRoute = DemoFounderNavigatorRouteImport.update({
+  id: '/navigator',
+  path: '/navigator',
+  getParentRoute: () => DemoFounderRoute,
+} as any)
+const DemoFounderDashboardRoute = DemoFounderDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => DemoFounderRoute,
+} as any)
+const DemoFounderCompanionRoute = DemoFounderCompanionRouteImport.update({
+  id: '/companion',
+  path: '/companion',
+  getParentRoute: () => DemoFounderRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -186,9 +186,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
-  '/founder': typeof FounderRouteWithChildren
   '/home': typeof HomeRoute
-  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -197,18 +195,20 @@ export interface FileRoutesByFullPath {
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
   '/demo/collaborator': typeof DemoCollaboratorRoute
-  '/founder/companion': typeof FounderCompanionRoute
-  '/founder/dashboard': typeof FounderDashboardRoute
-  '/founder/navigator': typeof FounderNavigatorRoute
+  '/demo/founder': typeof DemoFounderRouteWithChildren
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/sandbox/task-panel-live': typeof SandboxTaskPanelLiveRoute
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
-  '/founder/': typeof FounderIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/demo/founder/companion': typeof DemoFounderCompanionRoute
+  '/demo/founder/dashboard': typeof DemoFounderDashboardRoute
+  '/demo/founder/navigator': typeof DemoFounderNavigatorRoute
+  '/demo/investor/portfolio': typeof DemoInvestorPortfolioRoute
   '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
   '/project/$projectId/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
+  '/demo/founder/': typeof DemoFounderIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -217,7 +217,6 @@ export interface FileRoutesByTo {
   '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
   '/home': typeof HomeRoute
-  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -225,18 +224,19 @@ export interface FileRoutesByTo {
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
   '/demo/collaborator': typeof DemoCollaboratorRoute
-  '/founder/companion': typeof FounderCompanionRoute
-  '/founder/dashboard': typeof FounderDashboardRoute
-  '/founder/navigator': typeof FounderNavigatorRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/sandbox/task-panel-live': typeof SandboxTaskPanelLiveRoute
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
-  '/founder': typeof FounderIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/demo/founder/companion': typeof DemoFounderCompanionRoute
+  '/demo/founder/dashboard': typeof DemoFounderDashboardRoute
+  '/demo/founder/navigator': typeof DemoFounderNavigatorRoute
+  '/demo/investor/portfolio': typeof DemoInvestorPortfolioRoute
   '/project/$projectId/goals': typeof ProjectProjectIdGoalsRoute
   '/project/$projectId/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
+  '/demo/founder': typeof DemoFounderIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -245,9 +245,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/ecosystem-dashboard': typeof EcosystemDashboardRoute
   '/ecosystem-navigator': typeof EcosystemNavigatorRoute
-  '/founder': typeof FounderRouteWithChildren
   '/home': typeof HomeRoute
-  '/investor-portfolio': typeof InvestorPortfolioRoute
   '/journal': typeof JournalRoute
   '/navigator': typeof NavigatorRoute
   '/notes': typeof NotesRoute
@@ -256,18 +254,20 @@ export interface FileRoutesById {
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
   '/demo/collaborator': typeof DemoCollaboratorRoute
-  '/founder/companion': typeof FounderCompanionRoute
-  '/founder/dashboard': typeof FounderDashboardRoute
-  '/founder/navigator': typeof FounderNavigatorRoute
+  '/demo/founder': typeof DemoFounderRouteWithChildren
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/sandbox/task-panel-live': typeof SandboxTaskPanelLiveRoute
   '/sandbox/task-panel-v3': typeof SandboxTaskPanelV3Route
   '/task/$taskId': typeof TaskTaskIdRoute
-  '/founder/': typeof FounderIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/demo/founder/companion': typeof DemoFounderCompanionRoute
+  '/demo/founder/dashboard': typeof DemoFounderDashboardRoute
+  '/demo/founder/navigator': typeof DemoFounderNavigatorRoute
+  '/demo/investor/portfolio': typeof DemoInvestorPortfolioRoute
   '/project/$projectId_/goals': typeof ProjectProjectIdGoalsRoute
   '/project/$projectId_/project-dashboard': typeof ProjectProjectIdProjectDashboardRoute
+  '/demo/founder/': typeof DemoFounderIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -277,9 +277,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
-    | '/founder'
     | '/home'
-    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -288,18 +286,20 @@ export interface FileRouteTypes {
     | '/project-builder'
     | '/project-details'
     | '/demo/collaborator'
-    | '/founder/companion'
-    | '/founder/dashboard'
-    | '/founder/navigator'
+    | '/demo/founder'
     | '/profile/appearance'
     | '/project/$projectId'
     | '/sandbox/task-panel-live'
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
-    | '/founder/'
     | '/profile/'
+    | '/demo/founder/companion'
+    | '/demo/founder/dashboard'
+    | '/demo/founder/navigator'
+    | '/demo/investor/portfolio'
     | '/project/$projectId/goals'
     | '/project/$projectId/project-dashboard'
+    | '/demo/founder/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -308,7 +308,6 @@ export interface FileRouteTypes {
     | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
     | '/home'
-    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -316,18 +315,19 @@ export interface FileRouteTypes {
     | '/project-builder'
     | '/project-details'
     | '/demo/collaborator'
-    | '/founder/companion'
-    | '/founder/dashboard'
-    | '/founder/navigator'
     | '/profile/appearance'
     | '/project/$projectId'
     | '/sandbox/task-panel-live'
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
-    | '/founder'
     | '/profile'
+    | '/demo/founder/companion'
+    | '/demo/founder/dashboard'
+    | '/demo/founder/navigator'
+    | '/demo/investor/portfolio'
     | '/project/$projectId/goals'
     | '/project/$projectId/project-dashboard'
+    | '/demo/founder'
   id:
     | '__root__'
     | '/'
@@ -335,9 +335,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/ecosystem-dashboard'
     | '/ecosystem-navigator'
-    | '/founder'
     | '/home'
-    | '/investor-portfolio'
     | '/journal'
     | '/navigator'
     | '/notes'
@@ -346,18 +344,20 @@ export interface FileRouteTypes {
     | '/project-builder'
     | '/project-details'
     | '/demo/collaborator'
-    | '/founder/companion'
-    | '/founder/dashboard'
-    | '/founder/navigator'
+    | '/demo/founder'
     | '/profile/appearance'
     | '/project/$projectId'
     | '/sandbox/task-panel-live'
     | '/sandbox/task-panel-v3'
     | '/task/$taskId'
-    | '/founder/'
     | '/profile/'
+    | '/demo/founder/companion'
+    | '/demo/founder/dashboard'
+    | '/demo/founder/navigator'
+    | '/demo/investor/portfolio'
     | '/project/$projectId_/goals'
     | '/project/$projectId_/project-dashboard'
+    | '/demo/founder/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -366,9 +366,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   EcosystemDashboardRoute: typeof EcosystemDashboardRoute
   EcosystemNavigatorRoute: typeof EcosystemNavigatorRoute
-  FounderRoute: typeof FounderRouteWithChildren
   HomeRoute: typeof HomeRoute
-  InvestorPortfolioRoute: typeof InvestorPortfolioRoute
   JournalRoute: typeof JournalRoute
   NavigatorRoute: typeof NavigatorRoute
   NotesRoute: typeof NotesRoute
@@ -377,10 +375,12 @@ export interface RootRouteChildren {
   ProjectBuilderRoute: typeof ProjectBuilderRoute
   ProjectDetailsRoute: typeof ProjectDetailsRoute
   DemoCollaboratorRoute: typeof DemoCollaboratorRoute
+  DemoFounderRoute: typeof DemoFounderRouteWithChildren
   ProjectProjectIdRoute: typeof ProjectProjectIdRoute
   SandboxTaskPanelLiveRoute: typeof SandboxTaskPanelLiveRoute
   SandboxTaskPanelV3Route: typeof SandboxTaskPanelV3Route
   TaskTaskIdRoute: typeof TaskTaskIdRoute
+  DemoInvestorPortfolioRoute: typeof DemoInvestorPortfolioRoute
   ProjectProjectIdGoalsRoute: typeof ProjectProjectIdGoalsRoute
   ProjectProjectIdProjectDashboardRoute: typeof ProjectProjectIdProjectDashboardRoute
 }
@@ -436,25 +436,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/investor-portfolio': {
-      id: '/investor-portfolio'
-      path: '/investor-portfolio'
-      fullPath: '/investor-portfolio'
-      preLoaderRoute: typeof InvestorPortfolioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/home': {
       id: '/home'
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/founder': {
-      id: '/founder'
-      path: '/founder'
-      fullPath: '/founder'
-      preLoaderRoute: typeof FounderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ecosystem-navigator': {
@@ -499,13 +485,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/founder/': {
-      id: '/founder/'
-      path: '/'
-      fullPath: '/founder/'
-      preLoaderRoute: typeof FounderIndexRouteImport
-      parentRoute: typeof FounderRoute
-    }
     '/task/$taskId': {
       id: '/task/$taskId'
       path: '/task/$taskId'
@@ -541,26 +520,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileAppearanceRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/founder/navigator': {
-      id: '/founder/navigator'
-      path: '/navigator'
-      fullPath: '/founder/navigator'
-      preLoaderRoute: typeof FounderNavigatorRouteImport
-      parentRoute: typeof FounderRoute
-    }
-    '/founder/dashboard': {
-      id: '/founder/dashboard'
-      path: '/dashboard'
-      fullPath: '/founder/dashboard'
-      preLoaderRoute: typeof FounderDashboardRouteImport
-      parentRoute: typeof FounderRoute
-    }
-    '/founder/companion': {
-      id: '/founder/companion'
-      path: '/companion'
-      fullPath: '/founder/companion'
-      preLoaderRoute: typeof FounderCompanionRouteImport
-      parentRoute: typeof FounderRoute
+    '/demo/founder': {
+      id: '/demo/founder'
+      path: '/demo/founder'
+      fullPath: '/demo/founder'
+      preLoaderRoute: typeof DemoFounderRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/demo/collaborator': {
       id: '/demo/collaborator'
@@ -568,6 +533,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/collaborator'
       preLoaderRoute: typeof DemoCollaboratorRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/demo/founder/': {
+      id: '/demo/founder/'
+      path: '/'
+      fullPath: '/demo/founder/'
+      preLoaderRoute: typeof DemoFounderIndexRouteImport
+      parentRoute: typeof DemoFounderRoute
     }
     '/project/$projectId_/project-dashboard': {
       id: '/project/$projectId_/project-dashboard'
@@ -583,25 +555,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdGoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo/investor/portfolio': {
+      id: '/demo/investor/portfolio'
+      path: '/demo/investor/portfolio'
+      fullPath: '/demo/investor/portfolio'
+      preLoaderRoute: typeof DemoInvestorPortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/founder/navigator': {
+      id: '/demo/founder/navigator'
+      path: '/navigator'
+      fullPath: '/demo/founder/navigator'
+      preLoaderRoute: typeof DemoFounderNavigatorRouteImport
+      parentRoute: typeof DemoFounderRoute
+    }
+    '/demo/founder/dashboard': {
+      id: '/demo/founder/dashboard'
+      path: '/dashboard'
+      fullPath: '/demo/founder/dashboard'
+      preLoaderRoute: typeof DemoFounderDashboardRouteImport
+      parentRoute: typeof DemoFounderRoute
+    }
+    '/demo/founder/companion': {
+      id: '/demo/founder/companion'
+      path: '/companion'
+      fullPath: '/demo/founder/companion'
+      preLoaderRoute: typeof DemoFounderCompanionRouteImport
+      parentRoute: typeof DemoFounderRoute
+    }
   }
 }
-
-interface FounderRouteChildren {
-  FounderCompanionRoute: typeof FounderCompanionRoute
-  FounderDashboardRoute: typeof FounderDashboardRoute
-  FounderNavigatorRoute: typeof FounderNavigatorRoute
-  FounderIndexRoute: typeof FounderIndexRoute
-}
-
-const FounderRouteChildren: FounderRouteChildren = {
-  FounderCompanionRoute: FounderCompanionRoute,
-  FounderDashboardRoute: FounderDashboardRoute,
-  FounderNavigatorRoute: FounderNavigatorRoute,
-  FounderIndexRoute: FounderIndexRoute,
-}
-
-const FounderRouteWithChildren =
-  FounderRoute._addFileChildren(FounderRouteChildren)
 
 interface ProfileRouteChildren {
   ProfileAppearanceRoute: typeof ProfileAppearanceRoute
@@ -616,15 +599,31 @@ const ProfileRouteChildren: ProfileRouteChildren = {
 const ProfileRouteWithChildren =
   ProfileRoute._addFileChildren(ProfileRouteChildren)
 
+interface DemoFounderRouteChildren {
+  DemoFounderCompanionRoute: typeof DemoFounderCompanionRoute
+  DemoFounderDashboardRoute: typeof DemoFounderDashboardRoute
+  DemoFounderNavigatorRoute: typeof DemoFounderNavigatorRoute
+  DemoFounderIndexRoute: typeof DemoFounderIndexRoute
+}
+
+const DemoFounderRouteChildren: DemoFounderRouteChildren = {
+  DemoFounderCompanionRoute: DemoFounderCompanionRoute,
+  DemoFounderDashboardRoute: DemoFounderDashboardRoute,
+  DemoFounderNavigatorRoute: DemoFounderNavigatorRoute,
+  DemoFounderIndexRoute: DemoFounderIndexRoute,
+}
+
+const DemoFounderRouteWithChildren = DemoFounderRoute._addFileChildren(
+  DemoFounderRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiPlanRoute: AiPlanRoute,
   AuthRoute: AuthRoute,
   EcosystemDashboardRoute: EcosystemDashboardRoute,
   EcosystemNavigatorRoute: EcosystemNavigatorRoute,
-  FounderRoute: FounderRouteWithChildren,
   HomeRoute: HomeRoute,
-  InvestorPortfolioRoute: InvestorPortfolioRoute,
   JournalRoute: JournalRoute,
   NavigatorRoute: NavigatorRoute,
   NotesRoute: NotesRoute,
@@ -633,10 +632,12 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectBuilderRoute: ProjectBuilderRoute,
   ProjectDetailsRoute: ProjectDetailsRoute,
   DemoCollaboratorRoute: DemoCollaboratorRoute,
+  DemoFounderRoute: DemoFounderRouteWithChildren,
   ProjectProjectIdRoute: ProjectProjectIdRoute,
   SandboxTaskPanelLiveRoute: SandboxTaskPanelLiveRoute,
   SandboxTaskPanelV3Route: SandboxTaskPanelV3Route,
   TaskTaskIdRoute: TaskTaskIdRoute,
+  DemoInvestorPortfolioRoute: DemoInvestorPortfolioRoute,
   ProjectProjectIdGoalsRoute: ProjectProjectIdGoalsRoute,
   ProjectProjectIdProjectDashboardRoute: ProjectProjectIdProjectDashboardRoute,
 }

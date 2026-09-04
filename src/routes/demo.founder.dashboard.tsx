@@ -8,7 +8,7 @@ import { investorUpdateConfig } from "@/components/card-feed/configs";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
 import { getFeedByKind } from "@/fixtures/feed";
 
-export const Route = createFileRoute("/founder/dashboard")({
+export const Route = createFileRoute("/demo/founder/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Xcamp" }] }),
   component: FounderDashboardPage,
 });

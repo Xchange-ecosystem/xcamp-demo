@@ -8,7 +8,7 @@ import { OBJECTIVES } from "@/fixtures/objectives";
 import { getProjectById } from "@/fixtures/projects";
 import type { ObjectiveStatus } from "@/fixtures/types";
 
-export const Route = createFileRoute("/founder/navigator")({
+export const Route = createFileRoute("/demo/founder/navigator")({
   head: () => ({ meta: [{ title: "Navigator — Xcamp" }] }),
   component: FounderNavigatorPage,
 });

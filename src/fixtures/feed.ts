@@ -22,6 +22,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-8",
     status: "active",
     timestamp: "2026-09-03T07:40:00.000Z",
+    agreementState: "sketch",
     meta: { source: "voice-note" },
   },
   {
@@ -34,6 +35,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-9",
     status: "active",
     timestamp: "2026-09-02T16:05:00.000Z",
+    agreementState: "agreement",
     meta: { source: "email-forward" },
   },
   {
@@ -46,6 +48,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-2",
     status: "active",
     timestamp: "2026-09-02T11:20:00.000Z",
+    agreementState: "sketch",
     meta: { source: "text-input" },
   },
   {
@@ -58,6 +61,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-3",
     status: "done",
     timestamp: "2026-08-30T09:00:00.000Z",
+    agreementState: "settled",
     meta: { source: "upload" },
   },
   {
@@ -70,6 +74,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-3",
     status: "active",
     timestamp: "2026-09-01T14:30:00.000Z",
+    agreementState: "agreement",
     meta: { source: "text-input" },
   },
   {
@@ -82,6 +87,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: "person-4",
     status: "active",
     timestamp: "2026-09-03T06:15:00.000Z",
+    agreementState: "agreement",
     meta: { source: "upload" },
   },
   {
@@ -94,6 +100,7 @@ export const FEED_ITEMS: FeedItem[] = [
     assigneeId: null,
     status: "inactive",
     timestamp: "2026-08-29T13:00:00.000Z",
+    agreementState: "sketch",
     meta: { source: "voice-note" },
   },
 
