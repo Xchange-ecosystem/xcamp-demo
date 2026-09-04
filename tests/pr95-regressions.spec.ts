@@ -101,6 +101,11 @@ test.describe("PR #95 regression audit — live verification", () => {
     const structure = async (url: string) => {
       await page.goto(url);
       await page.getByTestId("rail-tab-altitude").waitFor({ state: "attached" });
+      // The project selector and project-mode controls arrive with the mocked
+      // projects query. Wait for them before comparing the two URLs.
+      await expect(page.getByText("Audit project", { exact: true }).first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       let previous = "";
       let settled!: Awaited<ReturnType<typeof snapshot>>;

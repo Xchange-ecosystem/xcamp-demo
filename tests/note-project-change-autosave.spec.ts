@@ -20,13 +20,12 @@ test("changing a note's project alone (no title/body edit) is persisted", async 
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(1000);
 
-  const clearAll = page.getByText("Clear all", { exact: true });
-  if (await clearAll.isVisible().catch(() => false)) {
-    await clearAll.click();
-    await page.waitForTimeout(500);
-  }
+  // Notes defaults to the note-only type filter. Explicitly include tasks so
+  // this task fixture is visible without changing the user's saved defaults.
+  await page.getByRole("button", { name: "Filter notes" }).click();
+  await page.getByRole("button", { name: "Task", exact: true }).click();
 
-  await page.getByText(TASK_TITLE, { exact: true }).first().click();
+  await page.getByText(TASK_TITLE, { exact: true }).first().click({ timeout: 10_000 });
   await page.waitForTimeout(800);
 
   // Open the meta section and assign a project — the only change made.

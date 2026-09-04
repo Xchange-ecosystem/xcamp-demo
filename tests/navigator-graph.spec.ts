@@ -325,7 +325,7 @@ test.describe("Navigator — Network graph", () => {
     // Click the inner div (not the handle)
     await objNode.click({ position: { x: 60, y: 60 } });
 
-    await expect(page.getByLabel("Objective title")).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByPlaceholder("Objective title")).toBeVisible({ timeout: 8_000 });
     console.log("✓ EntityPanel opened after clicking objective node");
   });
 

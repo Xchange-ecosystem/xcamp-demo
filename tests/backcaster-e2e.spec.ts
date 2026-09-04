@@ -283,10 +283,13 @@ test.describe("Backcaster QuickRoad E2E", () => {
 
     // ── Step 4: GenerateStep ───────────────────────────────────────────────
     console.log("\n[STEP 4] Clicking 'Create plan'…");
+    const generateResponse = page.waitForResponse(
+      (resp) => resp.url().includes("/backcaster/generate") && resp.request().method() === "POST",
+      { timeout: 90_000 },
+    );
     await page.getByRole("button", { name: "Create plan" }).click();
-
-    await expect(page.locator("text=Shaping your plan")).toBeVisible({ timeout: 10_000 });
-    console.log("[STEP 4] Generating plan (RAG-backed, may take 60-120s)…");
+    await generateResponse;
+    console.log("[STEP 4] Plan generation request completed");
 
     await expect(page.getByRole("button", { name: "Build project" })).toBeVisible({
       timeout: 180_000,
