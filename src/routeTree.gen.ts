@@ -34,6 +34,7 @@ import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearan
 import { Route as FounderNavigatorRouteImport } from './routes/founder.navigator'
 import { Route as FounderDashboardRouteImport } from './routes/founder.dashboard'
 import { Route as FounderCompanionRouteImport } from './routes/founder.companion'
+import { Route as DemoCollaboratorRouteImport } from './routes/demo.collaborator'
 import { Route as ProjectProjectIdProjectDashboardRouteImport } from './routes/project.$projectId_.project-dashboard'
 import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
 
@@ -162,6 +163,11 @@ const FounderCompanionRoute = FounderCompanionRouteImport.update({
   path: '/companion',
   getParentRoute: () => FounderRoute,
 } as any)
+const DemoCollaboratorRoute = DemoCollaboratorRouteImport.update({
+  id: '/demo/collaborator',
+  path: '/demo/collaborator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdProjectDashboardRoute =
   ProjectProjectIdProjectDashboardRouteImport.update({
     id: '/project/$projectId_/project-dashboard',
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/founder/companion': typeof FounderCompanionRoute
   '/founder/dashboard': typeof FounderDashboardRoute
   '/founder/navigator': typeof FounderNavigatorRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/portfolio': typeof PortfolioRoute
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/founder/companion': typeof FounderCompanionRoute
   '/founder/dashboard': typeof FounderDashboardRoute
   '/founder/navigator': typeof FounderNavigatorRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/founder/companion': typeof FounderCompanionRoute
   '/founder/dashboard': typeof FounderDashboardRoute
   '/founder/navigator': typeof FounderNavigatorRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/founder/companion'
     | '/founder/dashboard'
     | '/founder/navigator'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/founder/companion'
     | '/founder/dashboard'
     | '/founder/navigator'
@@ -334,6 +345,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/founder/companion'
     | '/founder/dashboard'
     | '/founder/navigator'
@@ -364,6 +376,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
   ProjectDetailsRoute: typeof ProjectDetailsRoute
+  DemoCollaboratorRoute: typeof DemoCollaboratorRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRoute
   SandboxTaskPanelLiveRoute: typeof SandboxTaskPanelLiveRoute
   SandboxTaskPanelV3Route: typeof SandboxTaskPanelV3Route
@@ -549,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FounderCompanionRouteImport
       parentRoute: typeof FounderRoute
     }
+    '/demo/collaborator': {
+      id: '/demo/collaborator'
+      path: '/demo/collaborator'
+      fullPath: '/demo/collaborator'
+      preLoaderRoute: typeof DemoCollaboratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId_/project-dashboard': {
       id: '/project/$projectId_/project-dashboard'
       path: '/project/$projectId/project-dashboard'
@@ -612,6 +632,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
   ProjectDetailsRoute: ProjectDetailsRoute,
+  DemoCollaboratorRoute: DemoCollaboratorRoute,
   ProjectProjectIdRoute: ProjectProjectIdRoute,
   SandboxTaskPanelLiveRoute: SandboxTaskPanelLiveRoute,
   SandboxTaskPanelV3Route: SandboxTaskPanelV3Route,
