@@ -29,6 +29,7 @@ import { Route as SandboxTaskPanelLiveRouteImport } from './routes/sandbox.task-
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as ProfileAppearanceRouteImport } from './routes/profile.appearance'
 import { Route as DemoFounderRouteImport } from './routes/demo.founder'
+import { Route as DemoCollaboratorRouteImport } from './routes/demo.collaborator'
 import { Route as DemoFounderIndexRouteImport } from './routes/demo.founder.index'
 import { Route as ProjectProjectIdProjectDashboardRouteImport } from './routes/project.$projectId_.project-dashboard'
 import { Route as ProjectProjectIdGoalsRouteImport } from './routes/project.$projectId_.goals'
@@ -137,6 +138,11 @@ const DemoFounderRoute = DemoFounderRouteImport.update({
   path: '/demo/founder',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoCollaboratorRoute = DemoCollaboratorRouteImport.update({
+  id: '/demo/collaborator',
+  path: '/demo/collaborator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoFounderIndexRoute = DemoFounderIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/demo/founder': typeof DemoFounderRouteWithChildren
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/portfolio': typeof PortfolioRoute
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
   '/sandbox/task-panel-live': typeof SandboxTaskPanelLiveRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRouteWithChildren
   '/project-builder': typeof ProjectBuilderRoute
   '/project-details': typeof ProjectDetailsRoute
+  '/demo/collaborator': typeof DemoCollaboratorRoute
   '/demo/founder': typeof DemoFounderRouteWithChildren
   '/profile/appearance': typeof ProfileAppearanceRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/demo/founder'
     | '/profile/appearance'
     | '/project/$projectId'
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/profile/appearance'
     | '/project/$projectId'
     | '/sandbox/task-panel-live'
@@ -332,6 +343,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/project-builder'
     | '/project-details'
+    | '/demo/collaborator'
     | '/demo/founder'
     | '/profile/appearance'
     | '/project/$projectId'
@@ -362,6 +374,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectBuilderRoute: typeof ProjectBuilderRoute
   ProjectDetailsRoute: typeof ProjectDetailsRoute
+  DemoCollaboratorRoute: typeof DemoCollaboratorRoute
   DemoFounderRoute: typeof DemoFounderRouteWithChildren
   ProjectProjectIdRoute: typeof ProjectProjectIdRoute
   SandboxTaskPanelLiveRoute: typeof SandboxTaskPanelLiveRoute
@@ -514,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoFounderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo/collaborator': {
+      id: '/demo/collaborator'
+      path: '/demo/collaborator'
+      fullPath: '/demo/collaborator'
+      preLoaderRoute: typeof DemoCollaboratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/founder/': {
       id: '/demo/founder/'
       path: '/'
@@ -611,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRouteWithChildren,
   ProjectBuilderRoute: ProjectBuilderRoute,
   ProjectDetailsRoute: ProjectDetailsRoute,
+  DemoCollaboratorRoute: DemoCollaboratorRoute,
   DemoFounderRoute: DemoFounderRouteWithChildren,
   ProjectProjectIdRoute: ProjectProjectIdRoute,
   SandboxTaskPanelLiveRoute: SandboxTaskPanelLiveRoute,

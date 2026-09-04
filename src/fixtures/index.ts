@@ -20,3 +20,4 @@ export * from "./feed";
 export * from "./transcripts";
 export * from "./chat";
 export * from "./wallet";
+export * from "./assignments";
