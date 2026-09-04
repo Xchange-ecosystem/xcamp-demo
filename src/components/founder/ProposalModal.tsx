@@ -2,14 +2,17 @@
 // mock-processing flow (Part 4) or by a feed card's "Review" action
 // (Part 2's getActions extension to CardFeedConfig).
 //
-// Wording note (P1.1 Phase 0, Part 4): the prompt asked to align copy with
-// CFM-05's real agreement-lifecycle terms ("sketch → agreement → accept →
-// complete"). That report isn't available in this repo and no such
-// vocabulary exists anywhere in xcamp-companion — the mockup's wording was
-// invented. What *is* real and already in the shared fixtures/schema is
-// Task.status: "inactive" | "active" | "completed" (src/fixtures/types.ts,
-// mirroring the production notes table). This modal's copy uses that
-// instead of the mockup's invented "sketch"/"agreement" language.
+// Wording note (P1-CORR Part 1): the sketch/agreement/informational
+// vocabulary this modal uses is real — confirmed directly against the live
+// Supabase schema (assignment_value_type informational|fund_linked,
+// assignment_status draft|invited|accepted|…, objectives
+// .value_distribution_locked, and the promote_objective_to_agreement /
+// accept_objective_agreement / _finalize_objective RPCs). It doesn't exist
+// in this frontend's committed docs, which is why an earlier pass took it
+// for invented mockup wording and used the underlying Task-status values
+// here instead — that was the wrong read. `agreementState` on FeedItem
+// (src/fixtures/types.ts) now carries this distinction; Task.status is
+// unchanged and still means what it always did (is the work itself done).
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -135,10 +138,11 @@ export function ProposalModal({
               "var(--skin-accent-wash, color-mix(in oklch, var(--skin-accent) 12%, transparent))",
           }}
         >
-          Accepting adds this as an <span className="font-semibold text-foreground">active</span>{" "}
-          task assigned to {assignee?.displayName ?? "the assignee"}. It moves to{" "}
-          <span className="font-semibold text-foreground">completed</span> once the work is
-          delivered and proof is filed.
+          Accepting adds this as a <span className="font-semibold text-foreground">sketch</span>{" "}
+          with informational value. {assignee?.displayName ?? "The assignee"} isn't committed and
+          the credits aren't reserved until you formalize the objective into an{" "}
+          <span className="font-semibold text-foreground">agreement</span> — that's the step where
+          value locks and both of you sign.
         </p>
 
         <DialogFooter className="sm:justify-between">
@@ -157,7 +161,7 @@ export function ProposalModal({
                 onAccept({ ...proposal, title, time, value: Number(value) || proposal.value })
               }
             >
-              Accept as active task
+              Accept as sketch
             </Button>
           </div>
         </DialogFooter>

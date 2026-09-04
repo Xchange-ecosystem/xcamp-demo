@@ -1,45 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Play, Square } from "lucide-react";
 import { getProjectById, getRankedPortfolio } from "@/fixtures";
+import { PORTFOLIO_WEEKS } from "@/fixtures/portfolio";
 
-// Part 1 — animated ranked portfolio bar list (P1.2 centerpiece).
+// Part 1 — animated ranked portfolio bar list (P1.2 centerpiece), corrected
+// in P1-CORR Part 2 to reorder against a real eight-week series
+// (src/fixtures/portfolio.ts) instead of a single before/after transition.
 //
-// PortfolioEntry only carries a current performanceScore + a single
-// performanceDeltaPct vs. the previous period (see src/fixtures/portfolio.ts)
-// — there's no multi-week series like the mockup's 8-week scrubber. Rather
-// than inventing a fake weekly series, this derives one prior data point
-// (previousScore = currentScore / (1 + deltaPct / 100), i.e. reversing a
-// percentage change) from real fixture fields and animates the reorder +
-// fill across that single before/after transition, replayable via the
-// button below.
+// Reorder is driven by `transform: translateY(...)`, never by re-sorting
+// `rows` — `rows` (built once, stable order and identity) is mapped
+// directly; only `rank`, a separate per-week index lookup, changes. Rows
+// keep their React key (`row.projectId`) across every week, so React only
+// ever updates the existing DOM nodes' transform/width, never remounts or
+// reorders them — that's what lets the browser interpolate the move.
 
 const ROW_HEIGHT = 44;
 const RANKS_MIN_WIDTH = 470; // sum of the row's fixed-width children + gaps
+const LAST_WEEK = PORTFOLIO_WEEKS.length - 1;
+const PLAY_INTERVAL_MS = 900;
+const AUTOPLAY_DELAY_MS = 900;
 
 interface Row {
   projectId: string;
   name: string;
-  currentScore: number;
-  previousScore: number;
-  deltaPct: number;
+  scores: number[]; // 8 weekly values, oldest first
 }
 
 function buildRows(): Row[] {
   return getRankedPortfolio().map((entry) => {
     const project = getProjectById(entry.projectId);
-    const denom = 1 + entry.performanceDeltaPct / 100;
-    const previousScore =
-      denom > 0
-        ? Math.max(0, Math.min(100, entry.performanceScore / denom))
-        : entry.performanceScore;
     return {
       projectId: entry.projectId,
       name: project?.name ?? entry.projectId,
-      currentScore: entry.performanceScore,
-      previousScore,
-      deltaPct: entry.performanceDeltaPct,
+      scores: entry.scores,
     };
   });
+}
+
+function weekDelta(row: Row, week: number): number {
+  if (week === 0) return 0;
+  return row.scores[week] - row.scores[week - 1];
 }
 
 function deltaColor(delta: number): string {
@@ -49,9 +49,9 @@ function deltaColor(delta: number): string {
 }
 
 function deltaText(delta: number): string {
-  if (delta > 0) return `+${delta}%`;
-  if (delta < 0) return `${delta}%`;
-  return "±0%";
+  if (delta > 0) return `+${delta}`;
+  if (delta < 0) return `${delta}`;
+  return "±0";
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -67,27 +67,98 @@ export function RankedPortfolioBars({
 }) {
   const rows = useMemo(buildRows, []);
   const prefersReducedMotion = usePrefersReducedMotion();
-  const [phase, setPhase] = useState<"previous" | "current">(
-    prefersReducedMotion ? "current" : "previous",
-  );
 
+  const [week, setWeek] = useState(prefersReducedMotion ? LAST_WEEK : 0);
+  // Gates the fill width (and the score inside it) so bars grow in from
+  // zero on first paint instead of appearing already full-width.
+  const [revealed, setRevealed] = useState(prefersReducedMotion);
+  const [playing, setPlaying] = useState(false);
+
+  const bootTimerRef = useRef<number | null>(null);
+  const playTimerRef = useRef<number | null>(null);
+
+  const clearBootTimer = useCallback(() => {
+    if (bootTimerRef.current !== null) {
+      clearTimeout(bootTimerRef.current);
+      bootTimerRef.current = null;
+    }
+  }, []);
+
+  const stopPlay = useCallback(() => {
+    if (playTimerRef.current !== null) {
+      clearInterval(playTimerRef.current);
+      playTimerRef.current = null;
+    }
+    setPlaying(false);
+  }, []);
+
+  const startPlay = useCallback(() => {
+    stopPlay();
+    setWeek(0);
+    setPlaying(true);
+    playTimerRef.current = window.setInterval(() => {
+      setWeek((w) => {
+        if (w >= LAST_WEEK) {
+          stopPlay();
+          return w;
+        }
+        return w + 1;
+      });
+    }, PLAY_INTERVAL_MS);
+  }, [stopPlay]);
+
+  // Boot: grow bars in from zero, then autoplay the eight weeks once — but
+  // never under reduced motion, which renders the current week directly.
   useEffect(() => {
     if (prefersReducedMotion) return;
-    const timer = setTimeout(() => setPhase("current"), 650);
-    return () => clearTimeout(timer);
-  }, [prefersReducedMotion]);
+    let raf1 = 0;
+    let raf2 = 0;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setRevealed(true));
+    });
+    bootTimerRef.current = window.setTimeout(() => {
+      bootTimerRef.current = null;
+      startPlay();
+    }, AUTOPLAY_DELAY_MS);
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      clearBootTimer();
+    };
+    // Boot sequence runs once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const replay = useCallback(() => {
-    if (prefersReducedMotion) return;
-    setPhase("previous");
-    requestAnimationFrame(() => requestAnimationFrame(() => setPhase("current")));
-  }, [prefersReducedMotion]);
+  useEffect(() => () => stopPlay(), [stopPlay]);
 
   const rank = useMemo(() => {
-    const key = phase === "current" ? "currentScore" : "previousScore";
-    const ordered = [...rows].sort((a, b) => b[key] - a[key]);
+    const ordered = [...rows].sort((a, b) => b.scores[week] - a.scores[week]);
     return new Map(ordered.map((row, index) => [row.projectId, index]));
-  }, [rows, phase]);
+  }, [rows, week]);
+
+  // Any direct interaction with the timeline controls cancels a pending
+  // autoplay boot — it shouldn't yank the scrubber out from under someone
+  // who already started exploring a specific week.
+  const interruptBoot = useCallback(() => {
+    clearBootTimer();
+  }, [clearBootTimer]);
+
+  const handleScrub = (value: number) => {
+    interruptBoot();
+    stopPlay();
+    setWeek(Math.max(0, Math.min(LAST_WEEK, value)));
+  };
+
+  const handlePlayToggle = () => {
+    interruptBoot();
+    if (playing) stopPlay();
+    else startPlay();
+  };
+
+  const handleRowSelect = (projectId: string) => {
+    interruptBoot();
+    onSelect(selectedProjectId === projectId ? null : projectId);
+  };
 
   const transformTransition = prefersReducedMotion
     ? "opacity .3s"
@@ -117,41 +188,62 @@ export function RankedPortfolioBars({
             {rows.length} projects, ranked against your mandate
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "var(--skin-ink-soft)" }}>
-            Bar length is match score. Darker tips show this period's gain, dashed edges show a
-            pullback.
+            Bar length is match score. Watch eight weeks of movement, or drag to any week.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={replay}
-          onFocus={(e) => {
-            if (e.currentTarget.matches(":focus-visible")) {
-              e.currentTarget.style.outline = "2px solid var(--skin-accent)";
-              e.currentTarget.style.outlineOffset = "2px";
-            }
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.outline = "none";
-          }}
-          style={{
-            all: "unset",
-            marginLeft: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "var(--skin-accent)",
-            color: "var(--skin-on-accent)",
-            fontWeight: 600,
-            fontSize: 13,
-            padding: "8px 14px",
-            borderRadius: "var(--xr-pill)",
-            cursor: "pointer",
-          }}
-        >
-          <RotateCcw size={14} aria-hidden />
-          Replay
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--skin-ink-soft)",
+              minWidth: 96,
+              textAlign: "right",
+            }}
+          >
+            Week of <b style={{ color: "var(--skin-ink)" }}>{PORTFOLIO_WEEKS[week]}</b>
+          </span>
+          <button
+            type="button"
+            onClick={handlePlayToggle}
+            onFocus={(e) => {
+              if (e.currentTarget.matches(":focus-visible")) {
+                e.currentTarget.style.outline = "2px solid var(--skin-accent)";
+                e.currentTarget.style.outlineOffset = "2px";
+              }
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = "none";
+            }}
+            style={{
+              all: "unset",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "var(--skin-accent)",
+              color: "var(--skin-on-accent)",
+              fontWeight: 600,
+              fontSize: 13,
+              padding: "8px 14px",
+              borderRadius: "var(--xr-pill)",
+              cursor: "pointer",
+            }}
+          >
+            {playing ? <Square size={14} aria-hidden /> : <Play size={14} aria-hidden />}
+            {playing ? "Stop" : "Replay 8 weeks"}
+          </button>
+        </div>
       </div>
+
+      <input
+        type="range"
+        min={0}
+        max={LAST_WEEK}
+        step={1}
+        value={week}
+        onChange={(e) => handleScrub(Number(e.target.value))}
+        aria-label="Week"
+        style={{ width: "100%", margin: "0 0 20px", accentColor: "var(--skin-accent)" }}
+      />
 
       <div style={{ overflowX: "auto" }}>
         <div
@@ -163,18 +255,17 @@ export function RankedPortfolioBars({
         >
           {rows.map((row) => {
             const index = rank.get(row.projectId) ?? 0;
-            const score = phase === "current" ? row.currentScore : row.previousScore;
+            const rawScore = row.scores[week];
+            const score = revealed ? rawScore : 0;
+            const d = weekDelta(row, week);
             const selected = selectedProjectId === row.projectId;
             const dimmed = selectedProjectId !== null && !selected;
-            const showMarkers = phase === "current";
-            const gainWidth =
-              showMarkers && row.currentScore > row.previousScore
-                ? row.currentScore - row.previousScore
-                : 0;
-            const pullbackWidth =
-              showMarkers && row.currentScore < row.previousScore
-                ? row.previousScore - row.currentScore
-                : 0;
+
+            const previousScore = week === 0 ? rawScore : row.scores[week - 1];
+            const gainWidth = revealed && d > 0 ? d : 0;
+            const gainLeft = previousScore;
+            const pullbackWidth = revealed && d < 0 ? -d : 0;
+            const pullbackLeft = rawScore;
 
             return (
               <div
@@ -182,11 +273,11 @@ export function RankedPortfolioBars({
                 role="button"
                 tabIndex={0}
                 aria-pressed={selected}
-                onClick={() => onSelect(selected ? null : row.projectId)}
+                onClick={() => handleRowSelect(row.projectId)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    onSelect(selected ? null : row.projectId);
+                    handleRowSelect(row.projectId);
                   }
                 }}
                 style={{
@@ -269,14 +360,15 @@ export function RankedPortfolioBars({
                       {Math.round(score)}
                     </span>
                   </span>
-                  {/* darker tip = this period's gain, from previous score up to current */}
+                  {/* darker tip = this week's gain, siblings of the fill so
+                      they aren't clipped by its overflow:hidden */}
                   <span
                     aria-hidden
                     style={{
                       position: "absolute",
                       top: 0,
                       bottom: 0,
-                      left: `${row.previousScore}%`,
+                      left: `${gainLeft}%`,
                       width: `${gainWidth}%`,
                       background: "var(--skin-ink)",
                       opacity: 0.18,
@@ -286,14 +378,14 @@ export function RankedPortfolioBars({
                       transition: markerTransition,
                     }}
                   />
-                  {/* dashed edge = a pullback, showing where the bar reached last period */}
+                  {/* dashed edge = this week's pullback, past the fill entirely */}
                   <span
                     aria-hidden
                     style={{
                       position: "absolute",
                       top: 0,
                       bottom: 0,
-                      left: `${row.currentScore}%`,
+                      left: `${pullbackLeft}%`,
                       width: `${pullbackWidth}%`,
                       borderTop: "1px dashed var(--skin-bad)",
                       borderBottom: "1px dashed var(--skin-bad)",
@@ -312,10 +404,10 @@ export function RankedPortfolioBars({
                     fontSize: 12.5,
                     fontWeight: 600,
                     flexShrink: 0,
-                    color: deltaColor(row.deltaPct),
+                    color: deltaColor(d),
                   }}
                 >
-                  {deltaText(row.deltaPct)}
+                  {deltaText(d)}
                 </span>
               </div>
             );
@@ -323,8 +415,8 @@ export function RankedPortfolioBars({
         </div>
       </div>
       <p style={{ margin: "14px 2px 0", fontSize: 12, color: "var(--skin-ink-faint)" }}>
-        The number on each bar is this period's match score. The figure on the right is the change
-        since last period.
+        The darker tip of a bar is what it gained this week. A dashed edge past a bar is where it
+        reached last week. The figure on the right is the exact change.
       </p>
     </div>
   );
