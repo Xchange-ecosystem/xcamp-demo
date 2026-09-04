@@ -32,9 +32,10 @@ test("changing a note's project alone (no title/body edit) is persisted", async 
   // Open the meta section and assign a project — the only change made.
   await page.getByRole("button", { name: /^Task/ }).first().click();
   await page.waitForTimeout(300);
-  await page.getByText("No project", { exact: true }).click();
+  const projectPicker = page.getByText("Project (optional)", { exact: true }).locator("..");
+  await projectPicker.getByRole("button", { name: "No project", exact: true }).click();
   await page.waitForTimeout(300);
-  await page.getByTestId("right-panel-slot").getByText("Audit project", { exact: true }).click();
+  await projectPicker.getByRole("button", { name: "Audit project", exact: true }).click();
 
   await page.waitForTimeout(1500);
 
