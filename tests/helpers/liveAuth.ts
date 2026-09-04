@@ -68,7 +68,7 @@ const TASK_ROW = {
   title: TASK_TITLE,
   note_type: "task",
   done: false,
-  detail: { project_id: PROJECT_ID },
+  detail: {},
   tags: [],
   tenant_id: FAKE_TENANT_ID,
   owner_central_id: FAKE_USER_ID,
