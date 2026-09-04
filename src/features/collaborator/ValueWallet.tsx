@@ -6,10 +6,23 @@
 // (Yuki Tanaka, person-9) rather than re-deriving them — her wallet rows
 // already match this screen's settled assignments exactly (see
 // src/fixtures/assignments.ts).
-import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { useMemo } from "react";
 import { fmt } from "@/components/project-home/MetricPrimitives";
 import { getWalletByPerson } from "@/fixtures/wallet";
 import type { Assignment } from "@/fixtures/assignments";
+
+// Donut radius/gap match the P1.3 mockup exactly (viewBox 0 0 132 132,
+// r=52, stroke-width 15). Arcs are drawn as stroke-dasharray/-dashoffset on
+// plain <circle> elements — not a charting library's own redraw — because
+// only a CSS transition on those two properties interpolates cleanly when
+// the split changes; a library re-render snaps instead.
+const RADIUS = 52;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const SEGMENT_GAP = 3;
+
+function usePrefersReducedMotion(): boolean {
+  return useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
+}
 
 const ROWS: {
   key: Assignment["valueState"];
@@ -61,8 +74,20 @@ export function ValueWallet({
   );
   const total = sums.settled + sums.committed + sums.informational;
   const projectCount = new Set(assignments.map((a) => a.projectId)).size;
+  const prefersReducedMotion = usePrefersReducedMotion();
 
-  const pieData = ROWS.map((row) => ({ name: row.label, value: sums[row.key], color: row.color }));
+  let arcOffset = 0;
+  const arcs = ROWS.map((row) => {
+    const raw = total ? (sums[row.key] / total) * CIRCUMFERENCE : 0;
+    const length = raw > SEGMENT_GAP * 2 ? raw - SEGMENT_GAP : raw;
+    const arc = { key: row.key, color: row.color, length, offset: arcOffset };
+    arcOffset += raw;
+    return arc;
+  });
+  const arcTransition = prefersReducedMotion
+    ? "none"
+    : "stroke-dasharray .65s cubic-bezier(.22,.8,.2,1), stroke-dashoffset .65s cubic-bezier(.22,.8,.2,1)";
+
   const ledger = getWalletByPerson(collaboratorId)
     .slice()
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -75,26 +100,40 @@ export function ValueWallet({
         style={{ borderColor: "var(--skin-line)", background: "var(--skin-surface)" }}
       >
         <div className="relative mx-auto h-[132px] w-[132px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={
-                  total > 0 ? pieData : [{ name: "empty", value: 1, color: "var(--skin-line)" }]
-                }
-                dataKey="value"
-                innerRadius={44}
-                outerRadius={62}
-                startAngle={90}
-                endAngle={-270}
-                stroke="none"
-                isAnimationActive={false}
-              >
-                {(total > 0 ? pieData : [{ color: "var(--skin-line)" }]).map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
+          <svg
+            viewBox="0 0 132 132"
+            className="block w-full overflow-visible"
+            role="img"
+            aria-label="Credits by state"
+          >
+            <circle
+              cx="66"
+              cy="66"
+              r={RADIUS}
+              fill="none"
+              stroke="var(--skin-line-soft, var(--skin-line))"
+              strokeWidth="15"
+            />
+            {arcs.map((arc) => (
+              <circle
+                key={arc.key}
+                cx="66"
+                cy="66"
+                r={RADIUS}
+                fill="none"
+                stroke={arc.color}
+                strokeWidth="15"
+                strokeLinecap="butt"
+                strokeDasharray={`${arc.length} ${CIRCUMFERENCE - arc.length}`}
+                strokeDashoffset={-arc.offset}
+                style={{
+                  transform: "rotate(-90deg)",
+                  transformOrigin: "66px 66px",
+                  transition: arcTransition,
+                }}
+              />
+            ))}
+          </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
             <b className="text-2xl font-semibold tracking-tight text-foreground">{fmt(total, 0)}</b>
             <span className="text-[11px] text-muted-foreground">credits total</span>
