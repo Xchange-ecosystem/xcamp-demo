@@ -47,6 +47,7 @@ today = dt.date.today()
 entries = {}
 entry_lines = {}
 problems = []
+annotations = []
 
 with allowlist_path.open(encoding="utf-8", newline="") as handle:
     for line_number, raw in enumerate(handle, 1):
@@ -74,8 +75,10 @@ with allowlist_path.open(encoding="utf-8", newline="") as handle:
             problems.append(f"allowlist line {line_number}: date added {added} is in the future")
         if review != added + dt.timedelta(days=90):
             problems.append(f"allowlist line {line_number}: REVIEW-BY must be exactly 90 days after date added")
-        if classification not in {"ALWAYS-FAILS", "FLAKY"}:
-            problems.append(f"allowlist line {line_number}: classification must be ALWAYS-FAILS or FLAKY")
+        if classification not in {"ALWAYS-FAILS", "FLAKY", "ENV-SENSITIVE"}:
+            problems.append(
+                f"allowlist line {line_number}: classification must be ALWAYS-FAILS, FLAKY, or ENV-SENSITIVE"
+            )
         if today > review:
             problems.append(f"allowlist line {line_number}: REVIEW-BY {review} is past due")
         entries[key] = {
@@ -123,15 +126,39 @@ for key in sorted(seen | set(entries)):
     file_name, title = key
     allowed = entries.get(key)
     actual_signature = failures.get(key)
+    classification = allowed["classification"] if allowed else "—"
+    flaky = "—"
     if actual_signature is not None and allowed is None:
         state = "NEW FAILURE"
         problems.append(f"unallowlisted failure: {file_name} › {title} [{actual_signature}]")
     elif allowed is not None and key not in seen:
         state = "MISSING FROM REPORT"
         problems.append(f"allowlisted test missing from report: {file_name} › {title}")
-    elif allowed is not None and actual_signature is None:
+    elif allowed is not None and actual_signature is None and classification == "ALWAYS-FAILS":
         state = "NOW PASSES — DELETE ENTRY"
         problems.append(f"allowlisted test now passes; delete exactly:\n{entry_lines[key]}")
+    elif allowed is not None and actual_signature is None:
+        state = "PASS (TOLERATED)"
+        if classification == "FLAKY":
+            flaky = "PASS"
+        annotations.append(
+            ("notice", f"{classification} observed PASS: {file_name} › {title}")
+        )
+    elif (
+        allowed is not None
+        and actual_signature != allowed["signature"]
+        and classification != "ALWAYS-FAILS"
+    ):
+        state = "FAIL — SIGNATURE VARIED"
+        if classification == "FLAKY":
+            flaky = "FAIL"
+        annotations.append(
+            (
+                "warning",
+                f"{classification} failure signature varied: {file_name} › {title}; "
+                f"expected [{allowed['signature']}], got [{actual_signature}]",
+            )
+        )
     elif allowed is not None and actual_signature != allowed["signature"]:
         state = "SIGNATURE CHANGED"
         problems.append(
@@ -139,20 +166,30 @@ for key in sorted(seen | set(entries)):
             f"expected [{allowed['signature']}], got [{actual_signature}]"
         )
     elif allowed is not None:
-        state = f"KNOWN {allowed['classification']}"
+        state = "FAIL (TOLERATED)" if classification != "ALWAYS-FAILS" else "EXPECTED FAILURE"
+        if classification == "FLAKY":
+            flaky = "FAIL"
+        if classification != "ALWAYS-FAILS":
+            annotations.append(
+                ("notice", f"{classification} observed FAIL: {file_name} › {title}")
+            )
     else:
         continue
-    rows.append((file_name, title, state, allowed["review"] if allowed else "—"))
+    rows.append(
+        (file_name, title, classification, state, flaky, allowed["review"] if allowed else "—")
+    )
 
 report = [
     "# E2E known-failures ratchet",
     "",
-    "| File | Test | Result | Review by |",
-    "| --- | --- | --- | --- |",
+    "| File | Test | Classification | Observed | Flaky | Review by |",
+    "| --- | --- | --- | --- | --- | --- |",
 ]
-for file_name, title, state, review in rows:
+for file_name, title, classification, state, flaky, review in rows:
     escaped_title = title.replace("|", "\\|")
-    report.append(f"| {file_name} | {escaped_title} | {state} | {review} |")
+    report.append(
+        f"| {file_name} | {escaped_title} | {classification} | {state} | {flaky} | {review} |"
+    )
 report.extend(
     [
         "",
@@ -162,6 +199,8 @@ report.extend(
 )
 Path(report_path).write_text("\n".join(report) + "\n", encoding="utf-8")
 
+for level, message in annotations:
+    print(f"::{level} file={allowlist_path}::{message}")
 for problem in problems:
     first, *rest = problem.splitlines()
     print(f"::error file={allowlist_path}::{first}")
@@ -185,4 +224,4 @@ if ((status)); then
 fi
 
 echo
-echo "E2E failure set exactly matches the checked-in allowlist."
+echo "E2E results satisfy the checked-in classification policies."

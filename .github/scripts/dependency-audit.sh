@@ -11,10 +11,55 @@ if [ ! -f "$allowlist" ]; then
 fi
 
 raw_audit=$(mktemp)
-trap 'rm -f "$raw_audit"' EXIT
+filtered_audit=$(mktemp)
+audit_stderr=$(mktemp)
+trap 'rm -f "$raw_audit" "$filtered_audit" "$audit_stderr"' EXIT
+
+audit_timeout_seconds=${AUDIT_TIMEOUT_SECONDS:-30}
+audit_max_attempts=${AUDIT_MAX_ATTEMPTS:-3}
+
+run_audit_json() {
+  local output=$1
+  shift
+  local attempt status
+  for ((attempt = 1; attempt <= audit_max_attempts; attempt++)); do
+    : >"$audit_stderr"
+    if timeout --signal=TERM --kill-after=5 "${audit_timeout_seconds}s" \
+      bun audit --json "$@" >"$output" 2>"$audit_stderr"; then
+      status=0
+    else
+      status=$?
+    fi
+
+    # A valid JSON response means the registry answered. Preserve bun's status:
+    # non-zero may represent a real advisory and must remain blocking.
+    if python3 -c 'import json, sys; json.load(open(sys.argv[1], encoding="utf-8"))' "$output" 2>/dev/null; then
+      cat "$audit_stderr" >&2
+      return "$status"
+    fi
+
+    if ((attempt < audit_max_attempts)); then
+      echo "::warning::Dependency audit attempt $attempt/$audit_max_attempts failed or returned invalid JSON; retrying after $((attempt * 5))s."
+      sleep $((attempt * 5))
+    fi
+  done
+
+  cat "$audit_stderr" >&2
+  echo "::error::Dependency audit service did not return valid JSON after $audit_max_attempts bounded attempts."
+  return 75
+}
+
 # A non-zero status is expected while known advisories are present. The final,
-# filtered invocation below remains the blocking audit gate.
-bun audit --json > "$raw_audit" || true
+# filtered invocation below remains the blocking audit gate. Invalid/network
+# responses are never treated as advisory results.
+if run_audit_json "$raw_audit"; then
+  raw_status=0
+else
+  raw_status=$?
+fi
+if ((raw_status == 75)); then
+  exit "$raw_status"
+fi
 
 current_date=$(date -u +%F)
 ignore_args=()
@@ -53,4 +98,12 @@ fi
 
 # Bun 1.3.11 accepts repeated --ignore=<GHSA-ID> arguments. Any new high or
 # critical advisory is not in ignore_args and therefore fails this command.
-bun audit --audit-level=high "${ignore_args[@]}"
+# Printing the JSON response keeps actual findings visible without making a
+# transient registry timeout indistinguishable from a vulnerability.
+if run_audit_json "$filtered_audit" --audit-level=high "${ignore_args[@]}"; then
+  filtered_status=0
+else
+  filtered_status=$?
+fi
+cat "$filtered_audit"
+exit "$filtered_status"

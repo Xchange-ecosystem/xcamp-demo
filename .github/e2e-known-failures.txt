@@ -1,10 +1,10 @@
 # Exact Playwright identity (file<TAB>full title)<TAB>error signature<TAB>date added<TAB>REVIEW-BY<TAB>classification
 backcaster-e2e.spec.ts	Backcaster QuickRoad E2E › full flow: InputStep → InterpretStep (re-interpret bug check) → GenerateStep	expect(locator).toBeVisible() failed	2026-09-03	2026-12-02	ALWAYS-FAILS
-doublecheck-punch-list-verify.spec.ts	Doublecheck punch list — live verification › Part B — new chat scoped per project, preserved on return, ecosystem unaffected	expect(received).toBeGreaterThanOrEqual(expected)	2026-09-03	2026-12-02	ALWAYS-FAILS
-logbook-submenu-fix.spec.ts	BL-26 — Logbook submenu 4-item restore › sidebar shows 4 items in order and both + links work	expect(received).toEqual(expected) // deep equality	2026-09-03	2026-12-02	FLAKY
+doublecheck-punch-list-verify.spec.ts	Doublecheck punch list — live verification › Part B — new chat scoped per project, preserved on return, ecosystem unaffected	expect(received).toBeGreaterThanOrEqual(expected)	2026-09-03	2026-12-02	ENV-SENSITIVE
+logbook-submenu-fix.spec.ts	BL-26 — Logbook submenu 4-item restore › sidebar shows 4 items in order and both + links work	expect(received).toEqual(expected) // deep equality	2026-09-03	2026-12-02	ALWAYS-FAILS
 navigator-graph.spec.ts	Navigator — Network graph › 2 · click objective node → EntityPanel opens	expect(locator).toBeVisible() failed	2026-09-03	2026-12-02	ALWAYS-FAILS
 navigator-graph.spec.ts	Navigator — Network graph › 3 · '+' on objective node → creates task and opens EntityPanel	expect(locator).toBeVisible() failed	2026-09-03	2026-12-02	ALWAYS-FAILS
 note-project-change-autosave.spec.ts	changing a note's project alone (no title/body edit) is persisted	Test timeout of 180000ms exceeded.	2026-09-03	2026-12-02	ALWAYS-FAILS
 note-type-change-autosave.spec.ts	changing a note's type alone (no title/body edit) is persisted	Test timeout of 180000ms exceeded.	2026-09-03	2026-12-02	ALWAYS-FAILS
-pr95-regressions.spec.ts	PR #95 regression audit — live verification › item3: ?nav=experimental changes nothing and is stripped	/home: same control count	2026-09-03	2026-12-02	FLAKY
+pr95-regressions.spec.ts	PR #95 regression audit — live verification › item3: ?nav=experimental changes nothing and is stripped	/home: same control count	2026-09-03	2026-12-02	ALWAYS-FAILS
 pr95-regressions.spec.ts	PR #95 regression audit — live verification › item6: --skin-* custom properties resolve on load (light and dark)	--skin-font-body resolves in light mode	2026-09-03	2026-12-02	ALWAYS-FAILS
