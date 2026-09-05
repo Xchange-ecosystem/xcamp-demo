@@ -1,19 +1,13 @@
 // P1.3 — Collaborator assignment feed + value wallet fixtures.
 //
-// Kept in a dedicated file rather than extending FEED_ITEMS (feed.ts) or
-// adding `agreementState` to FeedItem (types.ts): PR #145 (open, pending
-// review as of this session) already adds `agreementState` to FeedItem and
-// edits feed.ts/portfolio.ts for the Founder/Investor screens' vocabulary +
-// timeline corrections. A second definition of the same concept would
-// conflict with it on merge, so this file is purely additive — it doesn't
-// touch feed.ts, portfolio.ts, or types.ts. `agreementState` does not exist
-// on this branch's base (confirmed: no matches anywhere in src/fixtures on
-// `main`), so the two states this screen needs (workflow state and value
-// state) are modeled fresh here instead of assumed.
+// Kept in a dedicated file rather than forcing the richer collaborator
+// lifecycle into the generic FeedItem shape. Workflow state and value state
+// are separate concepts: completing work and locking or settling its value
+// do not necessarily happen at the same time.
 //
 // Built around Yuki Tanaka (person-9) — the collaborator fixture already
 // used as the default/most-active assignee elsewhere (see
-// src/routes/founder.index.tsx's DEFAULT_ASSIGNEE_ID) — and cross-referenced
+// src/routes/demo.founder.index.tsx's DEFAULT_ASSIGNEE_ID) — and cross-referenced
 // against her existing rows in objectives.ts (TASKS) and wallet.ts
 // (WALLET_ENTRIES) so all three fixture files agree: every "settled" amount
 // and description below matches her wallet ledger exactly.

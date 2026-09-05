@@ -2,8 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { CollaboratorScreen } from "@/features/collaborator/CollaboratorScreen";
 
-// Namespaced under /demo to match PR #145's route convention for the P1
-// demo screens (open at the time this was built) — see
+// Namespaced under /demo to match the other P1 presentation screens — see
 // CollaboratorScreen.tsx for the Phase 0 notes this route depends on.
 export const Route = createFileRoute("/demo/collaborator")({
   head: () => ({

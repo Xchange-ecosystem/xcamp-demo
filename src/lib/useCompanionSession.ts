@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { XcampUser } from "@/types/xcamp";
 import type { ChatMessage, ComponentMessageType } from "@/components/companion/ChatThread";
@@ -18,9 +18,9 @@ interface ConversationRow {
 interface MessageRow {
   id: string;
   conversation_id: string;
-  role: string;          // 'assistant' | 'user'
+  role: string; // 'assistant' | 'user'
   content: string;
-  content_type: string;  // 'text' | 'component'
+  content_type: string; // 'text' | 'component'
   component_type: string | null;
   component_payload: Record<string, unknown> | null;
   parts: unknown;
@@ -84,13 +84,19 @@ export interface CompanionSession {
   loading: boolean;
   appendChiMessage: (text: string) => Promise<string>;
   appendUserMessage: (text: string) => Promise<void>;
-  appendComponentMessage: (type: ComponentMessageType, payload?: Record<string, unknown>) => Promise<string>;
+  appendComponentMessage: (
+    type: ComponentMessageType,
+    payload?: Record<string, unknown>,
+  ) => Promise<string>;
   resolveComponent: (messageId: string) => void;
   newSession: () => Promise<void>;
   closeSession: () => Promise<void>;
 }
 
-export function useCompanionSession(user: XcampUser | null, scope?: CompanionSessionScope): CompanionSession {
+export function useCompanionSession(
+  user: XcampUser | null,
+  scope?: CompanionSessionScope,
+): CompanionSession {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState<string | null>(null);
   const [conversationProjectId, setConversationProjectId] = useState<string | null>(null);
@@ -122,26 +128,47 @@ export function useCompanionSession(user: XcampUser | null, scope?: CompanionSes
         let convProjectId: string | null = null;
 
         const scopeKey = scope ? scopeKeyOf(scope) : null;
-        const forceNewFlag = typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("xcamp-force-new-session");
+        const forceNewFlag =
+          typeof sessionStorage !== "undefined" &&
+          !!sessionStorage.getItem("xcamp-force-new-session");
         const firstVisitThisSession = scopeKey !== null && !readVisitedScopes().has(scopeKey);
 
         if (forceNewFlag || firstVisitThisSession) {
-          if (forceNewFlag && typeof sessionStorage !== "undefined") sessionStorage.removeItem("xcamp-force-new-session");
+          if (forceNewFlag && typeof sessionStorage !== "undefined")
+            sessionStorage.removeItem("xcamp-force-new-session");
           convId = await createConversation(user!, scope ? scope.projectId : undefined);
           convProjectId = scope ? scope.projectId : null;
           if (scopeKey !== null) markScopeVisited(scopeKey);
         } else {
           // Find most recent active conversation, scoped to this project when a scope is given.
           // Cast through unknown early: generated types are stale and missing status column
-          type ConvQuery = { eq: (...a: unknown[]) => ConvQuery; is: (...a: unknown[]) => ConvQuery; neq: (...a: unknown[]) => ConvQuery; order: (...a: unknown[]) => ConvQuery; limit: (...a: unknown[]) => Promise<{ data: Array<{ id: string; status: string; created_at: string; project_id: string | null }> | null }> };
-          let query = (supabase
-            .from("jarvix_conversations")
-            .select("id, status, created_at, project_id") as unknown as ConvQuery)
+          type ConvQuery = {
+            eq: (...a: unknown[]) => ConvQuery;
+            is: (...a: unknown[]) => ConvQuery;
+            neq: (...a: unknown[]) => ConvQuery;
+            order: (...a: unknown[]) => ConvQuery;
+            limit: (...a: unknown[]) => Promise<{
+              data: Array<{
+                id: string;
+                status: string;
+                created_at: string;
+                project_id: string | null;
+              }> | null;
+            }>;
+          };
+          let query = (
+            supabase
+              .from("jarvix_conversations")
+              .select("id, status, created_at, project_id") as unknown as ConvQuery
+          )
             .eq("owner_central_id", user!.centralId)
             .eq("tenant_id", user!.tenantId)
             .neq("status", "closed");
           if (scope) {
-            query = scope.projectId === null ? query.is("project_id", null) : query.eq("project_id", scope.projectId);
+            query =
+              scope.projectId === null
+                ? query.is("project_id", null)
+                : query.eq("project_id", scope.projectId);
           }
           const { data: convRows } = await query.order("created_at", { ascending: false }).limit(1);
 
@@ -161,9 +188,13 @@ export function useCompanionSession(user: XcampUser | null, scope?: CompanionSes
         // Load messages
         const { data: msgRows } = await (supabase
           .from("jarvix_messages")
-          .select("id, conversation_id, role, content, content_type, component_type, component_payload, parts, created_at, tenant_id")
+          .select(
+            "id, conversation_id, role, content, content_type, component_type, component_payload, parts, created_at, tenant_id",
+          )
           .eq("conversation_id", convId)
-          .order("created_at", { ascending: true }) as unknown as Promise<{ data: MessageRow[] | null }>);
+          .order("created_at", { ascending: true }) as unknown as Promise<{
+          data: MessageRow[] | null;
+        }>);
 
         if (cancelled) return;
 
@@ -177,54 +208,93 @@ export function useCompanionSession(user: XcampUser | null, scope?: CompanionSes
     }
 
     void init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.centralId, user?.tenantId, scope?.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const appendChiMessage = useCallback(async (text: string): Promise<string> => {
-    const id = crypto.randomUUID();
-    const newMsg: ChatMessage = { id, kind: "chi", text };
-    setMessages((prev) => [...prev, newMsg]);
+  const appendChiMessage = useCallback(
+    async (text: string): Promise<string> => {
+      const id = crypto.randomUUID();
+      const newMsg: ChatMessage = { id, kind: "chi", text };
+      setMessages((prev) => [...prev, newMsg]);
 
-    const convId = conversationIdRef.current;
-    if (!convId || !user) return id;
-    // Cast through unknown: generated types are stale and missing content_type column
-    await (supabase.from("jarvix_messages") as unknown as {
-      insert: (row: Record<string, unknown>) => Promise<unknown>;
-    }).insert({ id, conversation_id: convId, role: "assistant", content: text, content_type: "text", tenant_id: user.tenantId });
-    return id;
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+      const convId = conversationIdRef.current;
+      if (!convId || !user) return id;
+      // Cast through unknown: generated types are stale and missing content_type column
+      await (
+        supabase.from("jarvix_messages") as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<unknown>;
+        }
+      ).insert({
+        id,
+        conversation_id: convId,
+        role: "assistant",
+        content: text,
+        content_type: "text",
+        tenant_id: user.tenantId,
+      });
+      return id;
+    },
+    [user],
+  );
 
-  const appendUserMessage = useCallback(async (text: string) => {
-    const id = crypto.randomUUID();
-    const newMsg: ChatMessage = { id, kind: "user", text };
-    setMessages((prev) => [...prev, newMsg]);
+  const appendUserMessage = useCallback(
+    async (text: string) => {
+      const id = crypto.randomUUID();
+      const newMsg: ChatMessage = { id, kind: "user", text };
+      setMessages((prev) => [...prev, newMsg]);
 
-    const convId = conversationIdRef.current;
-    if (!convId || !user) return;
-    await (supabase.from("jarvix_messages") as unknown as {
-      insert: (row: Record<string, unknown>) => Promise<unknown>;
-    }).insert({ id, conversation_id: convId, role: "user", content: text, content_type: "text", tenant_id: user.tenantId });
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+      const convId = conversationIdRef.current;
+      if (!convId || !user) return;
+      await (
+        supabase.from("jarvix_messages") as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<unknown>;
+        }
+      ).insert({
+        id,
+        conversation_id: convId,
+        role: "user",
+        content: text,
+        content_type: "text",
+        tenant_id: user.tenantId,
+      });
+    },
+    [user],
+  );
 
-  const appendComponentMessage = useCallback(async (
-    type: ComponentMessageType,
-    payload?: Record<string, unknown>,
-  ): Promise<string> => {
-    const id = crypto.randomUUID();
-    const newMsg: ChatMessage = { id, kind: "component", type, payload, resolved: false };
-    setMessages((prev) => [...prev, newMsg]);
+  const appendComponentMessage = useCallback(
+    async (type: ComponentMessageType, payload?: Record<string, unknown>): Promise<string> => {
+      const id = crypto.randomUUID();
+      const newMsg: ChatMessage = { id, kind: "component", type, payload, resolved: false };
+      setMessages((prev) => [...prev, newMsg]);
 
-    const convId = conversationIdRef.current;
-    if (!convId || !user) return id;
-    await (supabase.from("jarvix_messages") as unknown as {
-      insert: (row: Record<string, unknown>) => Promise<unknown>;
-    }).insert({ id, conversation_id: convId, role: "assistant", content: "", content_type: "component", component_type: type, component_payload: payload ?? null, tenant_id: user.tenantId });
-    return id;
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+      const convId = conversationIdRef.current;
+      if (!convId || !user) return id;
+      await (
+        supabase.from("jarvix_messages") as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<unknown>;
+        }
+      ).insert({
+        id,
+        conversation_id: convId,
+        role: "assistant",
+        content: "",
+        content_type: "component",
+        component_type: type,
+        component_payload: payload ?? null,
+        tenant_id: user.tenantId,
+      });
+      return id;
+    },
+    [user],
+  );
 
   const resolveComponent = useCallback((messageId: string) => {
     setMessages((prev) =>
-      prev.map((m) => (m.id === messageId && m.kind === "component" ? { ...m, resolved: true } : m)),
+      prev.map((m) =>
+        m.id === messageId && m.kind === "component" ? { ...m, resolved: true } : m,
+      ),
     );
   }, []);
 
@@ -232,19 +302,28 @@ export function useCompanionSession(user: XcampUser | null, scope?: CompanionSes
     const convId = conversationIdRef.current;
     if (convId) {
       // Cast through unknown: generated types are stale and missing status column
-      await (supabase.from("jarvix_conversations") as unknown as {
-        update: (row: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> };
-      }).update({ status: "closed" }).eq("id", convId);
+      await (
+        supabase.from("jarvix_conversations") as unknown as {
+          update: (row: Record<string, unknown>) => {
+            eq: (col: string, val: string) => Promise<unknown>;
+          };
+        }
+      )
+        .update({ status: "closed" })
+        .eq("id", convId);
     }
     if (!user) return;
     const currentScope = scopeRef.current;
-    const nextId = await createConversation(user, currentScope ? currentScope.projectId : undefined);
+    const nextId = await createConversation(
+      user,
+      currentScope ? currentScope.projectId : undefined,
+    );
     setConversationId(nextId);
     setConversationCreatedAt(null);
     setConversationProjectId(currentScope ? currentScope.projectId : null);
     setMessages([]);
     if (currentScope) markScopeVisited(scopeKeyOf(currentScope));
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Close current conversation without creating a new one (used on logout).
   // Clears local state immediately so the UI shows empty chat right away.
@@ -266,19 +345,54 @@ export function useCompanionSession(user: XcampUser | null, scope?: CompanionSes
     setConversationProjectId(null);
     setMessages([]);
     // Fire-and-forget — UI is already cleared; DB close races don't matter
-    void (supabase.from("jarvix_conversations") as unknown as {
-      update: (row: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> };
-    }).update({ status: "closed" }).eq("id", convId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    void (
+      supabase.from("jarvix_conversations") as unknown as {
+        update: (row: Record<string, unknown>) => {
+          eq: (col: string, val: string) => Promise<unknown>;
+        };
+      }
+    )
+      .update({ status: "closed" })
+      .eq("id", convId);
+  }, []);
 
-  return { conversationId, conversationCreatedAt, conversationProjectId, messages, loading, appendChiMessage, appendUserMessage, appendComponentMessage, resolveComponent, newSession, closeSession };
+  return useMemo(
+    () => ({
+      conversationId,
+      conversationCreatedAt,
+      conversationProjectId,
+      messages,
+      loading,
+      appendChiMessage,
+      appendUserMessage,
+      appendComponentMessage,
+      resolveComponent,
+      newSession,
+      closeSession,
+    }),
+    [
+      conversationId,
+      conversationCreatedAt,
+      conversationProjectId,
+      messages,
+      loading,
+      appendChiMessage,
+      appendUserMessage,
+      appendComponentMessage,
+      resolveComponent,
+      newSession,
+      closeSession,
+    ],
+  );
 }
 
 async function createConversation(user: XcampUser, projectId?: string | null): Promise<string> {
   const id = crypto.randomUUID();
-  await (supabase.from("jarvix_conversations") as unknown as {
-    insert: (row: Record<string, unknown>) => Promise<unknown>;
-  }).insert({
+  await (
+    supabase.from("jarvix_conversations") as unknown as {
+      insert: (row: Record<string, unknown>) => Promise<unknown>;
+    }
+  ).insert({
     id,
     owner_central_id: user.centralId,
     tenant_id: user.tenantId,

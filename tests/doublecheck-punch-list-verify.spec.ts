@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  installLiveHarness,
-  PROJECT_ID,
-  FAKE_TENANT_ID,
-  FAKE_USER_ID,
-} from "./helpers/liveAuth";
+import { installLiveHarness, PROJECT_ID, FAKE_TENANT_ID, FAKE_USER_ID } from "./helpers/liveAuth";
 
 const SHOT_DIR = "test-results/punch-list";
 
@@ -27,11 +22,15 @@ test.describe("Doublecheck punch list — live verification", () => {
     await page.goto("/home");
     await page.waitForSelector("text=I am ready. Are you?", { timeout: 15000 });
 
-    await expect(page.getByText(/^(Good morning|Good afternoon|Good evening), Audit\.$/)).toBeVisible();
+    await expect(
+      page.getByText(/^(Good morning|Good afternoon|Good evening), Audit\.$/),
+    ).toBeVisible();
     await expect(page.getByText("I am your companion, always at your service.")).toBeVisible();
     await expect(page.getByText("I am ready. Are you?")).toBeVisible();
     await expect(page.getByText("Tap a project to get started")).toBeVisible();
-    await expect(page.getByText("Do you want to work with or invest into a startup?")).toBeVisible();
+    await expect(
+      page.getByText("Do you want to work with or invest into a startup?"),
+    ).toBeVisible();
     await expect(page.getByText("Enter the ecosystem instead.")).toBeVisible();
     // No chat UI on this screen
     await expect(page.locator("textarea")).toHaveCount(0);
@@ -103,11 +102,28 @@ test.describe("Doublecheck punch list — live verification", () => {
     await page.route("**/rest/v1/central_users*", (route) => {
       const wantsSingle = (route.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
       const users = [
-        { id: FAKE_USER_ID, tenant_id: FAKE_TENANT_ID, display_name: "Audit User", email: "a@x.co", preferences: {} },
-        { id: "00000000-0000-4000-8000-000000000099", tenant_id: FAKE_TENANT_ID, display_name: "Jamie Founder", email: "j@x.co", preferences: {} },
+        {
+          id: FAKE_USER_ID,
+          tenant_id: FAKE_TENANT_ID,
+          display_name: "Audit User",
+          email: "a@x.co",
+          preferences: {},
+        },
+        {
+          id: "00000000-0000-4000-8000-000000000099",
+          tenant_id: FAKE_TENANT_ID,
+          display_name: "Jamie Founder",
+          email: "j@x.co",
+          preferences: {},
+        },
       ];
       const body = wantsSingle ? users[0] : users;
-      return route.fulfill({ status: 200, contentType: "application/json", headers: { "content-range": "0-1/2" }, body: JSON.stringify(body) });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "content-range": "0-1/2" },
+        body: JSON.stringify(body),
+      });
     });
     await page.route("**/rest/v1/object_memberships*", (route) =>
       route.fulfill({
@@ -130,7 +146,9 @@ test.describe("Doublecheck punch list — live verification", () => {
     await page.screenshot({ path: `${SHOT_DIR}/part-d-navigator-panel.png`, fullPage: true });
   });
 
-  test("Part B — new chat scoped per project, preserved on return, ecosystem unaffected", async ({ page }) => {
+  test("Part B — new chat scoped per project, preserved on return, ecosystem unaffected", async ({
+    page,
+  }) => {
     await installLiveHarness(page);
     // Override the harness's default active-project seeding with one driven by
     // `window.name`, which (unlike localStorage writes made via evaluate()) survives
@@ -144,7 +162,12 @@ test.describe("Doublecheck punch list — live verification", () => {
     // The base harness's jarvix_conversations stub is stateless (always returns []),
     // which can't tell "already visited" apart from "brand new" — needed to prove B2/B3
     // for real. Give it real create/query/close state for this test, keyed on project_id.
-    const conversations: Array<{ id: string; project_id: string | null; status: string; created_at: string }> = [];
+    const conversations: Array<{
+      id: string;
+      project_id: string | null;
+      status: string;
+      created_at: string;
+    }> = [];
     await page.route("**/rest/v1/jarvix_conversations*", async (route) => {
       const req = route.request();
       if (req.method() === "POST") {
@@ -155,7 +178,11 @@ test.describe("Doublecheck punch list — live verification", () => {
           status: "active",
           created_at: new Date().toISOString(),
         });
-        return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify([body]) });
+        return route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify([body]),
+        });
       }
       if (req.method() === "PATCH") {
         const url = new URL(req.url());
@@ -186,25 +213,30 @@ test.describe("Doublecheck punch list — live verification", () => {
     const convRequests: { method: string; url: string; body: unknown }[] = [];
     page.on("request", (req) => {
       if (req.url().includes("/rest/v1/jarvix_conversations")) {
-        convRequests.push({ method: req.method(), url: req.url(), body: req.method() === "POST" ? req.postDataJSON() : null });
+        convRequests.push({
+          method: req.method(),
+          url: req.url(),
+          body: req.method() === "POST" ? req.postDataJSON() : null,
+        });
       }
     });
 
-    // Initial load so we have a document to call window.name on.
-    await page.goto("/home");
-    await page.waitForTimeout(500);
-
     // 1) First visit — ecosystem scope (no active project)
-    await page.evaluate(() => { window.name = "eco"; });
+    await page.goto("about:blank");
+    await page.evaluate(() => {
+      window.name = "eco";
+    });
     convRequests.length = 0;
-    await page.reload();
+    await page.goto("/home");
     await page.waitForTimeout(1500);
     const ecoFirstCreates = convRequests.filter((r) => r.method === "POST");
     expect(ecoFirstCreates.length).toBeGreaterThanOrEqual(1);
     expect(ecoFirstCreates[0].body).toMatchObject({ project_id: null });
 
     // 2) First visit — project scope
-    await page.evaluate((pid) => { window.name = pid; }, PROJECT_ID);
+    await page.evaluate((pid) => {
+      window.name = pid;
+    }, PROJECT_ID);
     convRequests.length = 0;
     await page.reload();
     await page.waitForTimeout(1500);
@@ -214,18 +246,24 @@ test.describe("Doublecheck punch list — live verification", () => {
 
     // 3) Return to ecosystem — should NOT create a new conversation; should query
     //    for the existing project_id IS NULL conversation instead.
-    await page.evaluate(() => { window.name = "eco"; });
+    await page.evaluate(() => {
+      window.name = "eco";
+    });
     convRequests.length = 0;
     await page.reload();
     await page.waitForTimeout(1500);
     const ecoReturnCreates = convRequests.filter((r) => r.method === "POST");
-    const ecoReturnQueries = convRequests.filter((r) => r.method === "GET" && r.url.includes("project_id=is.null"));
+    const ecoReturnQueries = convRequests.filter(
+      (r) => r.method === "GET" && r.url.includes("project_id=is.null"),
+    );
     expect(ecoReturnCreates.length).toBe(0);
     expect(ecoReturnQueries.length).toBeGreaterThanOrEqual(1);
 
     // 4) Return to the same project — should NOT create a new conversation; should
     //    query for the existing project-scoped conversation instead.
-    await page.evaluate((pid) => { window.name = pid; }, PROJECT_ID);
+    await page.evaluate((pid) => {
+      window.name = pid;
+    }, PROJECT_ID);
     convRequests.length = 0;
     await page.reload();
     await page.waitForTimeout(1500);

@@ -56,8 +56,10 @@ import { useBrand } from "@/lib/brand";
 import { useSidebar } from "@/components/ui/sidebar";
 
 // ─── Hero background image paths ─────────────────────────────────────────────
-const HERO_DARK_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
-const HERO_LIGHT_SRC = "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Light.png";
+const HERO_DARK_SRC =
+  "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Dark.png";
+const HERO_LIGHT_SRC =
+  "https://ueebzuleyrnsrxbowdfa.supabase.co/storage/v1/object/public/App%20media/Xcamp-Nox%20Home%20Background%20Light.png";
 
 // ─── Recommendation card video paths ─────────────────────────────────────────
 const CARD_VIDEOS = {
@@ -179,10 +181,7 @@ const INTRO_LINES_STATIC = [
 // founder is unchanged.
 const INTRO_LINES_BY_PERSONA = {
   founder: INTRO_LINES_STATIC,
-  investor: [
-    "Welcome to Xcamp for investors.",
-    "How do you want to get started today?",
-  ] as const,
+  investor: ["Welcome to Xcamp for investors.", "How do you want to get started today?"] as const,
   collaborator: [
     "Welcome to Xcamp for collaborators.",
     "How do you want to get started today?",
@@ -219,7 +218,11 @@ function EcoIntroOverlay({
     staleTime: 30_000,
   });
   const collabProjects = (collabQuery.data ?? []).filter(
-    (p) => authUser && p.owner_central_id !== authUser.centralId && p.collab_role !== null && p.collab_role !== "viewer",
+    (p) =>
+      authUser &&
+      p.owner_central_id !== authUser.centralId &&
+      p.collab_role !== null &&
+      p.collab_role !== "viewer",
   );
 
   function handleLineDone() {
@@ -293,11 +296,13 @@ function EcoIntroOverlay({
                   margin: i === 1 ? "12px 0 0" : "0",
                 }}
               >
-                {i < lineIdx
-                  ? line
-                  : <Typewriter text={line} caret={false} onDone={handleLineDone} />}
+                {i < lineIdx ? (
+                  line
+                ) : (
+                  <Typewriter text={line} caret={false} onDone={handleLineDone} />
+                )}
               </p>
-            )
+            ),
           )}
         </div>
 
@@ -313,7 +318,14 @@ function EcoIntroOverlay({
           }}
         >
           {persona === "founder" && (
-            <p style={{ fontSize: 12, color: "var(--skin-ink-faint)", textAlign: "center", margin: 0 }}>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--skin-ink-faint)",
+                textAlign: "center",
+                margin: 0,
+              }}
+            >
               Or use the menu to jump right in. You can always find me in the sidebar.
             </p>
           )}
@@ -467,8 +479,18 @@ function InputBox({
             >
               @{e.title}
               <button
-                onClick={() => onMentionedEntitiesChange(mentionedEntities.filter((x) => x.id !== e.id))}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 13, lineHeight: 1 }}
+                onClick={() =>
+                  onMentionedEntitiesChange(mentionedEntities.filter((x) => x.id !== e.id))
+                }
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "inherit",
+                  padding: 0,
+                  fontSize: 13,
+                  lineHeight: 1,
+                }}
                 aria-label={`Remove ${e.title}`}
               >
                 ×
@@ -493,19 +515,31 @@ function InputBox({
           value={draft}
           onChange={onDraftChange}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { onMentionMenuClose(); return; }
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
+            if (e.key === "Escape") {
+              onMentionMenuClose();
+              return;
+            }
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSend();
+            }
           }}
           rows={4}
           placeholder={
-            voice.isListening ? "Listening…" : isLoading ? "Chi is thinking…" : (placeholder ?? "Ask Chi anything… (@ to mention)")
+            voice.isListening
+              ? "Listening…"
+              : isLoading
+                ? "Chi is thinking…"
+                : (placeholder ?? "Ask Chi anything… (@ to mention)")
           }
           disabled={isLoading}
           style={{
             width: "100%",
             resize: "none",
             overflowY: "auto",
-            border: voice.isListening ? "1px solid var(--skin-accent, #4de0c1)" : "1px solid var(--skin-line)",
+            border: voice.isListening
+              ? "1px solid var(--skin-accent, #4de0c1)"
+              : "1px solid var(--skin-line)",
             borderRadius: 8,
             background: "transparent",
             color: "var(--skin-ink)",
@@ -520,13 +554,23 @@ function InputBox({
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 8,
+        }}
+      >
         <div style={{ display: "flex", gap: 2 }}>
           <input
             ref={fileInputRef}
             type="file"
             style={{ display: "none" }}
-            onChange={(e) => { onAttachmentSet(e.target.files?.[0] ?? null); e.target.value = ""; }}
+            onChange={(e) => {
+              onAttachmentSet(e.target.files?.[0] ?? null);
+              e.target.value = "";
+            }}
           />
           <ToolbarBtn title="Add mention" onClick={onMentionToggle} active={mentionMenuOpen}>
             <Plus size={15} />
@@ -535,8 +579,10 @@ function InputBox({
             <Paperclip size={15} />
           </ToolbarBtn>
           <ToolbarBtn
-            title={!voice.supported ? "Voice not supported" : voice.isListening ? "Stop" : "Voice input"}
-            onClick={() => voice.isListening ? voice.stop() : voice.start()}
+            title={
+              !voice.supported ? "Voice not supported" : voice.isListening ? "Stop" : "Voice input"
+            }
+            onClick={() => (voice.isListening ? voice.stop() : voice.start())}
             disabled={!voice.supported}
             active={voice.isListening}
           >
@@ -565,14 +611,37 @@ function InputBox({
 
       {/* Attachment badge */}
       {attachment && (
-        <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--skin-ink-soft)" }}>
+        <div
+          style={{
+            marginTop: 6,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 11,
+            color: "var(--skin-ink-soft)",
+          }}
+        >
           <Paperclip size={10} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: 220,
+            }}
+          >
             {attachment.name}
           </span>
           <button
             onClick={() => onAttachmentSet(null)}
-            style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: 13, padding: 0 }}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "inherit",
+              fontSize: 13,
+              padding: 0,
+            }}
             aria-label="Remove attachment"
           >
             ×
@@ -584,7 +653,11 @@ function InputBox({
 }
 
 function ToolbarBtn({
-  children, onClick, title, disabled, active,
+  children,
+  onClick,
+  title,
+  disabled,
+  active,
 }: {
   children: React.ReactNode;
   onClick: () => void;
@@ -740,9 +813,7 @@ function EcosystemHeroLayout({
       </div>
 
       {/* Overlapping content card — responsive: 230px mobile, 440px sm, 500px md+ */}
-      <div
-        className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px] -mt-[230px] sm:-mt-[440px] md:-mt-[500px]"
-      >
+      <div className="relative mx-auto w-full px-4 sm:px-6 lg:w-[80%] lg:max-w-[1400px] -mt-[230px] sm:-mt-[440px] md:-mt-[500px]">
         <div
           className="rounded-2xl shadow-xl"
           style={{
@@ -891,29 +962,24 @@ function NewProjectTile({ onSelect }: { onSelect: () => void }) {
 // Whole-tile-clickable; video plays on hover, resets on mouse-leave.
 // videoSrc omitted → placeholder slot for pending asset.
 
-function ToolTile({
-  title,
-  videoSrc,
-  to,
-}: {
-  title: string;
-  videoSrc?: string;
-  to: string;
-}) {
+function ToolTile({ title, videoSrc, to }: { title: string; videoSrc?: string; to: string }) {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   return (
     <button
       onClick={() =>
-        void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never })
+        void navigate({
+          to: to as never,
+          search: ((prev: Record<string, unknown>) => ({ ...prev })) as never,
+        })
       }
       onMouseEnter={(e) => {
-        (e.currentTarget).style.borderColor = "var(--skin-accent, #4de0c1)";
+        e.currentTarget.style.borderColor = "var(--skin-accent, #4de0c1)";
         videoRef.current?.play().catch(() => undefined);
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget).style.borderColor = "var(--skin-line)";
+        e.currentTarget.style.borderColor = "var(--skin-line)";
         const v = videoRef.current;
         if (!v) return;
         v.pause();
@@ -931,7 +997,14 @@ function ToolTile({
         transition: "border-color 0.15s, box-shadow 0.15s",
       }}
     >
-      <div style={{ width: "100%", aspectRatio: "1 / 1", overflow: "hidden", background: "var(--skin-surface)" }}>
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "1 / 1",
+          overflow: "hidden",
+          background: "var(--skin-surface)",
+        }}
+      >
         {videoSrc ? (
           <video
             ref={videoRef}
@@ -958,7 +1031,14 @@ function ToolTile({
           </div>
         )}
       </div>
-      <div style={{ padding: "9px 12px 12px", fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>
+      <div
+        style={{
+          padding: "9px 12px 12px",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "var(--skin-ink)",
+        }}
+      >
         {title}
       </div>
     </button>
@@ -967,13 +1047,7 @@ function ToolTile({
 
 // ─── Project-select + Send for Ecosystem Home recommend cards (Phase 15) ─────
 
-function ProjectSelectAction({
-  projects,
-  to,
-}: {
-  projects: ProjectFull[];
-  to: string;
-}) {
+function ProjectSelectAction({ projects, to }: { projects: ProjectFull[]; to: string }) {
   const navigate = useNavigate();
   const { setActiveProjectId, setNavMode } = useActiveProject();
   const [selectedId, setSelectedId] = useState("");
@@ -982,7 +1056,10 @@ function ProjectSelectAction({
     if (!selectedId) return;
     setActiveProjectId(selectedId);
     setNavMode("project");
-    void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never });
+    void navigate({
+      to: to as never,
+      search: ((prev: Record<string, unknown>) => ({ ...prev })) as never,
+    });
   };
 
   return (
@@ -1003,7 +1080,8 @@ function ProjectSelectAction({
           cursor: "pointer",
           appearance: "none",
           WebkitAppearance: "none",
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "right 10px center",
           backgroundSize: "0.8rem",
@@ -1020,21 +1098,23 @@ function ProjectSelectAction({
         onClick={handleSend}
         disabled={!selectedId}
         title="Go"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          width: 30,
-          height: 30,
-          borderRadius: 6,
-          border: selectedId ? "none" : "1px solid var(--skin-line)",
-          background: selectedId ? "var(--skin-accent-gradient)" : "transparent",
-          color: selectedId ? "white" : "var(--skin-ink-faint)",
-          cursor: selectedId ? "pointer" : "not-allowed",
-          opacity: selectedId ? 1 : 0.45,
-          transition: "background 0.15s, opacity 0.15s",
-        } as React.CSSProperties}
+        style={
+          {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            width: 30,
+            height: 30,
+            borderRadius: 6,
+            border: selectedId ? "none" : "1px solid var(--skin-line)",
+            background: selectedId ? "var(--skin-accent-gradient)" : "transparent",
+            color: selectedId ? "white" : "var(--skin-ink-faint)",
+            cursor: selectedId ? "pointer" : "not-allowed",
+            opacity: selectedId ? 1 : 0.45,
+            transition: "background 0.15s, opacity 0.15s",
+          } as React.CSSProperties
+        }
       >
         <Send size={14} />
       </button>
@@ -1048,7 +1128,10 @@ function GetStartedAction({ to }: { to: string }) {
   return (
     <button
       onClick={() =>
-        void navigate({ to: to as never, search: ((prev: Record<string, unknown>) => ({ ...prev })) as never })
+        void navigate({
+          to: to as never,
+          search: ((prev: Record<string, unknown>) => ({ ...prev })) as never,
+        })
       }
       style={{
         marginTop: 8,
@@ -1134,7 +1217,9 @@ function RecommendCard({
       {/* Text + action */}
       <div style={{ flex: 1, minWidth: 0, padding: "10px 14px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
-        <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>{description}</div>
+        <div style={{ fontSize: 12, color: "var(--skin-ink-soft)", marginTop: 2 }}>
+          {description}
+        </div>
         {action}
       </div>
     </div>
@@ -1143,7 +1228,15 @@ function RecommendCard({
 
 // Static-destination CTA button — matches GetStartedAction's look, but takes any
 // route + optional search params instead of always saying "Get started with AI."
-function NavigateAction({ to, search, label }: { to: string; search?: Record<string, string>; label: string }) {
+function NavigateAction({
+  to,
+  search,
+  label,
+}: {
+  to: string;
+  search?: Record<string, string>;
+  label: string;
+}) {
   const navigate = useNavigate();
   return (
     <button
@@ -1210,7 +1303,15 @@ function CollaboratorProjectTiles({
     );
   }
   return (
-    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        overflowX: "auto",
+        paddingBottom: 4,
+        scrollbarWidth: "none",
+      }}
+    >
       {projects.map((p) => (
         <ProjectTile key={p.id} project={p} onSelect={onSelect} />
       ))}
@@ -1232,7 +1333,9 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
         sessionStorage.setItem(INTRO_KEY, "1");
         return true;
       }
-    } catch { /* sessionStorage unavailable (e.g. private mode with blocked storage) */ }
+    } catch {
+      /* sessionStorage unavailable (e.g. private mode with blocked storage) */
+    }
     return false;
   });
 
@@ -1262,9 +1365,10 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
     const ps = projects;
     const au = authUser;
     const greet = `${timeGreeting()}, ${firstName(au)}.`;
-    const sub = ps.length > 0
-      ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
-      : "What do you want to work on today?";
+    const sub =
+      ps.length > 0
+        ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+        : "What do you want to work on today?";
     prefetchTTS(`${greet} ${sub}`);
     prefetchTTS("Ask Chi anything, or jot down what's on your mind…");
     prefetchTTS("Or jump into a project.");
@@ -1290,7 +1394,10 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 
     let cancelled = false;
     async function run() {
-      if (mutedRef.current) { setPhase(4); return; }
+      if (mutedRef.current) {
+        setPhase(4);
+        return;
+      }
 
       await delay(450);
       if (cancelled) return;
@@ -1298,9 +1405,10 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       const ps = projectsRef.current;
       const au = authUserRef.current;
       const greet = `${timeGreeting()}, ${firstName(au)}.`;
-      const sub = ps.length > 0
-        ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
-        : "What do you want to work on today?";
+      const sub =
+        ps.length > 0
+          ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+          : "What do you want to work on today?";
       const TEXT1 = `${greet} ${sub}`;
       const TEXT2 = "Ask Chi anything, or jot down what's on your mind…";
       const TEXT3 = "Or jump into a project.";
@@ -1330,7 +1438,7 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       cancelled = true;
       stopSpeaking();
     };
-  }, [showOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showOverlay]);
 
   // ── On first browser interaction, cancel stale queued audio and re-speak
   //    whichever phase is currently visible (phases queue up while blocked). ──
@@ -1342,9 +1450,10 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       const ps = projectsRef.current;
       const au = authUserRef.current;
       const greet = `${timeGreeting()}, ${firstName(au)}.`;
-      const sub = ps.length > 0
-        ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
-        : "What do you want to work on today?";
+      const sub =
+        ps.length > 0
+          ? `You have ${ps.length} project${ps.length === 1 ? "" : "s"}. What do you want to work on today?`
+          : "What do you want to work on today?";
       const texts = [
         `${greet} ${sub}`,
         "Ask Chi anything, or jot down what's on your mind…",
@@ -1354,24 +1463,32 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
       const text = texts[p - 1];
       if (text) speak(text);
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Project metrics ──────────────────────────────────────────────────────
   const [metrics, setMetrics] = useState<ProjectMetrics>({});
   useEffect(() => {
     if (!authUser || !projects.length) return;
     let cancelled = false;
-    fetchProjectMetrics(authUser, projects.map((p) => p.id))
-      .then((m) => { if (!cancelled) setMetrics(m); })
+    fetchProjectMetrics(
+      authUser,
+      projects.map((p) => p.id),
+    )
+      .then((m) => {
+        if (!cancelled) setMetrics(m);
+      })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [authUser, projects]);
 
   const heroSrc = theme === "dark" ? HERO_DARK_SRC : HERO_LIGHT_SRC;
   const greetText = `${timeGreeting()}, ${firstName(authUser)}.`;
-  const sublineText = projects.length > 0
-    ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
-    : "What do you want to work on today?";
+  const sublineText =
+    projects.length > 0
+      ? `You have ${projects.length} project${projects.length === 1 ? "" : "s"}. What do you want to work on today?`
+      : "What do you want to work on today?";
 
   const FADE: React.CSSProperties = { transition: "opacity 0.5s ease" };
 
@@ -1399,7 +1516,13 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
               letterSpacing: "-0.01em",
             }}
           >
-            {phase >= 1 ? (startedMutedRef.current ? greetText : <Typewriter text={greetText} caret={false} />) : null}
+            {phase >= 1 ? (
+              startedMutedRef.current ? (
+                greetText
+              ) : (
+                <Typewriter text={greetText} caret={false} />
+              )
+            ) : null}
           </h1>
           <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", marginBottom: 28 }}>
             {sublineText}
@@ -1502,7 +1625,11 @@ export function EcosystemHomeView(props: ExperimentalHomeProps) {
 // Founder keeps the full narrated heading; investor/collaborator get the shorter
 // "welcome line" (Phase 3/5) with no project name or CTA question, since it also
 // stands in for the current heading on their view.
-function projectHomeHeading(persona: Persona, projectName: string, m: ProjectDetailMetrics): string {
+function projectHomeHeading(
+  persona: Persona,
+  projectName: string,
+  m: ProjectDetailMetrics,
+): string {
   const goals = `${m.objectives} goal${m.objectives === 1 ? "" : "s"}`;
   const tasksTotal = `${m.totalTasks} task${m.totalTasks === 1 ? "" : "s"} in total`;
   const tasksOpen = `${m.openTasks} task${m.openTasks === 1 ? "" : "s"} open`;
@@ -1550,7 +1677,9 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
         }
       })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [authUser, activeProject?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Narration phase: 0=hidden 1=heading 2=input 3=tools 4=suggestions ───
@@ -1565,7 +1694,10 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      if (mutedRef.current) { setPhase(4); return; }
+      if (mutedRef.current) {
+        setPhase(4);
+        return;
+      }
 
       // Wait for metrics to load (up to 1200ms) before building narration text
       await delay(800);
@@ -1656,7 +1788,13 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
                 letterSpacing: "-0.01em",
               }}
             >
-              {phase >= 1 ? (startedMutedRef.current ? headingText : <Typewriter text={headingText} caret={false} />) : null}
+              {phase >= 1 ? (
+                startedMutedRef.current ? (
+                  headingText
+                ) : (
+                  <Typewriter text={headingText} caret={false} />
+                )
+              ) : null}
             </h1>
             {sublineText && (
               <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", margin: 0 }}>
@@ -1693,7 +1831,11 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
                 <div style={{ display: "flex", gap: 12 }}>
                   <ToolTile title="Project Journal" videoSrc={CARD_VIDEOS.journal} to="/journal" />
                   <ToolTile title="New Note" videoSrc={CARD_VIDEOS.note} to="/notes" />
-                  <ToolTile title="Project Navigator" videoSrc={CARD_VIDEOS.navigator} to="/navigator" />
+                  <ToolTile
+                    title="Project Navigator"
+                    videoSrc={CARD_VIDEOS.navigator}
+                    to="/navigator"
+                  />
                 </div>
               </section>
 
@@ -1911,14 +2053,29 @@ function CompanionCornerControls({
 
 export function ExperimentalChatView(props: ExperimentalChatProps) {
   const {
-    messages, typingMessageId, isLoading,
-    projects, onProjectSelect, onCreateProject,
-    onCardConfirm, onCardDismiss, hiddenCardIds,
-    draft, onDraftChange, onSend,
-    voice, fileInputRef, attachment, onAttachmentSet,
-    mentionMenuOpen, mentionQuery, onMentionSelect,
-    mentionedEntities, onMentionedEntitiesChange,
-    onMentionMenuClose, onMentionToggle,
+    messages,
+    typingMessageId,
+    isLoading,
+    projects,
+    onProjectSelect,
+    onCreateProject,
+    onCardConfirm,
+    onCardDismiss,
+    hiddenCardIds,
+    draft,
+    onDraftChange,
+    onSend,
+    voice,
+    fileInputRef,
+    attachment,
+    onAttachmentSet,
+    mentionMenuOpen,
+    mentionQuery,
+    onMentionSelect,
+    mentionedEntities,
+    onMentionedEntitiesChange,
+    onMentionMenuClose,
+    onMentionToggle,
     activeProject,
     muted,
     onMuteToggle,

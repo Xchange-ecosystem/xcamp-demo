@@ -43,7 +43,11 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false }),
-      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer" } }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: { rel: "noopener noreferrer" },
+      }),
       Image,
       Placeholder.configure({ placeholder: "Write your note… drag & drop files anywhere." }),
     ],
@@ -76,13 +80,11 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content || "", { emitUpdate: false });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, editor]);
 
   const handleFile = useCallback(
     async (file: File) => {
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        // eslint-disable-next-line no-alert
         alert(`"${file.name}" is larger than 2 MB and can't be attached inline.`);
         return;
       }
@@ -111,7 +113,6 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
     input.click();
   }, [handleFile]);
 
-
   if (!editor) return null;
 
   const Btn = ({
@@ -125,7 +126,13 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
     title: string;
     children: React.ReactNode;
   }) => (
-    <button type="button" className="x-tt-btn" data-active={!!active} title={title} onClick={onClick}>
+    <button
+      type="button"
+      className="x-tt-btn"
+      data-active={!!active}
+      title={title}
+      onClick={onClick}
+    >
       {children}
     </button>
   );
@@ -133,36 +140,76 @@ export function RichTextEditor({ content, onChange, onAddAttachment }: RichTextE
   return (
     <div className="x-tt-wrap">
       <div className="x-tt-toolbar">
-        <Btn title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <Btn
+          title="Bold"
+          active={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        >
           <Bold size={16} />
         </Btn>
-        <Btn title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <Btn
+          title="Italic"
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        >
           <Italic size={16} />
         </Btn>
-        <Btn title="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <Btn
+          title="Strikethrough"
+          active={editor.isActive("strike")}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+        >
           <Strikethrough size={16} />
         </Btn>
         <span className="x-tt-sep" />
-        <Btn title="Heading 1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+        <Btn
+          title="Heading 1"
+          active={editor.isActive("heading", { level: 1 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        >
           <Heading1 size={16} />
         </Btn>
-        <Btn title="Heading 2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+        <Btn
+          title="Heading 2"
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
           <Heading2 size={16} />
         </Btn>
-        <Btn title="Heading 3" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+        <Btn
+          title="Heading 3"
+          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
           <Heading3 size={16} />
         </Btn>
         <span className="x-tt-sep" />
-        <Btn title="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <Btn
+          title="Bullet list"
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        >
           <List size={16} />
         </Btn>
-        <Btn title="Numbered list" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        <Btn
+          title="Numbered list"
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        >
           <ListOrdered size={16} />
         </Btn>
-        <Btn title="Quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+        <Btn
+          title="Quote"
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        >
           <Quote size={16} />
         </Btn>
-        <Btn title="Code block" active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
+        <Btn
+          title="Code block"
+          active={editor.isActive("codeBlock")}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        >
           <Code size={16} />
         </Btn>
         <span className="x-tt-sep" />

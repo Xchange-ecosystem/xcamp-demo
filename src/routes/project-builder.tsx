@@ -14,7 +14,10 @@ export const Route = createFileRoute("/project-builder")({
   head: () => ({
     meta: [
       { title: "Project Builder — Xcamp" },
-      { name: "description", content: "Turn a goal into a project skeleton with the Backcaster Quick Road." },
+      {
+        name: "description",
+        content: "Turn a goal into a project skeleton with the Backcaster Quick Road.",
+      },
     ],
   }),
   component: ProjectBuilderPage,

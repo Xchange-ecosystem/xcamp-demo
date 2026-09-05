@@ -1,5 +1,5 @@
-import type { AICard, Altitude } from './ai';
-import type { CompanionContext } from './context';
+import type { AICard, Altitude } from "./ai";
+import type { CompanionContext } from "./context";
 
 export interface VoxConversation {
   id: string;
@@ -15,7 +15,7 @@ export interface VoxMessage {
   id: string;
   conversation_id: string;
   tenant_id: string;
-  role: 'user' | 'vox';
+  role: "user" | "vox";
   content_markdown: string;
   cards: AICard[];
   altitude: Altitude;
@@ -34,7 +34,7 @@ export interface CreateConversationParams {
 
 export interface CreateMessageParams {
   conversation_id: string;
-  role: 'user' | 'vox';
+  role: "user" | "vox";
   content_markdown: string;
   cards?: AICard[];
   altitude: Altitude;

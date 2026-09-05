@@ -1,10 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type SR = any;
+interface SpeechRecognitionResultEventLike {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
 
-function getSpeechRecognition(): SR | null {
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+function getSpeechRecognition(): SpeechRecognitionConstructor | null {
   if (typeof window === "undefined") return null;
-  const w = window as any;
+  const w = window as SpeechRecognitionWindow;
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
@@ -13,7 +33,7 @@ export function useVoiceTranscription(opts: { lang?: string } = {}) {
   const supported = !!SR;
   const [transcript, setTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const recRef = useRef<any>(null);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(
     () => () => {
@@ -32,7 +52,7 @@ export function useVoiceTranscription(opts: { lang?: string } = {}) {
     rec.lang = opts.lang ?? "en-US";
     rec.interimResults = true;
     rec.continuous = true;
-    rec.onresult = (e: any) => {
+    rec.onresult = (e) => {
       let text = "";
       for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
       setTranscript(text);

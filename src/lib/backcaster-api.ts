@@ -139,10 +139,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       });
     } catch (networkErr) {
       // Network-level failure (offline, DNS, aborted) — treat as transient.
-      lastErr = new BackcasterError(
-        "Network error reaching the planner. Please try again.",
-        0,
-      );
+      lastErr = new BackcasterError("Network error reaching the planner. Please try again.", 0);
       if (attempt < MAX_RETRIES) {
         await sleep(600 * (attempt + 1));
         continue;
@@ -183,7 +180,13 @@ export async function listModes(): Promise<BackcasterMode[]> {
 // Some endpoints wrap the payload as { success, data }. Unwrap consistently.
 function unwrap<T>(res: unknown): T {
   const root = (res ?? {}) as { data?: unknown };
-  if (root && typeof root === "object" && "data" in root && root.data && typeof root.data === "object") {
+  if (
+    root &&
+    typeof root === "object" &&
+    "data" in root &&
+    root.data &&
+    typeof root.data === "object"
+  ) {
     return root.data as T;
   }
   return res as T;
@@ -317,10 +320,7 @@ export async function generate(body: {
   if (!interpretedInput) missing.push("interpreted_input");
   if (!modeId) missing.push("mode_id");
   if (missing.length) {
-    throw new BackcasterError(
-      `Cannot generate the plan — missing: ${missing.join(", ")}.`,
-      400,
-    );
+    throw new BackcasterError(`Cannot generate the plan — missing: ${missing.join(", ")}.`, 400);
   }
 
   // The API returns the tree in one of several shapes. Accept all of them.
@@ -351,7 +351,10 @@ export async function generate(body: {
 function extractTree(raw: unknown): OutputTree | null {
   if (!raw || typeof raw !== "object") return null;
   const root = raw as Record<string, unknown>;
-  const data = (root.data && typeof root.data === "object" ? root.data : {}) as Record<string, unknown>;
+  const data = (root.data && typeof root.data === "object" ? root.data : {}) as Record<
+    string,
+    unknown
+  >;
 
   const candidates: unknown[] = [
     data.output,
@@ -378,9 +381,9 @@ function normalizeNode(raw: unknown): OutputNode | null {
   if (!raw || typeof raw !== "object") return null;
   const n = raw as Record<string, unknown>;
   const rawType = typeof n.node_type === "string" ? n.node_type : "";
-  const node_type = (KNOWN_NODE_TYPES.includes(rawType as OutputNodeType)
-    ? rawType
-    : "objective") as OutputNodeType;
+  const node_type = (
+    KNOWN_NODE_TYPES.includes(rawType as OutputNodeType) ? rawType : "objective"
+  ) as OutputNodeType;
   const children = Array.isArray(n.children)
     ? n.children.map(normalizeNode).filter((c): c is OutputNode => c !== null)
     : [];
@@ -390,7 +393,9 @@ function normalizeNode(raw: unknown): OutputNode | null {
     title: typeof n.title === "string" ? n.title : "Untitled",
     description: typeof n.description === "string" ? n.description : "",
     children,
-    success_criteria: Array.isArray(n.success_criteria) ? (n.success_criteria as string[]) : undefined,
+    success_criteria: Array.isArray(n.success_criteria)
+      ? (n.success_criteria as string[])
+      : undefined,
     risks: Array.isArray(n.risks) ? (n.risks as string[]) : undefined,
   };
 }

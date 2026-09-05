@@ -3,9 +3,7 @@
  *
  * Connection strategy:
  *  - Supabase REST/Storage: mocked (returns known data; browser can't reach Supabase directly)
- *  - Backcaster API (xcampapi.xchange.eco): intercepted via page.route() + route.fetch()
- *    which forwards the request from Node.js (which uses HTTPS_PROXY) instead of the
- *    browser (which can't reach external HTTPS through the env proxy).
+ *  - Backcaster API (xcampapi.xchange.eco): mocked with deterministic contract responses.
  *
  * Covers:
  *  1. InputStep: type goal, submit → interpret → transition to InterpretStep
@@ -111,12 +109,12 @@ test.describe("Backcaster QuickRoad E2E", () => {
       });
     });
 
-    // ── Proxy backcaster API through Node.js (uses HTTPS_PROXY) ───────────
-    // Chromium can't reach xcampapi.xchange.eco directly through the env proxy.
-    // route.fetch() runs in Node.js, which does respect HTTPS_PROXY.
+    // ── Mock the Backcaster contract ──────────────────────────────────────
+    // This is an application-flow test, so it must not depend on a live API,
+    // expiring credentials, or the runner's outbound network.
     const interpretPayloads: Array<{ raw_input: string }> = [];
 
-    await page.route("**/xcampapi.xchange.eco/**", async (route) => {
+    await page.route("**/xcampapi.xchange.eco/api/v1/backcaster/**", async (route) => {
       const url = route.request().url();
       const method = route.request().method();
 
@@ -127,20 +125,71 @@ test.describe("Backcaster QuickRoad E2E", () => {
             raw_input?: string;
           };
           interpretPayloads.push({ raw_input: body.raw_input ?? "" });
-          console.log(`[intercept] /interpret raw_input: "${(body.raw_input ?? "").slice(0, 100)}"`);
+          console.log(
+            `[intercept] /interpret raw_input: "${(body.raw_input ?? "").slice(0, 100)}"`,
+          );
         } catch {
           // ignore
         }
       }
 
-      // Forward the request from Node.js (which uses HTTPS_PROXY) to the real API
-      try {
-        const response = await route.fetch();
-        await route.fulfill({ response });
-      } catch (e) {
-        console.error(`[proxy] Failed to fetch ${url}:`, e);
-        await route.abort("failed");
+      const json = (body: unknown) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+
+      if (url.endsWith("/modes") && method === "GET") {
+        return json([
+          {
+            id: "mode-bpmo",
+            name: "BPMO",
+            description: "Business planning mode",
+            allowed_depth_min: 1,
+            allowed_depth_max: 4,
+            default_depth: 2,
+            status: "active",
+          },
+        ]);
       }
+      if (url.endsWith("/sessions") && method === "POST") {
+        return json({ id: "session-e2e", status: "input" });
+      }
+      if (url.endsWith("/interpret") && method === "POST") {
+        return json({
+          data: {
+            interpretation_paragraph:
+              "Create a focused SaaS workspace where freelance designers can manage client relationships, project delivery, and invoicing in one reliable workflow.",
+            suggested_title: "Freelance Designer Workspace",
+          },
+        });
+      }
+      if (url.endsWith("/generate") && method === "POST") {
+        return json({
+          data: {
+            output: {
+              title: "Freelance Designer Workspace",
+              summary: "Build and validate the core client and billing workflow.",
+              mode: "BPMO",
+              parameters: {},
+              root_nodes: [
+                {
+                  id: "objective-1",
+                  node_type: "objective",
+                  title: "Validate the workflow",
+                  description: "Interview designers and test the proposed journey.",
+                  children: [],
+                },
+                {
+                  id: "objective-2",
+                  node_type: "objective",
+                  title: "Ship the core product",
+                  description: "Deliver client, project, and invoice management.",
+                  children: [],
+                },
+              ],
+            },
+          },
+        });
+      }
+      return json({});
     });
 
     // ── Inject Supabase session ────────────────────────────────────────────
@@ -176,21 +225,25 @@ test.describe("Backcaster QuickRoad E2E", () => {
     const interpretationText = await interpretTextarea.inputValue();
 
     console.log(`[STEP 2] Interpretation (${interpretationText.length} chars):`);
-    console.log("  " + interpretationText.slice(0, 300) + (interpretationText.length > 300 ? "…" : ""));
+    console.log(
+      "  " + interpretationText.slice(0, 300) + (interpretationText.length > 300 ? "…" : ""),
+    );
 
     // Coherence: should be a meaningful paragraph
-    expect(interpretationText.trim().length, "Interpretation should be non-trivial").toBeGreaterThan(50);
+    expect(
+      interpretationText.trim().length,
+      "Interpretation should be non-trivial",
+    ).toBeGreaterThan(50);
 
     // ── Step 3: Re-interpret bug verification ──────────────────────────────
     console.log("\n[STEP 3] Testing Re-interpret button for bug…");
 
-    await page.getByRole("button", { name: "Re-interpret" }).click();
-
-    // Wait for the second interpret API response
-    await page.waitForResponse(
+    const reinterpretResponse = page.waitForResponse(
       (resp) => resp.url().includes("/backcaster/interpret") && resp.request().method() === "POST",
       { timeout: 90_000 },
     );
+    await page.getByRole("button", { name: "Re-interpret" }).click();
+    await reinterpretResponse;
 
     expect(
       interpretPayloads.length,
@@ -208,7 +261,9 @@ test.describe("Backcaster QuickRoad E2E", () => {
     const fixVerified = reinterpretCall.raw_input === GOAL_TEXT;
 
     if (bugPresent) {
-      console.log("\n  ❌ BUG CONFIRMED: Re-interpret sends state.interpretation instead of state.rawInput");
+      console.log(
+        "\n  ❌ BUG CONFIRMED: Re-interpret sends state.interpretation instead of state.rawInput",
+      );
       console.log("     File: src/components/quickroad/InterpretStep.tsx line 18");
       console.log("     Bug:  raw_input: state.interpretation");
       console.log("     Fix:  raw_input: state.rawInput");
@@ -221,14 +276,20 @@ test.describe("Backcaster QuickRoad E2E", () => {
 
     // After the fix, this assertion must pass (Re-interpret sends the original goal).
     // If it fails, the bug has regressed.
-    expect(fixVerified, "Re-interpret must send state.rawInput (the original goal), not state.interpretation").toBe(true);
+    expect(
+      fixVerified,
+      "Re-interpret must send state.rawInput (the original goal), not state.interpretation",
+    ).toBe(true);
 
     // ── Step 4: GenerateStep ───────────────────────────────────────────────
     console.log("\n[STEP 4] Clicking 'Create plan'…");
+    const generateResponse = page.waitForResponse(
+      (resp) => resp.url().includes("/backcaster/generate") && resp.request().method() === "POST",
+      { timeout: 90_000 },
+    );
     await page.getByRole("button", { name: "Create plan" }).click();
-
-    await expect(page.locator("text=Shaping your plan")).toBeVisible({ timeout: 10_000 });
-    console.log("[STEP 4] Generating plan (RAG-backed, may take 60-120s)…");
+    await generateResponse;
+    console.log("[STEP 4] Plan generation request completed");
 
     await expect(page.getByRole("button", { name: "Build project" })).toBeVisible({
       timeout: 180_000,
@@ -246,7 +307,7 @@ test.describe("Backcaster QuickRoad E2E", () => {
     console.log(`  Root nodes:  ${cardCount}`);
 
     for (let i = 0; i < Math.min(cardCount, 5); i++) {
-      const cardText = (await nodeCards.nth(i).textContent() ?? "").trim().slice(0, 80);
+      const cardText = ((await nodeCards.nth(i).textContent()) ?? "").trim().slice(0, 80);
       console.log(`  Node ${i + 1}: ${cardText}`);
     }
 

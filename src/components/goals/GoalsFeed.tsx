@@ -195,7 +195,13 @@ export function GoalsFeed({
           <textarea
             className="x-input"
             rows={4}
-            style={{ flex: 1, fontSize: 14, resize: "vertical", overflowY: "auto", lineHeight: 1.4 }}
+            style={{
+              flex: 1,
+              fontSize: 14,
+              resize: "vertical",
+              overflowY: "auto",
+              lineHeight: 1.4,
+            }}
             placeholder='Create a new goal… e.g. "Launch our beta waitlist"'
             value={goalInput}
             onChange={(e) => setGoalInput(e.target.value)}

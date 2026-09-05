@@ -127,7 +127,10 @@ export function NoteFullscreenModal({ isOpen, noteId, onClose }: Props) {
           </button>
         </div>
 
-        <div className="x-note-fullscreen-body" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "24px 32px" }}>
+        <div
+          className="x-note-fullscreen-body"
+          style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "24px 32px" }}
+        >
           {isOpen && note && user ? (
             <NoteEditor
               key={note.id}
@@ -143,7 +146,15 @@ export function NoteFullscreenModal({ isOpen, noteId, onClose }: Props) {
             />
           ) : (
             isOpen && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--skin-ink-faint)", padding: "40px 0" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: "var(--skin-ink-faint)",
+                  padding: "40px 0",
+                }}
+              >
                 <Loader2 size={16} className="animate-spin" />
                 Loading…
               </div>

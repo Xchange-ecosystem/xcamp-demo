@@ -11,14 +11,22 @@ import { EntityTypeSelector, type EntityType } from "@/components/JournalFlow";
 // ─── Message types ────────────────────────────────────────────────────────────
 
 // Legacy inline component types
-type LegacyComponentType = "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
+type LegacyComponentType =
+  | "project-grid"
+  | "backcaster-stub"
+  | "action-cards-stub"
+  | "action-cards";
 // Spec-contracted inline component types (CC_SPEC_inline_component_contract)
 type SpecComponentType = "line_chart" | "bar_chart" | "data_table" | "kpi_card" | "rubric_mini";
 
 export type ComponentMessageType = LegacyComponentType | SpecComponentType;
 
 const SPEC_COMPONENT_TYPES = new Set<string>([
-  "line_chart", "bar_chart", "data_table", "kpi_card", "rubric_mini",
+  "line_chart",
+  "bar_chart",
+  "data_table",
+  "kpi_card",
+  "rubric_mini",
 ]);
 
 export interface ChiMsg {
@@ -58,7 +66,17 @@ interface ChatThreadProps {
   hiddenCardIds?: Set<string>;
 }
 
-export function ChatThread({ messages, onProjectSelect, onCreateProject, projects = [], typingMessageId, isLoading, onCardConfirm, onCardDismiss, hiddenCardIds }: ChatThreadProps) {
+export function ChatThread({
+  messages,
+  onProjectSelect,
+  onCreateProject,
+  projects = [],
+  typingMessageId,
+  isLoading,
+  onCardConfirm,
+  onCardDismiss,
+  hiddenCardIds,
+}: ChatThreadProps) {
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lastMsgIdRef = useRef<string | null>(null);
 
@@ -86,7 +104,15 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
           if (el) msgRefs.current.set(msg.id, el);
           else msgRefs.current.delete(msg.id);
         };
-        if (msg.kind === "chi") return <ChiMessage key={msg.id} msgRef={setRef} message={msg} isTyping={msg.id === typingMessageId} />;
+        if (msg.kind === "chi")
+          return (
+            <ChiMessage
+              key={msg.id}
+              msgRef={setRef}
+              message={msg}
+              isTyping={msg.id === typingMessageId}
+            />
+          );
         if (msg.kind === "user") return <UserMessage key={msg.id} msgRef={setRef} message={msg} />;
         if (msg.kind === "component")
           return (
@@ -111,7 +137,15 @@ export function ChatThread({ messages, onProjectSelect, onCreateProject, project
 
 // ─── ChiMessage ───────────────────────────────────────────────────────────────
 
-function ChiMessage({ message, isTyping, msgRef }: { message: ChiMsg; isTyping: boolean; msgRef: (el: HTMLDivElement | null) => void }) {
+function ChiMessage({
+  message,
+  isTyping,
+  msgRef,
+}: {
+  message: ChiMsg;
+  isTyping: boolean;
+  msgRef: (el: HTMLDivElement | null) => void;
+}) {
   return (
     <div ref={msgRef} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
       {/* Static orb placeholder — pulsing animation wired in CC-2 with TTS */}
@@ -145,11 +179,7 @@ function ChiMessage({ message, isTyping, msgRef }: { message: ChiMsg; isTyping: 
           minHeight: 20,
         }}
       >
-        {isTyping ? (
-          <Typewriter text={message.text} />
-        ) : (
-          message.text
-        )}
+        {isTyping ? <Typewriter text={message.text} /> : message.text}
       </div>
     </div>
   );
@@ -157,7 +187,13 @@ function ChiMessage({ message, isTyping, msgRef }: { message: ChiMsg; isTyping: 
 
 // ─── UserMessage ──────────────────────────────────────────────────────────────
 
-function UserMessage({ message, msgRef }: { message: UserMsg; msgRef: (el: HTMLDivElement | null) => void }) {
+function UserMessage({
+  message,
+  msgRef,
+}: {
+  message: UserMsg;
+  msgRef: (el: HTMLDivElement | null) => void;
+}) {
   return (
     <div ref={msgRef} style={{ display: "flex", justifyContent: "flex-end" }}>
       <div
@@ -231,7 +267,16 @@ interface ComponentMessageProps {
   hiddenCardIds?: Set<string>;
 }
 
-function ComponentMessage({ message, projects, onProjectSelect, onCreateProject, msgRef, onCardConfirm, onCardDismiss, hiddenCardIds }: ComponentMessageProps) {
+function ComponentMessage({
+  message,
+  projects,
+  onProjectSelect,
+  onCreateProject,
+  msgRef,
+  onCardConfirm,
+  onCardDismiss,
+  hiddenCardIds,
+}: ComponentMessageProps) {
   return (
     <div
       ref={msgRef}
@@ -300,9 +345,7 @@ function ProjectGridComponent({
           ))}
         </div>
       ) : (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--glass-text-soft)" }}>
-          No projects yet.
-        </p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--glass-text-soft)" }}>No projects yet.</p>
       )}
       <CreateProjectTile onClick={onCreateProject} />
     </div>
@@ -350,14 +393,14 @@ function ActionCardsStub() {
 }
 
 const KIND_CONFIG: Record<string, { label: string; applyLabel: string }> = {
-  action_item:  { label: "Action",      applyLabel: "Apply" },
-  opportunity:  { label: "Opportunity", applyLabel: "Explore" },
-  update:       { label: "Update",      applyLabel: "Apply" },
-  metric:       { label: "Metric",      applyLabel: "View" },
-  urgency:      { label: "Urgent",      applyLabel: "Handle" },
-  celebration:  { label: "Win",         applyLabel: "Noted" },
-  content:      { label: "Content",     applyLabel: "Open" },
-  web_result:   { label: "Reference",   applyLabel: "Open" },
+  action_item: { label: "Action", applyLabel: "Apply" },
+  opportunity: { label: "Opportunity", applyLabel: "Explore" },
+  update: { label: "Update", applyLabel: "Apply" },
+  metric: { label: "Metric", applyLabel: "View" },
+  urgency: { label: "Urgent", applyLabel: "Handle" },
+  celebration: { label: "Win", applyLabel: "Noted" },
+  content: { label: "Content", applyLabel: "Open" },
+  web_result: { label: "Reference", applyLabel: "Open" },
 };
 const DEFAULT_KIND_CONFIG = { label: "Item", applyLabel: "Apply" };
 
@@ -370,7 +413,8 @@ function ActionCardItem({
   onConfirm?: (card: AICard, selectedType: EntityType) => void;
   onDismiss?: (card: AICard) => void;
 }) {
-  const defaultType: EntityType = card.kind === 'task' || card.kind === 'action_item' ? 'task' : 'note';
+  const defaultType: EntityType =
+    card.kind === "task" || card.kind === "action_item" ? "task" : "note";
   const [selectedType, setSelectedType] = useState<EntityType>(defaultType);
   const config = KIND_CONFIG[card.kind] ?? DEFAULT_KIND_CONFIG;
 
@@ -417,12 +461,16 @@ function ActionCardItem({
           {card.body}
         </div>
       )}
-      {card.confirmable && card.proposal && (card.proposal as unknown as { tool?: string })?.tool !== 'navigate' && (
-        <div style={{ marginBottom: 8 }}>
-          <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
-        </div>
-      )}
-      {(card.dismissible || card.confirmable || (card.proposal as unknown as { tool?: string })?.tool === 'navigate') && (
+      {card.confirmable &&
+        card.proposal &&
+        (card.proposal as unknown as { tool?: string })?.tool !== "navigate" && (
+          <div style={{ marginBottom: 8 }}>
+            <EntityTypeSelector selected={selectedType} onChange={setSelectedType} />
+          </div>
+        )}
+      {(card.dismissible ||
+        card.confirmable ||
+        (card.proposal as unknown as { tool?: string })?.tool === "navigate") && (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
           {card.dismissible && (
             <button
@@ -440,7 +488,7 @@ function ActionCardItem({
               Dismiss
             </button>
           )}
-          {(card.proposal as unknown as { tool?: string })?.tool === 'navigate' ? (
+          {(card.proposal as unknown as { tool?: string })?.tool === "navigate" ? (
             <button
               onClick={() => onConfirm?.(card, selectedType)}
               style={{
@@ -495,12 +543,7 @@ function ActionCards({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {visibleCards.map((card) => (
-        <ActionCardItem
-          key={card.id}
-          card={card}
-          onConfirm={onConfirm}
-          onDismiss={onDismiss}
-        />
+        <ActionCardItem key={card.id} card={card} onConfirm={onConfirm} onDismiss={onDismiss} />
       ))}
     </div>
   );

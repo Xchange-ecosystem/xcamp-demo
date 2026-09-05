@@ -14,17 +14,14 @@ export type TokenProvider = () => Promise<string | null>;
 const baseUrl = (): string => {
   const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
   const url = env?.VITE_VOX_API_URL;
-  if (!url) throw new Error('[xchange/client] VITE_VOX_API_URL is not set');
-  return url.replace(/\/$/, '');
+  if (!url) throw new Error("[xchange/client] VITE_VOX_API_URL is not set");
+  return url.replace(/\/$/, "");
 };
 
-export async function voxFetch<T>(
-  path: string,
-  body: Record<string, unknown>,
-): Promise<T> {
+export async function voxFetch<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${baseUrl()}/api${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`[voxFetch] ${path} → ${res.status}`);
@@ -37,14 +34,14 @@ export async function voxAuthFetch<T>(
   getToken: TokenProvider,
 ): Promise<T> {
   const token = await getToken();
-  if (!token) throw new Error('[voxAuthFetch] No auth token available');
-  if (!('altitude' in body)) {
-    console.warn('[xchange/client] voxAuthFetch called without altitude in body:', path);
+  if (!token) throw new Error("[voxAuthFetch] No auth token available");
+  if (!("altitude" in body)) {
+    console.warn("[xchange/client] voxAuthFetch called without altitude in body:", path);
   }
   const res = await fetch(`${baseUrl()}/api${path}`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),

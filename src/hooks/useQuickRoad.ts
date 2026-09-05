@@ -5,12 +5,7 @@ export type QuickRoadStep = "input" | "interpret" | "generate";
 
 export type StageStatus = "waiting" | "running" | "ok" | "failed" | "skipped";
 
-export type WorkflowStage =
-  | "modes"
-  | "session"
-  | "interpret"
-  | "generate"
-  | "materialize";
+export type WorkflowStage = "modes" | "session" | "interpret" | "generate" | "materialize";
 
 export interface WorkflowDiag {
   stages: Record<WorkflowStage, StageStatus>;
@@ -137,8 +132,7 @@ function reducer(state: QuickRoadState, action: Action): QuickRoadState {
         diag: {
           stages: { ...state.diag.stages, [action.stage]: action.status },
           lastEndpoint: action.endpoint ?? state.diag.lastEndpoint,
-          lastError:
-            action.error === undefined ? state.diag.lastError : action.error,
+          lastError: action.error === undefined ? state.diag.lastError : action.error,
         },
       };
     case "reset":

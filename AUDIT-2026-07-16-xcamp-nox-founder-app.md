@@ -2,15 +2,15 @@
 
 ## 1. Audit Metadata
 
-| Field | Value |
-|---|---|
-| Repository | `Xchange-ecosystem/xcamp-nox-founder-app` |
-| Branch audited | `main` (checked out as `claude/xcamp-nox-repo-audit-iqg3fy`) |
-| HEAD commit | `5764a87fa15129db8c842efdce853f55118aa1bb` |
-| Commit date | 2026-07-14 17:06:09 +0200 |
+| Field          | Value                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------- |
+| Repository     | `Xchange-ecosystem/xcamp-nox-founder-app`                                               |
+| Branch audited | `main` (checked out as `claude/xcamp-nox-repo-audit-iqg3fy`)                            |
+| HEAD commit    | `5764a87fa15129db8c842efdce853f55118aa1bb`                                              |
+| Commit date    | 2026-07-14 17:06:09 +0200                                                               |
 | Commit message | `Merge pull request #31 from Xchange-ecosystem/claude/journal-analyse-phase-6-3-k9rrrw` |
-| Audit date | 2026-07-16 |
-| Tools used | Bash, Read, Grep, Glob (read-only; no code modified) |
+| Audit date     | 2026-07-16                                                                              |
+| Tools used     | Bash, Read, Grep, Glob (read-only; no code modified)                                    |
 
 ---
 
@@ -20,23 +20,23 @@
 
 **Top-level structure (confirmed present):**
 
-| Path | Present | Notes |
-|---|---|---|
-| `src/integrations/` | ✓ | `supabase/` and `vox/` subdirs only |
-| `src/entities/` | ✓ | `altitude.ts` only |
-| `src/features/` | ✓ | **Empty** — only a `README.md` describing intent |
-| `src/shared/ui/` | ✓ | Four files: `ActionPillButton.tsx`, `CreateProjectTile.tsx`, `ProjectCard.tsx`, `Typewriter.tsx` |
-| `src/components/` | ✓ | Contains the bulk of actual UI code (10 subdirs) |
-| `src/routes/` | ✓ | TanStack Router file-based routes |
-| `src/lib/` | ✓ | API clients, hooks, theme, i18n |
-| `src/store/` | ✓ | `altitudeStore.ts` only |
-| `src/contexts/` | ✓ | `auth.tsx`, `active-project.tsx` |
-| `src/hooks/` | ✓ | 4 files |
-| `src/types/` | ✓ | `modules.d.ts`, `xcamp.ts` |
-| `vendor/` | ✓ | Vendor-synced SDK copies (`client`, `companion`, `ui`) |
-| `supabase/migrations/` | **NOT FOUND** | Only `supabase/config.toml` exists |
-| `src/app/` | **NOT FOUND** | No such directory |
-| `apps/harness/` | **NOT FOUND** | No `apps/` directory at all |
+| Path                   | Present       | Notes                                                                                            |
+| ---------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `src/integrations/`    | ✓             | `supabase/` and `vox/` subdirs only                                                              |
+| `src/entities/`        | ✓             | `altitude.ts` only                                                                               |
+| `src/features/`        | ✓             | **Empty** — only a `README.md` describing intent                                                 |
+| `src/shared/ui/`       | ✓             | Four files: `ActionPillButton.tsx`, `CreateProjectTile.tsx`, `ProjectCard.tsx`, `Typewriter.tsx` |
+| `src/components/`      | ✓             | Contains the bulk of actual UI code (10 subdirs)                                                 |
+| `src/routes/`          | ✓             | TanStack Router file-based routes                                                                |
+| `src/lib/`             | ✓             | API clients, hooks, theme, i18n                                                                  |
+| `src/store/`           | ✓             | `altitudeStore.ts` only                                                                          |
+| `src/contexts/`        | ✓             | `auth.tsx`, `active-project.tsx`                                                                 |
+| `src/hooks/`           | ✓             | 4 files                                                                                          |
+| `src/types/`           | ✓             | `modules.d.ts`, `xcamp.ts`                                                                       |
+| `vendor/`              | ✓             | Vendor-synced SDK copies (`client`, `companion`, `ui`)                                           |
+| `supabase/migrations/` | **NOT FOUND** | Only `supabase/config.toml` exists                                                               |
+| `src/app/`             | **NOT FOUND** | No such directory                                                                                |
+| `apps/harness/`        | **NOT FOUND** | No `apps/` directory at all                                                                      |
 
 **DIVERGED FROM ASSUMPTION — Boundary violations:**
 
@@ -51,15 +51,18 @@
 **`src/integrations/vox/client.ts` usage** — CONFIRMED + BUG FOUND:
 
 `src/integrations/vox/client.ts:26-36` is a thin `fetch` wrapper:
+
 ```
 export async function voxFetch(path: string, init: RequestInit = {}): Promise<Response> {
   ...
   return fetch(`${VOX_API_URL}${path}`, { ...init, headers });
 }
 ```
+
 It concatenates `VITE_VOX_API_URL` directly with `path` — no `/api` prefix added.
 
 `src/hooks/useVox.ts:6` calls it as:
+
 ```
 const res = await voxFetch("/api/answer-with-context", { method: "POST", ... });
 ```
@@ -69,9 +72,11 @@ const res = await voxFetch("/api/answer-with-context", { method: "POST", ... });
 Resulting URL: `https://chiapi.xchange.eco/api` + `/api/answer-with-context` = **`https://chiapi.xchange.eco/api/api/answer-with-context`**.
 
 By contrast, `vendor/client/src/vox/client.ts:44` explicitly appends `/api`:
+
 ```
 const res = await fetch(`${baseUrl()}/api${path}`, ...);
 ```
+
 expecting `path` to be something like `/answer-with-context` (without `/api`). The two clients have **incompatible path conventions**. If `VITE_VOX_API_URL` is set with the `/api` suffix (as `.env.example` documents), the local `useVox.ts` double-prefixes. If it's set without the suffix, the local client is correct but the vendor client would double-prefix.
 
 **Auth mechanism sent by this repo** — CONFIRMED:  
@@ -84,6 +89,7 @@ expecting `path` to be something like `/answer-with-context` (without `/api`). T
 **Message type names** — DIVERGED FROM ASSUMPTION:
 
 Actual interface names at `src/components/companion/ChatThread.tsx:12-33`:
+
 - `ChiMsg` (not `ChiMessage`)
 - `UserMsg` (not `UserMessage`)
 - `ComponentMsg` (not `ComponentMessage`)
@@ -92,6 +98,7 @@ Actual interface names at `src/components/companion/ChatThread.tsx:12-33`:
 These are correct in function but diverge from the assumed names.
 
 **Persistence to `jarvix_*` tables** — CONFIRMED:
+
 - `jarvix_conversations`: SELECT at `useCompanionSession.ts:83-90`, INSERT at `useCompanionSession.ts:196-198`, UPDATE at `useCompanionSession.ts:179-181`.
 - `jarvix_messages`: SELECT at `useCompanionSession.ts:106-110`, INSERT at `useCompanionSession.ts:135-137`, `useCompanionSession.ts:148-150`, `useCompanionSession.ts:163-165`.
 - Columns written: `id`, `conversation_id`, `role`, `content`, `content_type`, `component_type`, `component_payload`, `tenant_id`. All hardcoded string literals.
@@ -105,12 +112,14 @@ These are correct in function but diverge from the assumed names.
 `home.tsx:110`: `const projectRestoredRef = useRef(false);`  
 Set at `home.tsx:139`: `projectRestoredRef.current = true;` immediately after restoring project from session.  
 Guard at `home.tsx:246-249`:
+
 ```tsx
 if (projectRestoredRef.current) {
   projectRestoredRef.current = false;
   return;
 }
 ```
+
 This sits in the sidebar-sync `useEffect` and correctly skips the duplicate `handleProjectSelect` → Vox call on restore. The guard is real and functioning.
 
 ---
@@ -119,14 +128,16 @@ This sits in the sidebar-sync `useEffect` and correctly skips the duplicate `han
 
 **Gravity tokens — on `#8b3dd9` ramp** — CONFIRMED:  
 `vendor/ui/src/skin/gravity.ts:8-13`:
+
 ```ts
 export const GRAVITY: GravityTokens = {
-  bg:     '#f5eefc',
-  border: '#8b3dd9',
-  ink:    '#260d40',
-  soft:   '#612c96',
+  bg: "#f5eefc",
+  border: "#8b3dd9",
+  ink: "#260d40",
+  soft: "#612c96",
 };
 ```
+
 All four values confirmed correct. No amber values anywhere in the gravity token definition.
 
 **Amber gravity references** — NOT FOUND:  
@@ -134,17 +145,19 @@ Exhaustive search across `src/` and `vendor/` for `amber`, `#f59e0b`, `#d97706`,
 
 **DesignThemeProvider** — NOT FOUND; replaced by local static CSS:
 
-`src/main.tsx:6-9` explicitly documents: *"@xchange/ui does not yet export a DesignThemeProvider."*
+`src/main.tsx:6-9` explicitly documents: _"@xchange/ui does not yet export a DesignThemeProvider."_
 
 The in-use `ThemeProvider` (`src/lib/theme.tsx:26-61`) only toggles the `.dark` CSS class on `document.documentElement`. It does NOT call `applySkin()` or write any `--skin-*` / `--gravity-*` CSS custom properties.
 
 Instead, skin tokens are **hardcoded as static CSS rules** in `src/styles.css:109-188`:
+
 - `:root` block (light, Scientific/Platform): `--skin-accent: #4de0c1`, gradient `linear-gradient(135deg, #34acbf, #4de0c1)`, etc.
 - `.dark` override block: `--skin-accent: #b689e6`, gradient `linear-gradient(135deg, #731f7d, #b689e6, #34acbf)`.
 
 **`--gravity-*` tokens are never written to the DOM.** `vendor/ui/src/skin/apply.ts:85-88` defines how `applySkin()` writes them, but `applySkin()` is called nowhere in this repo. Components in `vendor/companion/src/components/CompanionCardStack.tsx:104-107` reference `var(--gravity-bg)` and `var(--gravity-border)` — these will resolve to empty/invalid in a live browser unless the host explicitly calls `applySkin()`. **This is a silent rendering gap for any gravity moment cards.**
 
 What's missing for a canonical CSS-variable writer:
+
 1. No runtime paradigm/tone switching (tokens are static in CSS).
 2. `--gravity-*` tokens not written anywhere.
 3. `DARK_BRAND_TOKENS` (`vendor/ui/src/skin/tokens.ts:117-127`) not wired up.
@@ -152,7 +165,8 @@ What's missing for a canonical CSS-variable writer:
 **Altitude dial visibility** — CONFIRMED; NO background-image switching:  
 `src/components/altitude/FloatingAltitudeDial.tsx:5-31`: A button using Tailwind classes (`bg-emerald-500`, `bg-teal-500`, `bg-blue-500` per altitude 0/1/2) that cycles altitude via `useAltitudeStore`. No background-image switching is performed by the dial itself.
 
-**Background-image switching** — CONFIRMED with specifics:  
+**Background-image switching** — CONFIRMED with specifics:
+
 - `useHeroImage.ts:10-11`: Reads from Supabase bucket `"App media"` → folder `"Hero"` (hardcoded strings).
 - Bucket listing via raw `fetch` to Supabase Storage API, using the anon key as both `apikey` header and Bearer token (`useHeroImage.ts:36-38`).
 - `home.tsx:65-69`: `projectBgUrl = activeProject?.feature_image` when inside a project — overrides the hero image.
@@ -187,12 +201,12 @@ Searched across all of `src/` and `vendor/` for: `ObjectiveModal`, `QuickPanel`,
 
 **What actually exists for objectives:**
 
-| Component | File | Description |
-|---|---|---|
-| `ObjectiveEditor` | `src/components/navigator/ObjectiveEditor.tsx` | Inline editor for title/status fields within the navigator |
+| Component          | File                                                        | Description                                                         |
+| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| `ObjectiveEditor`  | `src/components/navigator/ObjectiveEditor.tsx`              | Inline editor for title/status fields within the navigator          |
 | `NavigatorBrowser` | `src/components/navigator/NavigatorBrowser.tsx` (599 lines) | Main navigator UI; uses `ResizablePanelGroup` for a two-pane layout |
-| `TaskPanel` | `src/components/navigator/TaskPanel.tsx` | Task list panel within navigator |
-| `ColumnToolbar` | `src/components/navigator/ColumnToolbar.tsx` | Search/sort/filter toolbar for objectives column |
+| `TaskPanel`        | `src/components/navigator/TaskPanel.tsx`                    | Task list panel within navigator                                    |
+| `ColumnToolbar`    | `src/components/navigator/ColumnToolbar.tsx`                | Search/sort/filter toolbar for objectives column                    |
 
 The `NavigatorBrowser` uses `ResizablePanelGroup` / `ResizablePanel` for a resizable side-by-side layout, NOT a quick-panel-to-fullscreen morph. There is no portal, no fullscreen overlay, no shared-element transition. The existing UI reads live Supabase data via `navigator-api.ts`.
 
@@ -208,7 +222,8 @@ No `dist/` directory present in the repo. Cannot confirm the ~437 kB `NoteEditor
 
 Code-splitting status: `vite.config.ts:10` enables `TanStackRouterVite({ autoCodeSplitting: true })`, which auto-splits each route. However, no explicit `React.lazy()` or `import()` calls were found for heavy components like `NoteEditor` (which imports multiple `@tiptap` packages) or `NoteEditor` within `TaskPanel`. Intra-route code splitting has NOT been done.
 
-**Rewind sync cron** — NOT FOUND:  
+**Rewind sync cron** — NOT FOUND:
+
 - No `.github/` directory in the repo.
 - No GitHub Actions workflow files of any kind.
 - `vercel.json` contains only: `buildCommand`, `installCommand`, `outputDirectory`, and a catch-all SPA rewrite. No cron jobs.
@@ -219,9 +234,10 @@ Code-splitting status: `vite.config.ts:10` enables `TanStackRouterVite({ autoCod
 
 ### H. General Hygiene
 
-*(See Section 5 for full incidental notes. Key items inline:)*
+_(See Section 5 for full incidental notes. Key items inline:)_
 
 **TODO/FIXME found incidentally:**
+
 - `home.tsx:264`: `// TODO CR-H10: show toast and open side panel` — after `executeProposal` succeeds, no user feedback is given.
 - `home.tsx:389`: `onCreateProject={() => {/* CC-3 scope */}}` — Create Project shortcut is a no-op.
 - `ChatThread.tsx:102`: `{/* Static orb placeholder — pulsing animation wired in CC-2 with TTS */}` — static chi orb, not animated.
@@ -281,26 +297,26 @@ Code-splitting status: `vite.config.ts:10` enables `TanStackRouterVite({ autoCod
 
 ## 5. Incidental Hygiene Notes
 
-| Location | Issue |
-|---|---|
-| `src/lib/organiser-api.ts:5` | Hardcodes `https://chiapi.xchange.eco` in a comment but reads `VITE_BACKEND_API_URL` — the comment URL may be wrong if the env var points elsewhere |
-| `src/lib/backcaster-api.ts:5` | Hardcodes `https://xcampapi.xchange.eco/api/v1/backcaster` — not overridable per environment |
-| `src/lib/backcaster-api.ts:392` | Hardcodes `https://xcamp.xchange.eco/app/project` — staging/dev links will point to production |
-| `src/lib/journal-api.ts:8` | Hardcodes `https://chiapi.xchange.eco` in comments while reading `VITE_BACKEND_API_URL` |
-| `src/routes/home.tsx:46-48` | Clears `localStorage.removeItem("xcamp-active-project")` at module evaluation time (outside any function) — runs on every page load including non-home routes that import this module |
-| `vendor/ui/src/skin/tokens.ts:117-127` | `DARK_BRAND_TOKENS` exported but not consumed anywhere in this repo |
-| `src/store/altitudeStore.ts` | Altitude persisted to `localStorage` under key `'nox-founder-altitude'`, but `home.tsx:94` hardcodes `const altitude = 1 as const` — the store value is ignored on the home route |
-| `src/routes/project.$projectId.tsx:289` | AI tag suggestions button present in UI but triggers nothing (TODO comment at line 298) |
-| `src/components/quickroad/GenerateStep.tsx:207` | `reloadHero` used as a placeholder for a real image generation call |
-| `.env.example` | Documents `VITE_BACKEND_URL` and `VITE_VOX_API_URL` but not `VITE_BACKEND_API_URL` — incomplete |
-| `package.json` | No `engines` field and no Bun version pin; Vercel's Bun version may drift |
-| `AUDIT-xcamp-nox-founder-app.md` (root) | Prior security audit committed to repo — may expose internal security findings if repo is public |
+| Location                                        | Issue                                                                                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/organiser-api.ts:5`                    | Hardcodes `https://chiapi.xchange.eco` in a comment but reads `VITE_BACKEND_API_URL` — the comment URL may be wrong if the env var points elsewhere                                   |
+| `src/lib/backcaster-api.ts:5`                   | Hardcodes `https://xcampapi.xchange.eco/api/v1/backcaster` — not overridable per environment                                                                                          |
+| `src/lib/backcaster-api.ts:392`                 | Hardcodes `https://xcamp.xchange.eco/app/project` — staging/dev links will point to production                                                                                        |
+| `src/lib/journal-api.ts:8`                      | Hardcodes `https://chiapi.xchange.eco` in comments while reading `VITE_BACKEND_API_URL`                                                                                               |
+| `src/routes/home.tsx:46-48`                     | Clears `localStorage.removeItem("xcamp-active-project")` at module evaluation time (outside any function) — runs on every page load including non-home routes that import this module |
+| `vendor/ui/src/skin/tokens.ts:117-127`          | `DARK_BRAND_TOKENS` exported but not consumed anywhere in this repo                                                                                                                   |
+| `src/store/altitudeStore.ts`                    | Altitude persisted to `localStorage` under key `'nox-founder-altitude'`, but `home.tsx:94` hardcodes `const altitude = 1 as const` — the store value is ignored on the home route     |
+| `src/routes/project.$projectId.tsx:289`         | AI tag suggestions button present in UI but triggers nothing (TODO comment at line 298)                                                                                               |
+| `src/components/quickroad/GenerateStep.tsx:207` | `reloadHero` used as a placeholder for a real image generation call                                                                                                                   |
+| `.env.example`                                  | Documents `VITE_BACKEND_URL` and `VITE_VOX_API_URL` but not `VITE_BACKEND_API_URL` — incomplete                                                                                       |
+| `package.json`                                  | No `engines` field and no Bun version pin; Vercel's Bun version may drift                                                                                                             |
+| `AUDIT-xcamp-nox-founder-app.md` (root)         | Prior security audit committed to repo — may expose internal security findings if repo is public                                                                                      |
 
 ---
 
 ## 6. Notes Route Regression Investigation
 
-*Requested follow-up. Three specific questions answered below with file:line citations and git evidence.*
+_Requested follow-up. Three specific questions answered below with file:line citations and git evidence._
 
 ---
 
@@ -308,10 +324,10 @@ Code-splitting status: `vite.config.ts:10` enables `TanStackRouterVite({ autoCod
 
 The render tree of `src/routes/notes.tsx` has changed three times since the file was created:
 
-| Commit | Date | Message | Change to `/notes` render tree |
-|---|---|---|---|
-| `2a44b57` | 2026-06-22 | Changes (gpt-engineer-app) | **Created**: `return <Journal />;` — bare Journal component, no shell |
-| `95ccfe9` | 2026-07-02 07:56 | `fix(layout): companion height CR-H12, notes layout CR-H14` | Wrapped `<Journal />` in `AppShell` + `PageHeroShell` — layout fix, same content |
+| Commit        | Date                 | Message                                                                         | Change to `/notes` render tree                                                                                                                 |
+| ------------- | -------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `2a44b57`     | 2026-06-22           | Changes (gpt-engineer-app)                                                      | **Created**: `return <Journal />;` — bare Journal component, no shell                                                                          |
+| `95ccfe9`     | 2026-07-02 07:56     | `fix(layout): companion height CR-H12, notes layout CR-H14`                     | Wrapped `<Journal />` in `AppShell` + `PageHeroShell` — layout fix, same content                                                               |
 | **`7ceffa2`** | **2026-07-02 08:05** | **`fix(layout): companion height, notes tabs, remove journal companion panel`** | **Replaced `<Journal />` with a two-tab layout: tab "Notes" → `<JournalFlow>`, tab "Voice" → `<VoiceTranscriber>`. Default tab is `"voice"`.** |
 
 **The regression commit is `7ceffa2`** (nine minutes after `95ccfe9`, same session). The diff at `src/routes/notes.tsx` shows:
@@ -348,14 +364,14 @@ The "Notes" entry correctly targets `/notes` — the route is registered and the
 
 **However, `/notes` and `/journal` are now functionally near-identical** (diff between `src/routes/notes.tsx` and `src/routes/journal.tsx` as of `7ceffa2`):
 
-| Property | `/notes` | `/journal` |
-|---|---|---|
-| Page title | "Notes" | "Journal" |
-| Tab A label | "Notes" (renders `JournalFlow`) | "Journal" (renders `JournalFlow`) |
-| Tab B label | "Voice" (renders `VoiceTranscriber`) | "Voice" (renders `VoiceTranscriber`) |
-| `VoiceTranscriber` createLabel | `"Create note"` | `"Create journal entry"` |
-| Default tab | `"voice"` | `"voice"` |
-| Subtitle | "Capture and manage your notes…" | "Capture your thoughts by writing or voice…" |
+| Property                       | `/notes`                             | `/journal`                                   |
+| ------------------------------ | ------------------------------------ | -------------------------------------------- |
+| Page title                     | "Notes"                              | "Journal"                                    |
+| Tab A label                    | "Notes" (renders `JournalFlow`)      | "Journal" (renders `JournalFlow`)            |
+| Tab B label                    | "Voice" (renders `VoiceTranscriber`) | "Voice" (renders `VoiceTranscriber`)         |
+| `VoiceTranscriber` createLabel | `"Create note"`                      | `"Create journal entry"`                     |
+| Default tab                    | `"voice"`                            | `"voice"`                                    |
+| Subtitle                       | "Capture and manage your notes…"     | "Capture your thoughts by writing or voice…" |
 
 The original intent of the "Notes" sidebar entry was to land users on the full note management UI (`<Journal />`: two-panel list + editor). That component still exists at `src/components/Journal.tsx` but **is not rendered on any top-level route** as of `7ceffa2`. The AppSidebar is not pointing at the wrong URL — but the URL it points at no longer delivers the expected feature.
 
@@ -367,37 +383,38 @@ The original `<Journal />` component (`src/components/Journal.tsx`, 737 lines) r
 
 **What `/notes` delivered BEFORE `7ceffa2`:**
 
-| Feature | Evidence (Journal.tsx:line) |
-|---|---|
-| Two-panel layout: collapsible sidebar + main editor | `:283-295` — `display: grid`, `gridTemplateColumns: ${sidebarWidth}px 1fr` |
-| Note list with title, date, project label, body preview, tags | `:626-687` — note card rendering |
-| "Linked" badge on notes that have objective links | `:647-648` — `linked.has(note.id)` badge |
-| Live search across title, body HTML, tags | `:183-190` — `search.trim().toLowerCase()` filter |
-| Sort by: last updated / date created / title (asc/desc) | `:73-80, :390-424` — `SortKey` type, dropdown |
-| Filter by project | `:190, :462-470` — `filterProject` select |
-| Filter by tags (multi-select chip list) | `:191, :474-498` — `filterTags` state |
-| Filter: linked notes only toggle | `:192, :501-524` — `filterLinked` toggle |
-| Active filter chips with individual clear | `:540-557` — `FilterChip` component |
-| Multi-select mode (bulk operations) | `:144-146, :560-569` — `selectMode`, `selected` Set |
-| Bulk archive (delete) selected notes | `:232-239, :578-582` — `bulkArchiveMut` |
-| Bulk assign to project | `:241-249, :588-606` — `bulkAssignMut` |
-| Create new note (full rich-text editor) | `:207-213, :353-355` — `createMut`, "+ New note" button |
-| Edit existing note (rich-text editor, `NoteEditor`) | `:215-222, :698-715` — `updateMut`, `NoteEditor` component |
-| Archive (delete) individual note | `:224-230, :712` — `archiveMut` |
-| AI organise shortcut (Sparkles button → `OrganiseSheet`) | `:649-659, :726-734` — per-note Sparkles button, `OrganiseSheet` |
-| Sidebar collapse/expand (icon-only mode) | `:313-333` — collapsed sidebar with icon buttons |
-| Mobile-responsive (single-column, list or editor view) | `:274-282, :697-724` — `isMobile` toggle |
-| Note count display | `:571` — `{visibleNotes.length} notes` |
-| Auth guard (redirect to `/auth` if no session) | `:147-149` — `useEffect` on `loading, user` |
+| Feature                                                       | Evidence (Journal.tsx:line)                                                |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Two-panel layout: collapsible sidebar + main editor           | `:283-295` — `display: grid`, `gridTemplateColumns: ${sidebarWidth}px 1fr` |
+| Note list with title, date, project label, body preview, tags | `:626-687` — note card rendering                                           |
+| "Linked" badge on notes that have objective links             | `:647-648` — `linked.has(note.id)` badge                                   |
+| Live search across title, body HTML, tags                     | `:183-190` — `search.trim().toLowerCase()` filter                          |
+| Sort by: last updated / date created / title (asc/desc)       | `:73-80, :390-424` — `SortKey` type, dropdown                              |
+| Filter by project                                             | `:190, :462-470` — `filterProject` select                                  |
+| Filter by tags (multi-select chip list)                       | `:191, :474-498` — `filterTags` state                                      |
+| Filter: linked notes only toggle                              | `:192, :501-524` — `filterLinked` toggle                                   |
+| Active filter chips with individual clear                     | `:540-557` — `FilterChip` component                                        |
+| Multi-select mode (bulk operations)                           | `:144-146, :560-569` — `selectMode`, `selected` Set                        |
+| Bulk archive (delete) selected notes                          | `:232-239, :578-582` — `bulkArchiveMut`                                    |
+| Bulk assign to project                                        | `:241-249, :588-606` — `bulkAssignMut`                                     |
+| Create new note (full rich-text editor)                       | `:207-213, :353-355` — `createMut`, "+ New note" button                    |
+| Edit existing note (rich-text editor, `NoteEditor`)           | `:215-222, :698-715` — `updateMut`, `NoteEditor` component                 |
+| Archive (delete) individual note                              | `:224-230, :712` — `archiveMut`                                            |
+| AI organise shortcut (Sparkles button → `OrganiseSheet`)      | `:649-659, :726-734` — per-note Sparkles button, `OrganiseSheet`           |
+| Sidebar collapse/expand (icon-only mode)                      | `:313-333` — collapsed sidebar with icon buttons                           |
+| Mobile-responsive (single-column, list or editor view)        | `:274-282, :697-724` — `isMobile` toggle                                   |
+| Note count display                                            | `:571` — `{visibleNotes.length} notes`                                     |
+| Auth guard (redirect to `/auth` if no session)                | `:147-149` — `useEffect` on `loading, user`                                |
 
 **What `/notes` delivers NOW (post `7ceffa2`):**
 
-| Feature | Component |
-|---|---|
-| Voice note capture (mic → transcript) | `VoiceTranscriber` (default tab) |
-| AI journal analysis flow → note proposals | `JournalFlow` |
+| Feature                                   | Component                        |
+| ----------------------------------------- | -------------------------------- |
+| Voice note capture (mic → transcript)     | `VoiceTranscriber` (default tab) |
+| AI journal analysis flow → note proposals | `JournalFlow`                    |
 
 **Capabilities lost from `/notes` after `7ceffa2`:**
+
 - Note list (browse existing notes)
 - Note search, sort, filter
 - Note creation via rich text editor
@@ -414,9 +431,9 @@ The `Journal` component is orphaned — it exists at `src/components/Journal.tsx
 
 ### I.4 Summary
 
-| Question | Answer |
-|---|---|
-| Which commit changed notes.tsx's render tree? | `7ceffa2` (2026-07-02 08:05) — "fix(layout): companion height, notes tabs, remove journal companion panel" |
-| Does AppSidebar point at the wrong route? | No — `/notes` is the correct target. But `/notes` now renders a journal creation flow (identical to `/journal`), not the original note management UI. |
-| Pre-regression `/notes` feature set | Full notes manager: list, search, sort, filter, create, edit, archive, bulk ops, AI organise, mobile layout. All via `<Journal />` component still present at `src/components/Journal.tsx` but now unused on any route. |
-| Recommended fix | Restore `<Journal />` as the primary content of `/notes` (either as-is or as a tab within the current tab layout). The component is intact and functional — it simply needs to be re-imported by `notes.tsx`. |
+| Question                                      | Answer                                                                                                                                                                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Which commit changed notes.tsx's render tree? | `7ceffa2` (2026-07-02 08:05) — "fix(layout): companion height, notes tabs, remove journal companion panel"                                                                                                              |
+| Does AppSidebar point at the wrong route?     | No — `/notes` is the correct target. But `/notes` now renders a journal creation flow (identical to `/journal`), not the original note management UI.                                                                   |
+| Pre-regression `/notes` feature set           | Full notes manager: list, search, sort, filter, create, edit, archive, bulk ops, AI organise, mobile layout. All via `<Journal />` component still present at `src/components/Journal.tsx` but now unused on any route. |
+| Recommended fix                               | Restore `<Journal />` as the primary content of `/notes` (either as-is or as a tab within the current tab layout). The component is intact and functional — it simply needs to be re-imported by `notes.tsx`.           |

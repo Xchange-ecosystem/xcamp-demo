@@ -16,11 +16,9 @@
 // component instead of introducing a second, heavier feed paradigm for
 // P1.3 alone.
 //
-// Data note: `agreementState` does not exist on this branch's fixtures
-// (confirmed — see src/fixtures/assignments.ts). This screen's workflow
-// and value states are modeled in a new, additive fixture file instead of
-// touching feed.ts/portfolio.ts/types.ts, to avoid colliding with PR #145
-// (open, also touches those three files).
+// Data note: assignment workflow and value state are deliberately separate:
+// work can be delivered while its value remains informational, or stay in
+// progress while value is already committed under an agreement.
 import { useState } from "react";
 import { AssignmentFeed } from "./AssignmentFeed";
 import { CollaboratorMetrics } from "./CollaboratorMetrics";

@@ -45,8 +45,15 @@ export function FullscreenDispatcher() {
   return (
     <>
       <TaskFullscreenModal />
-      <NoteFullscreenModal isOpen={item !== null && isNote} noteId={isNote ? item!.id : null} onClose={closeItem} />
-      <NoteDetailPlaceholderModal isOpen={item !== null && !isTask && !isNote} onClose={closeItem} />
+      <NoteFullscreenModal
+        isOpen={item !== null && isNote}
+        noteId={isNote ? item!.id : null}
+        onClose={closeItem}
+      />
+      <NoteDetailPlaceholderModal
+        isOpen={item !== null && !isTask && !isNote}
+        onClose={closeItem}
+      />
     </>
   );
 }

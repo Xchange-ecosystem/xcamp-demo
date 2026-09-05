@@ -55,7 +55,14 @@ const TOOLTIP_STYLE = {
   color: "var(--skin-ink)",
 };
 
-export function LineChart({ x_key, series, data, y_label, gravity = false, title }: LineChartProps) {
+export function LineChart({
+  x_key,
+  series,
+  data,
+  y_label,
+  gravity = false,
+  title,
+}: LineChartProps) {
   return (
     <div style={{ width: "100%", padding: "12px 0" }}>
       {title && (
@@ -66,12 +73,7 @@ export function LineChart({ x_key, series, data, y_label, gravity = false, title
       <ResponsiveContainer width="100%" height={180}>
         <RLineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--skin-line-soft, var(--border))" />
-          <XAxis
-            dataKey={x_key}
-            tick={TICK_STYLE}
-            axisLine={false}
-            tickLine={false}
-          />
+          <XAxis dataKey={x_key} tick={TICK_STYLE} axisLine={false} tickLine={false} />
           <YAxis
             tick={TICK_STYLE}
             axisLine={false}

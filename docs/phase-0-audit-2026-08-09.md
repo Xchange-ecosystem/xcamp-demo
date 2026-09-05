@@ -1,4 +1,5 @@
 # Phase 0 Audit — `xcamp-nox-founder-app` main
+
 **Date:** 2026-08-09  
 **Type:** Read-only source audit (code-level; no browser available in this environment)  
 **Scope:** All areas in sections 2.1–2.9 of the kickoff brief  
@@ -591,7 +592,7 @@ This session ran in a remote code execution environment without a browser. Every
   Tested: src/routes/home.tsx, src/components/sidepanel/ItemSidepanel.tsx,
     src/components/EntityPanel.tsx, src/lib/backcaster-api.ts (source read)
   Expected: error states surfaced to user
-  Observed: 
+  Observed:
     - home.tsx: 4 Vox/AI call failures caught with console.error only (lines
       343, 509, 533, 570) — user sees nothing if AI calls fail
     - ItemSidepanel.tsx: 7 silent catch patterns (.catch(console.error) at

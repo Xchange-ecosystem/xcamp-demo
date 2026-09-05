@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Altitude } from '../entities/altitude';
-import { DEFAULT_ALTITUDE } from '../entities/altitude';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Altitude } from "../entities/altitude";
+import { DEFAULT_ALTITUDE } from "../entities/altitude";
 
 interface AltitudeStore {
   altitude: Altitude;
@@ -15,7 +15,7 @@ export const useAltitudeStore = create<AltitudeStore>()(
       setAltitude: (altitude) => set({ altitude }),
     }),
     {
-      name: 'nox-founder-altitude',
-    }
-  )
+      name: "nox-founder-altitude",
+    },
+  ),
 );

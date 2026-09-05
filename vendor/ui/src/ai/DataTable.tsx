@@ -53,8 +53,7 @@ export function DataTable({ columns, rows, max_rows_visible, title }: DataTableP
               <tr
                 key={i}
                 style={{
-                  background:
-                    i % 2 === 0 ? "transparent" : "var(--skin-surface, var(--muted))",
+                  background: i % 2 === 0 ? "transparent" : "var(--skin-surface, var(--muted))",
                 }}
               >
                 {columns.map((col) => (

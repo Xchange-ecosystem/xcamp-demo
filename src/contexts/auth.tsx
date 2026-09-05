@@ -8,7 +8,10 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ user: { id: string; email?: string } | null; session: unknown | null }>;
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ user: { id: string; email?: string } | null; session: unknown | null }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -105,7 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (!authUser) return;
     const xu = await buildXcampUser(authUser.id, authUser.email ?? undefined);
     setUser(xu);
@@ -113,7 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, refreshUser }}>
-
       {children}
     </AuthContext.Provider>
   );

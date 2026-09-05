@@ -75,23 +75,80 @@ type NavItem = {
 };
 
 const ECOSYSTEM_NAV: NavItem[] = [
-  { title: "home",      url: "/home",                 icon: Home,          label: "Home" },
-  { title: "companion", url: "/home",                 icon: MessageCircle, label: "Companion" },
-  { title: "navigator", url: "/ecosystem-navigator",  icon: Map,           label: "Ecosystem Navigator", personas: ["founder", "investor"] },
-  { title: "portfolio", url: "/portfolio",            icon: LayoutGrid,    label: "Portfolio", personas: ["founder", "collaborator"] },
-  { title: "investor-portfolio", url: "/demo/investor/portfolio", icon: LayoutGrid, label: "Portfolio", personas: ["investor"] },
-  { title: "builder",   url: "/project-builder",      icon: Compass,       label: "Project Builder", personas: ["founder"] },
-  { title: "dashboard", url: "/ecosystem-dashboard",  icon: BarChart3, label: "Dashboard", personas: ["investor"] },
+  { title: "home", url: "/home", icon: Home, label: "Home" },
+  { title: "companion", url: "/home", icon: MessageCircle, label: "Companion" },
+  {
+    title: "navigator",
+    url: "/ecosystem-navigator",
+    icon: Map,
+    label: "Ecosystem Navigator",
+    personas: ["founder", "investor"],
+  },
+  {
+    title: "portfolio",
+    url: "/portfolio",
+    icon: LayoutGrid,
+    label: "Portfolio",
+    personas: ["founder", "collaborator"],
+  },
+  {
+    title: "investor-portfolio",
+    url: "/demo/investor/portfolio",
+    icon: LayoutGrid,
+    label: "Portfolio",
+    personas: ["investor"],
+  },
+  {
+    title: "builder",
+    url: "/project-builder",
+    icon: Compass,
+    label: "Project Builder",
+    personas: ["founder"],
+  },
+  {
+    title: "dashboard",
+    url: "/ecosystem-dashboard",
+    icon: BarChart3,
+    label: "Dashboard",
+    personas: ["investor"],
+  },
 ];
 
 const PROJECT_NAV: NavItem[] = [
-  { title: "home",            url: "/home",             icon: Home,          label: "Home" },
-  { title: "companion",       url: "/home",             icon: MessageCircle, label: "Companion" },
-  { title: "logbook",         url: "/journal",          icon: NotebookPen,   label: "Logbook", personas: ["founder"] },
-  { title: "goals",           url: "",                  icon: Target,        label: "Goals", parameterised: true, personas: ["founder"] },
-  { title: "navigator",       url: "/navigator",        icon: Map,           label: "Project Navigator", personas: ["founder"] },
-  { title: "project-details", url: "",                  icon: Settings2,     label: "Project Details", parameterised: true, personas: ["founder"] },
-  { title: "dashboard",       url: "",                  icon: BarChart3, label: "Dashboard", parameterised: true, personas: ["investor"] },
+  { title: "home", url: "/home", icon: Home, label: "Home" },
+  { title: "companion", url: "/home", icon: MessageCircle, label: "Companion" },
+  { title: "logbook", url: "/journal", icon: NotebookPen, label: "Logbook", personas: ["founder"] },
+  {
+    title: "goals",
+    url: "",
+    icon: Target,
+    label: "Goals",
+    parameterised: true,
+    personas: ["founder"],
+  },
+  {
+    title: "navigator",
+    url: "/navigator",
+    icon: Map,
+    label: "Project Navigator",
+    personas: ["founder"],
+  },
+  {
+    title: "project-details",
+    url: "",
+    icon: Settings2,
+    label: "Project Details",
+    parameterised: true,
+    personas: ["founder"],
+  },
+  {
+    title: "dashboard",
+    url: "",
+    icon: BarChart3,
+    label: "Dashboard",
+    parameterised: true,
+    personas: ["investor"],
+  },
 ];
 
 export function AppSidebarExperimental() {
@@ -212,8 +269,14 @@ export function AppSidebarExperimental() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div
-          className={"flex items-center " + (collapsed && !isMobile ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")}
-          style={{ borderBottom: "2px solid var(--skin-accent, #4de0c1)", marginBottom: collapsed && !isMobile ? 0 : 2 }}
+          className={
+            "flex items-center " +
+            (collapsed && !isMobile ? "flex-col gap-1 p-1" : "justify-between px-2 py-3")
+          }
+          style={{
+            borderBottom: "2px solid var(--skin-accent, #4de0c1)",
+            marginBottom: collapsed && !isMobile ? 0 : 2,
+          }}
         >
           <AppLogo collapsed={isMobile ? false : collapsed} />
           {(!collapsed || isMobile) && (
@@ -240,7 +303,11 @@ export function AppSidebarExperimental() {
               className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
               aria-label="Toggle sidebar"
             >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
             </button>
           )}
         </div>
@@ -266,8 +333,10 @@ export function AppSidebarExperimental() {
                 style={{
                   flexShrink: 0,
                   padding: "6px 10px",
-                  background: navMode === "ecosystem" ? "var(--skin-accent, #4de0c1)" : "transparent",
-                  color: navMode === "ecosystem" ? "var(--skin-bg, #0a0a0a)" : "var(--skin-ink-soft)",
+                  background:
+                    navMode === "ecosystem" ? "var(--skin-accent, #4de0c1)" : "transparent",
+                  color:
+                    navMode === "ecosystem" ? "var(--skin-bg, #0a0a0a)" : "var(--skin-ink-soft)",
                   border: "none",
                   cursor: "pointer",
                   transition: "background 0.15s, color 0.15s",
@@ -339,7 +408,10 @@ export function AppSidebarExperimental() {
                     borderBottom: "1px solid var(--skin-line)",
                   }}
                 >
-                  <Search className="h-3.5 w-3.5" style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }} />
+                  <Search
+                    className="h-3.5 w-3.5"
+                    style={{ color: "var(--skin-ink-faint)", flexShrink: 0 }}
+                  />
                   <input
                     autoFocus
                     placeholder="Search projects…"
@@ -357,7 +429,9 @@ export function AppSidebarExperimental() {
                 </div>
                 <div style={{ maxHeight: 180, overflowY: "auto" }}>
                   {filteredProjects.length === 0 ? (
-                    <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--skin-ink-faint)" }}>
+                    <div
+                      style={{ padding: "10px 12px", fontSize: 12, color: "var(--skin-ink-faint)" }}
+                    >
                       No projects found
                     </div>
                   ) : (
@@ -380,11 +454,20 @@ export function AppSidebarExperimental() {
                           textAlign: "left",
                         }}
                       >
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {p.name}
                         </span>
                         {p.id === activeProjectId && (
-                          <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--skin-accent, #4de0c1)" }} />
+                          <Check
+                            className="h-3.5 w-3.5 shrink-0"
+                            style={{ color: "var(--skin-accent, #4de0c1)" }}
+                          />
                         )}
                       </button>
                     ))
@@ -400,7 +483,12 @@ export function AppSidebarExperimental() {
           <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
             <div
               title={activeProject?.name ?? "Project mode"}
-              style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--skin-accent, #4de0c1)" }}
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "var(--skin-accent, #4de0c1)",
+              }}
             />
           </div>
         )}
@@ -415,11 +503,22 @@ export function AppSidebarExperimental() {
 
                 const handleNavClick = () => {
                   if (item.title === "companion") {
-                    void navigate({ to: "/home" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: "companion" }) });
-                  } else if (item.title === "dashboard" && navMode === "project" && activeProjectId) {
-                    void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, tab: "dashboard" }) });
+                    void navigate({
+                      to: "/home",
+                      search: { view: "companion" },
+                    });
+                  } else if (
+                    item.title === "dashboard" &&
+                    navMode === "project" &&
+                    activeProjectId
+                  ) {
+                    void navigate({
+                      to: "/project/$projectId",
+                      params: { projectId: activeProjectId },
+                      search: { tab: "dashboard" },
+                    });
                   } else {
-                    void navigate({ to: url as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
+                    void navigate({ to: url as never });
                   }
                 };
 
@@ -433,7 +532,10 @@ export function AppSidebarExperimental() {
                         <SidebarMenuSubButton
                           isActive={onJournal && !(location.search as Record<string, string>)?.new}
                           onClick={() =>
-                            void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                            void navigate({
+                              to: "/journal",
+                              search: {},
+                            })
                           }
                         >
                           <NotebookText className="h-3.5 w-3.5" />
@@ -442,9 +544,14 @@ export function AppSidebarExperimental() {
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
-                          isActive={(location.search as Record<string, unknown>)?.new === 1 && onJournal}
+                          isActive={
+                            (location.search as Record<string, unknown>)?.new === 1 && onJournal
+                          }
                           onClick={() =>
-                            void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
+                            void navigate({
+                              to: "/journal",
+                              search: { new: 1 },
+                            })
                           }
                         >
                           <FilePlus className="h-3.5 w-3.5" />
@@ -453,9 +560,12 @@ export function AppSidebarExperimental() {
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
-                          isActive={onNotes && !((location.search as Record<string, string>)?.new)}
+                          isActive={onNotes && !(location.search as Record<string, string>)?.new}
                           onClick={() =>
-                            void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) })
+                            void navigate({
+                              to: "/notes",
+                              search: {},
+                            })
                           }
                         >
                           <LayoutList className="h-3.5 w-3.5" />
@@ -464,9 +574,14 @@ export function AppSidebarExperimental() {
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
-                          isActive={(location.search as Record<string, unknown>)?.new === 1 && onNotes}
+                          isActive={
+                            (location.search as Record<string, unknown>)?.new === 1 && onNotes
+                          }
                           onClick={() =>
-                            void navigate({ to: "/notes" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined, new: 1 }) })
+                            void navigate({
+                              to: "/notes",
+                              search: { new: 1 },
+                            })
                           }
                         >
                           <FilePlus className="h-3.5 w-3.5" />
@@ -477,7 +592,10 @@ export function AppSidebarExperimental() {
                   );
 
                   const goToLogbook = () =>
-                    void navigate({ to: "/journal" as never, search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }) });
+                    void navigate({
+                      to: "/journal",
+                      search: {},
+                    });
 
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -511,11 +629,15 @@ export function AppSidebarExperimental() {
                             onClick={() => setLogbookOpen((v) => !v)}
                             aria-label={logbookOpen ? "Collapse Logbook" : "Expand Logbook"}
                           >
-                            {logbookOpen
-                              ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                              : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                            {logbookOpen ? (
+                              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                            )}
                           </SidebarMenuAction>
-                          <SidebarMenuSub className={logbookOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                          <SidebarMenuSub
+                            className={logbookOpen ? "flex" : "hidden group-hover/menu-item:flex"}
+                          >
                             {logbookSubitems}
                           </SidebarMenuSub>
                         </>
@@ -535,8 +657,8 @@ export function AppSidebarExperimental() {
                           isActive={isNavSubActive("browser")}
                           onClick={() =>
                             void navigate({
-                              to: "/navigator" as never,
-                              search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                              to: "/navigator",
+                              search: { view: "browser" },
                             })
                           }
                         >
@@ -549,8 +671,8 @@ export function AppSidebarExperimental() {
                           isActive={isNavSubActive("network")}
                           onClick={() =>
                             void navigate({
-                              to: "/navigator" as never,
-                              search: (prev: Record<string, unknown>) => ({ ...prev, view: "network" }),
+                              to: "/navigator",
+                              search: { view: "network" },
                             })
                           }
                         >
@@ -564,7 +686,6 @@ export function AppSidebarExperimental() {
                           onClick={() =>
                             void navigate({
                               to: "/ai-plan" as never,
-                              search: (prev: Record<string, unknown>) => ({ ...prev, view: undefined }),
                             })
                           }
                         >
@@ -577,8 +698,8 @@ export function AppSidebarExperimental() {
 
                   const goToNavigator = () =>
                     void navigate({
-                      to: "/navigator" as never,
-                      search: (prev: Record<string, unknown>) => ({ ...prev, view: "browser" }),
+                      to: "/navigator",
+                      search: { view: "browser" },
                     });
 
                   return (
@@ -609,11 +730,15 @@ export function AppSidebarExperimental() {
                             onClick={() => setNavigatorOpen((v) => !v)}
                             aria-label={navigatorOpen ? "Collapse Navigator" : "Expand Navigator"}
                           >
-                            {navigatorOpen
-                              ? <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                              : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                            {navigatorOpen ? (
+                              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                            )}
                           </SidebarMenuAction>
-                          <SidebarMenuSub className={navigatorOpen ? "flex" : "hidden group-hover/menu-item:flex"}>
+                          <SidebarMenuSub
+                            className={navigatorOpen ? "flex" : "hidden group-hover/menu-item:flex"}
+                          >
                             {navigatorSubitems}
                           </SidebarMenuSub>
                         </>
@@ -646,7 +771,11 @@ export function AppSidebarExperimental() {
       <SidebarFooter className="pb-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith("/profile")} tooltip={t("nav.profile")}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/profile")}
+              tooltip={t("nav.profile")}
+            >
               <Link to="/profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span>{t("nav.profile")}</span>

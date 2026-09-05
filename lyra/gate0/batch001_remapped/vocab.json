@@ -1,24 +1,51 @@
 {
   "freeze_domains": false,
   "atom_type": [
-    "fact", "definition", "concept", "principle", "rule", "decision",
-    "assumption", "preference", "relationship", "heuristic", "pattern",
-    "style_rule", "open_question", "contradiction", "example"
+    "fact",
+    "definition",
+    "concept",
+    "principle",
+    "rule",
+    "decision",
+    "assumption",
+    "preference",
+    "relationship",
+    "heuristic",
+    "pattern",
+    "style_rule",
+    "open_question",
+    "contradiction",
+    "example"
   ],
   "layer": ["explicit", "implicit", "reasoning", "contextual"],
   "scope": ["personal", "SGA", "framework", "project", "client", "ecosystem", "external"],
   "epistemic_status": [
-    "source_explicit", "user_confirmed", "conversation_derived",
-    "model_inferred", "disputed", "deprecated", "unknown"
+    "source_explicit",
+    "user_confirmed",
+    "conversation_derived",
+    "model_inferred",
+    "disputed",
+    "deprecated",
+    "unknown"
   ],
   "review_status": ["candidate", "reviewed", "confirmed", "rejected", "superseded"],
   "sensitivity": ["public", "internal", "confidential", "restricted"],
   "export_targets": [
-    "knowledge_graph", "vector_store", "agent_prompt", "evaluation", "human_reference"
+    "knowledge_graph",
+    "vector_store",
+    "agent_prompt",
+    "evaluation",
+    "human_reference"
   ],
   "source_type": [
-    "uploaded_document", "chat", "memory_entry", "custom_instruction",
-    "user_confirmation", "external_source", "model_synthesis", "transcript"
+    "uploaded_document",
+    "chat",
+    "memory_entry",
+    "custom_instruction",
+    "user_confirmation",
+    "external_source",
+    "model_synthesis",
+    "transcript"
   ],
   "domain_ids": ["RSOS", "Lyra collaboration", "Cognitive patterns"]
 }

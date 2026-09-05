@@ -28,53 +28,107 @@ const SUPABASE_SESSION = {
 };
 
 const MOCK_CENTRAL_USER = {
-  id: CENTRAL_USER_ID, tenant_id: TENANT_ID,
-  display_name: "Repro User", email: "repro@xcamp.local", preferences: {},
+  id: CENTRAL_USER_ID,
+  tenant_id: TENANT_ID,
+  display_name: "Repro User",
+  email: "repro@xcamp.local",
+  preferences: {},
 };
 
 const MOCK_OBJECTIVES = [
-  { id: OBJ_ID, title: "Compliance & Regulatory Framework", status: "active", project_id: PROJECT_ID, sort_order: 1, description: "seeded", tasks_generation_status: "done" },
+  {
+    id: OBJ_ID,
+    title: "Compliance & Regulatory Framework",
+    status: "active",
+    project_id: PROJECT_ID,
+    sort_order: 1,
+    description: "seeded",
+    tasks_generation_status: "done",
+  },
 ];
 
 const MOCK_TASK = {
-  id: TASK_ID, title: "File the Q3 filing", note_type: "task", done: false,
-  body_html: "<p>Some task detail</p>", body_markdown: "Some task detail", tags: ["compliance"], detail: {},
-  owner_central_id: CENTRAL_USER_ID, tenant_id: TENANT_ID,
-  created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z",
+  id: TASK_ID,
+  title: "File the Q3 filing",
+  note_type: "task",
+  done: false,
+  body_html: "<p>Some task detail</p>",
+  body_markdown: "Some task detail",
+  tags: ["compliance"],
+  detail: {},
+  owner_central_id: CENTRAL_USER_ID,
+  tenant_id: TENANT_ID,
+  created_at: "2026-07-01T00:00:00Z",
+  updated_at: "2026-07-01T00:00:00Z",
 };
 
 async function setupRoutes(page: Page) {
   await page.route("**fonts.googleapis.com/**", (r) =>
-    r.fulfill({ status: 200, contentType: "text/css", body: "/* mocked */" }));
+    r.fulfill({ status: 200, contentType: "text/css", body: "/* mocked */" }),
+  );
   await page.route("**fonts.gstatic.com/**", (r) =>
-    r.fulfill({ status: 200, contentType: "font/woff2", body: "" }));
+    r.fulfill({ status: 200, contentType: "font/woff2", body: "" }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", headers: { "content-range": "0-0/0" }, body: "[]" }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "content-range": "0-0/0" },
+      body: "[]",
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/auth/v1/**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SUPABASE_SESSION) }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(SUPABASE_SESSION),
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/central_users**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_CENTRAL_USER) }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_CENTRAL_USER),
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/projects**`, (r) => {
     const wantsSingle = (r.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
     const row = { id: PROJECT_ID, title: "Repro Project", description: "seeded", tags: [] };
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(wantsSingle ? row : [row]) });
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(wantsSingle ? row : [row]),
+    });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/objectives**`, (r) => {
     const url = r.request().url();
     if (url.includes("select=tasks_generation_status")) {
-      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ tasks_generation_status: "done" }]) });
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([{ tasks_generation_status: "done" }]),
+      });
     } else {
-      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_OBJECTIVES) });
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(MOCK_OBJECTIVES),
+      });
     }
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/objective_notes**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ objective_id: OBJ_ID, note_id: TASK_ID }]) }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([{ objective_id: OBJ_ID, note_id: TASK_ID }]),
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/notes**`, (r) => {
     const url = r.request().url();
@@ -97,7 +151,12 @@ async function injectSession(page: Page) {
       localStorage.setItem(authKey, JSON.stringify(session));
       localStorage.setItem(projectKey, projectId);
     },
-    { authKey: LS_AUTH_KEY, session: SUPABASE_SESSION, projectKey: ACTIVE_PROJECT_LS_KEY, projectId: PROJECT_ID },
+    {
+      authKey: LS_AUTH_KEY,
+      session: SUPABASE_SESSION,
+      projectKey: ACTIVE_PROJECT_LS_KEY,
+      projectId: PROJECT_ID,
+    },
   );
 }
 
@@ -108,7 +167,10 @@ test.describe("Live production gaps — repro", () => {
     await setupRoutes(page);
     await injectSession(page);
     await page.goto("/navigator");
-    await page.locator(`span:text-is("${MOCK_OBJECTIVES[0].title}")`).first().waitFor({ timeout: 20_000 });
+    await page
+      .locator(`span:text-is("${MOCK_OBJECTIVES[0].title}")`)
+      .first()
+      .waitFor({ timeout: 20_000 });
     await page.getByRole("button", { name: "Open" }).first().click();
     await page.waitForTimeout(1500);
     await page.screenshot({ path: "test-results/live-gaps/objective-panel.png", fullPage: true });
@@ -131,7 +193,10 @@ test.describe("Live production gaps — repro", () => {
     await setupRoutes(page);
     await injectSession(page);
     await page.goto("/navigator");
-    await page.locator(`span:text-is("${MOCK_OBJECTIVES[0].title}")`).first().waitFor({ timeout: 20_000 });
+    await page
+      .locator(`span:text-is("${MOCK_OBJECTIVES[0].title}")`)
+      .first()
+      .waitFor({ timeout: 20_000 });
     await page.locator(`span:text-is("${MOCK_OBJECTIVES[0].title}")`).first().click();
     await page.waitForTimeout(800);
     await page.locator(`text="${MOCK_TASK.title}"`).first().click({ timeout: 10_000 });

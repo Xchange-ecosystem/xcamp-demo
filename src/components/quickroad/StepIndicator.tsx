@@ -22,8 +22,7 @@ export function StepIndicator({ current }: { current: QuickRoadStep }) {
                 style={{
                   width: active ? 12 : 10,
                   height: active ? 12 : 10,
-                  background:
-                    done || active ? "var(--skin-accent)" : "var(--skin-line)",
+                  background: done || active ? "var(--skin-accent)" : "var(--skin-line)",
                   opacity: done ? 0.6 : 1,
                 }}
               />
@@ -38,10 +37,7 @@ export function StepIndicator({ current }: { current: QuickRoadStep }) {
               </span>
             </div>
             {idx < STEPS.length - 1 && (
-              <span
-                className="h-px w-6 sm:w-10"
-                style={{ background: "var(--skin-line)" }}
-              />
+              <span className="h-px w-6 sm:w-10" style={{ background: "var(--skin-line)" }} />
             )}
           </div>
         );

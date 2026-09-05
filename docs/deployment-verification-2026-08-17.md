@@ -49,11 +49,11 @@ last-modified: Mon, 17 Aug 2026 11:38:19 GMT
 
 **Content-level comparison is decisive.** Both the production chunks and the locally-built chunks were diffed after normalizing hashed filenames (`sed -E 's/[A-Za-z0-9_-]{8}\.js/HASH.js/g'`):
 
-| Chunk | Local (main HEAD) size | Prod size | Diff after hash-normalization |
-|---|---|---|---|
-| `home-*.js` (Companion/EcosystemHomeView, PR #100's fix) | 476,979 B | 478,799 B | 76 differing lines, **all** confined to minifier-assigned identifier names (e.g. `Gb`→`Kb`, `yL`→`xL`) — every literal string and array is byte-identical, including the PR #100 fix's `["I am your companion, always at your service.","Your project is ready. Are you?","Tap the orb to get started."]` array (no `greetLine` reference in either) |
-| `AppShell-*.js` (PR #99 shell-parity territory) | 56,579 B | 56,579 B | **0** differing lines after normalization — identical |
-| `JournalFlow-*.js` (PR #98 territory) | 31,774 B | 31,802 B | 2 differing lines, same minifier-identifier-only pattern |
+| Chunk                                                    | Local (main HEAD) size | Prod size | Diff after hash-normalization                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------- | ---------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `home-*.js` (Companion/EcosystemHomeView, PR #100's fix) | 476,979 B              | 478,799 B | 76 differing lines, **all** confined to minifier-assigned identifier names (e.g. `Gb`→`Kb`, `yL`→`xL`) — every literal string and array is byte-identical, including the PR #100 fix's `["I am your companion, always at your service.","Your project is ready. Are you?","Tap the orb to get started."]` array (no `greetLine` reference in either) |
+| `AppShell-*.js` (PR #99 shell-parity territory)          | 56,579 B               | 56,579 B  | **0** differing lines after normalization — identical                                                                                                                                                                                                                                                                                                |
+| `JournalFlow-*.js` (PR #98 territory)                    | 31,774 B               | 31,802 B  | 2 differing lines, same minifier-identifier-only pattern                                                                                                                                                                                                                                                                                             |
 
 This is strong evidence that **`https://xcamp-nox-founder-app.vercel.app` is currently serving the exact source of `origin/main` HEAD (`d5b8433`), including all three merged PRs** — not a stale build. The production deployment is not the root cause of "no visible change," at least on this domain.
 
@@ -70,6 +70,7 @@ This is strong evidence that **`https://xcamp-nox-founder-app.vercel.app` is cur
 **No fix was applied** — nothing on the default Vercel domain/project was found broken. Root cause is `BLOCKED`, not `FIXED`: the working hypothesis, given every other checkpoint is clean, is that the human tested a custom domain (most likely `xcamp.xchange.eco`, the one hardcoded in source) whose DNS/alias/CDN state this session cannot inspect.
 
 **Precise next action for the human:**
+
 1. In the Vercel dashboard for `xchange-ecosphere/xcamp-nox-founder-app` → Settings → Domains, confirm which domain(s) are attached and that they point at **this** project (not `xcamp-foundation` or a stale project), and that the attached domain is aliased to the current Production deployment (`d5b8433` / the deployment shown "Ready" for the `main` branch).
 2. `curl -I` that exact domain directly (not through this sandbox) and compare its `/assets/index-*.js` reference against `index-DNlZZmTi.js` (confirmed current) using the same content-diff method as Step 4, if the hash differs.
 3. If the domain is fine and still shows old content, check Settings → Git → Production Branch is `main`, and check the latest Production deployment's build log for the commit SHA it actually pulled.
@@ -82,7 +83,7 @@ This is strong evidence that **`https://xcamp-nox-founder-app.vercel.app` is cur
 
 Playwright (Chromium, pre-installed at `/opt/pw-browsers/chromium-1194`) was launched with the session's `HTTPS_PROXY` and `--ignore-certificate-errors`, using the same auth/network-stubbing harness `tests/helpers/liveAuth.ts` already established for exactly this purpose, pointed at `https://xcamp-nox-founder-app.vercel.app/home`. Every attempt (3/3, including with `--disable-quic --disable-http2`, and a `waitUntil: "commit"` bare first-request test) failed with `net::ERR_CONNECTION_RESET` at the very first request — even though plain `curl` to the identical URL from the identical sandbox succeeds every time (Step 4 above). This points at the egress proxy handling Chromium's connection differently from `curl`'s, not at anything wrong with the deployed app.
 
-This mirrors the exact blocker the 2026-08-17 layout audit already documented for Vercel *preview* URLs (Vercel SSO gate) — except this is a *different* failure mode (`ERR_CONNECTION_RESET`, not a 302 to `vercel.com/sso-api`) and it hits the **production** default alias, not a preview. The production alias itself is not gated by Vercel SSO (`curl -I` returns the SPA shell directly, no redirect) — the block is specific to this session's browser-automation path through the proxy.
+This mirrors the exact blocker the 2026-08-17 layout audit already documented for Vercel _preview_ URLs (Vercel SSO gate) — except this is a _different_ failure mode (`ERR_CONNECTION_RESET`, not a 302 to `vercel.com/sso-api`) and it hits the **production** default alias, not a preview. The production alias itself is not gated by Vercel SSO (`curl -I` returns the SPA shell directly, no redirect) — the block is specific to this session's browser-automation path through the proxy.
 
 **Secondary evidence in lieu of a live click-through:** the content-diff in Part A Step 4 already confirms the literal fix from PR #100 — the intro overlay's `LINES` array containing only the three static companion lines, with no `greetLine` reference anywhere in the shipped `home-*.js` chunk — is present in the exact bundle the production domain serves right now. This is not a substitute for watching the curtain-dismiss-hero sequence render, but it is direct evidence the fixed source, not the pre-fix source, is what a browser would execute.
 
@@ -92,14 +93,14 @@ This mirrors the exact blocker the 2026-08-17 layout audit already documented fo
 
 ## Summary
 
-| Item | Status |
-|---|---|
-| #98/#99/#100 merged into `origin/main` | `CONFIRMED` |
-| Vercel project identity (`xchange-ecosphere/xcamp-nox-founder-app`, not `xcamp-foundation`) | `CONFIRMED` |
-| Default `.vercel.app` domain serving current `main` HEAD (content-level, all 3 PRs) | `CONFIRMED` |
-| CDN edge cache serving stale content on default domain | `NOT AN ISSUE` |
-| Vercel Production Branch setting / promotion step / build logs | `BLOCKED` — needs Vercel dashboard/API access |
-| Custom domain (`xcamp.xchange.eco`) alias + DNS health | `BLOCKED` — needs network access this sandbox doesn't have, or a human check |
-| Live browser click-through of the welcome fix on production | `BLOCKED` — Chromium-through-proxy connection reset to this host; `curl`-level content evidence substitutes |
+| Item                                                                                        | Status                                                                                                      |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| #98/#99/#100 merged into `origin/main`                                                      | `CONFIRMED`                                                                                                 |
+| Vercel project identity (`xchange-ecosphere/xcamp-nox-founder-app`, not `xcamp-foundation`) | `CONFIRMED`                                                                                                 |
+| Default `.vercel.app` domain serving current `main` HEAD (content-level, all 3 PRs)         | `CONFIRMED`                                                                                                 |
+| CDN edge cache serving stale content on default domain                                      | `NOT AN ISSUE`                                                                                              |
+| Vercel Production Branch setting / promotion step / build logs                              | `BLOCKED` — needs Vercel dashboard/API access                                                               |
+| Custom domain (`xcamp.xchange.eco`) alias + DNS health                                      | `BLOCKED` — needs network access this sandbox doesn't have, or a human check                                |
+| Live browser click-through of the welcome fix on production                                 | `BLOCKED` — Chromium-through-proxy connection reset to this host; `curl`-level content evidence substitutes |
 
 Given the two `BLOCKED` items are both about the one thing this session cannot see (anything beyond plain HTTPS `curl` to `*.vercel.app`), **the most actionable next step is a human confirming, in an actual browser, which exact URL they tested** — if it wasn't `xcamp-nox-founder-app.vercel.app` directly, that mismatch is almost certainly the whole story.

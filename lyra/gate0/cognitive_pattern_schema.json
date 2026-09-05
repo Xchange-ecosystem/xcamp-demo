@@ -84,19 +84,12 @@
             "type": "string"
           }
         },
-        "required": [
-          "source_id"
-        ]
+        "required": ["source_id"]
       }
     },
     "epistemic_status": {
       "type": "string",
-      "enum": [
-        "user_confirmed",
-        "conversation_derived",
-        "model_inferred",
-        "disputed"
-      ]
+      "enum": ["user_confirmed", "conversation_derived", "model_inferred", "disputed"]
     },
     "confidence": {
       "type": "number",
@@ -105,13 +98,7 @@
     },
     "review_status": {
       "type": "string",
-      "enum": [
-        "candidate",
-        "reviewed",
-        "confirmed",
-        "rejected",
-        "superseded"
-      ]
+      "enum": ["candidate", "reviewed", "confirmed", "rejected", "superseded"]
     },
     "version": {
       "type": "string"

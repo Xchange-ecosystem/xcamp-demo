@@ -3,12 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Eye, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ObjectiveProgress, ProjectPortfolioItem } from "@/lib/xcamp-api";
 import type { XcampUser } from "@/types/xcamp";
 import { addToWatchlist, listWatchlist, removeFromWatchlist } from "@/lib/watchlist-api";
@@ -56,7 +51,9 @@ export function ProjectStubPanel({
         if (!cancelled) setWatching(rows.some((r) => r.object_id === project.id));
       })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [showWatchlistAction, project]);
 
   async function handleToggleWatch() {
@@ -85,7 +82,9 @@ export function ProjectStubPanel({
   const roleLabel = project
     ? isOwner
       ? "Owner"
-      : (project.collab_role ? ROLE_LABELS[project.collab_role] ?? project.collab_role : null)
+      : project.collab_role
+        ? (ROLE_LABELS[project.collab_role] ?? project.collab_role)
+        : null
     : null;
 
   const total = progress?.total ?? 0;
@@ -103,7 +102,12 @@ export function ProjectStubPanel({
       : { background: "var(--skin-accent-gradient)" };
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <SheetContent
         side="right"
         noCloseButton
@@ -146,7 +150,14 @@ export function ProjectStubPanel({
         {/* Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 24px" }}>
           <SheetHeader style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
               <SheetTitle
                 style={{
                   fontSize: 20,
@@ -231,7 +242,9 @@ export function ProjectStubPanel({
               }}
             >
               <span>Objectives</span>
-              <span style={{ color: "var(--skin-ink)" }}>{done}/{total}</span>
+              <span style={{ color: "var(--skin-ink)" }}>
+                {done}/{total}
+              </span>
             </div>
             <div
               style={{

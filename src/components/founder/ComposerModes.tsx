@@ -2,9 +2,10 @@
 // Text is untouched (still owned by demo.founder.index.tsx); Transcript is
 // the one mode that's wired end to end. Voice, Upload and Link agent render
 // designed empty states and are visibly inert, not broken.
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Link2, Mic, Send, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TRANSCRIPTS } from "@/fixtures/transcripts";
 import { MODE_PILLS } from "./composerModes.constants";
 
 export type InputMode = "text" | "voice" | "upload" | "transcript" | "agent";
@@ -17,7 +18,7 @@ export function ModePillRow({
   onModeChange: (m: InputMode) => void;
 }) {
   return (
-    <div className="mb-2.5 flex flex-wrap gap-1.5" role="tablist" aria-label="Composer input mode">
+    <div className="mb-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Composer input mode">
       {MODE_PILLS.map((m) => {
         const Icon = m.icon;
         const active = mode === m.id;
@@ -25,8 +26,7 @@ export function ModePillRow({
           <button
             key={m.id}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onModeChange(m.id)}
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] transition-colors"
             style={{
@@ -116,7 +116,11 @@ export interface TranscriptFile {
   name: string;
   meta: string;
   text: string;
+  projectId: string | null;
 }
+
+const MAX_TRANSCRIPT_BYTES = 5 * 1024 * 1024;
+const SUPPORTED_TRANSCRIPT_EXTENSIONS = new Set(["txt", "vtt", "srt"]);
 
 export function TranscriptModeBody({
   file,
@@ -130,16 +134,66 @@ export function TranscriptModeBody({
   onSend: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const selectionVersion = useRef(0);
 
-  const handleFiles = (files: FileList | null) => {
+  useEffect(
+    () => () => {
+      selectionVersion.current += 1;
+    },
+    [],
+  );
+
+  const handleFiles = async (files: FileList | null) => {
     const picked = files?.[0];
     if (!picked) return;
-    picked.text().then((text) => {
+    const version = ++selectionVersion.current;
+    setFileError(null);
+
+    const extension = picked.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!SUPPORTED_TRANSCRIPT_EXTENSIONS.has(extension)) {
+      setFileError("Choose a plain-text transcript in TXT, VTT, or SRT format.");
+      return;
+    }
+    if (picked.size === 0) {
+      setFileError("That transcript is empty.");
+      return;
+    }
+    if (picked.size > MAX_TRANSCRIPT_BYTES) {
+      setFileError("That transcript is larger than 5 MB. Split it before uploading.");
+      return;
+    }
+
+    try {
+      const text = await picked.text();
+      if (version !== selectionVersion.current) return;
+      if (!text.trim()) {
+        setFileError("That transcript contains no readable text.");
+        return;
+      }
+      setFileError(null);
       onFileSelected({
         name: picked.name,
-        meta: `${(picked.size / 1024).toFixed(0)} KB · ${text.split("\n").length} lines · uploaded just now`,
+        meta: `${Math.max(1, Math.ceil(picked.size / 1024))} KB · ${text.split("\n").length} lines · uploaded just now`,
         text,
+        projectId: null,
       });
+    } catch {
+      if (version !== selectionVersion.current) return;
+      setFileError("The transcript could not be read. Try another file.");
+    }
+  };
+
+  const selectSample = (transcriptId: string) => {
+    const transcript = TRANSCRIPTS.find((candidate) => candidate.id === transcriptId);
+    if (!transcript) return;
+    selectionVersion.current += 1;
+    setFileError(null);
+    onFileSelected({
+      name: `${transcript.title}.txt`,
+      meta: `Sample · ${transcript.date} · ${transcript.participants.length} participants`,
+      text: transcript.rawText,
+      projectId: transcript.projectId,
     });
   };
 
@@ -162,7 +216,10 @@ export function TranscriptModeBody({
           </span>
           <button
             type="button"
-            onClick={onClear}
+            onClick={() => {
+              selectionVersion.current += 1;
+              onClear();
+            }}
             aria-label="Remove file"
             className="text-lg leading-none"
             style={{ color: "var(--skin-ink-faint, var(--muted-foreground))" }}
@@ -187,7 +244,7 @@ export function TranscriptModeBody({
         accept=".txt,.vtt,.srt,text/plain"
         className="hidden"
         onChange={(e) => {
-          handleFiles(e.target.files);
+          void handleFiles(e.target.files);
           e.target.value = "";
         }}
       />
@@ -197,7 +254,7 @@ export function TranscriptModeBody({
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
-          handleFiles(e.dataTransfer.files);
+          void handleFiles(e.dataTransfer.files);
         }}
         className="flex w-full flex-col items-center gap-2 rounded-lg border-[1.5px] border-dashed p-7 text-center transition-colors"
         style={{
@@ -209,6 +266,39 @@ export function TranscriptModeBody({
         <b className="text-[14.5px] font-semibold text-foreground">Drop a meeting transcript</b>
         <small className="text-[12.5px]">Or click to choose a file. Plain text, VTT or SRT.</small>
       </button>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <label
+          htmlFor="sample-transcript"
+          className="text-[12.5px]"
+          style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
+        >
+          Or use a demo transcript
+        </label>
+        <select
+          id="sample-transcript"
+          defaultValue=""
+          onChange={(event) => {
+            selectSample(event.target.value);
+            event.target.value = "";
+          }}
+          className="max-w-full rounded-md border bg-background px-2.5 py-1.5 text-[12.5px] text-foreground"
+          style={{ borderColor: "var(--skin-line)" }}
+        >
+          <option value="" disabled>
+            Choose a sample…
+          </option>
+          {TRANSCRIPTS.map((transcript) => (
+            <option key={transcript.id} value={transcript.id}>
+              {transcript.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      {fileError && (
+        <p className="mt-2 text-center text-xs" role="alert" style={{ color: "var(--skin-bad)" }}>
+          {fileError}
+        </p>
+      )}
     </>
   );
 }

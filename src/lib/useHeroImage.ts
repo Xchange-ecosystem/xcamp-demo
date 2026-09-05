@@ -114,15 +114,13 @@ export function useHeroImage(seed?: string): {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, revision]);
 
   const reload = useCallback(() => {
     setRevision((r) => r + 1);
   }, []);
 
-  const canReload =
-    Boolean(seed) || (cachedUrls !== null && (cachedUrls?.length ?? 0) > 1);
+  const canReload = Boolean(seed) || (cachedUrls !== null && (cachedUrls?.length ?? 0) > 1);
 
   return { url, reload, canReload };
 }

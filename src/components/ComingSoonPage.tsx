@@ -49,9 +49,7 @@ export function ComingSoonPage({
         >
           {title}
         </p>
-        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", maxWidth: 320 }}>
-          {subtitle}
-        </p>
+        <p style={{ fontSize: 14, color: "var(--skin-ink-soft)", maxWidth: 320 }}>{subtitle}</p>
       </div>
     </div>
   );

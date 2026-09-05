@@ -24,13 +24,13 @@ presentation, and does not sit under `/demo/*`.
 
 ### Against the rest of P1.4
 
-| | P1.4 demo (Transcript pill in the Founder composer) | Recap |
-|---|---|---|
-| Audience | investors watching the pitch | prospects who were on a real call |
-| Route | `/demo/*`, inside the Founder screen | `/admin/recap` and `/recap/:token` |
-| Data | fixtures | real transcript, real model output, persisted |
-| Output | simulated send, feed cards | published pages + real SendGrid email |
-| In the walkthrough | yes | **no** |
+|                    | P1.4 demo (Transcript pill in the Founder composer) | Recap                                         |
+| ------------------ | --------------------------------------------------- | --------------------------------------------- |
+| Audience           | investors watching the pitch                        | prospects who were on a real call             |
+| Route              | `/demo/*`, inside the Founder screen                | `/admin/recap` and `/recap/:token`            |
+| Data               | fixtures                                            | real transcript, real model output, persisted |
+| Output             | simulated send, feed cards                          | published pages + real SendGrid email         |
+| In the walkthrough | yes                                                 | **no**                                        |
 
 The demo mockup's review step is the correct UI shape to reuse. What differs is that the right-hand preview
 renders the actual public page, and everything on the screen is real.
@@ -126,7 +126,7 @@ Replaced by two things that are genuinely derived from the recap the presenter j
   confirm, which no projection can assert.
 - **The value on the table.** Today: `0 cr — notes in three inboxes`. With these delivered: the sum of the
   illustrative values the presenter set, across the number of people, `with proof attached and an assessor's
-  sign-off`.
+sign-off`.
 
 No quality percentage appears anywhere on the public page. The explanatory note under the projection still
 says what certification is and why an investor cares — it just doesn't put a number on this prospect.

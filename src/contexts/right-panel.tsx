@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 export interface EntityPanelTarget {
-  type: 'note' | 'task' | 'objective';
+  type: "note" | "task" | "objective";
   id: string;
   objectiveId?: string;
   prefillText?: string;
@@ -29,6 +29,6 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
 
 export function useRightPanel(): RightPanelCtx {
   const ctx = useContext(RightPanelContext);
-  if (!ctx) throw new Error('useRightPanel must be used inside <RightPanelProvider>');
+  if (!ctx) throw new Error("useRightPanel must be used inside <RightPanelProvider>");
   return ctx;
 }

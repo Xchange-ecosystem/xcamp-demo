@@ -35,7 +35,12 @@ interface CardFeedConfig<T> {
   getMeta?: (item: T) => { key: string; label: string; icon?: LucideIcon }[];
   getTimestamp?: (item: T) => string | null | undefined;
   onItemClick?: (item: T) => void;
-  getActions?: (item: T) => { key: string; label: string; onClick: (item: T) => void; variant?: "default" | "outline" | "ghost" }[];
+  getActions?: (item: T) => {
+    key: string;
+    label: string;
+    onClick: (item: T) => void;
+    variant?: "default" | "outline" | "ghost";
+  }[];
   emptyMessage?: ReactNode;
 }
 ```
@@ -45,7 +50,7 @@ independent of `onItemClick` — e.g. the Founder feed's "Review" / "Dismiss"
 buttons that open the Part 4 proposal modal or drop an item, without making
 the whole card clickable.
 
-`getVisual` is per-*item*, not per-feed, so a single feed can mix e.g. a
+`getVisual` is per-_item_, not per-feed, so a single feed can mix e.g. a
 completed (green) card with active (teal) ones — see `configs.tsx`, where
 action items go from `Lightbulb`/teal to `CheckCircle2`/green once actioned.
 

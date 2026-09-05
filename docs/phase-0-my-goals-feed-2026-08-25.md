@@ -19,6 +19,7 @@ structured objective+tasks object, and takes no task-count parameter.
 
 Three other AI-generation paths exist, none of which produce "1 objective + 3 tasks" as
 a first-class shape:
+
 - **Backcaster/QuickRoad** (`src/lib/backcaster-api.ts`, `src/hooks/useQuickRoad.ts`) —
   a separate `xcampapi.xchange.eco` service producing an arbitrary-depth
   project/objective/note/task tree via session → interpret → generate → materialize.
@@ -36,7 +37,7 @@ a first-class shape:
   tasks without replacing" pattern, appending to local state
   (`setTopics(prev => [...prev, ...moreTopics])`).
 - Navigator has **dead scaffolding** for this exact feature: `objectives
-  .tasks_generation_status` (DB column) + `useObjectiveGenerationStatus` polling +
+.tasks_generation_status` (DB column) + `useObjectiveGenerationStatus` polling +
   "Generating tasks…" placeholder UI (`NavigatorBrowser.tsx:425-430`) — but nothing in
   this repo ever flips that status to `"generating"`. The e2e test's own comment says
   the backend half needs `xcamp-backend PR#101`, not yet deployed. Not usable as-is.
@@ -107,6 +108,7 @@ appends whatever comes back to the pending list — never replacing.
 `add_note` tools (via the `upsert_objective_note` RPC); `objective_draft` (the type
 meant for this exact use case) falls through to "requires backend route — not yet
 wired." So Accept does **not** go through `executeProposal`. Instead:
+
 - Accept objective → `createObjective(projectId, title)` (`src/lib/navigator-api.ts:110`,
   proven, already used by Navigator) + `updateObjective(id, {title, description})` for
   the AI-supplied description.
@@ -127,9 +129,11 @@ wired." So Accept does **not** go through `executeProposal`. Instead:
 
 `src/components/AppSidebarExperimental.tsx` (the default, non-legacy sidebar)
 already has a **scaffolded, unused nav entry**:
+
 ```
 { title: "goals", url: "", icon: Target, label: "My Goals", parameterised: true }
 ```
+
 in `PROJECT_NAV` (line 84) — `Target` is imported and used nowhere else. It has no
 dedicated click-handler branch (unlike `logbook`/`navigator`, which do), so it falls
 through to the generic `resolveUrl()`, whose `parameterised` branch currently resolves

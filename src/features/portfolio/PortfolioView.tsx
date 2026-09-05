@@ -95,7 +95,7 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
     staleTime: 30_000,
   });
 
-  const projects = projectsQuery.data ?? [];
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
 
   const watchlistQuery = useQuery({
@@ -117,7 +117,7 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
     staleTime: 30_000,
   });
 
-  const progressMap = progressQuery.data ?? {};
+  const progressMap = useMemo(() => progressQuery.data ?? {}, [progressQuery.data]);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId) ?? null,
@@ -186,9 +186,7 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
 
     // Tag filter
     if (filterTags.length > 0) {
-      result = result.filter((p) =>
-        filterTags.every((ft) => (p.tags ?? []).includes(ft)),
-      );
+      result = result.filter((p) => filterTags.every((ft) => (p.tags ?? []).includes(ft)));
     }
 
     // Sort
@@ -203,7 +201,17 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
     });
 
     return result;
-  }, [projects, user, activeTab, search, filterStatus, filterTags, sort, progressMap, watchlistProjectIds]);
+  }, [
+    projects,
+    user,
+    activeTab,
+    search,
+    filterStatus,
+    filterTags,
+    sort,
+    progressMap,
+    watchlistProjectIds,
+  ]);
 
   const activeFiltersCount = filterStatus.length + filterTags.length;
 
@@ -248,7 +256,9 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
               Portfolio
             </h1>
             <p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--skin-ink-soft)" }}>
-              {isLoading ? "Loading…" : `${projects.length} project${projects.length !== 1 ? "s" : ""}`}
+              {isLoading
+                ? "Loading…"
+                : `${projects.length} project${projects.length !== 1 ? "s" : ""}`}
             </p>
           </div>
 
@@ -322,7 +332,8 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                 fontSize: 13,
                 fontWeight: activeTab === tab ? 600 : 400,
                 color: activeTab === tab ? "var(--skin-ink)" : "var(--skin-ink-soft)",
-                borderBottom: activeTab === tab ? "2px solid var(--skin-accent)" : "2px solid transparent",
+                borderBottom:
+                  activeTab === tab ? "2px solid var(--skin-accent)" : "2px solid transparent",
                 transition: "color 0.1s, border-color 0.1s",
                 whiteSpace: "nowrap",
               }}
@@ -335,7 +346,8 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                   fontWeight: 500,
                   padding: "1px 6px",
                   borderRadius: "var(--xr-pill, 999px)",
-                  background: activeTab === tab ? "var(--skin-accent-soft)" : "var(--skin-surface2)",
+                  background:
+                    activeTab === tab ? "var(--skin-accent-soft)" : "var(--skin-surface2)",
                   color: activeTab === tab ? "var(--skin-ink)" : "var(--skin-ink-faint)",
                 }}
               >
@@ -450,7 +462,10 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => { setSort(key); setSortOpen(false); }}
+                  onClick={() => {
+                    setSort(key);
+                    setSortOpen(false);
+                  }}
                   style={{
                     all: "unset",
                     cursor: "pointer",
@@ -486,8 +501,12 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
             fontSize: 13,
             borderRadius: "var(--xr, 6px)",
             border: `1px solid ${filtersOpen || activeFiltersCount > 0 ? "var(--skin-accent)" : "var(--skin-line)"}`,
-            color: filtersOpen || activeFiltersCount > 0 ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-            background: filtersOpen || activeFiltersCount > 0 ? "var(--skin-accent-soft)" : "var(--skin-surface)",
+            color:
+              filtersOpen || activeFiltersCount > 0 ? "var(--skin-accent)" : "var(--skin-ink-soft)",
+            background:
+              filtersOpen || activeFiltersCount > 0
+                ? "var(--skin-accent-soft)"
+                : "var(--skin-surface)",
           }}
         >
           <SlidersHorizontal size={13} />
@@ -614,9 +633,7 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                     key={s}
                     type="button"
                     onClick={() =>
-                      setFilterStatus((v) =>
-                        v.includes(s) ? v.filter((x) => x !== s) : [...v, s],
-                      )
+                      setFilterStatus((v) => (v.includes(s) ? v.filter((x) => x !== s) : [...v, s]))
                     }
                     style={{
                       all: "unset",
@@ -626,8 +643,12 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                       border: `1px solid ${filterStatus.includes(s) ? "var(--skin-accent)" : "var(--skin-line)"}`,
                       fontSize: 12,
                       fontWeight: filterStatus.includes(s) ? 600 : 400,
-                      color: filterStatus.includes(s) ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                      background: filterStatus.includes(s) ? "var(--skin-accent-soft)" : "var(--skin-surface)",
+                      color: filterStatus.includes(s)
+                        ? "var(--skin-accent)"
+                        : "var(--skin-ink-soft)",
+                      background: filterStatus.includes(s)
+                        ? "var(--skin-accent-soft)"
+                        : "var(--skin-surface)",
                     }}
                   >
                     {s}
@@ -669,8 +690,12 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
                       border: `1px solid ${filterTags.includes(tag) ? "var(--skin-accent)" : "var(--skin-line)"}`,
                       fontSize: 12,
                       fontWeight: filterTags.includes(tag) ? 600 : 400,
-                      color: filterTags.includes(tag) ? "var(--skin-accent)" : "var(--skin-ink-soft)",
-                      background: filterTags.includes(tag) ? "var(--skin-accent-soft)" : "var(--skin-surface)",
+                      color: filterTags.includes(tag)
+                        ? "var(--skin-accent)"
+                        : "var(--skin-ink-soft)",
+                      background: filterTags.includes(tag)
+                        ? "var(--skin-accent-soft)"
+                        : "var(--skin-surface)",
                     }}
                   >
                     #{tag}
@@ -720,7 +745,14 @@ export function PortfolioView({ initialTab }: { initialTab?: string } = {}) {
               color: "var(--skin-ink-faint)",
             }}
           >
-            <p style={{ fontSize: 15, fontWeight: 500, color: "var(--skin-ink-soft)", margin: "0 0 6px" }}>
+            <p
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                color: "var(--skin-ink-soft)",
+                margin: "0 0 6px",
+              }}
+            >
               No projects found
             </p>
             <p style={{ fontSize: 13, margin: 0 }}>

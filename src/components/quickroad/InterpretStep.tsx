@@ -42,7 +42,11 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         onChange={(e) => patch({ interpretation: e.target.value })}
         rows={8}
         className="w-full rounded-xl p-3 text-sm outline-none resize-y leading-relaxed"
-        style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
+        style={{
+          background: "var(--skin-bg)",
+          border: "1px solid var(--skin-line)",
+          color: "var(--skin-ink)",
+        }}
       />
 
       {error && (
@@ -63,7 +67,11 @@ export function InterpretStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
           disabled={reinterpreting || !state.sessionId}
           onClick={reinterpret}
           className="rounded-xl py-3 px-5 font-medium inline-flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
-          style={{ background: "var(--skin-surface)", color: "var(--skin-ink)", border: "1px solid var(--skin-line)" }}
+          style={{
+            background: "var(--skin-surface)",
+            color: "var(--skin-ink)",
+            border: "1px solid var(--skin-line)",
+          }}
         >
           {reinterpreting && <Loader2 className="animate-spin" size={16} />}
           Re-interpret

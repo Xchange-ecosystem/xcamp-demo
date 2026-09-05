@@ -23,7 +23,9 @@ function SidebarStatePersist() {
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, state === "collapsed" ? "true" : "false");
-    } catch {}
+    } catch {
+      // Storage may be unavailable in private browsing or a restricted iframe.
+    }
   }, [state]);
   return null;
 }
@@ -92,44 +94,58 @@ function RightPanelSlot() {
 
   const handleClose = entityTarget !== null ? closeEntity : closeSidepanel;
 
-  const panelContent = entityTarget !== null ? (
-    <EntityPanel
-      onClose={closeEntity}
-      type={entityTarget.type}
-      id={entityTarget.id}
-      objectiveId={entityTarget.objectiveId}
-      prefillText={entityTarget.prefillText}
-      initialTitle={entityTarget.initialTitle}
-      user={user ?? undefined}
-    />
-  ) : sidepanelOpen ? (
-    <ItemSidepanel />
-  ) : null;
+  const panelContent =
+    entityTarget !== null ? (
+      <EntityPanel
+        onClose={closeEntity}
+        type={entityTarget.type}
+        id={entityTarget.id}
+        objectiveId={entityTarget.objectiveId}
+        prefillText={entityTarget.prefillText}
+        initialTitle={entityTarget.initialTitle}
+        user={user ?? undefined}
+      />
+    ) : sidepanelOpen ? (
+      <ItemSidepanel />
+    ) : null;
 
   if (isMobile) {
     if (!isVisible) return null;
     return (
       <div
         style={{
-          position: "fixed", inset: 0, zIndex: 40,
+          position: "fixed",
+          inset: 0,
+          zIndex: 40,
           background: "var(--skin-surface)",
-          display: "flex", flexDirection: "column",
+          display: "flex",
+          flexDirection: "column",
           overflow: "hidden",
         }}
       >
         <div
           style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 16px", flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 16px",
+            flexShrink: 0,
             borderBottom: "1px solid var(--skin-line)",
           }}
         >
           <button
             onClick={handleClose}
             style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "none", border: "none", cursor: "pointer",
-              fontSize: 14, fontWeight: 500, color: "var(--skin-accent)", padding: "4px 0",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--skin-accent)",
+              padding: "4px 0",
             }}
           >
             <ArrowLeft size={16} /> Back
@@ -275,7 +291,10 @@ export function AppShell({
               style={{ background: transparent ? "transparent" : "var(--skin-surface)" }}
             >
               {!isLegacy ? <AppSidebarExperimental /> : <AppSidebar />}
-              <SidebarResizeHandle sidebarWidth={sidebarWidth} onMouseDown={handleResizeMouseDown} />
+              <SidebarResizeHandle
+                sidebarWidth={sidebarWidth}
+                onMouseDown={handleResizeMouseDown}
+              />
               <div
                 className="flex-1 flex flex-col min-w-0"
                 style={transparent ? { background: "transparent" } : undefined}

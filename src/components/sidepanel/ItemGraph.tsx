@@ -123,7 +123,9 @@ export function ItemGraph({ nodes, edges, centerId, onOpenItem }: ItemGraphProps
   panRef.current = pan;
 
   const prefersReduced = useMemo(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
   );
 
@@ -140,8 +142,7 @@ export function ItemGraph({ nodes, edges, centerId, onOpenItem }: ItemGraphProps
 
   const layout = useMemo(
     () => runForceSimulation(nodes, edges, centerId, dims.w, dims.h),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nodes.map((n) => n.id).join(), edges.map((e) => e.source + e.target).join(), centerId, dims.w, dims.h],
+    [nodes, edges, centerId, dims.w, dims.h],
   );
 
   const byId = useMemo(() => new Map(layout.map((n) => [n.id, n])), [layout]);
@@ -165,20 +166,22 @@ export function ItemGraph({ nodes, edges, centerId, onOpenItem }: ItemGraphProps
     setScale((s) => Math.min(3, Math.max(0.25, s * factor)));
   }, []);
 
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest("circle,text")) return;
-      isDragging.current = true;
-      dragOrigin.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
-    },
-    [],
-  );
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("circle,text")) return;
+    isDragging.current = true;
+    dragOrigin.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
+  }, []);
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging.current) return;
     setPan({ x: e.clientX - dragOrigin.current.x, y: e.clientY - dragOrigin.current.y });
   }, []);
-  const endDrag = useCallback(() => { isDragging.current = false; }, []);
-  const resetView = useCallback(() => { setPan({ x: 0, y: 0 }); setScale(1); }, []);
+  const endDrag = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+  const resetView = useCallback(() => {
+    setPan({ x: 0, y: 0 });
+    setScale(1);
+  }, []);
 
   if (!nodes.length) return null;
 
@@ -239,7 +242,11 @@ export function ItemGraph({ nodes, edges, centerId, onOpenItem }: ItemGraphProps
               <g
                 key={n.id}
                 transform={`translate(${n.x},${n.y})`}
-                style={{ cursor: isCenter ? "default" : "pointer", opacity: dimmed ? 0.25 : 1, transition }}
+                style={{
+                  cursor: isCenter ? "default" : "pointer",
+                  opacity: dimmed ? 0.25 : 1,
+                  transition,
+                }}
                 onMouseEnter={() => setHovered(n.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={isCenter ? undefined : () => onOpenItem(n.id, n.kind)}
@@ -249,7 +256,11 @@ export function ItemGraph({ nodes, edges, centerId, onOpenItem }: ItemGraphProps
                   fill={`var(--item-${typeKey})`}
                   stroke={isHovered ? "var(--skin-bg)" : "none"}
                   strokeWidth={isHovered ? 2.5 : 0}
-                  style={{ transform: isHovered ? "scale(1.18)" : "scale(1)", transformOrigin: "0 0", transition }}
+                  style={{
+                    transform: isHovered ? "scale(1.18)" : "scale(1)",
+                    transformOrigin: "0 0",
+                    transition,
+                  }}
                 />
                 {isHovered && n.title && (
                   <>

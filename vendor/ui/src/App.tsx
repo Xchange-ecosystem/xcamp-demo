@@ -6,5 +6,5 @@ export default function App() {
         <p className="text-muted-foreground text-sm">Design system ready. Start building.</p>
       </div>
     </div>
-  )
+  );
 }

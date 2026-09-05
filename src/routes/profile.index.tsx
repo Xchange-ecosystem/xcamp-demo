@@ -215,12 +215,7 @@ function ProfileAccountPage() {
           <CardDescription>{t("profile.emailHint")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Button
             onClick={handleUpdateEmail}
             disabled={savingEmail || !email.trim() || email.trim() === user.email}
@@ -237,7 +232,11 @@ function ProfileAccountPage() {
           <CardDescription>{t("profile.passwordReset")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={handlePasswordReset} disabled={sendingReset || !user.email}>
+          <Button
+            variant="outline"
+            onClick={handlePasswordReset}
+            disabled={sendingReset || !user.email}
+          >
             {sendingReset ? t("profile.saving") : t("profile.sendReset")}
           </Button>
         </CardContent>

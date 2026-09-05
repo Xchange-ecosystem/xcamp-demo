@@ -9,7 +9,7 @@
 // put the wrong persona's voice on the Founder screen, so this uses its own
 // short inline exchange instead, in the same Solari Energy / Kenya Power
 // pilot context already established by the Founder Home composer's sample
-// text (src/routes/founder.index.tsx).
+// text (src/routes/demo.founder.index.tsx).
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Send } from "lucide-react";

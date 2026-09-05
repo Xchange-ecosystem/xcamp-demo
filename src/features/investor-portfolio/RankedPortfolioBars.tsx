@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Play, Square } from "lucide-react";
 import { getProjectById, getRankedPortfolio } from "@/fixtures";
 import { PORTFOLIO_WEEKS } from "@/fixtures/portfolio";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 // Part 1 — animated ranked portfolio bar list (P1.2 centerpiece), corrected
 // in P1-CORR Part 2 to reorder against a real eight-week series
@@ -54,10 +55,6 @@ function deltaText(delta: number): string {
   return "±0";
 }
 
-function usePrefersReducedMotion(): boolean {
-  return useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
-}
-
 export function RankedPortfolioBars({
   selectedProjectId,
   onSelect,
@@ -68,14 +65,15 @@ export function RankedPortfolioBars({
   const rows = useMemo(buildRows, []);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  const [week, setWeek] = useState(prefersReducedMotion ? LAST_WEEK : 0);
+  const [{ week, playing }, setPlayback] = useState({
+    week: prefersReducedMotion ? LAST_WEEK : 0,
+    playing: false,
+  });
   // Gates the fill width (and the score inside it) so bars grow in from
   // zero on first paint instead of appearing already full-width.
   const [revealed, setRevealed] = useState(prefersReducedMotion);
-  const [playing, setPlaying] = useState(false);
 
   const bootTimerRef = useRef<number | null>(null);
-  const playTimerRef = useRef<number | null>(null);
 
   const clearBootTimer = useCallback(() => {
     if (bootTimerRef.current !== null) {
@@ -85,27 +83,16 @@ export function RankedPortfolioBars({
   }, []);
 
   const stopPlay = useCallback(() => {
-    if (playTimerRef.current !== null) {
-      clearInterval(playTimerRef.current);
-      playTimerRef.current = null;
-    }
-    setPlaying(false);
+    setPlayback((current) => ({ ...current, playing: false }));
   }, []);
 
   const startPlay = useCallback(() => {
-    stopPlay();
-    setWeek(0);
-    setPlaying(true);
-    playTimerRef.current = window.setInterval(() => {
-      setWeek((w) => {
-        if (w >= LAST_WEEK) {
-          stopPlay();
-          return w;
-        }
-        return w + 1;
-      });
-    }, PLAY_INTERVAL_MS);
-  }, [stopPlay]);
+    if (prefersReducedMotion) {
+      setPlayback({ week: LAST_WEEK, playing: false });
+      return;
+    }
+    setPlayback({ week: 0, playing: true });
+  }, [prefersReducedMotion]);
 
   // Boot: grow bars in from zero, then autoplay the eight weeks once — but
   // never under reduced motion, which renders the current week directly.
@@ -129,7 +116,24 @@ export function RankedPortfolioBars({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => () => stopPlay(), [stopPlay]);
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => {
+      setPlayback((current) => {
+        if (!current.playing) return current;
+        const nextWeek = Math.min(current.week + 1, LAST_WEEK);
+        return { week: nextWeek, playing: nextWeek < LAST_WEEK };
+      });
+    }, PLAY_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [playing]);
+
+  useEffect(() => {
+    if (!prefersReducedMotion) return;
+    clearBootTimer();
+    setRevealed(true);
+    setPlayback({ week: LAST_WEEK, playing: false });
+  }, [clearBootTimer, prefersReducedMotion]);
 
   const rank = useMemo(() => {
     const ordered = [...rows].sort((a, b) => b.scores[week] - a.scores[week]);
@@ -145,8 +149,7 @@ export function RankedPortfolioBars({
 
   const handleScrub = (value: number) => {
     interruptBoot();
-    stopPlay();
-    setWeek(Math.max(0, Math.min(LAST_WEEK, value)));
+    setPlayback({ week: Math.max(0, Math.min(LAST_WEEK, value)), playing: false });
   };
 
   const handlePlayToggle = () => {
@@ -242,6 +245,7 @@ export function RankedPortfolioBars({
         value={week}
         onChange={(e) => handleScrub(Number(e.target.value))}
         aria-label="Week"
+        aria-valuetext={`Week of ${PORTFOLIO_WEEKS[week]}`}
         style={{ width: "100%", margin: "0 0 20px", accentColor: "var(--skin-accent)" }}
       />
 

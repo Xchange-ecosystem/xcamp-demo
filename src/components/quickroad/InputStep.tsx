@@ -118,9 +118,7 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
     e.target.value = "";
   };
 
-  const canSubmit = stagedFile
-    ? !modesLoading
-    : Boolean(state.rawInput.trim()) && !modesLoading;
+  const canSubmit = stagedFile ? !modesLoading : Boolean(state.rawInput.trim()) && !modesLoading;
 
   const submit = async () => {
     if (!state.selectedModeId || modesLoading) {
@@ -194,7 +192,11 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
               : "Describe your goal in your own words…"
           }
           className="w-full rounded-xl p-3 text-sm outline-none resize-y"
-          style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
+          style={{
+            background: "var(--skin-bg)",
+            border: "1px solid var(--skin-line)",
+            color: "var(--skin-ink)",
+          }}
         />
       </div>
 
@@ -203,7 +205,10 @@ export function InputStep({ qr }: { qr: ReturnType<typeof useQuickRoad> }) {
         {stagedFile ? (
           <div
             className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
-            style={{ border: "2px solid var(--skin-accent)", background: "color-mix(in srgb, var(--skin-accent) 8%, transparent)" }}
+            style={{
+              border: "2px solid var(--skin-accent)",
+              background: "color-mix(in srgb, var(--skin-accent) 8%, transparent)",
+            }}
           >
             <div className="flex items-center gap-2 min-w-0">
               <Paperclip size={16} style={{ color: "var(--skin-accent)", flexShrink: 0 }} />

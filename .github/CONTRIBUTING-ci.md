@@ -2,15 +2,13 @@
 
 This repository uses three GitHub Actions workflows, all on organization-level self-hosted runners:
 
-- **CI**: hard repository guards, build, generated-route drift, and Playwright E2E gates, plus ratcheted formatting, linting, and TypeScript debt reports.
+- **CI**: hard repository guards, build, generated-route drift, formatting, linting, TypeScript, and Playwright E2E gates.
 - **Security**: TruffleHog OSS secret scanning, Bun dependency audit, and immutable action-reference enforcement.
 - **CD**: release artifact creation and an opt-in Vercel production deployment with a post-deploy smoke test.
 
 Vercel Git integration is the default deployment authority. Keep `ENABLE_VERCEL_DEPLOY` unset unless the workflow should replace that behavior for production deploys.
 
-## Hard gates and ratcheted quality debt
-
-CI distinguishes regressions from debt that already exists on `main`:
+## Hard gates
 
 | Check                                           | Policy today               | Enforcement                                                                                                 |
 | ----------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -18,20 +16,9 @@ CI distinguishes regressions from debt that already exists on `main`:
 | Production build and generated route-tree drift | Hard gate                  | Any failure fails `verify` (`Build`).                                                                       |
 | Playwright E2E                                  | Hard known-failure ratchet | New failures, missing tests, overdue reviews, and policy-specific signature/recovery violations fail `e2e`. |
 | Security scans and dependency/action policy     | Hard gates                 | Any failure fails its Security workflow job; findings are not suppressed.                                   |
-| Prettier                                        | Soft report, hard ratchet  | The report step may fail, but more than **165 unformatted files** fails the final ratchet.                  |
-| ESLint errors                                   | Soft report, hard ratchet  | The report step may fail, but more than **10,819 errors** fails the final ratchet.                          |
-| ESLint warnings                                 | Soft report, hard ratchet  | More than **44 warnings** fails the final ratchet.                                                          |
-| TypeScript                                      | Soft report, hard ratchet  | The report step may fail, but more than **14 errors** fails the final ratchet.                              |
-
-The exact baselines live in `.github/quality-baseline.json`; `.github/scripts/quality-ratchet.sh` measures current results using Prettier check output, ESLint's JSON formatter, and `tsc --noEmit`. Existing debt is visible in separate `quality` steps, while the final ratchet step is blocking. Debt may shrink, never grow.
-
-When a change reduces a count, lower the matching value in `.github/quality-baseline.json` in the same PR. Never raise a baseline to make CI pass. Run `bash .github/scripts/quality-ratchet.sh` locally and commit the lower number after verifying the new count.
-
-When a count reaches zero, promote that gate to hard:
-
-1. In `.github/workflows/ci.yml`, find the matching `Report formatting debt`, `Report lint debt`, or `Report TypeScript debt` step under `jobs.quality` and remove `continue-on-error: true`.
-2. Remove that metric from `.github/quality-baseline.json` and from the baseline parsing, row construction, and comparison logic in `.github/scripts/quality-ratchet.sh`. ESLint errors and warnings share one command; promote the lint step only when both are zero.
-3. Update this table, run the workflow checks locally, and keep `quality` in the `ci-ok` dependency/result assertions.
+| Prettier                                        | Hard gate                  | Any unformatted matched file fails `quality`.                                                               |
+| ESLint                                          | Hard gate                  | Any lint error or warning fails `quality`.                                                                  |
+| TypeScript                                      | Hard gate                  | Any compiler diagnostic fails `quality`.                                                                    |
 
 ### E2E known-failures ratchet
 
@@ -156,7 +143,6 @@ bash .github/scripts/repo-guards.sh
 bun run format:check
 bun run lint
 bun run typecheck
-bash .github/scripts/quality-ratchet.sh
 bun run build
 git diff --exit-code -- src/routeTree.gen.ts
 CI=1 bunx playwright test --list

@@ -5,7 +5,10 @@ import type { AICard } from "@xchange/client";
 
 // VITE_BACKEND_API_URL should be the bare origin with no path suffix
 // e.g. https://xcampapi.xchange.eco (paths below already include /api/)
-const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+const BASE_URL = ((import.meta.env.VITE_BACKEND_API_URL as string | undefined) ?? "").replace(
+  /\/$/,
+  "",
+);
 
 export type ProposalType = "new_objective" | "link_to_objective" | (string & {});
 
@@ -30,8 +33,8 @@ export interface CommitResultItem {
   proposal_id: string;
   proposal_type: string;
   id: string;
-  project_id?: string;    // populated for new_objective
-  objective_id?: string;  // populated for link_to_objective
+  project_id?: string; // populated for new_objective
+  objective_id?: string; // populated for link_to_objective
 }
 
 export interface CommitResult {
@@ -116,7 +119,10 @@ export async function propose(args: {
       context: {},
     }),
   });
-  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
+  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<
+    string,
+    unknown
+  >;
   const proposals = Array.isArray(root.proposals) ? (root.proposals as OrganiserProposal[]) : [];
   const session_id = String(root.session_id ?? "");
   return { session_id, proposals };
@@ -124,7 +130,12 @@ export async function propose(args: {
 
 export async function confirm(
   sessionId: string,
-  approvals: { proposal_id: string; approved: boolean; proposal_type?: string; note_type?: string }[],
+  approvals: {
+    proposal_id: string;
+    approved: boolean;
+    proposal_type?: string;
+    note_type?: string;
+  }[],
 ): Promise<void> {
   await request("/api/organiser/confirm", {
     method: "POST",
@@ -137,7 +148,10 @@ export async function commit(sessionId: string): Promise<CommitResult> {
     method: "POST",
     body: JSON.stringify({ session_id: sessionId }),
   });
-  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<string, unknown>;
+  const root = (res?.data && typeof res.data === "object" ? res.data : res) as Record<
+    string,
+    unknown
+  >;
   const rawFailures =
     (Array.isArray(root.failures) && root.failures) ||
     (Array.isArray(root.errors) && root.errors) ||
@@ -163,11 +177,11 @@ export async function commit(sessionId: string): Promise<CommitResult> {
     ? (root.results as unknown[]).map((r) => {
         const o = (r ?? {}) as Record<string, unknown>;
         return {
-          proposal_id: String(o.proposal_id ?? ''),
-          proposal_type: String(o.proposal_type ?? ''),
-          id: String(o.id ?? ''),
-          project_id: typeof o.project_id === 'string' ? o.project_id : undefined,
-          objective_id: typeof o.objective_id === 'string' ? o.objective_id : undefined,
+          proposal_id: String(o.proposal_id ?? ""),
+          proposal_type: String(o.proposal_type ?? ""),
+          id: String(o.id ?? ""),
+          project_id: typeof o.project_id === "string" ? o.project_id : undefined,
+          objective_id: typeof o.objective_id === "string" ? o.objective_id : undefined,
         } as CommitResultItem;
       })
     : undefined;
@@ -175,7 +189,10 @@ export async function commit(sessionId: string): Promise<CommitResult> {
 }
 
 export function noteToGoal(title: string, bodyHtml: string | null): string {
-  const body = (bodyHtml ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const body = (bodyHtml ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return [title.trim(), body].filter(Boolean).join("\n\n");
 }
 

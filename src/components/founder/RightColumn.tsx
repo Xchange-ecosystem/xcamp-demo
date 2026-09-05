@@ -31,6 +31,12 @@ const LABEL_COLOR: Record<string, string> = {
   "Still a sketch": "var(--skin-line)",
 };
 
+// P1 is a fixed presentation dataset dated 3–4 September 2026. Using the
+// viewer's real clock makes the "This week" panel silently empty as the demo
+// ages, so date-only comparisons are anchored to the fixture timeline.
+const DEMO_TODAY = "2026-09-04";
+const DEMO_WEEK_END = "2026-09-11";
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -47,18 +53,15 @@ export function RightColumn() {
   })).filter((c) => c.count > 0);
   const total = OBJECTIVES.length;
 
-  const today = new Date();
-  const soon = new Date(today);
-  soon.setDate(soon.getDate() + 7);
   const risks = TASKS.filter(
     (t) =>
       t.status === "active" &&
       t.priority === "high" &&
       t.dueDate &&
-      new Date(t.dueDate) >= today &&
-      new Date(t.dueDate) <= soon,
+      t.dueDate >= DEMO_TODAY &&
+      t.dueDate <= DEMO_WEEK_END,
   )
-    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
     .slice(0, 3);
 
   const people = PEOPLE.filter((p) => p.role === "investor" || p.role === "collaborator").slice(

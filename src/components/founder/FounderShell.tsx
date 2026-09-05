@@ -1,9 +1,9 @@
-// Shell for the P1.1 Founder screens — wraps the real AppShell (auth-gated
+// Shell for the P1.1 Founder screens — wraps the real AppShell
 // chrome, main sidebar) the way ProfileShell does, and adds its own
 // secondary nav for the four Founder-persona destinations from the P1.1
 // mockup (Home / Companion / Navigator / Dashboard). These are demo-only,
 // mock-data-driven views distinct from the app's real /home, /navigator,
-// etc. — see src/routes/founder*.tsx.
+// etc. — see src/routes/demo.founder*.tsx.
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, MessageCircle, Navigation as NavigationIcon, Home } from "lucide-react";
 import { AppShell } from "@/components/AppShell";

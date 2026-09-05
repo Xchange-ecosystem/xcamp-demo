@@ -100,10 +100,10 @@ export interface PortfolioEntry {
   scores: number[];
 }
 
-/** One card in the Card Feed component (Part 3). Covers all three P1 use
- *  cases (Founder action items, Investor/Operator project updates,
- *  Collaborator assignments) via `kind`, so screens don't need bespoke
- *  per-persona fixture shapes. */
+/** One card in the generic Card Feed fixture set. Founder action items and
+ *  Investor/Operator project updates use this shape directly. The richer
+ *  Collaborator screen uses Assignment because it has independent workflow
+ *  and value lifecycles. */
 export type FeedItemKind = "action_item" | "project_update" | "assignment";
 
 export interface FeedItem {

@@ -12,7 +12,10 @@ export const Route = createFileRoute("/navigator")({
   head: () => ({
     meta: [
       { title: "Navigator — Xcamp" },
-      { name: "description", content: "Browse project objectives and tasks and open them to edit details." },
+      {
+        name: "description",
+        content: "Browse project objectives and tasks and open them to edit details.",
+      },
     ],
   }),
   validateSearch: (search: Record<string, unknown>): { view: NavigatorView } => ({
@@ -27,7 +30,7 @@ function NavigatorPage() {
   const brand = useBrand();
 
   const setView = (v: NavigatorView) => {
-    void navigate({ search: (prev) => ({ ...prev, view: v }), replace: true });
+    void navigate({ search: { view: v }, replace: true });
   };
 
   const viewToggle = (
@@ -121,9 +124,7 @@ function ViewToggleButton({
         height: 30,
         borderRadius: 7,
         border: `1px solid ${active ? "var(--skin-accent)" : "var(--skin-line)"}`,
-        background: active
-          ? "var(--skin-accent-faint, rgba(78,193,211,0.1))"
-          : "transparent",
+        background: active ? "var(--skin-accent-faint, rgba(78,193,211,0.1))" : "transparent",
         color: active ? "var(--skin-accent)" : "var(--skin-ink-faint)",
         cursor: "pointer",
         transition: "border-color 0.15s, background 0.15s, color 0.15s",

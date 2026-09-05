@@ -18,8 +18,7 @@ export default defineConfig({
       manifest: {
         name: "Nox by Xcamp",
         short_name: "Nox",
-        description:
-          "Your AI founder companion for building extraordinary companies",
+        description: "Your AI founder companion for building extraordinary companies",
         theme_color: "#4de0c1",
         background_color: "#0d1117",
         display: "standalone",

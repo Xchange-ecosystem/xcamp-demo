@@ -76,10 +76,7 @@ export async function listObjectivesWithCounts(
     const noteIds = Array.from(new Set((links ?? []).map((l) => l.note_id as string)));
     const doneSet = new Set<string>();
     if (noteIds.length) {
-      const { data: notes } = await supabase
-        .from("notes")
-        .select("id, done")
-        .in("id", noteIds);
+      const { data: notes } = await supabase.from("notes").select("id, done").in("id", noteIds);
       (notes ?? []).forEach((n) => {
         if (n.done) doneSet.add(n.id as string);
       });
@@ -221,14 +218,12 @@ export async function createTaskNote(
       tenant_id: user.tenantId,
     });
   } else {
-    await supabase
-      .from("project_notes")
-      .insert({
-        project_id: projectId,
-        note_id: note.id,
-        owner_central_id: user.centralId,
-        tenant_id: user.tenantId,
-      });
+    await supabase.from("project_notes").insert({
+      project_id: projectId,
+      note_id: note.id,
+      owner_central_id: user.centralId,
+      tenant_id: user.tenantId,
+    });
   }
   return note;
 }
@@ -288,7 +283,7 @@ export function useObjectiveGenerationStatus(objectiveId: string | null) {
     queryKey: ["nav-objective-gen-status", objectiveId],
     enabled: !!objectiveId,
     queryFn: () => fetchObjectiveGenerationStatus(objectiveId!),
-    refetchInterval: (query) => query.state.data === "generating" ? 2000 : false,
+    refetchInterval: (query) => (query.state.data === "generating" ? 2000 : false),
   });
 }
 
@@ -421,11 +416,8 @@ export function useCreateObjective(user: XcampUser, projectId: string) {
 export function useUpdateObjective(user: XcampUser, projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      objectiveId: string;
-      title: string;
-      description: string | null;
-    }) => updateObjective(input.objectiveId, input),
+    mutationFn: (input: { objectiveId: string; title: string; description: string | null }) =>
+      updateObjective(input.objectiveId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nav-objectives", projectId] }),
   });
 }

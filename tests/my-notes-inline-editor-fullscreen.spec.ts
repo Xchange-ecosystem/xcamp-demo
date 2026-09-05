@@ -27,45 +27,86 @@ const SUPABASE_SESSION = {
 };
 
 const MOCK_CENTRAL_USER = {
-  id: CENTRAL_USER_ID, tenant_id: TENANT_ID,
-  display_name: "Repro User", email: "repro@xcamp.local", preferences: {},
+  id: CENTRAL_USER_ID,
+  tenant_id: TENANT_ID,
+  display_name: "Repro User",
+  email: "repro@xcamp.local",
+  preferences: {},
 };
 
 const MOCK_NOTE = {
-  id: NOTE_ID, title: "Kickoff thoughts", note_type: "note", done: false,
-  body_html: "<p>Some note body</p>", body_markdown: "Some note body", tags: [], detail: {},
-  owner_central_id: CENTRAL_USER_ID, tenant_id: TENANT_ID,
-  created_at: "2026-07-02T00:00:00Z", updated_at: "2026-07-02T00:00:00Z",
+  id: NOTE_ID,
+  title: "Kickoff thoughts",
+  note_type: "note",
+  done: false,
+  body_html: "<p>Some note body</p>",
+  body_markdown: "Some note body",
+  tags: [],
+  detail: {},
+  owner_central_id: CENTRAL_USER_ID,
+  tenant_id: TENANT_ID,
+  created_at: "2026-07-02T00:00:00Z",
+  updated_at: "2026-07-02T00:00:00Z",
 };
 
 async function setupRoutes(page: Page) {
   await page.route("**fonts.googleapis.com/**", (r) =>
-    r.fulfill({ status: 200, contentType: "text/css", body: "/* mocked */" }));
+    r.fulfill({ status: 200, contentType: "text/css", body: "/* mocked */" }),
+  );
   await page.route("**fonts.gstatic.com/**", (r) =>
-    r.fulfill({ status: 200, contentType: "font/woff2", body: "" }));
+    r.fulfill({ status: 200, contentType: "font/woff2", body: "" }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", headers: { "content-range": "0-0/0" }, body: "[]" }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "content-range": "0-0/0" },
+      body: "[]",
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/auth/v1/**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SUPABASE_SESSION) }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(SUPABASE_SESSION),
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/central_users**`, (r) =>
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_CENTRAL_USER) }));
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_CENTRAL_USER),
+    }),
+  );
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/projects**`, (r) => {
     const wantsSingle = (r.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
-    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(wantsSingle ? {} : []) });
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(wantsSingle ? {} : []),
+    });
   });
 
   await page.route(`**/${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/notes**`, (r) => {
     const url = r.request().url();
     const wantsSingle = (r.request().headers()["accept"] ?? "").includes("vnd.pgrst.object");
     if (url.includes(NOTE_ID)) {
-      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(wantsSingle ? MOCK_NOTE : [MOCK_NOTE]) });
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(wantsSingle ? MOCK_NOTE : [MOCK_NOTE]),
+      });
     } else if (url.includes("owner_central_id")) {
       // listNotes()
-      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([MOCK_NOTE]) });
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([MOCK_NOTE]),
+      });
     } else {
       r.fulfill({ status: 200, contentType: "application/json", body: wantsSingle ? "{}" : "[]" });
     }
@@ -82,7 +123,9 @@ async function injectSession(page: Page) {
 }
 
 test.describe("My Notes inline editor + fullscreen note view", () => {
-  test("clicking a note renders it inline in the middle column, not the sidepanel overlay", async ({ page }) => {
+  test("clicking a note renders it inline in the middle column, not the sidepanel overlay", async ({
+    page,
+  }) => {
     await setupRoutes(page);
     await injectSession(page);
     await page.goto("/notes");
@@ -97,13 +140,21 @@ test.describe("My Notes inline editor + fullscreen note view", () => {
 
     // The generic right-hand sidepanel overlay must NOT have opened (both
     // fullscreen modals are always mounted, gated by data-open, not count).
-    await expect(page.getByTestId("note-detail-placeholder-modal")).toHaveAttribute("data-open", "false");
+    await expect(page.getByTestId("note-detail-placeholder-modal")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
     await expect(page.getByTestId("note-fullscreen-modal")).toHaveAttribute("data-open", "false");
 
-    await page.screenshot({ path: "test-results/my-notes-fullscreen/inline-editor.png", fullPage: true });
+    await page.screenshot({
+      path: "test-results/my-notes-fullscreen/inline-editor.png",
+      fullPage: true,
+    });
   });
 
-  test("fullscreen note view opens as a simple enlarged editor, no tab/accordion chrome", async ({ page }) => {
+  test("fullscreen note view opens as a simple enlarged editor, no tab/accordion chrome", async ({
+    page,
+  }) => {
     await setupRoutes(page);
     await injectSession(page);
     await page.goto("/notes");
@@ -121,9 +172,14 @@ test.describe("My Notes inline editor + fullscreen note view", () => {
     await expect(modal.getByText("About", { exact: true })).toHaveCount(0);
     await expect(modal.getByText("Do & Document")).toHaveCount(0);
     await expect(modal.getByText("Linked Items")).toHaveCount(0);
-    await expect(modal.getByRole("button", { name: /^(Note|Task|Idea|Question|Decision|Resource) ?/ })).toHaveCount(0);
+    await expect(
+      modal.getByRole("button", { name: /^(Note|Task|Idea|Question|Decision|Resource) ?/ }),
+    ).toHaveCount(0);
 
-    await page.screenshot({ path: "test-results/my-notes-fullscreen/fullscreen-note.png", fullPage: true });
+    await page.screenshot({
+      path: "test-results/my-notes-fullscreen/fullscreen-note.png",
+      fullPage: true,
+    });
 
     // Edits save — type into the title and confirm a PATCH goes out.
     let patched = false;

@@ -68,7 +68,7 @@ const TASK_ROW = {
   title: TASK_TITLE,
   note_type: "task",
   done: false,
-  detail: "seeded task",
+  detail: {},
   tags: [],
   tenant_id: FAKE_TENANT_ID,
   owner_central_id: FAKE_USER_ID,
@@ -118,7 +118,7 @@ export async function installLiveHarness(page: Page): Promise<void> {
     else if (url.includes("/object_memberships")) body = [{ object_id: PROJECT_ID }];
     else if (url.includes("/objective_notes"))
       body = [{ objective_id: OBJECTIVE_ID, note_id: TASK_ID }];
-    else if (url.includes("/project_notes")) body = [{ note_id: TASK_ID }];
+    else if (url.includes("/project_notes")) body = [{ note_id: TASK_ID, project_id: PROJECT_ID }];
     // /notes must come last — several of the tables above end in "notes".
     else if (url.includes("/notes")) body = wantsSingle ? TASK_ROW : [TASK_ROW];
 

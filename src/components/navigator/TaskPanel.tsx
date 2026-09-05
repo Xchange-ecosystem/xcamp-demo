@@ -82,7 +82,11 @@ export function TaskPanel({
       const max = Math.max(DEFAULT_WIDTH, Math.floor(window.innerWidth * 0.3));
       const next = Math.min(Math.max(MIN_WIDTH, dragStartWidth.current + delta), max);
       setWidth(next);
-      try { localStorage.setItem(STORAGE_KEY, String(next)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };

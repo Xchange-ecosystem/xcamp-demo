@@ -1,5 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { installLiveHarness } from "./helpers/liveAuth";
+
+async function expandLogbook(page: Page) {
+  const sidebar = page.locator('[data-sidebar="sidebar"]');
+  const toggle = sidebar.getByRole("button", { name: /^(Expand|Collapse) Logbook$/ });
+  await expect(toggle).toBeVisible({ timeout: 10_000 });
+  if ((await toggle.getAttribute("aria-label")) === "Expand Logbook") await toggle.click();
+  return sidebar;
+}
 
 test.describe("BL-26 — Logbook submenu 4-item restore", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,16 +15,14 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     page.on("pageerror", (e) => console.log("[page error]", e.message));
   });
 
-  test("sidebar shows 4 items in order and both + links work", async ({ page }, testInfo) => {
+  test("sidebar shows 4 items in order and New Journal Entry works", async ({ page }, testInfo) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle").catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: testInfo.outputPath("0-initial.png"), fullPage: false });
 
-    const sidebar = page.locator('[data-sidebar="sidebar"]');
-
     // Expand the Logbook submenu.
-    await sidebar.getByRole("button", { name: "Logbook", exact: true }).click({ timeout: 10000 });
+    const sidebar = await expandLogbook(page);
     await page.waitForTimeout(300);
 
     const items = await page.$$eval(
@@ -54,13 +60,13 @@ test.describe("BL-26 — Logbook submenu 4-item restore", () => {
     // The URL is now the source of truth for the composer view, so ?new=1
     // persists while it's showing rather than being stripped immediately.
     expect(urlAfterJournal.searchParams.get("new")).toBe("1");
+  });
 
-    // Back to home, expand again, click "New Note".
+  test("New Note opens the note composer", async ({ page }, testInfo) => {
     await page.goto("/home");
-    await page.waitForTimeout(800);
-    await sidebar.getByRole("button", { name: "Logbook", exact: true }).click({ timeout: 10000 });
-    await page.waitForTimeout(300);
-    await sidebar.getByText("New Note", { exact: true }).click();
+    await page.waitForLoadState("networkidle").catch(() => {});
+    const sidebar = await expandLogbook(page);
+    await sidebar.getByText("New Note", { exact: true }).click({ timeout: 10_000 });
     await page.waitForTimeout(1200);
     const urlAfterNote = new URL(page.url());
     console.log("URL_AFTER_NEW_NOTE", urlAfterNote.pathname + urlAfterNote.search);

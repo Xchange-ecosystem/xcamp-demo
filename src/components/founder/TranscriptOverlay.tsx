@@ -1,21 +1,22 @@
 // P1.4 Part 1b — the transcript-to-assignments pipeline, as a large overlay
-// over the Founder screen: Extract (real backend call) -> Review + Preview
-// -> Confirm -> Sending -> Done.
+// over the Founder screen: Extract (real backend call) -> Review -> Preview
+// -> simulated Send -> Ready to add.
 //
 // "Sending" here is a client-side simulation, not a real send: Part 3 (the
 // email-send endpoint) is blocked on an email-provider decision (no provider
 // exists in xcamp-backend today — see the session's Phase 0 report). Once
 // Part 3 lands, only this step's implementation changes; the state machine,
 // gating and vocabulary below stay the same.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, X } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   extractTranscript,
   TranscriptExtractionError,
   type ExtractedPerson,
 } from "@/lib/transcripts-api";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import type { TranscriptFile } from "./ComposerModes";
 
 const PIPE_STEPS = ["Extract", "Review", "Preview", "Send"] as const;
@@ -34,16 +35,10 @@ interface SendStatus {
   status: "pending" | "sent";
 }
 
-function useReducedMotion() {
-  return useMemo(
-    () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
-    [],
-  );
-}
-
 function stepIndexFor(stage: Stage): number {
   if (stage === "extracting" || stage === "extract-error") return 0;
   if (stage === "review") return 1;
+  if (stage === "confirm") return 2;
   return 3;
 }
 
@@ -62,33 +57,47 @@ export function TranscriptOverlay({
   const [people, setPeople] = useState<ExtractedPerson[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sendStatuses, setSendStatuses] = useState<SendStatus[]>([]);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
+  const reduceMotionRef = useRef(reduceMotion);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const extractionController = useRef<AbortController | null>(null);
 
-  useEffect(
-    () => () => {
-      timers.current.forEach(clearTimeout);
-    },
-    [],
-  );
+  useEffect(() => {
+    reduceMotionRef.current = reduceMotion;
+  }, [reduceMotion]);
 
-  const runExtraction = () => {
+  const clearTimers = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  }, []);
+
+  const runExtraction = useCallback(() => {
+    extractionController.current?.abort();
+    clearTimers();
+    const controller = new AbortController();
+    extractionController.current = controller;
     setStage("extracting");
     setExtractError(null);
     setExtractSubStep(0);
 
-    const stepMs = reduceMotion ? 60 : 550;
+    const stepMs = reduceMotionRef.current ? 60 : 550;
     EXTRACT_SUB_STEPS.forEach((_, i) => {
       timers.current.push(setTimeout(() => setExtractSubStep(i), i * stepMs));
     });
 
-    extractTranscript(file.text)
+    extractTranscript(file.text, controller.signal)
       .then((extracted) => {
+        if (controller.signal.aborted) return;
+        clearTimers();
+        if (extractionController.current === controller) extractionController.current = null;
         setPeople(extracted);
         setSelectedId(extracted[0]?.id ?? null);
         setStage("review");
       })
       .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        clearTimers();
+        if (extractionController.current === controller) extractionController.current = null;
         const message =
           err instanceof TranscriptExtractionError
             ? err.message
@@ -96,12 +105,15 @@ export function TranscriptOverlay({
         setExtractError(message);
         setStage("extract-error");
       });
-  };
+  }, [clearTimers, file.text]);
 
   useEffect(() => {
     runExtraction();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      extractionController.current?.abort();
+      clearTimers();
+    };
+  }, [clearTimers, runExtraction]);
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
   const taskCount = people.reduce((n, p) => n + p.tasks.length, 0);
@@ -113,20 +125,15 @@ export function TranscriptOverlay({
   };
 
   const removeTask = (personId: string, taskId: string) => {
-    setPeople((prev) => {
-      const next = prev
-        .map((p) =>
-          p.id === personId ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) } : p,
-        )
-        .filter((p) => p.tasks.length > 0);
-      if (!next.find((p) => p.id === selectedId)) {
-        setSelectedId(next[0]?.id ?? null);
-      }
-      return next;
-    });
+    const next = people
+      .map((p) => (p.id === personId ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) } : p))
+      .filter((p) => p.tasks.length > 0);
+    setPeople(next);
+    if (!next.some((p) => p.id === selectedId)) setSelectedId(next[0]?.id ?? null);
   };
 
   const startSending = () => {
+    clearTimers();
     setSendStatuses(people.map((p) => ({ personId: p.id, status: "pending" })));
     setStage("sending");
     const stepMs = reduceMotion ? 80 : 480;
@@ -149,18 +156,30 @@ export function TranscriptOverlay({
     onComplete(people);
   };
 
+  const closeOverlay = () => {
+    extractionController.current?.abort();
+    clearTimers();
+    onClose();
+  };
+
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && closeOverlay()}>
       <DialogContent
         className="flex h-[min(780px,92vh)] w-[min(1120px,96vw)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl"
         onInteractOutside={(e) => e.preventDefault()}
       >
         {/* Header + step spine */}
         <div
-          className="flex flex-wrap items-center gap-4 border-b px-5 py-3.5"
+          className="flex flex-wrap items-center gap-4 border-b pl-5 pr-12 py-3.5"
           style={{ borderColor: "var(--skin-line-soft, var(--border))" }}
         >
-          <h2 className="text-[16px] font-semibold tracking-tight">Transcript to assignments</h2>
+          <DialogTitle className="text-[16px] font-semibold tracking-tight">
+            Transcript to assignments
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Extract assignments from a transcript, review recipients, preview the result, and
+            simulate sending it.
+          </DialogDescription>
           <span
             className="text-[12.5px]"
             style={{ color: "var(--skin-ink-faint, var(--muted-foreground))" }}
@@ -174,6 +193,9 @@ export function TranscriptOverlay({
               return (
                 <div key={s} className="flex items-center">
                   <div
+                    data-step={s.toLowerCase()}
+                    data-state={state}
+                    aria-current={state === "on" ? "step" : undefined}
                     className="flex items-center gap-1.5 text-[12.5px]"
                     style={{
                       color:
@@ -211,15 +233,6 @@ export function TranscriptOverlay({
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="ml-auto text-xl leading-none"
-            style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
-          >
-            <X size={20} />
-          </button>
         </div>
 
         {/* Body */}
@@ -281,7 +294,7 @@ export function TranscriptOverlay({
                     {extractError}
                   </p>
                   <div className="mt-3.5 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={onClose}>
+                    <Button size="sm" variant="outline" onClick={closeOverlay}>
                       Cancel
                     </Button>
                     <Button size="sm" onClick={runExtraction}>
@@ -328,6 +341,7 @@ export function TranscriptOverlay({
                       key={p.id}
                       type="button"
                       onClick={() => setSelectedId(p.id)}
+                      aria-pressed={p.id === selectedId}
                       className="rounded-full border px-2.5 py-1.5 text-[12.5px]"
                       style={{
                         borderColor:
@@ -355,8 +369,8 @@ export function TranscriptOverlay({
                 className="mb-3 text-[13px]"
                 style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
               >
-                Each recipient gets a sketch of their own tasks — informational only, nothing is
-                locked.
+                Demo send only — no email leaves the browser. Each recipient would get a sketch of
+                their own tasks: informational only, with nothing locked.
               </p>
               <div className="flex flex-col">
                 {people.map((p) => (
@@ -389,7 +403,7 @@ export function TranscriptOverlay({
           {(stage === "sending" || stage === "done") && (
             <div className="mx-auto mt-4 max-w-[560px]">
               <h3 className="mb-3 text-[15px] font-semibold">
-                {stage === "sending" ? "Sending" : "Done"}
+                {stage === "sending" ? "Simulating send" : "Ready to add"}
               </h3>
               <div className="flex flex-col">
                 {people.map((p) => {
@@ -412,7 +426,7 @@ export function TranscriptOverlay({
                       >
                         {sent ? (
                           <>
-                            <Check size={14} /> Sent
+                            <Check size={14} /> Simulated
                           </>
                         ) : (
                           "Pending"
@@ -427,9 +441,9 @@ export function TranscriptOverlay({
                   className="mt-4 text-[13px]"
                   style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
                 >
-                  {people.length} sketch {people.length === 1 ? "assignment" : "assignments"} added
-                  to your feed as informational — nothing here is locked until you formalize an
-                  objective into an agreement.
+                  {taskCount} sketch {taskCount === 1 ? "assignment is" : "assignments are"} ready
+                  to add to your feed as informational work. Nothing is locked until you formalize
+                  an objective into an agreement.
                 </p>
               )}
             </div>
@@ -458,11 +472,11 @@ export function TranscriptOverlay({
             </span>
             {stage === "review" ? (
               <>
-                <Button size="sm" variant="outline" onClick={onClose}>
+                <Button size="sm" variant="outline" onClick={closeOverlay}>
                   Cancel
                 </Button>
                 <Button size="sm" disabled={!allAddressed} onClick={() => setStage("confirm")}>
-                  Build and send
+                  Build previews
                 </Button>
               </>
             ) : (
@@ -471,7 +485,7 @@ export function TranscriptOverlay({
                   Back
                 </Button>
                 <Button size="sm" onClick={startSending}>
-                  Send {people.length} {people.length === 1 ? "email" : "emails"}
+                  Simulate {people.length} {people.length === 1 ? "email" : "emails"}
                 </Button>
               </>
             )}
@@ -483,7 +497,7 @@ export function TranscriptOverlay({
             style={{ borderColor: "var(--skin-line-soft, var(--border))" }}
           >
             <Button size="sm" onClick={finish}>
-              Done
+              Add to feed
             </Button>
           </div>
         )}
@@ -508,8 +522,7 @@ function PersonCard({
   const emailValid = EMAIL_RE.test(person.email);
   return (
     <div
-      onClick={onSelect}
-      className="relative cursor-pointer overflow-hidden rounded-lg border p-3.5 pl-4"
+      className="relative overflow-hidden rounded-lg border p-3.5 pl-4"
       style={{
         background: "var(--skin-raised, var(--muted))",
         borderColor: selected ? "var(--skin-accent)" : "var(--skin-line-soft, var(--border))",
@@ -526,26 +539,34 @@ function PersonCard({
         }}
       />
       <div className="flex items-center gap-2.5">
-        <span
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold"
-          style={{
-            background: "var(--skin-surface, var(--card))",
-            border: "1px solid var(--skin-line)",
-          }}
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-pressed={selected}
+          aria-label={`Preview email for ${person.name}`}
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
         >
-          {person.initials}
-        </span>
-        <span className="min-w-0 flex-1">
-          <b className="block truncate text-[14px] font-semibold">{person.name}</b>
-          {person.role && (
-            <small
-              className="text-[12px]"
-              style={{ color: "var(--skin-ink-faint, var(--muted-foreground))" }}
-            >
-              {person.role}
-            </small>
-          )}
-        </span>
+          <span
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold"
+            style={{
+              background: "var(--skin-surface, var(--card))",
+              border: "1px solid var(--skin-line)",
+            }}
+          >
+            {person.initials}
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block truncate text-[14px] font-semibold">{person.name}</b>
+            {person.role && (
+              <small
+                className="text-[12px]"
+                style={{ color: "var(--skin-ink-faint, var(--muted-foreground))" }}
+              >
+                {person.role}
+              </small>
+            )}
+          </span>
+        </button>
         <span
           className="whitespace-nowrap rounded-md px-2 py-0.5 text-[12px]"
           style={
@@ -565,7 +586,7 @@ function PersonCard({
           {person.matched ? "matched" : "no account — check the address"}
         </span>
       </div>
-      <div className="mt-2.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2.5 flex items-center gap-2">
         <label
           htmlFor={`mail-${person.id}`}
           className="w-12 shrink-0 text-[12px]"
@@ -593,7 +614,6 @@ function PersonCard({
             key={t.id}
             className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px]"
             style={{ background: "var(--skin-surface, var(--card))" }}
-            onClick={(e) => e.stopPropagation()}
           >
             <span className="min-w-0 flex-1 truncate">{t.title}</span>
             {t.est && (

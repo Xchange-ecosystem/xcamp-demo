@@ -220,9 +220,7 @@ function ObjectiveNode({ data }: NodeProps) {
   };
   const color = statusColor(obj.status);
   const progress =
-    obj.tasksCount > 0
-      ? Math.round((obj.completedTasksCount / obj.tasksCount) * 100)
-      : null;
+    obj.tasksCount > 0 ? Math.round((obj.completedTasksCount / obj.tasksCount) * 100) : null;
 
   return (
     <div
@@ -341,12 +339,22 @@ function TaskNode({ data }: NodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ width: 6, height: 6, background: "var(--skin-line)", border: "1px solid var(--skin-surface)" }}
+        style={{
+          width: 6,
+          height: 6,
+          background: "var(--skin-line)",
+          border: "1px solid var(--skin-surface)",
+        }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ width: 6, height: 6, background: "var(--skin-line)", border: "1px solid var(--skin-surface)" }}
+        style={{
+          width: 6,
+          height: 6,
+          background: "var(--skin-line)",
+          border: "1px solid var(--skin-surface)",
+        }}
       />
 
       {task.done ? (
@@ -382,7 +390,6 @@ const nodeTypes = {
    Main NavigatorGraph component
 ─────────────────────────────────────────────────────────────────── */
 
-
 export function NavigatorGraph() {
   const { user } = useAuth();
   const { activeProjectId } = useActiveProject();
@@ -417,7 +424,10 @@ export function NavigatorGraph() {
   // so tasksByObjective (Map) only recreates when task IDs / done status actually change.
   // String primitives are compared by value in Object.is, breaking the infinite-loop.
   const taskFingerprint = taskQueries
-    .map((q, i) => `${objectives[i]?.id ?? ""}:${(q.data ?? []).map((t) => `${t.id}:${String(t.done)}`).join(",")}`)
+    .map(
+      (q, i) =>
+        `${objectives[i]?.id ?? ""}:${(q.data ?? []).map((t) => `${t.id}:${String(t.done)}`).join(",")}`,
+    )
     .join("|");
 
   const tasksByObjective = useMemo(() => {
@@ -431,9 +441,12 @@ export function NavigatorGraph() {
 
   /* Entity panel ─────────────────────────────────────────────────── */
 
-  const onOpenNode = useCallback<OpenNodeFn>((id, type) => {
-    openEntity({ type, id });
-  }, [openEntity]);
+  const onOpenNode = useCallback<OpenNodeFn>(
+    (id, type) => {
+      openEntity({ type, id });
+    },
+    [openEntity],
+  );
 
   const onAddTask = useCallback<AddTaskFn>(
     async (objectiveId: string) => {
@@ -448,7 +461,7 @@ export function NavigatorGraph() {
         toast.error("Failed to create task");
       }
     },
-    [user, activeProjectId],
+    [user, activeProjectId, openEntity],
   );
 
   /* React Flow state ─────────────────────────────────────────────── */
@@ -481,7 +494,15 @@ export function NavigatorGraph() {
     setNodes(merged);
     setEdges(newEdges);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, projectName, objectives, tasksByObjective, isLoading, onOpenNode, onAddTask]);
+  }, [
+    activeProjectId,
+    projectName,
+    objectives,
+    tasksByObjective,
+    isLoading,
+    onOpenNode,
+    onAddTask,
+  ]);
 
   /* Handlers ──────────────────────────────────────────────────────── */
 
@@ -602,12 +623,7 @@ export function NavigatorGraph() {
           maxZoom={2.5}
           style={{ background: "var(--skin-bg)" }}
         >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={1}
-            color="var(--skin-line)"
-          />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--skin-line)" />
           <Controls />
           <MiniMap
             nodeColor={(n) => {
@@ -645,7 +661,6 @@ export function NavigatorGraph() {
           </Panel>
         </ReactFlow>
       </div>
-
     </>
   );
 }

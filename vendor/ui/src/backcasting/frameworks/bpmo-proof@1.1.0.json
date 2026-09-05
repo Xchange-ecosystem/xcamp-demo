@@ -53,12 +53,7 @@
         "demonstrates": "Quantitative results — the classic investor KPI"
       }
     ],
-    "stages": [
-      "idea",
-      "pre_seed",
-      "seed",
-      "growth"
-    ],
+    "stages": ["idea", "pre_seed", "seed", "growth"],
     "stage_ordering": {
       "idea": 0,
       "pre_seed": 1,
@@ -136,10 +131,7 @@
         "dimension": "business",
         "label": "Business Model & Unit Economics",
         "scope": "Revenue streams, cost structure, pricing logic, margin, unit economics",
-        "anchors": [
-          "Business Model Canvas",
-          "Lean Canvas"
-        ],
+        "anchors": ["Business Model Canvas", "Lean Canvas"],
         "proof_points": [
           {
             "label": "Per-customer / per-transaction unit-economics model (even projected)",
@@ -174,10 +166,7 @@
         "dimension": "business",
         "label": "Finance & Funding",
         "scope": "Financial planning, fundraising, capital structure, runway, investor readiness",
-        "anchors": [
-          "Venture financing stages",
-          "APQC cat.9 (strategic)"
-        ],
+        "anchors": ["Venture financing stages", "APQC cat.9 (strategic)"],
         "proof_points": [
           {
             "label": "18-month financial model with runway",
@@ -212,10 +201,7 @@
         "dimension": "business",
         "label": "Legal, Governance & Risk",
         "scope": "Entity, IP, contracts, compliance, corporate governance, enterprise risk",
-        "anchors": [
-          "APQC cat.11",
-          "Corporate governance"
-        ],
+        "anchors": ["APQC cat.11", "Corporate governance"],
         "proof_points": [
           {
             "label": "Incorporated entity with founder agreements & vesting",
@@ -250,10 +236,7 @@
         "dimension": "business",
         "label": "Organization & Team",
         "scope": "Org design, hiring, leadership, culture, capability building",
-        "anchors": [
-          "APQC cat.7 (Human Capital)",
-          "Org design"
-        ],
+        "anchors": ["APQC cat.7 (Human Capital)", "Org design"],
         "proof_points": [
           {
             "label": "Founder/team capability map vs. role gaps",
@@ -289,10 +272,7 @@
         "dimension": "product",
         "label": "Product Strategy & Roadmap",
         "scope": "Product vision, roadmap, prioritization, outcomes",
-        "anchors": [
-          "North Star metric",
-          "RICE"
-        ],
+        "anchors": ["North Star metric", "RICE"],
         "proof_points": [
           {
             "label": "Product vision + North Star metric defined",
@@ -363,10 +343,7 @@
         "dimension": "product",
         "label": "Design & Experience",
         "scope": "UX/UI, interaction design, service design, prototyping",
-        "anchors": [
-          "Double Diamond",
-          "Design thinking"
-        ],
+        "anchors": ["Double Diamond", "Design thinking"],
         "proof_points": [
           {
             "label": "Clickable prototype / interactive mockups",
@@ -396,11 +373,7 @@
         "dimension": "product",
         "label": "Engineering & Delivery",
         "scope": "Architecture, development, release",
-        "anchors": [
-          "Agile/Scrum/Kanban",
-          "Dual-track agile",
-          "Cagan feasibility risk"
-        ],
+        "anchors": ["Agile/Scrum/Kanban", "Dual-track agile", "Cagan feasibility risk"],
         "proof_points": [
           {
             "label": "Working prototype / MVP demo",
@@ -436,10 +409,7 @@
         "dimension": "product",
         "label": "Data & Technology",
         "scope": "Data architecture, platform, infrastructure underpinning the offering",
-        "anchors": [
-          "Data strategy",
-          "Platform engineering"
-        ],
+        "anchors": ["Data strategy", "Platform engineering"],
         "proof_points": [
           {
             "label": "Data model / schema + pipeline design",
@@ -469,10 +439,7 @@
         "dimension": "product",
         "label": "Quality & Reliability",
         "scope": "QA, testing, performance, reliability, product security",
-        "anchors": [
-          "Test pyramid",
-          "SRE"
-        ],
+        "anchors": ["Test pyramid", "SRE"],
         "proof_points": [
           {
             "label": "Automated test suite / coverage evidence",
@@ -501,11 +468,7 @@
         "dimension": "market",
         "label": "Market Research & Sizing",
         "scope": "Market analysis, TAM/SAM/SOM, segmentation, competitive landscape",
-        "anchors": [
-          "TAM/SAM/SOM",
-          "STP (Segmentation)",
-          "Porter Five Forces"
-        ],
+        "anchors": ["TAM/SAM/SOM", "STP (Segmentation)", "Porter Five Forces"],
         "proof_points": [
           {
             "label": "TAM/SAM/SOM model with sourced assumptions",
@@ -536,11 +499,7 @@
         "dimension": "market",
         "label": "Positioning & Brand",
         "scope": "Positioning, differentiation, brand identity, messaging",
-        "anchors": [
-          "STP (Positioning)",
-          "Brand architecture (Aaker)",
-          "Value Proposition Canvas"
-        ],
+        "anchors": ["STP (Positioning)", "Brand architecture (Aaker)", "Value Proposition Canvas"],
         "proof_points": [
           {
             "label": "Positioning statement + Value Proposition Canvas",
@@ -570,11 +529,7 @@
         "dimension": "market",
         "label": "Marketing & Demand Generation",
         "scope": "Channels, campaigns, content, performance & growth marketing",
-        "anchors": [
-          "4Ps/7Ps marketing mix",
-          "Growth loops",
-          "AARRR"
-        ],
+        "anchors": ["4Ps/7Ps marketing mix", "Growth loops", "AARRR"],
         "proof_points": [
           {
             "label": "Waitlist / landing-page conversion data",
@@ -604,11 +559,7 @@
         "dimension": "market",
         "label": "Sales & Business Development",
         "scope": "Pipeline, partnerships, channel/BD, deal flow",
-        "anchors": [
-          "Sales funnel",
-          "ICP",
-          "APQC cat.3"
-        ],
+        "anchors": ["Sales funnel", "ICP", "APQC cat.3"],
         "proof_points": [
           {
             "label": "Signed letters of intent (LOIs)",
@@ -648,11 +599,7 @@
         "dimension": "market",
         "label": "Customer Success & Retention",
         "scope": "Onboarding, support, retention, churn, relationships",
-        "anchors": [
-          "APQC cat.6",
-          "NRR/retention",
-          "BMC customer relationships"
-        ],
+        "anchors": ["APQC cat.6", "NRR/retention", "BMC customer relationships"],
         "proof_points": [
           {
             "label": "Onboarding flow + first-value (\"aha\") definition",
@@ -687,10 +634,7 @@
         "dimension": "market",
         "label": "Growth & Analytics",
         "scope": "Metrics, experimentation, funnel optimization",
-        "anchors": [
-          "AARRR",
-          "Growth experimentation"
-        ],
+        "anchors": ["AARRR", "Growth experimentation"],
         "proof_points": [
           {
             "label": "Analytics instrumentation / funnel defined",
@@ -720,11 +664,7 @@
         "dimension": "operations",
         "label": "Process & Workflow",
         "scope": "Core operating processes, SOPs, workflow design, process improvement",
-        "anchors": [
-          "APQC PCF",
-          "Lean / Six Sigma",
-          "BPM"
-        ],
+        "anchors": ["APQC PCF", "Lean / Six Sigma", "BPM"],
         "proof_points": [
           {
             "label": "Documented core processes / SOPs",
@@ -754,10 +694,7 @@
         "dimension": "operations",
         "label": "Delivery & Supply Chain",
         "scope": "Fulfillment, supply chain, service delivery, logistics",
-        "anchors": [
-          "SCOR",
-          "APQC cat.4-5"
-        ],
+        "anchors": ["SCOR", "APQC cat.4-5"],
         "proof_points": [
           {
             "label": "Supplier / vendor agreements or sourcing plan",
@@ -786,9 +723,7 @@
         "dimension": "operations",
         "label": "Systems & Tooling",
         "scope": "Internal IT, tooling, automation, the company's own tech stack",
-        "anchors": [
-          "APQC cat.8 (Manage IT)"
-        ],
+        "anchors": ["APQC cat.8 (Manage IT)"],
         "proof_points": [
           {
             "label": "Internal tool stack documented + integrated",
@@ -813,10 +748,7 @@
         "dimension": "operations",
         "label": "Finance Operations & Admin",
         "scope": "Bookkeeping, billing, procurement, payroll, back-office",
-        "anchors": [
-          "APQC cat.9 (executional)",
-          "Procurement"
-        ],
+        "anchors": ["APQC cat.9 (executional)", "Procurement"],
         "proof_points": [
           {
             "label": "Bookkeeping / accounting system live",
@@ -845,11 +777,7 @@
         "dimension": "operations",
         "label": "Performance & Continuous Improvement",
         "scope": "KPIs, OKRs, dashboards, operational reviews, continuous improvement",
-        "anchors": [
-          "OKRs",
-          "Balanced Scorecard",
-          "Lean / Kaizen"
-        ],
+        "anchors": ["OKRs", "Balanced Scorecard", "Lean / Kaizen"],
         "proof_points": [
           {
             "label": "KPI tree / quarterly OKRs defined",
@@ -910,19 +838,14 @@
           "operations.trust_safety": 1.3,
           "product.strategy_roadmap": 1.1
         },
-        "remove_categories": [
-          "market.marketing_demand",
-          "market.sales_bd"
-        ],
+        "remove_categories": ["market.marketing_demand", "market.sales_bd"],
         "add_categories": [
           {
             "slug": "market.supply_acquisition",
             "dimension": "market",
             "label": "Supply Acquisition & Activation",
             "scope": "Seller/provider onboarding, supply liquidity",
-            "anchors": [
-              "Two-sided marketplace (supply side)"
-            ],
+            "anchors": ["Two-sided marketplace (supply side)"],
             "proof_points": [
               {
                 "label": "Supply-side value-prop validation / seller LOIs",
@@ -947,9 +870,7 @@
             "dimension": "market",
             "label": "Demand Acquisition & Conversion",
             "scope": "Buyer acquisition, search-to-fill",
-            "anchors": [
-              "Two-sided marketplace (demand side)"
-            ],
+            "anchors": ["Two-sided marketplace (demand side)"],
             "proof_points": [
               {
                 "label": "Buyer waitlist / early demand signal",
@@ -974,9 +895,7 @@
             "dimension": "market",
             "label": "Matching & Liquidity",
             "scope": "Match rate, time-to-match, supply/demand balance",
-            "anchors": [
-              "Marketplace liquidity"
-            ],
+            "anchors": ["Marketplace liquidity"],
             "proof_points": [
               {
                 "label": "Time-to-match benchmark",
@@ -1001,9 +920,7 @@
             "dimension": "operations",
             "label": "Trust, Safety & Quality",
             "scope": "Vetting, dispute resolution, fraud, incident rates",
-            "anchors": [
-              "Marketplace trust & safety"
-            ],
+            "anchors": ["Marketplace trust & safety"],
             "proof_points": [
               {
                 "label": "Vetting / verification process doc",
@@ -1070,9 +987,7 @@
             "dimension": "operations",
             "label": "Portfolio Management & Value Creation",
             "scope": "Portfolio monitoring, value creation, follow-on, exits",
-            "anchors": [
-              "PE/VC portfolio management"
-            ],
+            "anchors": ["PE/VC portfolio management"],
             "proof_points": [
               {
                 "label": "Portfolio-construction model",
@@ -1180,10 +1095,7 @@
             "dimension": "product",
             "label": "Industrial Design",
             "scope": "Physical form, materials, design-for-manufacture",
-            "anchors": [
-              "Industrial design",
-              "DFM"
-            ],
+            "anchors": ["Industrial design", "DFM"],
             "proof_points": [
               {
                 "label": "Physical prototype",
@@ -1208,9 +1120,7 @@
             "dimension": "product",
             "label": "Manufacturing & Production",
             "scope": "Tooling, production, quality control, scale-up",
-            "anchors": [
-              "Manufacturing / production"
-            ],
+            "anchors": ["Manufacturing / production"],
             "proof_points": [
               {
                 "label": "Pilot production run",
@@ -1269,10 +1179,7 @@
             "dimension": "operations",
             "label": "Impact Measurement & Management",
             "scope": "Theory of Change + outcomes across the five dimensions of impact",
-            "anchors": [
-              "Theory of Change",
-              "IRIS+ / GIIN"
-            ],
+            "anchors": ["Theory of Change", "IRIS+ / GIIN"],
             "proof_points": [
               {
                 "label": "Theory of Change document",
@@ -1325,9 +1232,7 @@
             "dimension": "product",
             "label": "IP Strategy",
             "scope": "Patents, publications, IP protection & licensing",
-            "anchors": [
-              "IP strategy"
-            ],
+            "anchors": ["IP strategy"],
             "proof_points": [
               {
                 "label": "Patent filing",
@@ -1364,19 +1269,12 @@
     "output_schema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "required": [
-        "framework",
-        "project",
-        "objectives"
-      ],
+      "required": ["framework", "project", "objectives"],
       "additionalProperties": false,
       "properties": {
         "framework": {
           "type": "object",
-          "required": [
-            "slug",
-            "version"
-          ],
+          "required": ["slug", "version"],
           "additionalProperties": false,
           "properties": {
             "slug": {
@@ -1401,10 +1299,7 @@
         },
         "project": {
           "type": "object",
-          "required": [
-            "title",
-            "description"
-          ],
+          "required": ["title", "description"],
           "additionalProperties": false,
           "properties": {
             "title": {
@@ -1425,13 +1320,7 @@
           "maxItems": 30,
           "items": {
             "type": "object",
-            "required": [
-              "title",
-              "description",
-              "dimension",
-              "category",
-              "proof_tasks"
-            ],
+            "required": ["title", "description", "dimension", "category", "proof_tasks"],
             "additionalProperties": false,
             "properties": {
               "title": {
@@ -1446,13 +1335,7 @@
               },
               "dimension": {
                 "type": "string",
-                "enum": [
-                  "business",
-                  "product",
-                  "market",
-                  "operations",
-                  "impact"
-                ]
+                "enum": ["business", "product", "market", "operations", "impact"]
               },
               "category": {
                 "type": "string",
@@ -1496,12 +1379,7 @@
                 "maxItems": 12,
                 "items": {
                   "type": "object",
-                  "required": [
-                    "title",
-                    "proof_type",
-                    "stage",
-                    "source"
-                  ],
+                  "required": ["title", "proof_type", "stage", "source"],
                   "additionalProperties": false,
                   "properties": {
                     "title": {
@@ -1522,22 +1400,14 @@
                     },
                     "stage": {
                       "type": "string",
-                      "enum": [
-                        "idea",
-                        "pre_seed",
-                        "seed",
-                        "growth"
-                      ]
+                      "enum": ["idea", "pre_seed", "seed", "growth"]
                     },
                     "early_signal": {
                       "type": "boolean"
                     },
                     "source": {
                       "type": "string",
-                      "enum": [
-                        "framework",
-                        "ai"
-                      ]
+                      "enum": ["framework", "ai"]
                     }
                   }
                 }
@@ -1547,19 +1417,12 @@
                 "maxItems": 2,
                 "items": {
                   "type": "object",
-                  "required": [
-                    "note_type",
-                    "title"
-                  ],
+                  "required": ["note_type", "title"],
                   "additionalProperties": false,
                   "properties": {
                     "note_type": {
                       "type": "string",
-                      "enum": [
-                        "note",
-                        "insight",
-                        "context"
-                      ]
+                      "enum": ["note", "insight", "context"]
                     },
                     "title": {
                       "type": "string",
@@ -1597,15 +1460,8 @@
     "determinism_guardrail": {
       "description": "After generation, the engine enforces this contract on every source:'framework' proof task: if the returned proof_type or stage does not exactly match the catalog entry for that proof_point label and category, the engine overwrites it from the catalog. This keeps the proof taxonomy trustworthy regardless of model drift. The engine identifies the catalog entry by (category, proof_point index) — framework tasks are emitted in catalog order before any source:'ai' tasks.",
       "enforcement": "post_generation",
-      "fields_overwritten": [
-        "proof_type",
-        "stage",
-        "early_signal"
-      ],
-      "match_key": [
-        "category",
-        "proof_task_index_in_catalog"
-      ]
+      "fields_overwritten": ["proof_type", "stage", "early_signal"],
+      "match_key": ["category", "proof_task_index_in_catalog"]
     },
     "repair_policy": {
       "on_schema_violation": "retry_once_with_error_appended",
@@ -1626,10 +1482,7 @@
       ],
       "reference_content_source": {
         "supabase_table": "semantic_documents",
-        "entity_types": [
-          "reference_content",
-          "licensed_content"
-        ],
+        "entity_types": ["reference_content", "licensed_content"],
         "access_open": "metadata.access = 'open'  → no check needed",
         "access_licensed": "metadata.access = 'licensed' → check_content_access(user_id, entity_id) RPC",
         "domain_scoping": "semantic_tags[] carries category slugs; Vox biases retrieval by these",
@@ -1696,9 +1549,7 @@
       },
       "signals": {
         "content": {
-          "sources": [
-            "notes.body_text"
-          ],
+          "sources": ["notes.body_text"],
           "formula": "min(1.0, len(body_text.strip()) / CONTENT_THRESHOLD)",
           "rationale": "Substance of the proof write-up. A blank or one-line mark-done scores near zero; a full explanation of what was learned, built, or agreed scores higher. Threshold is generous — we want to reward writing, not punish brevity.",
           "weight": 0.4,
