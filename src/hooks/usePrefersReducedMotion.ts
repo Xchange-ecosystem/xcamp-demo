@@ -13,6 +13,7 @@ export function usePrefersReducedMotion(): boolean {
 
     const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
     mediaQuery.addEventListener("change", updatePreference);
+    updatePreference();
     return () => mediaQuery.removeEventListener("change", updatePreference);
   }, []);
 

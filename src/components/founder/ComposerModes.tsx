@@ -2,7 +2,7 @@
 // Text is untouched (still owned by demo.founder.index.tsx); Transcript is
 // the one mode that's wired end to end. Voice, Upload and Link agent render
 // designed empty states and are visibly inert, not broken.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Link2, Mic, Send, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TRANSCRIPTS } from "@/fixtures/transcripts";
@@ -135,10 +135,20 @@ export function TranscriptModeBody({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const selectionVersion = useRef(0);
+
+  useEffect(
+    () => () => {
+      selectionVersion.current += 1;
+    },
+    [],
+  );
 
   const handleFiles = async (files: FileList | null) => {
     const picked = files?.[0];
     if (!picked) return;
+    const version = ++selectionVersion.current;
+    setFileError(null);
 
     const extension = picked.name.split(".").pop()?.toLowerCase() ?? "";
     if (!SUPPORTED_TRANSCRIPT_EXTENSIONS.has(extension)) {
@@ -156,6 +166,7 @@ export function TranscriptModeBody({
 
     try {
       const text = await picked.text();
+      if (version !== selectionVersion.current) return;
       if (!text.trim()) {
         setFileError("That transcript contains no readable text.");
         return;
@@ -168,6 +179,7 @@ export function TranscriptModeBody({
         projectId: null,
       });
     } catch {
+      if (version !== selectionVersion.current) return;
       setFileError("The transcript could not be read. Try another file.");
     }
   };
@@ -175,6 +187,7 @@ export function TranscriptModeBody({
   const selectSample = (transcriptId: string) => {
     const transcript = TRANSCRIPTS.find((candidate) => candidate.id === transcriptId);
     if (!transcript) return;
+    selectionVersion.current += 1;
     setFileError(null);
     onFileSelected({
       name: `${transcript.title}.txt`,
@@ -203,7 +216,10 @@ export function TranscriptModeBody({
           </span>
           <button
             type="button"
-            onClick={onClear}
+            onClick={() => {
+              selectionVersion.current += 1;
+              onClear();
+            }}
             aria-label="Remove file"
             className="text-lg leading-none"
             style={{ color: "var(--skin-ink-faint, var(--muted-foreground))" }}

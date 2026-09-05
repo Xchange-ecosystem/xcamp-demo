@@ -65,11 +65,13 @@ export function RankedPortfolioBars({
   const rows = useMemo(buildRows, []);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  const [week, setWeek] = useState(prefersReducedMotion ? LAST_WEEK : 0);
+  const [{ week, playing }, setPlayback] = useState({
+    week: prefersReducedMotion ? LAST_WEEK : 0,
+    playing: false,
+  });
   // Gates the fill width (and the score inside it) so bars grow in from
   // zero on first paint instead of appearing already full-width.
   const [revealed, setRevealed] = useState(prefersReducedMotion);
-  const [playing, setPlaying] = useState(false);
 
   const bootTimerRef = useRef<number | null>(null);
 
@@ -81,17 +83,15 @@ export function RankedPortfolioBars({
   }, []);
 
   const stopPlay = useCallback(() => {
-    setPlaying(false);
+    setPlayback((current) => ({ ...current, playing: false }));
   }, []);
 
   const startPlay = useCallback(() => {
     if (prefersReducedMotion) {
-      setWeek(LAST_WEEK);
-      setPlaying(false);
+      setPlayback({ week: LAST_WEEK, playing: false });
       return;
     }
-    setWeek(0);
-    setPlaying(true);
+    setPlayback({ week: 0, playing: true });
   }, [prefersReducedMotion]);
 
   // Boot: grow bars in from zero, then autoplay the eight weeks once — but
@@ -119,10 +119,10 @@ export function RankedPortfolioBars({
   useEffect(() => {
     if (!playing) return;
     const timer = window.setInterval(() => {
-      setWeek((currentWeek) => {
-        const nextWeek = Math.min(currentWeek + 1, LAST_WEEK);
-        if (nextWeek === LAST_WEEK) setPlaying(false);
-        return nextWeek;
+      setPlayback((current) => {
+        if (!current.playing) return current;
+        const nextWeek = Math.min(current.week + 1, LAST_WEEK);
+        return { week: nextWeek, playing: nextWeek < LAST_WEEK };
       });
     }, PLAY_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -132,8 +132,7 @@ export function RankedPortfolioBars({
     if (!prefersReducedMotion) return;
     clearBootTimer();
     setRevealed(true);
-    setWeek(LAST_WEEK);
-    setPlaying(false);
+    setPlayback({ week: LAST_WEEK, playing: false });
   }, [clearBootTimer, prefersReducedMotion]);
 
   const rank = useMemo(() => {
@@ -150,8 +149,7 @@ export function RankedPortfolioBars({
 
   const handleScrub = (value: number) => {
     interruptBoot();
-    stopPlay();
-    setWeek(Math.max(0, Math.min(LAST_WEEK, value)));
+    setPlayback({ week: Math.max(0, Math.min(LAST_WEEK, value)), playing: false });
   };
 
   const handlePlayToggle = () => {

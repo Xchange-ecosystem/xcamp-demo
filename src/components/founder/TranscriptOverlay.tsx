@@ -170,7 +170,7 @@ export function TranscriptOverlay({
       >
         {/* Header + step spine */}
         <div
-          className="flex flex-wrap items-center gap-4 border-b px-5 py-3.5"
+          className="flex flex-wrap items-center gap-4 border-b pl-5 pr-12 py-3.5"
           style={{ borderColor: "var(--skin-line-soft, var(--border))" }}
         >
           <DialogTitle className="text-[16px] font-semibold tracking-tight">
@@ -233,15 +233,6 @@ export function TranscriptOverlay({
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={closeOverlay}
-            aria-label="Close"
-            className="ml-auto text-xl leading-none"
-            style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
-          >
-            <X size={20} />
-          </button>
         </div>
 
         {/* Body */}
@@ -450,9 +441,9 @@ export function TranscriptOverlay({
                   className="mt-4 text-[13px]"
                   style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
                 >
-                  {people.length} sketch {people.length === 1 ? "assignment is" : "assignments are"}
-                  ready to add to your feed as informational work. Nothing is locked until you
-                  formalize an objective into an agreement.
+                  {taskCount} sketch {taskCount === 1 ? "assignment is" : "assignments are"} ready
+                  to add to your feed as informational work. Nothing is locked until you formalize
+                  an objective into an agreement.
                 </p>
               )}
             </div>
