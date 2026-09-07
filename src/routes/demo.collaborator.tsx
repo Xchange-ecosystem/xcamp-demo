@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
+import { DemoShell } from "@/components/demo/DemoShell";
 import { CollaboratorScreen } from "@/features/collaborator/CollaboratorScreen";
 
 // Namespaced under /demo to match the other P1 presentation screens — see
@@ -19,8 +19,8 @@ export const Route = createFileRoute("/demo/collaborator")({
 
 function CollaboratorPage() {
   return (
-    <AppShell>
+    <DemoShell>
       <CollaboratorScreen />
-    </AppShell>
+    </DemoShell>
   );
 }
