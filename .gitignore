@@ -42,3 +42,4 @@ playwright-report/
 
 # Scratch verification specs — ad hoc, not part of the test suite
 tests/_scratch-*
+src/routeTree.gen.ts
