@@ -5,6 +5,7 @@ import { RightPanelProvider } from "@/contexts/right-panel";
 import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DemoNavRail, type DemoNavItem, type DemoPersona } from "@/components/demo/DemoNavRail";
+import { useAmbientToasts } from "@/hooks/useAmbientToasts";
 
 interface DemoShellProps {
   persona: DemoPersona;
@@ -13,6 +14,11 @@ interface DemoShellProps {
 }
 
 export function DemoShell({ persona, items, children }: DemoShellProps) {
+  // Keyed on `persona` — fires once on arrival at a persona's pages and
+  // restarts only when persona actually changes (the Navrail switcher),
+  // not on internal nav within one persona's own routes.
+  useAmbientToasts(persona);
+
   return (
     <SidepanelProvider>
       <RightPanelProvider>
