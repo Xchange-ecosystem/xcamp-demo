@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ClipboardList } from "lucide-react";
 import { DemoShell } from "@/components/demo/DemoShell";
+import type { DemoNavItem } from "@/components/demo/DemoNavRail";
 import { CollaboratorScreen } from "@/features/collaborator/CollaboratorScreen";
 
 // Namespaced under /demo to match the other P1 presentation screens — see
@@ -17,9 +19,16 @@ export const Route = createFileRoute("/demo/collaborator")({
   component: CollaboratorPage,
 });
 
+// Collaborator only has one screen today — Navrail gets a single item
+// pointing at their persona home. More screens (and a real multi-item
+// Navrail) are deferred to a later session per Fabian's instruction.
+const collaboratorNavItems: DemoNavItem[] = [
+  { to: "/demo/collaborator", label: "Assignments", icon: ClipboardList, exact: true },
+];
+
 function CollaboratorPage() {
   return (
-    <DemoShell>
+    <DemoShell persona="collaborator" items={collaboratorNavItems}>
       <CollaboratorScreen />
     </DemoShell>
   );
