@@ -1,6 +1,17 @@
 // P1.4 Part 1b — the transcript-to-assignments pipeline, as a large overlay
-// over the Founder screen: Extract (real backend call) -> Review -> Preview
-// -> simulated Send -> Ready to add.
+// over the Founder screen: Extract (fixture-only, content-blind — see B3
+// revised session's Phase 0 report) -> Review -> Preview -> simulated Send
+// -> Ready to add.
+//
+// Extract used to call xcamp-backend's real /api/transcripts/extract, but
+// that fails for any unauthenticated demo viewer (getSession() has nothing
+// to refresh, so it throws "You need to be signed in." before a single
+// request goes out — confirmed live, network tab empty). It's replaced here
+// with simulateTranscriptExtraction(), a drop-in same-shape/same-cancellation
+// stand-in over a fixture pool; transcripts-api.ts's real extractTranscript
+// is untouched for any future non-demo reuse. Review/Preview/Send below are
+// unchanged — they only ever consumed the resolved ExtractedPerson[], never
+// how it was produced.
 //
 // "Sending" here is a client-side simulation, not a real send: Part 3 (the
 // email-send endpoint) is blocked on an email-provider decision (no provider
@@ -11,11 +22,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  extractTranscript,
-  TranscriptExtractionError,
-  type ExtractedPerson,
-} from "@/lib/transcripts-api";
+import { TranscriptExtractionError, type ExtractedPerson } from "@/lib/transcripts-api";
+import { simulateTranscriptExtraction } from "@/fixtures/transcriptExtractionPool";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import type { TranscriptFile } from "./ComposerModes";
 
@@ -85,7 +93,7 @@ export function TranscriptOverlay({
       timers.current.push(setTimeout(() => setExtractSubStep(i), i * stepMs));
     });
 
-    extractTranscript(file.text, controller.signal)
+    simulateTranscriptExtraction(controller.signal)
       .then((extracted) => {
         if (controller.signal.aborted) return;
         clearTimers();
@@ -105,7 +113,7 @@ export function TranscriptOverlay({
         setExtractError(message);
         setStage("extract-error");
       });
-  }, [clearTimers, file.text]);
+  }, [clearTimers]);
 
   useEffect(() => {
     runExtraction();

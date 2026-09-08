@@ -2,15 +2,7 @@
 // -> proposal modal, action-item card feed, right-column metrics.
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import {
-  CheckCircle2,
-  FileText,
-  Handshake,
-  Lightbulb,
-  Loader2,
-  Paperclip,
-  Send,
-} from "lucide-react";
+import { CheckCircle2, Handshake, Lightbulb, Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,12 +15,13 @@ import { matchObjective, synthesizeEstimate } from "@/components/founder/proposa
 import {
   InertModeBody,
   ModePillRow,
-  TranscriptSimBody,
+  TranscriptModeBody,
   type InputMode,
-  type PendingFile,
+  type TranscriptFile,
 } from "@/components/founder/ComposerModes";
 import { MODE_HINTS } from "@/components/founder/composerModes.constants";
-import { pickTranscriptExtractions } from "@/fixtures/transcriptExtractionPool";
+import { TranscriptOverlay } from "@/components/founder/TranscriptOverlay";
+import type { ExtractedPerson } from "@/lib/transcripts-api";
 import { getFeedByKind } from "@/fixtures/feed";
 import type { FeedItem } from "@/fixtures/types";
 
@@ -63,20 +56,12 @@ function FounderHomePage() {
   // Part 1a — composer input modes. Selection persists within the session;
   // only Text and Transcript are wired to anything.
   const [inputMode, setInputMode] = useState<InputMode>("text");
-
-  // B3 — Transcript tab: fixture-only, content-blind simulation. Nothing
-  // typed or dropped here is ever read; see transcriptExtractionPool.ts.
-  const [transcriptText, setTranscriptText] = useState("");
-  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
-  const [transcriptLoading, setTranscriptLoading] = useState(false);
-  const nextPendingFileId = useRef(0);
-  const nextTranscriptItemId = useRef(0);
-  const transcriptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [transcriptFile, setTranscriptFile] = useState<TranscriptFile | null>(null);
+  const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false);
 
   useEffect(
     () => () => {
       processingTimers.current.forEach(clearTimeout);
-      if (transcriptTimer.current) clearTimeout(transcriptTimer.current);
     },
     [],
   );
@@ -121,9 +106,6 @@ function FounderHomePage() {
       }
       if (typeof item.meta?.value === "number") {
         entries.push({ key: "value", label: `${item.meta.value} cr · informational` });
-      }
-      if (item.meta?.source === "transcript") {
-        entries.push({ key: "transcript-source", label: "From transcript", icon: FileText });
       }
       return entries;
     },
@@ -193,52 +175,30 @@ function FounderHomePage() {
     toast.success("Accepted as a sketch · informational");
   };
 
-  const addPendingFiles = (fileList: FileList) => {
-    const additions: PendingFile[] = Array.from(fileList).map((file) => ({
-      id: `pending-${Date.now()}-${nextPendingFileId.current++}`,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    }));
-    setPendingFiles((prev) => [...prev, ...additions]);
-  };
-
-  const removePendingFile = (id: string) => {
-    setPendingFiles((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  // B3 — content-blind by design: `transcriptText` and `pendingFiles` are
-  // never read here, only cleared once the (simulated) extraction finishes.
-  const runTranscriptExtraction = () => {
-    if (transcriptTimer.current) clearTimeout(transcriptTimer.current);
-    setTranscriptLoading(true);
-    const delay = 1400 + Math.random() * 900;
-    transcriptTimer.current = setTimeout(() => {
-      const picks = pickTranscriptExtractions();
-      const now = new Date().toISOString();
-      const newItems: FeedItem[] = picks.map((p) => ({
-        id: `transcript-${Date.now()}-${nextTranscriptItemId.current++}`,
-        kind: "action_item",
-        title: p.title,
-        description: p.description,
-        projectId: p.projectId,
+  const handleTranscriptComplete = (people: ExtractedPerson[]) => {
+    const now = Date.now();
+    const projectId = transcriptFile?.projectId ?? "proj-1";
+    const newItems: FeedItem[] = people.flatMap((p, i) =>
+      p.tasks.map((t, j) => ({
+        id: `transcript-${now}-${i}-${j}`,
+        kind: "action_item" as const,
+        title: t.title,
+        description: `Sketched from a meeting transcript for ${p.name}. Informational until the objective is formalized into an agreement.`,
+        projectId,
         actorId: "person-1",
-        assigneeId: p.assigneeId,
-        status: "active",
-        agreementState: p.agreementState,
-        timestamp: now,
-        meta: { source: "transcript" },
-      }));
-      setItems((prev) => [...newItems, ...prev]);
-      setTranscriptLoading(false);
-      setTranscriptText("");
-      setPendingFiles([]);
-      setInputMode("text");
-      toast.success(
-        `Chi extracted ${newItems.length} item${newItems.length === 1 ? "" : "s"} from your transcript`,
-        { description: "Added to your feed below — review when ready." },
-      );
-    }, delay);
+        assigneeId: null,
+        status: "active" as const,
+        agreementState: "sketch" as const,
+        timestamp: new Date().toISOString(),
+        meta: { source: "transcript", time: t.est || "—" },
+      })),
+    );
+    setItems((prev) => [...newItems, ...prev]);
+    setShowTranscriptOverlay(false);
+    setTranscriptFile(null);
+    toast.success(
+      `${newItems.length} sketch ${newItems.length === 1 ? "task" : "tasks"} added to your feed`,
+    );
   };
 
   const handleDismissProposal = (p: Proposal) => {
@@ -315,14 +275,11 @@ function FounderHomePage() {
               background: "var(--skin-surface, var(--card))",
             }}
           >
-            <TranscriptSimBody
-              text={transcriptText}
-              onTextChange={setTranscriptText}
-              files={pendingFiles}
-              onFilesAdded={addPendingFiles}
-              onFileRemoved={removePendingFile}
-              loading={transcriptLoading}
-              onSend={runTranscriptExtraction}
+            <TranscriptModeBody
+              file={transcriptFile}
+              onFileSelected={setTranscriptFile}
+              onClear={() => setTranscriptFile(null)}
+              onSend={() => setShowTranscriptOverlay(true)}
             />
           </div>
         ) : (
@@ -330,19 +287,12 @@ function FounderHomePage() {
         )}
         <p className="mt-2 px-1 text-xs text-muted-foreground">{MODE_HINTS[inputMode]}</p>
 
-        {transcriptLoading && inputMode === "transcript" && (
-          <div
-            className="mt-3.5 flex items-center gap-2.5 rounded-lg border p-4"
-            style={{ borderColor: "var(--skin-line)" }}
-          >
-            <Loader2 size={16} className="animate-spin" style={{ color: "var(--skin-accent)" }} />
-            <span
-              className="text-sm font-medium"
-              style={{ color: "var(--skin-ink-soft, var(--muted-foreground))" }}
-            >
-              Chi is reading your transcript…
-            </span>
-          </div>
+        {showTranscriptOverlay && transcriptFile && (
+          <TranscriptOverlay
+            file={transcriptFile}
+            onClose={() => setShowTranscriptOverlay(false)}
+            onComplete={handleTranscriptComplete}
+          />
         )}
 
         {/* Part 4 — mock-processing state */}
