@@ -126,9 +126,11 @@ export function AssignmentFeed({
       const owner = getPersonById(a.ownerId);
       return [
         {
-          key: "crumb",
-          label: `${project?.name ?? a.projectId} · ${getAssignmentObjectiveTitle(a)}`,
+          key: "project",
+          label: project?.name ?? a.projectId,
+          dotColor: project?.color,
         },
+        { key: "objective", label: getAssignmentObjectiveTitle(a) },
         ...(owner ? [{ key: "owner", label: owner.displayName }] : []),
         { key: "due", label: a.dueLabel },
         { key: "value", label: `${a.value} cr · ${VALUE_LABEL[a.valueState]}` },

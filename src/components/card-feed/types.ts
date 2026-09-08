@@ -8,6 +8,11 @@ export interface CardFeedMetaEntry {
   key: string;
   label: string;
   icon?: LucideIcon;
+  /** A CSS color value for a small dot rendered before the label — used for
+   *  the project-tag treatment so items can be scanned by project without
+   *  reading text. Mutually exclusive with `icon` in practice, but not
+   *  enforced: no current entry sets both. */
+  dotColor?: string;
 }
 
 /** Visual treatment for one card — varies per item (e.g. by `kind` and/or

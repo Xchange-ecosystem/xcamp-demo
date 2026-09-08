@@ -9,7 +9,7 @@ import type { CardFeedConfig, CardFeedItemVisual, CardFeedMetaEntry } from "./ty
 
 function projectMeta(item: FeedItem): CardFeedMetaEntry | null {
   const project = getProjectById(item.projectId);
-  return project ? { key: "project", label: project.name } : null;
+  return project ? { key: "project", label: project.name, dotColor: project.color } : null;
 }
 
 // ── Founder action items (P1.1) ───────────────────────────────────────────

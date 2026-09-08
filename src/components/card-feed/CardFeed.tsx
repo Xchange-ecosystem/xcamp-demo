@@ -102,7 +102,14 @@ function CardFeedCard<T>({ item, config }: { item: T; config: CardFeedConfig<T> 
             {meta.map((entry) => {
               const MetaIcon = entry.icon;
               return (
-                <span key={entry.key} className="inline-flex items-center gap-1">
+                <span key={entry.key} className="inline-flex items-center gap-1.5">
+                  {entry.dotColor && (
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: entry.dotColor }}
+                      aria-hidden
+                    />
+                  )}
                   {MetaIcon && <MetaIcon size={12} aria-hidden />}
                   {entry.label}
                 </span>

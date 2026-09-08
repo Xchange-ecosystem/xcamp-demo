@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { avatarColor, initials } from "@/lib/avatarColor";
 import { getPersonById } from "@/fixtures/people";
 
 export interface Proposal {
@@ -36,15 +37,6 @@ export interface Proposal {
   assigneeId: string;
   time: string;
   value: number;
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 export function ProposalModal({
@@ -104,7 +96,17 @@ export function ProposalModal({
             <span className="w-20 shrink-0 text-xs text-muted-foreground">Assignee</span>
             <div className="flex flex-1 items-center gap-2 text-sm font-medium">
               <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px]">
+                <AvatarFallback
+                  className="text-[10px]"
+                  style={
+                    assignee
+                      ? {
+                          background: avatarColor(assignee.displayName).bg,
+                          color: avatarColor(assignee.displayName).fg,
+                        }
+                      : undefined
+                  }
+                >
                   {assignee ? initials(assignee.displayName) : "?"}
                 </AvatarFallback>
               </Avatar>
