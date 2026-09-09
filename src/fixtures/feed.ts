@@ -24,6 +24,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-09-03T07:40:00.000Z",
     agreementState: "sketch",
     meta: { source: "voice-note" },
+    demoTaskId: "task-4",
   },
   {
     id: "feed-2",
@@ -37,6 +38,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-09-02T16:05:00.000Z",
     agreementState: "agreement",
     meta: { source: "email-forward" },
+    demoTaskId: "task-7",
   },
   {
     id: "feed-3",
@@ -50,6 +52,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-09-02T11:20:00.000Z",
     agreementState: "sketch",
     meta: { source: "text-input" },
+    demoTaskId: "task-15",
   },
   {
     id: "feed-4",
@@ -63,6 +66,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-08-30T09:00:00.000Z",
     agreementState: "settled",
     meta: { source: "upload" },
+    demoTaskId: "task-17",
   },
   {
     id: "feed-5",
@@ -76,6 +80,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-09-01T14:30:00.000Z",
     agreementState: "agreement",
     meta: { source: "text-input" },
+    demoTaskId: "task-21",
   },
   {
     id: "feed-6",
@@ -89,6 +94,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-09-03T06:15:00.000Z",
     agreementState: "agreement",
     meta: { source: "upload" },
+    demoTaskId: "task-24",
   },
   {
     id: "feed-7",
@@ -102,6 +108,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: "2026-08-29T13:00:00.000Z",
     agreementState: "sketch",
     meta: { source: "voice-note" },
+    demoTaskId: "task-26",
   },
 
   // ── Investor/Operator project updates ────────────────────────────────

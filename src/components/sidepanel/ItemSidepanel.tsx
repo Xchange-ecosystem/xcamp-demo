@@ -56,6 +56,11 @@ import { fetchObjectiveSidepanelMetrics } from "@/lib/dashboard-metrics-api";
 import { MetricCard, StatRow, fmt } from "@/components/project-home/MetricPrimitives";
 import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
+import { isDemoObjectiveId, isDemoTaskId } from "@/lib/demo-items";
+import { useDemoItemsStore } from "@/store/demoItemsStore";
+import { DemoObjectiveContent } from "@/components/sidepanel/DemoObjectiveContent";
+import { DemoNoteContent } from "@/components/sidepanel/DemoNoteContent";
+import { DemoLinkedItemsTab } from "@/components/sidepanel/DemoLinkedItemsTab";
 
 const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -385,6 +390,16 @@ function AddLinkPanel({
 // ── Linked items tab ───────────────────────────────────────────────────────
 
 export function LinkedItemsTab({ itemId, itemKind }: { itemId: string; itemKind: ItemKind }) {
+  // Demo items resolve links against the local demo store — see
+  // src/lib/demo-items.ts / src/store/demoItemsStore.ts. Real ids fall
+  // through to the unchanged Supabase-backed implementation below.
+  if (isDemoObjectiveId(itemId) || isDemoTaskId(itemId)) {
+    return <DemoLinkedItemsTab itemId={itemId} itemKind={itemKind} />;
+  }
+  return <RealLinkedItemsTab itemId={itemId} itemKind={itemKind} />;
+}
+
+function RealLinkedItemsTab({ itemId, itemKind }: { itemId: string; itemKind: ItemKind }) {
   const { user } = useAuth();
   const { push } = useSidepanel();
   const qc = useQueryClient();
@@ -723,6 +738,16 @@ function formatBytes(bytes: number) {
 }
 
 export function ObjectiveContent({ itemId }: { itemId: string }) {
+  // Demo objectives (fixture ids, see src/fixtures/objectives.ts) never hit
+  // Supabase — see src/lib/demo-items.ts for why this check is safe for real
+  // (non-demo) objective ids, which always fall through unchanged below.
+  if (isDemoObjectiveId(itemId)) {
+    return <DemoObjectiveContent itemId={itemId} />;
+  }
+  return <RealObjectiveContent itemId={itemId} />;
+}
+
+function RealObjectiveContent({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -1232,6 +1257,15 @@ function ObjectiveMetricsAndSummary({
 // ── Note content ────────────────────────────────────────────────────────────
 
 function NoteContent({ itemId }: { itemId: string }) {
+  // Demo tasks (fixture ids) never hit Supabase — see src/lib/demo-items.ts.
+  // Real (non-demo) note/task ids fall through to the unchanged code below.
+  if (isDemoTaskId(itemId)) {
+    return <DemoNoteContent itemId={itemId} />;
+  }
+  return <RealNoteContent itemId={itemId} />;
+}
+
+function RealNoteContent({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { patchCurrent } = useSidepanel();
@@ -1679,7 +1713,18 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
   const qc = useQueryClient();
 
   const handleDelete = async () => {
-    if (!user || !confirm("Delete this item? This action cannot be undone.")) return;
+    if (!confirm("Delete this item? This action cannot be undone.")) return;
+    // Demo items: remove from the local demo store only, zero network — see
+    // src/lib/demo-items.ts. Real ids fall through to the unchanged
+    // Supabase-backed delete below.
+    if (isDemoTaskId(item.id) || isDemoObjectiveId(item.id)) {
+      const { deleteTask, deleteObjective } = useDemoItemsStore.getState();
+      if (isDemoTaskId(item.id)) deleteTask(item.id);
+      else deleteObjective(item.id);
+      onClose();
+      return;
+    }
+    if (!user) return;
     if (item.kind === "note") {
       const { data } = await supabase
         .from("notes")

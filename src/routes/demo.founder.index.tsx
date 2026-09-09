@@ -24,6 +24,8 @@ import { TranscriptOverlay } from "@/components/founder/TranscriptOverlay";
 import type { ExtractedPerson } from "@/lib/transcripts-api";
 import { getFeedByKind } from "@/fixtures/feed";
 import type { FeedItem } from "@/fixtures/types";
+import { useSidepanel } from "@/contexts/sidepanel";
+import { useDemoItemsStore } from "@/store/demoItemsStore";
 
 export const Route = createFileRoute("/demo/founder/")({
   head: () => ({ meta: [{ title: "Founder — Xcamp" }] }),
@@ -45,6 +47,7 @@ const PROCESSING_STEPS = [
 const DEFAULT_ASSIGNEE_ID = "person-9";
 
 function FounderHomePage() {
+  const { open: openSidepanel } = useSidepanel();
   const [items, setItems] = useState<FeedItem[]>(() => getFeedByKind("action_item"));
   const [draft, setDraft] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -84,6 +87,21 @@ function FounderHomePage() {
     toast("Dismissed", { description: item.title });
   };
 
+  // B1 demo session — "open details" affordance: opens the fixture task this
+  // action item corresponds to (see FeedItem.demoTaskId, src/fixtures/feed.ts)
+  // in the shared sidepanel, fully local/fixture-backed (see ItemSidepanel's
+  // demo fork and src/store/demoItemsStore.ts) — no network either way.
+  const openItemDetails = (item: FeedItem) => {
+    if (!item.demoTaskId) return;
+    const task = useDemoItemsStore.getState().tasks[item.demoTaskId];
+    openSidepanel({
+      id: item.demoTaskId,
+      kind: "note",
+      noteType: "task",
+      title: task?.title ?? item.title,
+    });
+  };
+
   const founderFeedConfig: CardFeedConfig<FeedItem> = {
     ...founderActionItemConfig,
     // Agreement-lifecycle badge instead of founderActionItemConfig's
@@ -109,13 +127,29 @@ function FounderHomePage() {
       }
       return entries;
     },
-    getActions: (item) =>
-      item.status === "completed" || item.status === "done"
-        ? []
-        : [
-            { key: "review", label: "Review", variant: "default", onClick: openProposalFromItem },
-            { key: "dismiss", label: "Dismiss", variant: "ghost", onClick: dismissItem },
-          ],
+    getActions: (item) => {
+      const actions = [];
+      if (item.status !== "completed" && item.status !== "done") {
+        actions.push(
+          {
+            key: "review",
+            label: "Review",
+            variant: "default" as const,
+            onClick: openProposalFromItem,
+          },
+          { key: "dismiss", label: "Dismiss", variant: "ghost" as const, onClick: dismissItem },
+        );
+      }
+      if (item.demoTaskId) {
+        actions.push({
+          key: "details",
+          label: "Details",
+          variant: "outline" as const,
+          onClick: openItemDetails,
+        });
+      }
+      return actions;
+    },
   };
 
   const runProcessing = (text: string) => {

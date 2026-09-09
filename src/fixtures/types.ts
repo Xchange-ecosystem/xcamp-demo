@@ -128,6 +128,11 @@ export interface FeedItem {
    *  updates, source note id for action items) — kept loose since each
    *  card type surfaces different metadata. */
   meta?: Record<string, string | number>;
+  /** B1 demo session: the Task fixture (src/fixtures/objectives.ts) this
+   *  action item corresponds to, for Founder Home's "open details" card
+   *  affordance to open in the sidepanel. Only set on action_item entries
+   *  that have an obvious fixture-task counterpart. */
+  demoTaskId?: string;
 }
 
 export interface Transcript {
