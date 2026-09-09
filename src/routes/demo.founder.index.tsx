@@ -248,8 +248,8 @@ function FounderHomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:gap-8">
-      <section className="min-w-0 flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden px-6 py-6 lg:flex-row lg:gap-8">
+      <section className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <h1 className="mb-4 text-2xl font-semibold tracking-tight text-foreground">
           Good morning, Maren.{" "}
           <span className="font-normal text-muted-foreground">Here's what moved.</span>

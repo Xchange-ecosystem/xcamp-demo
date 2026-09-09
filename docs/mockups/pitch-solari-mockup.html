@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xcamp Demo — Pitch · Solari Energy</title>
+<!--
+  ============================================================================
+  FIXTURE DELTA REQUIRED BY THIS SCREEN
+  ============================================================================
+  This mockup is built against proj-1 (Solari Energy) but needs fields the
+  current src/fixtures/types.ts does not have. Proposed additions:
+
+    Objective += {
+      dimension: "Market" | "Product" | "Operations" | "Business" | "Team"
+      completedAt: string | null   // ISO date; null unless status === "done"
+      proofCount: number           // filed evidence items
+      evaluationPct: number | null // assessor score, null if uncertified
+    }
+
+  And proj-1 needs a completed history: today it has 2 objectives (one
+  in_progress, one open) and zero done. Pitch/Readiness/Evolution all read
+  finished work, so proj-1 needs ~6 done objectives with dates spread across
+  Jun–Sep 2026. The six used below are a concrete proposal, not invention for
+  its own sake — they are what a solar-microgrid company would actually have
+  completed before raising.
+
+  Existing obj-1 (Ship v2 microgrid controller, in_progress) and obj-2 (Close
+  pilot with Kenya Power, open) are preserved unchanged and referenced here.
+
+  Note on colour: proj-1's fixture color is #f59e0b (amber). The demo UI
+  reserves amber for the stale/attention state, so project colour appears
+  only as a small identity dot, not as the screen accent. Flagged for review.
+  ============================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E2A2B; --ink-2:#3F5B5C; --ink-3:#7C9695;
+  --canvas:#EEF4F2; --surface:#FFFFFF; --line:#DCE7E3;
+  --teal:#0F766E; --teal-soft:#DCEFEA;
+  --mint:#3FBFA0; --mint-wash:#E4F7F0;
+  --amber:#9A5B12; --amber-wash:#FBEEDC;
+  --solari:#f59e0b;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--canvas);color:var(--ink);
+  font-family:'Instrument Sans',system-ui,sans-serif;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.shell{max-width:1140px;margin:0 auto;padding:26px 24px 80px}
+
+.crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-3);margin-bottom:8px}
+.pdot{width:8px;height:8px;border-radius:50%;background:var(--solari);flex:0 0 auto}
+.crumb b{font-weight:500;color:var(--ink-2)}
+
+.masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line)}
+h1{font-weight:600;font-size:33px;line-height:1.12;margin:0;letter-spacing:-.021em}
+.masthead p{margin:9px 0 0;color:var(--ink-2);max-width:47ch;font-size:14px}
+
+.meter{min-width:206px}
+.meter-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink-2)}
+.meter-top strong{font-size:23px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}
+.meter-track{display:flex;gap:3px;margin-top:8px}
+.meter-track i{flex:1;height:5px;border-radius:2px;background:var(--line)}
+.meter-track i.on{background:var(--teal)}
+.meter-track i.stale{background:var(--amber)}
+
+.strip{display:flex;gap:8px;overflow-x:auto;padding:18px 0 20px}
+.chip{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:9px 13px;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:130px;transition:border-color .12s}
+.chip:hover{border-color:var(--ink-3)}
+.chip:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.chip[aria-current="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.chip .nm{font-size:13.5px;font-weight:500}
+.chip .st{font-size:11.5px;color:var(--ink-3)}
+.chip .st.stale{color:var(--amber)}
+.chip .st.empty{color:var(--teal)}
+.chip.empty{background:transparent;border-style:dashed}
+
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 30px 0;flex-wrap:wrap}
+.stage-head h2{font-size:14px;font-weight:600;margin:0}
+.banner{display:flex;gap:10px;align-items:flex-start;margin:16px 30px 0;padding:11px 14px;border-radius:var(--r);background:var(--amber-wash);color:var(--amber);font-size:13.5px;line-height:1.45}
+.banner svg{flex:0 0 auto;margin-top:2px}
+.banner b{font-weight:600}
+
+.claim{padding:22px 30px 26px;font-size:21px;font-weight:400;line-height:1.58;letter-spacing:-.012em;color:#14383A;max-width:33em}
+.claim p{margin:0 0 .72em}
+.claim p:last-child{margin-bottom:0}
+
+.cite{border:0;border-bottom:1.5px solid var(--mint);padding:0 0 1px;background:none;font:inherit;color:inherit;border-radius:0;transition:background .12s}
+.cite:hover,.cite.lit{background:var(--mint-wash)}
+.cite:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.cite sup{font-size:10.5px;color:var(--teal);font-weight:600;margin-left:2px;vertical-align:super}
+
+.rail{border-top:1px solid var(--line);background:#FAFCFB;padding:20px 30px 24px}
+.rail h3{font-size:13px;font-weight:600;margin:0 0 3px}
+.rail .sub{font-size:13px;color:var(--ink-2);margin:0 0 14px}
+.src{display:grid;grid-template-columns:24px 1fr auto;gap:14px;align-items:start;padding:13px 0;border-top:1px solid var(--line)}
+.src:first-of-type{border-top:0}
+.src.lit{background:var(--mint-wash);margin:0 -14px;padding:13px 14px;border-radius:8px;border-top-color:transparent}
+.src .idx{font-size:11.5px;font-weight:600;color:var(--teal);background:var(--teal-soft);border-radius:6px;height:22px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.src .ttl{font-size:14px;font-weight:500;margin:0 0 2px}
+.src .met{font-size:12.5px;color:var(--ink-3);margin:0}
+.src .proof{font-size:12.5px;color:var(--ink-2);white-space:nowrap;display:flex;align-items:center;gap:5px;margin-top:2px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+.dot.warm{background:var(--amber)}
+
+.acts{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.btn{background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:8px;padding:8px 15px;font-size:13.5px;font-weight:500}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+.empty-stage{padding:42px 30px 48px;max-width:40em}
+.empty-stage h2{font-weight:600;font-size:23px;letter-spacing:-.019em;margin:0 0 10px}
+.empty-stage p{margin:0 0 20px;color:var(--ink-2);font-size:14.5px;max-width:45ch}
+.ready{display:flex;flex-direction:column;gap:9px;margin:0 0 24px;padding:0;list-style:none}
+.ready li{display:flex;gap:9px;align-items:center;font-size:14px;color:var(--ink-2)}
+
+.composing p{opacity:0;animation:settle .5s ease forwards}
+.composing p:nth-child(2){animation-delay:.16s}
+.composing p:nth-child(3){animation-delay:.32s}
+@keyframes settle{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.composing p{animation:none;opacity:1}*{transition:none!important}}
+
+@media (max-width:720px){
+  .shell{padding:20px 16px 60px}
+  h1{font-size:26px}
+  .claim{font-size:18.5px;line-height:1.55;padding:20px 20px 22px}
+  .stage-head,.rail{padding-left:20px;padding-right:20px}
+  .banner{margin-left:20px;margin-right:20px;padding-left:14px;padding-right:14px}
+  .meter{min-width:100%}
+  .src{grid-template-columns:22px 1fr}
+  .src .proof{grid-column:2;margin-top:4px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="crumb"><span class="pdot"></span><b>Solari Energy</b><span>Pitch</span></div>
+
+  <div class="masthead">
+    <div>
+      <h1>Your pitch, drawn from your&nbsp;evidence</h1>
+      <p>Nothing here is written from scratch. Each card is composed from the Objectives you've completed and the proof filed against them.</p>
+    </div>
+    <div class="meter">
+      <div class="meter-top"><span>Cards composed</span><strong>6/8</strong></div>
+      <div class="meter-track" aria-hidden="true">
+        <i class="on"></i><i class="on"></i><i class="on"></i><i class="stale"></i>
+        <i class="on"></i><i class="on"></i><i></i><i></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="strip" id="strip"></div>
+  <div class="stage" id="stage"></div>
+
+</div>
+
+<script>
+/* Sources map to proposed proj-1 objectives. obj-1 and obj-2 are the two that
+   exist in the fixture today; obj-17..obj-22 are the proposed completed set. */
+const CARDS = [
+  {
+    id:'problem', name:'Problem', state:'fresh', updated:'2 days ago',
+    body:[
+      ['Six hundred million people across sub-Saharan Africa have no grid connection, and extending national transmission to reach them costs more per household than those households will spend on electricity in a decade.',1],
+      ['We surveyed 340 households across three Kenyan counties and found willingness to pay is not the constraint — 71% already spend more on kerosene and phone charging than a microgrid tariff would cost them.',1],
+      ['The constraint is capital structure. Existing microgrid hardware is priced for donor-funded pilots, not for operators who need the unit to pay back inside four years.',2]
+    ],
+    sources:[
+      {i:1,t:'Validate demand across three rural counties',dim:'Market · completed 14 Jun',proof:'9 proofs',warm:false},
+      {i:2,t:'Model unit economics at 500-site scale',dim:'Business · completed 3 Aug',proof:'5 proofs',warm:false}
+    ]
+  },
+  {
+    id:'opportunity', name:'Opportunity', state:'fresh', updated:'2 days ago',
+    body:[
+      ['A modular controller that ships at $180 rather than $260 moves the payback period from six years to under four, which is the threshold at which commercial operators — not just donors — will fund deployment.',1],
+      ['We have run twelve sites for nine months to prove the hardware survives the environment before we argue about the economics.',2]
+    ],
+    sources:[
+      {i:1,t:'Model unit economics at 500-site scale',dim:'Business · completed 3 Aug',proof:'5 proofs',warm:false},
+      {i:2,t:'Complete twelve-site field deployment',dim:'Operations · completed 22 Jul',proof:'14 proofs',warm:false}
+    ]
+  },
+  {
+    id:'market', name:'Market', state:'fresh', updated:'5 days ago',
+    body:[
+      ['We sell to microgrid operators and utilities running rural electrification mandates, not to households. In Kenya alone that is fourteen licensed operators plus Kenya Power itself.',1],
+      ['The buyer is the operations lead who owns uptime, not the sustainability office. That changed how we price service contracts.',2]
+    ],
+    sources:[
+      {i:1,t:'Validate demand across three rural counties',dim:'Market · completed 14 Jun',proof:'9 proofs',warm:false},
+      {i:2,t:'Map the operator procurement path',dim:'Market · completed 19 Aug',proof:'6 proofs',warm:false}
+    ]
+  },
+  {
+    id:'product', name:'Product', state:'fresh', updated:'6 days ago',
+    body:[
+      ['A modular controller, a standard rack of panels the operator sources locally, and a remote management layer. We build the controller and the software; we deliberately do not touch generation or distribution hardware.',1],
+      ['The v2 board is in redesign now, targeting a 30% unit-cost reduction against the deployed v1.',2]
+    ],
+    sources:[
+      {i:1,t:'Complete twelve-site field deployment',dim:'Operations · completed 22 Jul',proof:'14 proofs',warm:false},
+      {i:2,t:'Ship v2 microgrid controller',dim:'Product · in progress',proof:'3 proofs',warm:false}
+    ]
+  },
+  {
+    id:'traction', name:'Traction', state:'stale', updated:'3 weeks ago',
+    body:[
+      ['Twelve sites live for nine months with 99.1% controller uptime across the deployment.',1],
+      ['A 50-site pilot agreement with Kenya Power is in negotiation, with the site visit scheduled and the proposal deck in preparation.',2]
+    ],
+    sources:[
+      {i:1,t:'Complete twelve-site field deployment',dim:'Operations · updated 4 Sep',proof:'14 proofs',warm:true},
+      {i:2,t:'Close pilot with Kenya Power',dim:'Market · updated 6 Sep',proof:'2 proofs',warm:true}
+    ]
+  },
+  {
+    id:'team', name:'Team', state:'fresh', updated:'6 days ago',
+    body:[
+      ['Maren Solberg founded Solari after seven years building grid infrastructure in Norway and East Africa. The team is four people plus a standing bench of contributors.',1],
+      ['Eleven collaborators have filed evaluated work against this project, averaging 84% on assessment.',2]
+    ],
+    sources:[
+      {i:1,t:'Secure ISO 9001 manufacturing partner',dim:'Operations · completed 28 Aug',proof:'4 proofs',warm:false},
+      {i:2,t:'Contribution and evaluation record',dim:'Team · rolling',proof:'11 contributors',warm:false}
+    ]
+  },
+  { id:'model', name:'Business model', state:'empty',
+    ready:['Price the operator service contract','Model gross margin at pilot volume'] },
+  { id:'ask', name:'The ask', state:'empty',
+    ready:['Define the 18-month capital requirement'] }
+];
+
+const stripEl=document.getElementById('strip');
+const stageEl=document.getElementById('stage');
+let active='problem', composing=false;
+
+const ICON_STALE='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const CHECK='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3FBFA0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function stateLabel(c){
+  if(c.state==='empty')return{t:'Ready to compose',cls:'empty'};
+  if(c.state==='stale')return{t:'Sources changed',cls:'stale'};
+  return{t:'Composed '+c.updated,cls:''};
+}
+
+function renderStrip(){
+  stripEl.innerHTML=CARDS.map(c=>{
+    const s=stateLabel(c);
+    return `<button class="chip ${c.state==='empty'?'empty':''}" aria-current="${c.id===active}" data-id="${c.id}">
+      <span class="nm">${c.name}</span><span class="st ${s.cls}">${s.t}</span></button>`;
+  }).join('');
+  stripEl.querySelectorAll('.chip').forEach(b=>{
+    b.onclick=()=>{active=b.dataset.id;composing=false;render();};
+  });
+}
+
+function renderStage(){
+  const c=CARDS.find(x=>x.id===active);
+  if(c.state==='empty'){
+    stageEl.innerHTML=`<div class="empty-stage">
+      <h2>${c.name} hasn't been composed yet</h2>
+      <p>This card needs finished work behind it. Complete these Objectives and it will have enough to draw from.</p>
+      <ul class="ready">${c.ready.map(r=>`<li>${CHECK}${r}</li>`).join('')}</ul>
+      <div class="acts"><button class="btn" disabled>Compose card</button>
+      <button class="btn ghost">Open in Navigator</button></div></div>`;
+    return;
+  }
+  const stale=c.state==='stale';
+  stageEl.innerHTML=`
+    <div class="stage-head"><h2>${c.name}</h2>
+      <div class="acts">
+        <button class="btn ghost" id="recompose">${stale?'Recompose from current sources':'Recompose'}</button>
+        <button class="btn ghost">Edit</button>
+      </div></div>
+    ${stale?`<div class="banner">${ICON_STALE}<div><b>Two source Objectives have moved since this was composed.</b> The numbers below may understate where you are now.</div></div>`:''}
+    <div class="claim ${composing?'composing':''}">
+      ${c.body.map(([t,n])=>`<p>${t.replace(/\.$/,'')}<button class="cite" data-n="${n}" aria-label="Show source ${n}">.<sup>${n}</sup></button></p>`).join('')}
+    </div>
+    <div class="rail">
+      <h3>Where this came from</h3>
+      <p class="sub">${c.sources.length} Objectives, ${c.sources.reduce((a,s)=>a+(parseInt(s.proof)||0),0)} filed proofs.</p>
+      ${c.sources.map(s=>`<div class="src" data-n="${s.i}">
+        <span class="idx">${s.i}</span>
+        <div><p class="ttl">${s.t}</p><p class="met">${s.dim}</p></div>
+        <span class="proof"><span class="dot ${s.warm?'warm':''}"></span>${s.proof}</span>
+      </div>`).join('')}
+    </div>`;
+
+  stageEl.querySelectorAll('.cite').forEach(b=>{
+    const n=b.dataset.n;
+    const link=on=>{
+      b.classList.toggle('lit',on);
+      const row=stageEl.querySelector(`.src[data-n="${n}"]`);
+      if(row)row.classList.toggle('lit',on);
+    };
+    b.onmouseenter=()=>link(true); b.onmouseleave=()=>link(false);
+    b.onfocus=()=>link(true); b.onblur=()=>link(false);
+    b.onclick=()=>{
+      const row=stageEl.querySelector(`.src[data-n="${n}"]`);
+      if(row)row.scrollIntoView({behavior:'smooth',block:'center'});
+    };
+  });
+
+  const rc=document.getElementById('recompose');
+  if(rc)rc.onclick=()=>{
+    const card=CARDS.find(x=>x.id===active);
+    card.state='fresh';card.updated='just now';composing=true;render();
+  };
+}
+
+function render(){renderStrip();renderStage();}
+render();
+</script>
+</body>
+</html>

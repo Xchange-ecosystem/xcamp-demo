@@ -37,8 +37,8 @@ export function CollaboratorScreen() {
   const collaborator = getPersonById(DEMO_COLLABORATOR_ID);
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:gap-8">
-      <section className="min-w-0 flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden px-6 py-6 lg:flex-row lg:gap-8">
+      <section className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <h1 className="mb-4 text-2xl font-semibold tracking-tight text-foreground">
           My assignments
           {collaborator && (
@@ -50,7 +50,7 @@ export function CollaboratorScreen() {
         <AssignmentFeed assignments={assignments} onChange={setAssignments} />
       </section>
 
-      <aside className="flex w-full max-w-[320px] shrink-0 flex-col gap-6">
+      <aside className="flex min-h-0 w-full max-w-[320px] shrink-0 flex-col gap-6 overflow-y-auto">
         <div>
           <h2 className="mb-2.5 text-sm font-semibold text-muted-foreground">My wallet</h2>
           <ValueWallet assignments={assignments} collaboratorId={DEMO_COLLABORATOR_ID} />

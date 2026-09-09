@@ -17,7 +17,7 @@ function FounderDashboardPage() {
   const updates = getFeedByKind("project_update").slice(0, 4);
 
   return (
-    <div className="px-6 py-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">Dashboard</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Where your projects stand, in the terms an investor asks about.

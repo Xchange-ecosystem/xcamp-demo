@@ -22,7 +22,7 @@ const COLUMNS: { status: ObjectiveStatus; label: string }[] = [
 
 function FounderNavigatorPage() {
   return (
-    <div className="px-6 py-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">Navigator</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Every objective across your projects, grouped by where it sits in the lifecycle.
