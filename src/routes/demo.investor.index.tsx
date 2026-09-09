@@ -1,37 +1,49 @@
+// Investor Home — activity-led counterpart to Dashboard (numbers-led) and
+// Portfolio (performance-over-time). Deliberately shallow, same "secondary
+// demo screen" pattern as the Founder Navigator/Dashboard views: it reuses
+// the P1.0 CardFeed and its investorUpdateConfig rather than forking a feed.
+//
+// Before the B4 session this route rendered InvestorPortfolioScreen, because
+// Portfolio was the persona's only screen. That screen now lives under
+// MicroApps and Home is its own thing.
 import { createFileRoute } from "@tanstack/react-router";
-import { Briefcase } from "lucide-react";
-import { DemoShell } from "@/components/demo/DemoShell";
-import type { DemoNavItem } from "@/components/demo/DemoNavRail";
-import { InvestorPortfolioScreen } from "@/features/investor-portfolio/InvestorPortfolioScreen";
+import { CardFeed } from "@/components/card-feed/CardFeed";
+import { investorUpdateConfig } from "@/components/card-feed/configs";
+import { getFeedByKind } from "@/fixtures/feed";
+import { getRankedPortfolio } from "@/fixtures/portfolio";
+import { getProjectById } from "@/fixtures/projects";
 
-// No dedicated investor home screen exists yet (see Phase 0 audit) — reuses
-// InvestorPortfolioScreen, same as /demo/investor/portfolio, so /demo/investor
-// resolves instead of 404ing.
 export const Route = createFileRoute("/demo/investor/")({
   head: () => ({
     meta: [
-      { title: "Portfolio — Xcamp" },
+      { title: "Investor — Xcamp" },
       {
         name: "description",
-        content:
-          "Ranked portfolio, project updates, and ecosystem metrics for investors and operators.",
+        content: "What moved across the portfolio since you last looked.",
       },
     ],
   }),
   component: InvestorHomePage,
 });
 
-// Investor only has one screen today — Navrail gets a single item pointing
-// at their persona home. More screens (and a real multi-item Navrail) are
-// deferred to a later session per Fabian's instruction.
-const investorNavItems: DemoNavItem[] = [
-  { to: "/demo/investor", label: "Portfolio", icon: Briefcase, exact: true },
-];
-
 function InvestorHomePage() {
+  const updates = getFeedByKind("project_update");
+  const ranked = getRankedPortfolio();
+  const climbing = ranked.filter((e) => e.performanceDeltaPct > 0).length;
+  const topMover = ranked.slice().sort((a, b) => b.performanceDeltaPct - a.performanceDeltaPct)[0];
+  const topMoverName = topMover ? getProjectById(topMover.projectId)?.name : null;
+
   return (
-    <DemoShell persona="investor" items={investorNavItems}>
-      <InvestorPortfolioScreen />
-    </DemoShell>
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">
+        What moved this week
+      </h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        {climbing} of {ranked.length} projects gained ground
+        {topMoverName ? `, ${topMoverName} furthest` : ""}. Full ranking sits in Portfolio.
+      </p>
+
+      <CardFeed items={updates} config={investorUpdateConfig} />
+    </div>
   );
 }

@@ -1,34 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Briefcase } from "lucide-react";
-import { DemoShell } from "@/components/demo/DemoShell";
-import type { DemoNavItem } from "@/components/demo/DemoNavRail";
-import { InvestorPortfolioScreen } from "@/features/investor-portfolio/InvestorPortfolioScreen";
+// Legacy path kept alive on purpose: the main app's sidebar
+// (src/components/AppSidebarExperimental.tsx) hard-links /demo/investor/portfolio
+// for the investor persona. B4 moved the screen under MicroApps; this redirect
+// keeps that link working rather than shipping a second copy of the screen.
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/demo/investor/portfolio")({
-  head: () => ({
-    meta: [
-      { title: "Portfolio — Xcamp" },
-      {
-        name: "description",
-        content:
-          "Ranked portfolio, project updates, and ecosystem metrics for investors and operators.",
-      },
-    ],
-  }),
-  component: InvestorPortfolioPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/demo/investor/microapps/portfolio" });
+  },
 });
-
-// Investor only has one screen today — Navrail gets a single item pointing
-// at their persona home. More screens (and a real multi-item Navrail) are
-// deferred to a later session per Fabian's instruction.
-const investorNavItems: DemoNavItem[] = [
-  { to: "/demo/investor", label: "Portfolio", icon: Briefcase, exact: true },
-];
-
-function InvestorPortfolioPage() {
-  return (
-    <DemoShell persona="investor" items={investorNavItems}>
-      <InvestorPortfolioScreen />
-    </DemoShell>
-  );
-}

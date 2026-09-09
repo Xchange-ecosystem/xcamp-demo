@@ -1,9 +1,9 @@
-// MicroApps scaffold (Pitch session) — placeholder. My Notes is carried
-// over to a separate future session per that session's scope; this route
-// exists only so the nav item resolves somewhere.
+// Placeholder — My Notes is carried over to a separate future session per
+// the MicroApps scaffold session's scope; this route exists so the nav item
+// resolves somewhere. Migrated off ComingSoonPage to the shared
+// MicroAppPlaceholder in the B4 session — see that component's header.
 import { createFileRoute } from "@tanstack/react-router";
-import { StickyNote } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { MicroAppPlaceholder } from "@/components/demo/MicroAppPlaceholder";
 
 export const Route = createFileRoute("/demo/founder/microapps/notes")({
   head: () => ({ meta: [{ title: "My Notes — Xcamp" }] }),
@@ -12,12 +12,11 @@ export const Route = createFileRoute("/demo/founder/microapps/notes")({
 
 function MicroAppsNotesPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <ComingSoonPage
-        icon={StickyNote}
-        title="My Notes"
-        subtitle="Search, tag, and organize project notes — coming soon."
-      />
-    </div>
+    <MicroAppPlaceholder
+      title="My Notes"
+      what="Holds loose notes that aren't tied to an objective or task yet, and suggests where each one belongs once it firms up."
+      who="Founders capturing something before it has structure."
+      drawsFrom={["Notes", "Tags", "Objectives"]}
+    />
   );
 }

@@ -1,10 +1,9 @@
-// MicroApps scaffold (Pitch session) — placeholder. Evolution is designed
-// (see docs/mockups/pitch-solari-mockup.html's sibling screens) but not
-// built this session; this route exists only so the nav item resolves
-// somewhere.
+// Placeholder — Evolution is designed (see docs/mockups/pitch-solari-mockup.html's
+// sibling screens) but not built; this route exists so the nav item resolves
+// somewhere. Migrated off ComingSoonPage to the shared MicroAppPlaceholder in
+// the B4 session — see that component's header.
 import { createFileRoute } from "@tanstack/react-router";
-import { TrendingUp } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { MicroAppPlaceholder } from "@/components/demo/MicroAppPlaceholder";
 
 export const Route = createFileRoute("/demo/founder/microapps/evolution")({
   head: () => ({ meta: [{ title: "Evolution — Xcamp" }] }),
@@ -13,12 +12,11 @@ export const Route = createFileRoute("/demo/founder/microapps/evolution")({
 
 function MicroAppsEvolutionPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <ComingSoonPage
-        icon={TrendingUp}
-        title="Evolution"
-        subtitle="An AI review of how your Objectives have moved over time — designed, not yet built."
-      />
-    </div>
+    <MicroAppPlaceholder
+      title="Evolution"
+      what="Shows how a project's Objectives have moved over time — what was added, dropped, or reworded, and when."
+      who="Founders checking whether the plan still matches what the project actually became."
+      drawsFrom={["Objective history", "Completion dates", "Quality trend"]}
+    />
   );
 }

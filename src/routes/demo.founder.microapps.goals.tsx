@@ -1,9 +1,9 @@
-// MicroApps scaffold (Pitch session) — placeholder. Goals is carried over
-// to a separate future session per that session's scope; this route
-// exists only so the nav item resolves somewhere.
+// Placeholder — Goals is carried over to a separate future session per the
+// MicroApps scaffold session's scope; this route exists so the nav item
+// resolves somewhere. Migrated off ComingSoonPage to the shared
+// MicroAppPlaceholder in the B4 session — see that component's header.
 import { createFileRoute } from "@tanstack/react-router";
-import { Target } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { MicroAppPlaceholder } from "@/components/demo/MicroAppPlaceholder";
 
 export const Route = createFileRoute("/demo/founder/microapps/goals")({
   head: () => ({ meta: [{ title: "Goals — Xcamp" }] }),
@@ -12,12 +12,11 @@ export const Route = createFileRoute("/demo/founder/microapps/goals")({
 
 function MicroAppsGoalsPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <ComingSoonPage
-        icon={Target}
-        title="Goals"
-        subtitle="Build and refine Objectives with AI assistance — coming soon."
-      />
-    </div>
+    <MicroAppPlaceholder
+      title="Goals"
+      what="Turns a rough intention into a structured Objective — the dimension it moves, and what would count as proof it happened."
+      who="Founders shaping new work before anyone starts on it."
+      drawsFrom={["Objectives", "Dimensions", "Proof requirements"]}
+    />
   );
 }
