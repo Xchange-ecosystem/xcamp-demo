@@ -83,7 +83,7 @@ export function RightColumn() {
   );
 
   return (
-    <aside className="flex w-full max-w-[320px] shrink-0 flex-col gap-6">
+    <aside className="flex min-h-0 w-full max-w-[320px] shrink-0 flex-col gap-6 overflow-y-auto">
       <section>
         <h2 className="mb-2.5 text-sm font-semibold text-muted-foreground">Objective progress</h2>
         <div className="mb-2.5 flex h-2 gap-0.5 overflow-hidden rounded-full">

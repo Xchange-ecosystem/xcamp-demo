@@ -55,7 +55,7 @@ function FounderCompanionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-6">
+    <div className="mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-y-auto px-6 py-6">
       <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">Companion</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         The same Chi, with room to go back and forth. A lighter build for the demo — the full
