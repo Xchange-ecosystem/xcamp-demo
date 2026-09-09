@@ -72,6 +72,8 @@
   --color-skin-good-soft: var(--skin-good-soft);
   --color-skin-bad: var(--skin-bad);
   --color-skin-bad-soft: var(--skin-bad-soft);
+  --color-skin-warn: var(--skin-warn);
+  --color-skin-warn-soft: var(--skin-warn-soft);
 }
 
 /*
@@ -142,9 +144,15 @@
   --skin-good-soft: hsl(142 76% 94%);
   --skin-bad: hsl(0 84% 60%);
   --skin-bad-soft: hsl(0 84% 95%);
+  /* Sober amber for the "stale"/attention state — same family as the
+   * accent/good/bad pairs above (a saturated foreground + a pale wash),
+   * adapted from the reference #9A5B12 / #FBEEDC. Deliberately darker
+   * than the reference so it clears 4.5:1 against both --skin-surface
+   * and --skin-warn-soft with margin (see CC follow-up report). */
+  --skin-warn: hsl(32 79% 32%);
+  --skin-warn-soft: hsl(32 79% 94%);
 
   --success: hsl(142, 76%, 36%);
-  --warning: hsl(38, 92%, 50%);
   --danger: hsl(0, 84%, 60%);
 
   --xr: 6px;
@@ -288,6 +296,11 @@
   --skin-good-soft: hsl(142, 30%, 18%);
   --skin-bad: hsl(8, 80%, 68%);
   --skin-bad-soft: hsl(8, 30%, 18%);
+  /* Same hue as the light warn pair, following the accent/good/bad
+   * pattern of raising L and easing S for a lit foreground, then a low-L
+   * wash for the background. */
+  --skin-warn: hsl(32, 70%, 62%);
+  --skin-warn-soft: hsl(32, 35%, 18%);
 
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);

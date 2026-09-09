@@ -544,7 +544,7 @@ function PersonCard({
             ? selected
               ? "var(--skin-accent)"
               : "transparent"
-            : "var(--skin-warn, #a96a22)",
+            : "var(--skin-warn)",
         }}
       />
       <div className="flex items-center gap-2.5">
@@ -588,7 +588,7 @@ function PersonCard({
               : {
                   background:
                     "var(--skin-accent-wash, color-mix(in oklch, var(--skin-accent) 12%, transparent))",
-                  color: "var(--skin-warn, #a96a22)",
+                  color: "var(--skin-warn)",
                 }
           }
         >
@@ -612,8 +612,7 @@ function PersonCard({
           className="flex-1 rounded-md border px-2.5 py-1.5 text-[13px] outline-none"
           style={{
             background: "var(--skin-surface, var(--card))",
-            borderColor:
-              person.email && !emailValid ? "var(--skin-warn, #a96a22)" : "var(--skin-line)",
+            borderColor: person.email && !emailValid ? "var(--skin-warn)" : "var(--skin-line)",
           }}
         />
       </div>

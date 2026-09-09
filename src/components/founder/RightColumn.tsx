@@ -6,12 +6,21 @@
 // Founder screen to one project would leave most of the Part 2 feed
 // looking orphaned from the Part 3 panel. Scoping both to the same
 // ecosystem-wide view keeps them coherent.
+//
+// CC follow-up (warn-token/demo-scope session): the "Objective progress"
+// bar below is the one exception, scoped to DEMO_FOUNDER_PROJECT_ID and
+// labelled as such — after the Pitch session gave proj-1 a real completed
+// history, this bar showed one project's numbers as if they were
+// ecosystem-wide, which reads as a fabricated portfolio result. The
+// action-item feed above it stays ecosystem-wide per the rationale above;
+// only this bar changed.
 import { AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { avatarColor, initials } from "@/lib/avatarColor";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
-import { OBJECTIVES, TASKS } from "@/fixtures/objectives";
+import { getObjectivesByProject, TASKS } from "@/fixtures/objectives";
+import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
 import type { Task } from "@/fixtures/types";
 import { PEOPLE } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
@@ -44,13 +53,9 @@ const DEMO_WEEK_END = "2026-09-11";
 // only appears once a real task's dueDate falls before DEMO_TODAY.
 type Urgency = "overdue" | "soon" | "upcoming";
 const URGENCY_ORDER: Record<Urgency, number> = { overdue: 0, soon: 1, upcoming: 2 };
-// --skin-warn has no light/dark definition in styles.css (only referenced
-// with a fallback elsewhere, e.g. TranscriptOverlay.tsx) — same amber
-// fallback here so "soon" reads distinctly from "overdue" instead of both
-// resolving to --skin-bad red.
 const URGENCY_STYLE: Record<Urgency, { color: string; label: string }> = {
   overdue: { color: "var(--skin-bad)", label: "Overdue" },
-  soon: { color: "var(--skin-warn, #a96a22)", label: "Due soon" },
+  soon: { color: "var(--skin-warn)", label: "Due soon" },
   upcoming: { color: "var(--skin-ink-faint, var(--muted-foreground))", label: "Upcoming" },
 };
 
@@ -61,11 +66,13 @@ function urgencyOf(dueDate: string): Urgency {
 }
 
 export function RightColumn() {
+  const founderProject = getProjectById(DEMO_FOUNDER_PROJECT_ID);
+  const founderObjectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
   const counts = LABEL_ORDER.map((label) => ({
     label,
-    count: OBJECTIVES.filter((o) => AGREEMENT_LABEL[o.status] === label).length,
+    count: founderObjectives.filter((o) => AGREEMENT_LABEL[o.status] === label).length,
   })).filter((c) => c.count > 0);
-  const total = OBJECTIVES.length;
+  const total = founderObjectives.length;
 
   const risks: (Task & { urgency: Urgency })[] = TASKS.filter(
     (t) => t.status === "active" && t.priority === "high" && t.dueDate,
@@ -103,7 +110,7 @@ export function RightColumn() {
             </div>
           ))}
           <div className="pt-0.5 text-[11px] text-muted-foreground">
-            {total} objectives across the ecosystem
+            {total} objectives for {founderProject?.name ?? "this project"}
           </div>
         </div>
       </section>

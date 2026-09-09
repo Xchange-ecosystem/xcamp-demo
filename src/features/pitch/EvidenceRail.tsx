@@ -66,7 +66,7 @@ export const EvidenceRow = forwardRef<
         <span
           aria-hidden
           className="h-[5px] w-[5px] shrink-0 rounded-full"
-          style={{ background: source.warm ? "var(--skin-ink-faint)" : "var(--skin-accent)" }}
+          style={{ background: source.warm ? "var(--skin-warn)" : "var(--skin-accent)" }}
         />
         {proofLabel}
       </span>
