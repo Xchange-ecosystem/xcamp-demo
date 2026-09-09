@@ -24,16 +24,25 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
       <RightPanelProvider>
         <CompanionRailProvider>
           <SidebarProvider defaultOpen={false}>
-            <div className="flex min-h-screen w-full" style={{ background: "var(--skin-bg)" }}>
+            <div
+              className="flex h-screen w-full overflow-hidden"
+              style={{ background: "var(--skin-bg)" }}
+            >
               <DemoNavRail persona={persona} items={items} />
 
               {/* Inset content area — muted page background behind, actual
                   screen content floats in a rounded surface card with
                   margin on all sides (Chromebook-file-browser-style inset),
                   not full-bleed. */}
-              <div className="flex min-h-screen min-w-0 flex-1 flex-col p-6 lg:p-8">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col p-6 lg:p-8">
+                {/* Sizing/clipping shell only — NOT the scroll container.
+                    Each route owns its own scroll region(s) (one for a
+                    single-column screen, two for a split like Founder
+                    Home's main content + right column) so independently
+                    scrolling regions don't nest inside a second scroller
+                    here, which would just drag them together again. */}
                 <div
-                  className="min-h-0 flex-1 overflow-y-auto"
+                  className="flex min-h-0 flex-1 flex-col overflow-hidden"
                   style={{
                     background: "var(--skin-surface)",
                     borderRadius: "var(--skin-radius-lg, 22px)",

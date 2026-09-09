@@ -46,7 +46,9 @@ export function InvestorPortfolioScreen() {
       style={{
         display: "flex",
         flexDirection: "column",
-        minHeight: "100%",
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
         background: "var(--skin-bg)",
       }}
     >
