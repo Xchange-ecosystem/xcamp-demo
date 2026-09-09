@@ -11,6 +11,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Redesign the controller board for 30% lower unit cost.",
     status: "in_progress",
     sortOrder: 0,
+    dimension: "Product",
+    completedAt: null,
+    proofCount: 3,
+    evaluationPct: null,
   },
   {
     id: "obj-2",
@@ -19,6 +23,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Land the 50-site pilot agreement.",
     status: "open",
     sortOrder: 1,
+    dimension: "Market",
+    completedAt: null,
+    proofCount: 2,
+    evaluationPct: null,
   },
   {
     id: "obj-3",
@@ -27,6 +35,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Pass UL 1974 certification for reused cell packs.",
     status: "in_progress",
     sortOrder: 0,
+    dimension: "Operations",
+    completedAt: null,
+    proofCount: 6,
+    evaluationPct: null,
   },
   {
     id: "obj-4",
@@ -35,6 +47,10 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "open",
     sortOrder: 1,
+    dimension: "Market",
+    completedAt: null,
+    proofCount: 1,
+    evaluationPct: null,
   },
   {
     id: "obj-5",
@@ -43,6 +59,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Stable release with ARM + RISC-V support.",
     status: "in_progress",
     sortOrder: 0,
+    dimension: "Product",
+    completedAt: null,
+    proofCount: 5,
+    evaluationPct: null,
   },
   {
     id: "obj-6",
@@ -51,6 +71,10 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "open",
     sortOrder: 1,
+    dimension: "Market",
+    completedAt: null,
+    proofCount: 2,
+    evaluationPct: null,
   },
   {
     id: "obj-7",
@@ -59,6 +83,10 @@ export const OBJECTIVES: Objective[] = [
     description: "De-risk the drag-and-drop model graph editor.",
     status: "suggested",
     sortOrder: 0,
+    dimension: "Product",
+    completedAt: null,
+    proofCount: 0,
+    evaluationPct: null,
   },
   {
     id: "obj-8",
@@ -67,6 +95,10 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "open",
     sortOrder: 1,
+    dimension: "Business",
+    completedAt: null,
+    proofCount: 1,
+    evaluationPct: null,
   },
   {
     id: "obj-9",
@@ -75,6 +107,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Finish clinical data package for the sensor.",
     status: "in_progress",
     sortOrder: 0,
+    dimension: "Operations",
+    completedAt: null,
+    proofCount: 7,
+    evaluationPct: null,
   },
   {
     id: "obj-10",
@@ -83,6 +119,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Personalized nudges based on glucose trend data.",
     status: "in_progress",
     sortOrder: 1,
+    dimension: "Product",
+    completedAt: null,
+    proofCount: 4,
+    evaluationPct: null,
   },
   {
     id: "obj-11",
@@ -91,6 +131,10 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "open",
     sortOrder: 0,
+    dimension: "Market",
+    completedAt: null,
+    proofCount: 2,
+    evaluationPct: null,
   },
   {
     id: "obj-12",
@@ -99,6 +143,10 @@ export const OBJECTIVES: Objective[] = [
     description: "Roll-up view of patient adherence and alerts.",
     status: "in_progress",
     sortOrder: 1,
+    dimension: "Product",
+    completedAt: null,
+    proofCount: 3,
+    evaluationPct: null,
   },
   {
     id: "obj-13",
@@ -107,6 +155,10 @@ export const OBJECTIVES: Objective[] = [
     description: "4-week autonomous inspection trial with Ørsted.",
     status: "in_progress",
     sortOrder: 0,
+    dimension: "Operations",
+    completedAt: null,
+    proofCount: 8,
+    evaluationPct: null,
   },
   {
     id: "obj-14",
@@ -115,6 +167,10 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "open",
     sortOrder: 1,
+    dimension: "Business",
+    completedAt: null,
+    proofCount: 0,
+    evaluationPct: null,
   },
   {
     id: "obj-15",
@@ -123,6 +179,10 @@ export const OBJECTIVES: Objective[] = [
     description: "General availability for existing hardware customers.",
     status: "done",
     sortOrder: 0,
+    dimension: "Product",
+    completedAt: "2026-07-18",
+    proofCount: 9,
+    evaluationPct: 88,
   },
   {
     id: "obj-16",
@@ -131,6 +191,89 @@ export const OBJECTIVES: Objective[] = [
     description: null,
     status: "done",
     sortOrder: 1,
+    dimension: "Business",
+    completedAt: "2026-07-10",
+    proofCount: 6,
+    evaluationPct: 82,
+  },
+  // Added this session (Pitch, Solari Energy) — proj-1 previously had two
+  // objectives and zero completed, which is why Pitch had nothing to
+  // compose from. These six give Pitch/Readiness/Evolution a real
+  // completed history to read. See docs/mockups/pitch-solari-mockup.html's
+  // header comment for the proposal this implements.
+  {
+    id: "obj-17",
+    projectId: "proj-1",
+    title: "Validate demand across three rural counties",
+    description:
+      "Surveyed 340 households across three Kenyan counties to confirm willingness to pay.",
+    status: "done",
+    sortOrder: 2,
+    dimension: "Market",
+    completedAt: "2026-06-14",
+    proofCount: 9,
+    evaluationPct: 91,
+  },
+  {
+    id: "obj-18",
+    projectId: "proj-1",
+    title: "Complete twelve-site field deployment",
+    description: "Twelve sites live for nine months with 99.1% controller uptime.",
+    status: "done",
+    sortOrder: 3,
+    dimension: "Operations",
+    completedAt: "2026-07-22",
+    proofCount: 14,
+    evaluationPct: 89,
+  },
+  {
+    id: "obj-19",
+    projectId: "proj-1",
+    title: "Model unit economics at 500-site scale",
+    description: "Modeled payback period and margin at 500-site deployment scale.",
+    status: "done",
+    sortOrder: 4,
+    dimension: "Business",
+    completedAt: "2026-08-03",
+    proofCount: 5,
+    evaluationPct: 84,
+  },
+  {
+    id: "obj-20",
+    projectId: "proj-1",
+    title: "Map the operator procurement path",
+    description: "Mapped the fourteen licensed operators and Kenya Power's procurement process.",
+    status: "done",
+    sortOrder: 5,
+    dimension: "Market",
+    completedAt: "2026-08-19",
+    proofCount: 6,
+    evaluationPct: 78,
+  },
+  {
+    id: "obj-21",
+    projectId: "proj-1",
+    title: "Secure ISO 9001 manufacturing partner",
+    description: "Qualified a contract manufacturer against ISO 9001 for the v2 controller.",
+    status: "done",
+    sortOrder: 6,
+    dimension: "Operations",
+    completedAt: "2026-08-28",
+    proofCount: 4,
+    evaluationPct: 85,
+  },
+  {
+    id: "obj-22",
+    projectId: "proj-1",
+    title: "Contribution and evaluation record",
+    description:
+      "Ongoing collaborator contributions and assessor evaluations against this project.",
+    status: "in_progress",
+    sortOrder: 7,
+    dimension: "Team",
+    completedAt: null,
+    proofCount: 11,
+    evaluationPct: null,
   },
 ];
 
@@ -460,6 +603,10 @@ export function getObjectivesByProject(projectId: string): Objective[] {
   return OBJECTIVES.filter((o) => o.projectId === projectId).sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
+}
+
+export function getObjectiveById(objectiveId: string): Objective | undefined {
+  return OBJECTIVES.find((o) => o.id === objectiveId);
 }
 
 export function getTasksByObjective(objectiveId: string): Task[] {

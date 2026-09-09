@@ -36,6 +36,11 @@ export interface Project {
 
 export type ObjectiveStatus = "open" | "in_progress" | "done" | "suggested";
 
+/** Which part of the business an Objective moves — real concept in the
+ *  objectives/proof model (an objective already belongs to one area of the
+ *  business in production), just not previously modeled in this fixture. */
+export type ObjectiveDimension = "Market" | "Product" | "Operations" | "Business" | "Team";
+
 export interface Objective {
   id: string;
   projectId: string;
@@ -43,6 +48,16 @@ export interface Objective {
   description: string | null;
   status: ObjectiveStatus;
   sortOrder: number;
+  /** Real concept (objectives.dimension), not previously modeled here. */
+  dimension: ObjectiveDimension;
+  completedAt: string | null; // ISO date; null unless status === "done"
+  /** Real concept (count of filed proof/evidence rows against this
+   *  objective), not previously modeled here. */
+  proofCount: number;
+  /** Assessor score 0-100; null if uncertified. Anticipates evaluation
+   *  storage that is not yet settled in production — no production
+   *  analog exists for this field yet. */
+  evaluationPct: number | null;
 }
 
 export type TaskStatus = "inactive" | "active" | "completed";
