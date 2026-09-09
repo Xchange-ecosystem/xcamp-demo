@@ -234,6 +234,7 @@ function DealCard({
         {stage === "shortlist" && (
           <Link
             to="/demo/investor/microapps/data-room"
+            search={{ project: project.id }}
             style={{
               marginTop: 6,
               display: "inline-flex",

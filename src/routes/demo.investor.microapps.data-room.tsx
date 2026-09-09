@@ -1,21 +1,26 @@
-// B4 Stage 3 target — replaced by the Data Room build, which Club Deal
-// Finder's Shortlist stage links into. Placeholder only so the nav item
-// resolves at the Stage 1 checkpoint.
 import { createFileRoute } from "@tanstack/react-router";
-import { MicroAppPlaceholder } from "@/components/demo/MicroAppPlaceholder";
+import { DataRoomScreen } from "@/features/data-room/DataRoomScreen";
 
+// ?project=<id> deep-links from a shortlisted Club Deal Finder card. Validated
+// rather than trusted: an unknown or locked id just falls back to the first
+// unlocked room (see DataRoomScreen), so a stale link never lands on an error.
 export const Route = createFileRoute("/demo/investor/microapps/data-room")({
-  head: () => ({ meta: [{ title: "Data Room — Xcamp" }] }),
+  validateSearch: (search: Record<string, unknown>): { project?: string } => ({
+    ...(typeof search.project === "string" ? { project: search.project } : {}),
+  }),
+  head: () => ({
+    meta: [
+      { title: "Data Room — Xcamp" },
+      {
+        name: "description",
+        content: "Evidence filed against each objective, for projects you have shortlisted.",
+      },
+    ],
+  }),
   component: DataRoomPage,
 });
 
 function DataRoomPage() {
-  return (
-    <MicroAppPlaceholder
-      title="Data Room"
-      what="Opens the documents and evidence behind a project once you have shortlisted it, in one place rather than across a thread."
-      who="Investors who have moved past a first look and need the underlying material."
-      drawsFrom={["Proof artifacts", "Objectives", "Evaluations"]}
-    />
-  );
+  const { project } = Route.useSearch();
+  return <DataRoomScreen initialProjectId={project} />;
 }

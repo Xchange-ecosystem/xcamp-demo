@@ -23,3 +23,4 @@ export * from "./wallet";
 export * from "./assignments";
 export * from "./pitch";
 export * from "./clubDeals";
+export * from "./dataRoom";
