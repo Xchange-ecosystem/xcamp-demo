@@ -50,6 +50,14 @@ export interface Objective {
   sortOrder: number;
   /** Real concept (objectives.dimension), not previously modeled here. */
   dimension: ObjectiveDimension;
+  /** ISO date the objective first entered "in_progress"; null if it never
+   *  has (status "open"/"suggested"). Fixture-only — production tracks
+   *  status transitions rather than storing a start date on the row. */
+  startedAt: string | null;
+  /** ISO date the objective was last touched — a status change, a proof
+   *  filing, or an evaluation. Mirrors production `objectives.updated_at`.
+   *  Always at or after `startedAt` and `completedAt`. */
+  updatedAt: string;
   completedAt: string | null; // ISO date; null unless status === "done"
   /** Real concept (count of filed proof/evidence rows against this
    *  objective), not previously modeled here. */
@@ -58,6 +66,26 @@ export interface Objective {
    *  storage that is not yet settled in production — no production
    *  analog exists for this field yet. */
   evaluationPct: number | null;
+}
+
+/** One recorded movement on an Objective — the history behind the single
+ *  current `Objective.status`. Fixture-only: production derives objective
+ *  history from audit rows rather than storing a typed event table, so this
+ *  is P1's stand-in for that history, same disclaimer as portfolio.ts.
+ *
+ *  Convention: an event where `from === to` records movement that did NOT
+ *  change status — a resume after a stall, a re-scope, or a late finding
+ *  filed against already-closed work. It is not a data error. A stall is
+ *  therefore readable as the gap between two consecutive `at` values, not
+ *  as an event of its own. */
+export interface ObjectiveEvent {
+  id: string;
+  objectiveId: string;
+  at: string; // ISO date
+  from: ObjectiveStatus | null; // null for the creation event
+  to: ObjectiveStatus;
+  actorId: string | null; // Person.id
+  note: string | null; // short human line, e.g. why it was re-opened
 }
 
 export type TaskStatus = "inactive" | "active" | "completed";
@@ -71,6 +99,10 @@ export interface Task {
   status: TaskStatus;
   assigneeId: string | null; // Person.id — a collaborator
   dueDate: string | null; // ISO date
+  /** ISO date the task was actually finished; null unless `done`. Distinct
+   *  from `dueDate`, which is the deadline. Mirrors the production `notes`
+   *  row's `end_date` for note_type='task'. */
+  completedAt: string | null;
   priority: "low" | "medium" | "high";
 }
 
