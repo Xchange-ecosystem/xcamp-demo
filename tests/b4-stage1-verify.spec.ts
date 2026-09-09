@@ -85,21 +85,41 @@ const SCREENS: Screen[] = [
   },
 ];
 
+// The one legitimate off-app origin: the webfont <link> in index.html, which
+// is app-wide chrome predating all of this and is a static asset CDN, not a
+// backend. It is allowlisted by exact host rather than ignored, so a request
+// to anywhere else still fails the screen.
+const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
+
 // Anything that is not the local dev server is a backend call we do not want.
 // Vite's own HMR/module requests are all localhost, so this is a clean cut.
 function isOffAppRequest(req: Request): boolean {
   const url = req.url();
   if (url.startsWith("data:") || url.startsWith("blob:")) return false;
+  if (FONT_HOSTS.test(url)) return false;
   return !/^https?:\/\/(localhost|127\.0\.0\.1):5173\//.test(url);
+}
+
+// Separate, stricter net: the specific things this brief forbids. Kept apart
+// from isOffAppRequest so a failure names what it caught. The dummy Supabase
+// host from .env is included — a real call would resolve there and nowhere
+// else, so this catches it even though the request would also fail on its own.
+const BACKEND_PATTERNS =
+  /supabase|demo-verification\.invalid|\/auth\/v1|\/rest\/v1|\/rpc\/|\/functions\/v1/i;
+
+function isBackendRequest(req: Request): boolean {
+  return BACKEND_PATTERNS.test(req.url());
 }
 
 test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
   for (const screen of SCREENS) {
     test(`${screen.name} renders with no off-app network`, async ({ page }, testInfo) => {
       const offApp: string[] = [];
+      const backend: string[] = [];
       const pageErrors: string[] = [];
 
       page.on("request", (req) => {
+        if (isBackendRequest(req)) backend.push(`${req.method()} ${req.url()}`);
         if (isOffAppRequest(req)) offApp.push(`${req.method()} ${req.url()}`);
       });
       page.on("pageerror", (err) => pageErrors.push(String(err)));
@@ -121,8 +141,9 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
         contentType: "image/png",
       });
 
-      expect(pageErrors, `${screen.path} console errors`).toEqual([]);
+      expect(backend, `${screen.path} reached a backend`).toEqual([]);
       expect(offApp, `${screen.path} made off-app requests`).toEqual([]);
+      expect(pageErrors, `${screen.path} console errors`).toEqual([]);
     });
   }
 
@@ -140,7 +161,9 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
 
   test("Peer tile opens the user sidepanel with no backend call", async ({ page }) => {
     const offApp: string[] = [];
+    const backend: string[] = [];
     page.on("request", (req) => {
+      if (isBackendRequest(req)) backend.push(`${req.method()} ${req.url()}`);
       if (isOffAppRequest(req)) offApp.push(`${req.method()} ${req.url()}`);
     });
 
@@ -150,6 +173,7 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
     // UserProfileContent is the "user"-kind branch of ItemSidepanel.
     await expect(page.getByText("Viewing profile")).toBeVisible();
     await expect(page.getByText("Bio")).toBeVisible();
+    expect(backend, "sidepanel user-kind reached a backend").toEqual([]);
     expect(offApp, "sidepanel user-kind made off-app requests").toEqual([]);
   });
 });
