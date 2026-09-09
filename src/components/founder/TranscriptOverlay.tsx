@@ -17,6 +17,7 @@ import {
   type ExtractedPerson,
 } from "@/lib/transcripts-api";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { avatarColor } from "@/lib/avatarColor";
 import type { TranscriptFile } from "./ComposerModes";
 
 const PIPE_STEPS = ["Extract", "Review", "Preview", "Send"] as const;
@@ -549,8 +550,8 @@ function PersonCard({
           <span
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold"
             style={{
-              background: "var(--skin-surface, var(--card))",
-              border: "1px solid var(--skin-line)",
+              background: avatarColor(person.name).bg,
+              color: avatarColor(person.name).fg,
             }}
           >
             {person.initials}

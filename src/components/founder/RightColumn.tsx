@@ -9,8 +9,10 @@
 import { AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { avatarColor, initials } from "@/lib/avatarColor";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
 import { OBJECTIVES, TASKS } from "@/fixtures/objectives";
+import type { Task } from "@/fixtures/types";
 import { PEOPLE } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
 
@@ -37,13 +39,25 @@ const LABEL_COLOR: Record<string, string> = {
 const DEMO_TODAY = "2026-09-04";
 const DEMO_WEEK_END = "2026-09-11";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+// Urgency coloring (P1-CORR visual cues) — derived from Task.dueDate, the
+// real field this fixture already carries, not an invented one. "Overdue"
+// only appears once a real task's dueDate falls before DEMO_TODAY.
+type Urgency = "overdue" | "soon" | "upcoming";
+const URGENCY_ORDER: Record<Urgency, number> = { overdue: 0, soon: 1, upcoming: 2 };
+// --skin-warn has no light/dark definition in styles.css (only referenced
+// with a fallback elsewhere, e.g. TranscriptOverlay.tsx) — same amber
+// fallback here so "soon" reads distinctly from "overdue" instead of both
+// resolving to --skin-bad red.
+const URGENCY_STYLE: Record<Urgency, { color: string; label: string }> = {
+  overdue: { color: "var(--skin-bad)", label: "Overdue" },
+  soon: { color: "var(--skin-warn, #a96a22)", label: "Due soon" },
+  upcoming: { color: "var(--skin-ink-faint, var(--muted-foreground))", label: "Upcoming" },
+};
+
+function urgencyOf(dueDate: string): Urgency {
+  if (dueDate < DEMO_TODAY) return "overdue";
+  if (dueDate <= DEMO_WEEK_END) return "soon";
+  return "upcoming";
 }
 
 export function RightColumn() {
@@ -53,15 +67,14 @@ export function RightColumn() {
   })).filter((c) => c.count > 0);
   const total = OBJECTIVES.length;
 
-  const risks = TASKS.filter(
-    (t) =>
-      t.status === "active" &&
-      t.priority === "high" &&
-      t.dueDate &&
-      t.dueDate >= DEMO_TODAY &&
-      t.dueDate <= DEMO_WEEK_END,
+  const risks: (Task & { urgency: Urgency })[] = TASKS.filter(
+    (t) => t.status === "active" && t.priority === "high" && t.dueDate,
   )
-    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
+    .map((t) => ({ ...t, urgency: urgencyOf(t.dueDate!) }))
+    .sort(
+      (a, b) =>
+        URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency] || a.dueDate!.localeCompare(b.dueDate!),
+    )
     .slice(0, 3);
 
   const people = PEOPLE.filter((p) => p.role === "investor" || p.role === "collaborator").slice(
@@ -133,11 +146,12 @@ export function RightColumn() {
       <section>
         <h2 className="mb-2.5 text-sm font-semibold text-muted-foreground">Worth your attention</h2>
         {risks.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing high-priority due this week.</p>
+          <p className="text-xs text-muted-foreground">Nothing high-priority to flag right now.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {risks.map((task) => {
               const project = getProjectById(task.projectId);
+              const style = URGENCY_STYLE[task.urgency];
               return (
                 <div
                   key={task.id}
@@ -147,10 +161,15 @@ export function RightColumn() {
                   <AlertTriangle
                     size={15}
                     className="mt-0.5 shrink-0"
-                    style={{ color: "var(--skin-warn, var(--skin-bad))" }}
+                    style={{ color: style.color }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    <b className="block text-foreground">{task.title}</b>
+                    <span className="flex items-center gap-1.5">
+                      <b className="text-foreground">{task.title}</b>
+                      <span className="font-medium" style={{ color: style.color }}>
+                        {style.label}
+                      </span>
+                    </span>
                     {project?.name} · due {task.dueDate}
                   </p>
                 </div>
@@ -172,7 +191,15 @@ export function RightColumn() {
               style={{ borderBottom: "1px solid var(--skin-line-soft, var(--skin-line))" }}
             >
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-[11px]">{initials(p.displayName)}</AvatarFallback>
+                <AvatarFallback
+                  className="text-[11px]"
+                  style={{
+                    background: avatarColor(p.displayName).bg,
+                    color: avatarColor(p.displayName).fg,
+                  }}
+                >
+                  {initials(p.displayName)}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <div className="text-sm font-semibold text-foreground">{p.displayName}</div>

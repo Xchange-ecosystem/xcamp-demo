@@ -92,6 +92,9 @@ export function ProjectSelectorStrip({
           >
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 fontSize: 13,
                 fontWeight: 600,
                 color: "var(--skin-ink)",
@@ -100,6 +103,16 @@ export function ProjectSelectorStrip({
                 minHeight: 34,
               }}
             >
+              <span
+                aria-hidden
+                style={{
+                  width: 8,
+                  height: 8,
+                  flexShrink: 0,
+                  borderRadius: "50%",
+                  background: project.color,
+                }}
+              />
               {project.name}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>

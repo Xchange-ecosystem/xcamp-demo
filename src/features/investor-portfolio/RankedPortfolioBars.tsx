@@ -24,6 +24,7 @@ const AUTOPLAY_DELAY_MS = 900;
 interface Row {
   projectId: string;
   name: string;
+  color: string;
   scores: number[]; // 8 weekly values, oldest first
 }
 
@@ -33,6 +34,7 @@ function buildRows(): Row[] {
     return {
       projectId: entry.projectId,
       name: project?.name ?? entry.projectId,
+      color: project?.color ?? "var(--skin-ink-faint)",
       scores: entry.scores,
     };
   });
@@ -315,15 +317,27 @@ export function RankedPortfolioBars({
                   style={{
                     width: 206,
                     flexShrink: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
                     fontSize: 13.5,
                     fontWeight: selected ? 700 : 500,
                     color: "var(--skin-ink)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
                   }}
                 >
-                  {row.name}
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 8,
+                      height: 8,
+                      flexShrink: 0,
+                      borderRadius: "50%",
+                      background: row.color,
+                    }}
+                  />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
                 </span>
                 <span
                   style={{
