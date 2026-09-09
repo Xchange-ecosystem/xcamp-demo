@@ -164,7 +164,14 @@
   --skin-font-body: "IBM Plex Sans", system-ui, sans-serif;
   --skin-duration: 150ms;
   --skin-label-transform: uppercase;
+  /* "Gravity" — the sober register for binding, contractual states, where the
+   * skin deliberately stops being cheerful (see the Objectives design
+   * philosophy: gravity overrides skin). --gravity-bg was declared here long
+   * before anything used it; B4's Club Deal Finder is the first consumer, and
+   * added the ink/line siblings plus the dark-mode values it needs. */
   --gravity-bg: #f5eefc;
+  --gravity-line: hsl(280 30% 82%);
+  --gravity-ink: hsl(280 25% 28%);
 
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -291,6 +298,11 @@
 
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+
+  /* ── Gravity tokens — dark overrides ── */
+  --gravity-bg: hsl(280 22% 14%);
+  --gravity-line: hsl(280 20% 30%);
+  --gravity-ink: hsl(280 25% 88%);
 
   /* ── Item type tokens — dark overrides ── */
   --item-objective: oklch(0.42 0.18 290);

@@ -36,6 +36,10 @@ export interface Project {
 
 export type ObjectiveStatus = "open" | "in_progress" | "done" | "suggested";
 
+/** Club Deal Finder pipeline stage (B4). P1-only — no production analog; see
+ *  src/fixtures/clubDeals.ts for what each stage means. */
+export type ClubDealStage = "watchlist" | "shortlist" | "deciding" | "committed";
+
 /** Which part of the business an Objective moves — real concept in the
  *  objectives/proof model (an objective already belongs to one area of the
  *  business in production), just not previously modeled in this fixture. */
@@ -58,6 +62,16 @@ export interface Objective {
    *  storage that is not yet settled in production — no production
    *  analog exists for this field yet. */
   evaluationPct: number | null;
+  /** Whether this objective's completion was signed off under four-eyes /
+   *  external assessment, rather than self-attested. The investor-facing
+   *  credibility badge in the Objectives redesign spec (§8.4: "display
+   *  four-eyes / external-assessor as a credibility badge on completion —
+   *  the artifact the investor/auditor audience cares about").
+   *
+   *  Optional: only ever true on completed, evaluated objectives, and absent
+   *  everywhere else, so nothing that already reads Objective has to change.
+   *  No production analog yet, same status as evaluationPct. */
+  hasExternalAssessor?: boolean;
 }
 
 export type TaskStatus = "inactive" | "active" | "completed";

@@ -3,7 +3,13 @@
 // reachable from this session (out of GitHub scope for this repo set — see
 // P1.1 session report's Part 5 findings), so this is a compact grouped-list
 // read of the shared fixtures rather than a port of that component.
+//
+// B4: the column layout that used to be inlined here now lives in
+// NavigatorBoard, shared with the Investor Navigator and Club Deal Finder.
+// Cards moved onto the --xr radius family at the same time, matching the rest
+// of the demo's card-scale work.
 import { createFileRoute } from "@tanstack/react-router";
+import { NavigatorBoard, type BoardColumn } from "@/components/demo/NavigatorBoard";
 import { OBJECTIVES } from "@/fixtures/objectives";
 import { getProjectById } from "@/fixtures/projects";
 import type { ObjectiveStatus } from "@/fixtures/types";
@@ -21,6 +27,31 @@ const COLUMNS: { status: ObjectiveStatus; label: string }[] = [
 ];
 
 function FounderNavigatorPage() {
+  const columns: BoardColumn[] = COLUMNS.map((col) => {
+    const objectives = OBJECTIVES.filter((o) => o.status === col.status);
+    return {
+      key: col.status,
+      label: col.label,
+      count: objectives.length,
+      children: objectives.map((o) => (
+        <div
+          key={o.id}
+          className="p-3"
+          style={{
+            border: "1px solid var(--skin-line)",
+            borderRadius: "var(--xr-lg, 10px)",
+            background: "var(--skin-surface)",
+          }}
+        >
+          <b className="block text-sm font-semibold text-foreground">{o.title}</b>
+          <small className="text-xs text-muted-foreground">
+            {getProjectById(o.projectId)?.name}
+          </small>
+        </div>
+      )),
+    };
+  });
+
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">Navigator</h1>
@@ -28,35 +59,7 @@ function FounderNavigatorPage() {
         Every objective across your projects, grouped by where it sits in the lifecycle.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {COLUMNS.map((col) => {
-          const objectives = OBJECTIVES.filter((o) => o.status === col.status);
-          return (
-            <div key={col.status}>
-              <h3 className="mb-2 text-xs font-semibold text-muted-foreground">
-                {col.label} <span className="font-normal">({objectives.length})</span>
-              </h3>
-              <div className="flex flex-col gap-2">
-                {objectives.map((o) => (
-                  <div
-                    key={o.id}
-                    className="rounded-md border p-3"
-                    style={{ borderColor: "var(--skin-line)" }}
-                  >
-                    <b className="block text-sm font-semibold text-foreground">{o.title}</b>
-                    <small className="text-xs text-muted-foreground">
-                      {getProjectById(o.projectId)?.name}
-                    </small>
-                  </div>
-                ))}
-                {objectives.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Nothing here.</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <NavigatorBoard columns={columns} />
     </div>
   );
 }

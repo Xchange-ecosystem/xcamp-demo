@@ -3,12 +3,13 @@
 //
 // Two things this proves, which a source read cannot:
 //   1. every route renders (no 404, no error boundary, no thrown render)
-//   2. no screen reaches a backend — Supabase, the auth endpoints, or any
-//      non-localhost origin at all
+//   2. no screen reaches a backend
 //
 // Written for the B4 session's standing rule: live-verify unauthenticated with
-// network logging before calling anything done.
-import { expect, test, type Request } from "@playwright/test";
+// network logging before calling anything done. Guards live in ./net-guards so
+// the Stage 2 spec asserts against exactly the same definitions.
+import { expect, test } from "@playwright/test";
+import { RENDER_TIMEOUT, isBackendRequest, isOffAppRequest, isRealPageError } from "./net-guards";
 
 interface Screen {
   path: string;
@@ -85,52 +86,6 @@ const SCREENS: Screen[] = [
   },
 ];
 
-// The one legitimate off-app origin: the webfont <link> in index.html, which
-// is app-wide chrome predating all of this and is a static asset CDN, not a
-// backend. It is allowlisted by exact host rather than ignored, so a request
-// to anywhere else still fails the screen.
-const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
-
-// Vite serves this app's modules uncompiled and transforms on demand; in this
-// container a cold route takes ~25s to first paint. That is an environment
-// property, not something the screens control, so the render gate is generous
-// rather than tight — a genuinely broken screen still fails, it just takes
-// longer to say so.
-const RENDER_TIMEOUT = 60_000;
-
-// Anything that is not the local dev server is a backend call we do not want.
-// Vite's own HMR/module requests are all localhost, so this is a clean cut.
-function isOffAppRequest(req: Request): boolean {
-  const url = req.url();
-  if (url.startsWith("data:") || url.startsWith("blob:")) return false;
-  if (FONT_HOSTS.test(url)) return false;
-  return !/^https?:\/\/(localhost|127\.0\.0\.1):5173\//.test(url);
-}
-
-// Separate, stricter net: the specific things this brief forbids. Kept apart
-// from isOffAppRequest so a failure names what it caught. The dummy Supabase
-// host from .env is included — a real call would resolve there and nowhere
-// else, so this catches it even though the request would also fail on its own.
-const BACKEND_PATTERNS =
-  /supabase|demo-verification\.invalid|\/auth\/v1|\/rest\/v1|\/rpc\/|\/functions\/v1/i;
-
-// Requests to the dev server itself are module loads, not backend traffic.
-// Vite serves source by path, so /src/lib/supabase.ts and the
-// @supabase_supabase-js dep bundle both come back as localhost GETs whose
-// URLs contain "supabase" — they mean the module was imported, not that
-// anything was queried. Excluding localhost here is what makes this check
-// mean "talked to a backend" rather than "loaded a file with that name".
-//
-// The import itself is real and worth knowing about (DemoShell mounts
-// ItemSidepanel, which statically imports @/lib/supabase, which is why the
-// demo cannot boot without Supabase env vars) — but that is a bundling
-// coupling, not a network call, and this assertion is about the latter.
-function isBackendRequest(req: Request): boolean {
-  const url = req.url();
-  if (/^https?:\/\/(localhost|127\.0\.0\.1):5173\//.test(url)) return false;
-  return BACKEND_PATTERNS.test(url);
-}
-
 test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
   for (const screen of SCREENS) {
     test(`${screen.name} renders with no off-app network`, async ({ page }, testInfo) => {
@@ -143,12 +98,7 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
         if (isOffAppRequest(req)) offApp.push(`${req.method()} ${req.url()}`);
       });
       page.on("pageerror", (err) => {
-        const text = String(err);
-        // A blocked <link rel="stylesheet"> surfaces here as a bare "Event"
-        // rather than a JS exception. This sandbox has no route to the webfont
-        // CDN, so that fires on every page and means nothing about the app.
-        if (text === "Event" || text === "[object Event]") return;
-        pageErrors.push(text);
+        if (isRealPageError(err)) pageErrors.push(String(err));
       });
 
       const response = await page.goto(screen.path, { waitUntil: "domcontentloaded" });

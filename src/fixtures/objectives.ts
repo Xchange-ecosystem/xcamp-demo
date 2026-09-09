@@ -213,6 +213,7 @@ export const OBJECTIVES: Objective[] = [
     completedAt: "2026-06-14",
     proofCount: 9,
     evaluationPct: 91,
+    hasExternalAssessor: true,
   },
   {
     id: "obj-18",
@@ -225,6 +226,7 @@ export const OBJECTIVES: Objective[] = [
     completedAt: "2026-07-22",
     proofCount: 14,
     evaluationPct: 89,
+    hasExternalAssessor: true,
   },
   {
     id: "obj-19",
@@ -261,6 +263,7 @@ export const OBJECTIVES: Objective[] = [
     completedAt: "2026-08-28",
     proofCount: 4,
     evaluationPct: 85,
+    hasExternalAssessor: true,
   },
   {
     id: "obj-22",
@@ -596,6 +599,102 @@ export const TASKS: Task[] = [
     assigneeId: "person-10",
     dueDate: "2026-07-10",
     priority: "medium",
+  },
+  // Added this session (B4, Due Diligence) — obj-17..22 arrived with the Pitch
+  // session carrying proof counts and evaluations but no task rows, so nothing
+  // recorded *who* did the work. Due Diligence's "who contributed what" panel
+  // reads contributors from TASKS, so without these it would have shown three
+  // people against the two objectives that were never completed, next to a
+  // timeline of five that were. Same reasoning the Pitch session used when it
+  // added the objectives themselves. All done, dated to sit just before their
+  // objective's completedAt, and spread across a real roster.
+  {
+    id: "task-30",
+    objectiveId: "obj-17",
+    projectId: "proj-1",
+    title: "Run the 340-household willingness-to-pay survey",
+    done: true,
+    status: "completed",
+    assigneeId: "person-8",
+    dueDate: "2026-06-02",
+    priority: "high",
+  },
+  {
+    id: "task-31",
+    objectiveId: "obj-17",
+    projectId: "proj-1",
+    title: "Code and write up the county-level survey results",
+    done: true,
+    status: "completed",
+    assigneeId: "person-7",
+    dueDate: "2026-06-11",
+    priority: "medium",
+  },
+  {
+    id: "task-32",
+    objectiveId: "obj-18",
+    projectId: "proj-1",
+    title: "Instrument all twelve sites for uptime telemetry",
+    done: true,
+    status: "completed",
+    assigneeId: "person-9",
+    dueDate: "2026-07-05",
+    priority: "high",
+  },
+  {
+    id: "task-33",
+    objectiveId: "obj-18",
+    projectId: "proj-1",
+    title: "Compile the nine-month field reliability report",
+    done: true,
+    status: "completed",
+    assigneeId: "person-8",
+    dueDate: "2026-07-19",
+    priority: "high",
+  },
+  {
+    id: "task-34",
+    objectiveId: "obj-19",
+    projectId: "proj-1",
+    title: "Build the 500-site unit-economics model",
+    done: true,
+    status: "completed",
+    assigneeId: "person-10",
+    dueDate: "2026-07-30",
+    priority: "high",
+  },
+  {
+    id: "task-35",
+    objectiveId: "obj-20",
+    projectId: "proj-1",
+    title: "Map operator licensing and Kenya Power procurement steps",
+    done: true,
+    status: "completed",
+    assigneeId: "person-10",
+    dueDate: "2026-08-15",
+    priority: "medium",
+  },
+  {
+    id: "task-36",
+    objectiveId: "obj-21",
+    projectId: "proj-1",
+    title: "Audit the contract manufacturer against ISO 9001",
+    done: true,
+    status: "completed",
+    assigneeId: "person-9",
+    dueDate: "2026-08-24",
+    priority: "high",
+  },
+  {
+    id: "task-37",
+    objectiveId: "obj-22",
+    projectId: "proj-1",
+    title: "Log collaborator contributions for the evaluation record",
+    done: false,
+    status: "active",
+    assigneeId: "person-1",
+    dueDate: "2026-09-18",
+    priority: "low",
   },
 ];
 
