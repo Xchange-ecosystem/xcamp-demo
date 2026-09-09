@@ -7,6 +7,16 @@
 //
 // No production analog exists for "a composed pitch card" yet — this whole
 // file is P1-only, same disclaimer as portfolio.ts/wallet.ts.
+//
+// Every numeric claim in the body copy below reads through to fixture data:
+// either to a computed value over OBJECTIVES (the Team card's "six
+// objectives", "79%" and "eleven pieces of proof") or to the authored
+// `description` of an Objective this card cites (340 households, 71%, $180
+// against $260, six years to under four, twelve sites, nine months, 99.1%,
+// fourteen operators, 30%, 50-site, 500-site). Figures that had no fixture
+// source at all — "six hundred million" unconnected people, the founder's
+// "seven years" — were removed rather than given an invented home; a
+// market-context or founder-bio field would be needed to carry them.
 
 // Pitch reads only this one project this session (Solari Energy) — same
 // single-subject pattern as assignments.ts's DEMO_COLLABORATOR_ID.
@@ -52,7 +62,7 @@ export const PITCH_CARDS: PitchCard[] = [
     composedAt: "2 days ago",
     body: [
       {
-        text: "Six hundred million people across sub-Saharan Africa have no grid connection, and extending national transmission to reach them costs more per household than those households will spend on electricity in a decade.",
+        text: "Across sub-Saharan Africa, the households without a grid connection are not unserved because nobody wants power. Extending national transmission to reach them costs more per household than those households will spend on the electricity it would carry.",
         sourceIndex: 1,
       },
       {
@@ -149,11 +159,11 @@ export const PITCH_CARDS: PitchCard[] = [
     composedAt: "6 days ago",
     body: [
       {
-        text: "Maren Solberg founded Solari after seven years building grid infrastructure in Norway and East Africa. The team is four people plus a standing bench of contributors.",
+        text: "Maren Solberg founded Solari after a career building grid infrastructure in Norway and East Africa. Two collaborators carry assigned work alongside her on the objectives now open.",
         sourceIndex: 1,
       },
       {
-        text: "Eleven collaborators have filed evaluated work against this project, averaging 84% on assessment.",
+        text: "Six objectives have been completed and assessed, averaging 79%. Eleven pieces of proof are filed against the project's standing contribution record.",
         sourceIndex: 2,
       },
     ],

@@ -10,19 +10,20 @@ import { PEOPLE, PROJECTS, getFeedByKind, getProjectMetrics } from "@/fixtures";
 
 ## Entities
 
-| File             | Exports                                                                                                           | Used by                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `people.ts`      | `PEOPLE`, `getPersonById`, `getPeopleByRole`                                                                      | all screens                                                                              |
-| `projects.ts`    | `PROJECTS`, `getProjectById`, `getProjectsByOwner`                                                                | all screens                                                                              |
-| `objectives.ts`  | `OBJECTIVES`, `TASKS`, `getObjectivesByProject`, `getTasksByObjective`, `getTasksByProject`, `getTasksByAssignee` | Founder, Collaborator                                                                    |
-| `metrics.ts`     | `PROJECT_METRICS`, `ECOSYSTEM_METRICS`, `getProjectMetrics`                                                       | Founder (right-column), Investor/Operator, Investor Dashboard                            |
-| `portfolio.ts`   | `PORTFOLIO`, `getPortfolioEntry`, `getRankedPortfolio`                                                            | Investor/Operator ranked bar list                                                        |
-| `feed.ts`        | `FEED_ITEMS`, `getFeedByKind`, `getFeedByAssignee`, `getFeedByProject`                                            | Generic Founder and Investor feed fixtures plus legacy assignment examples               |
-| `assignments.ts` | `ASSIGNMENTS`, `getAssignmentsByAssignee`                                                                         | Collaborator feed and its separate workflow/value lifecycle                              |
-| `transcripts.ts` | `TRANSCRIPTS`, `getTranscriptById`                                                                                | Founder composer's Transcript mode sample inputs — extraction itself is real, not mocked |
-| `chat.ts`        | `CHAT_MESSAGES`                                                                                                   | Investor Dashboard companion chat panel                                                  |
-| `wallet.ts`      | `WALLET_ENTRIES`, `getWalletByPerson`, `getWalletBalance`                                                         | Collaborator value wallet                                                                |
-| `pitch.ts`       | `PITCH_CARDS`, `getPitchCardById`                                                                                 | Founder MicroApps → Pitch (proj-1 only)                                                  |
+| File                 | Exports                                                                                                           | Used by                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `people.ts`          | `PEOPLE`, `getPersonById`, `getPeopleByRole`                                                                      | all screens                                                                              |
+| `projects.ts`        | `PROJECTS`, `getProjectById`, `getProjectsByOwner`                                                                | all screens                                                                              |
+| `objectives.ts`      | `OBJECTIVES`, `TASKS`, `getObjectivesByProject`, `getTasksByObjective`, `getTasksByProject`, `getTasksByAssignee` | Founder, Collaborator                                                                    |
+| `objectiveEvents.ts` | `OBJECTIVE_EVENTS`, `getEventsByObjective`, `getEventsByProject`                                                  | Objective movement history — full log for `proj-1`, minimal elsewhere                    |
+| `metrics.ts`         | `PROJECT_METRICS`, `ECOSYSTEM_METRICS`, `getProjectMetrics`                                                       | Founder (right-column), Investor/Operator, Investor Dashboard                            |
+| `portfolio.ts`       | `PORTFOLIO`, `getPortfolioEntry`, `getRankedPortfolio`                                                            | Investor/Operator ranked bar list                                                        |
+| `feed.ts`            | `FEED_ITEMS`, `getFeedByKind`, `getFeedByAssignee`, `getFeedByProject`                                            | Generic Founder and Investor feed fixtures plus legacy assignment examples               |
+| `assignments.ts`     | `ASSIGNMENTS`, `getAssignmentsByAssignee`                                                                         | Collaborator feed and its separate workflow/value lifecycle                              |
+| `transcripts.ts`     | `TRANSCRIPTS`, `getTranscriptById`                                                                                | Founder composer's Transcript mode sample inputs — extraction itself is real, not mocked |
+| `chat.ts`            | `CHAT_MESSAGES`                                                                                                   | Investor Dashboard companion chat panel                                                  |
+| `wallet.ts`          | `WALLET_ENTRIES`, `getWalletByPerson`, `getWalletBalance`                                                         | Collaborator value wallet                                                                |
+| `pitch.ts`           | `PITCH_CARDS`, `getPitchCardById`                                                                                 | Founder MicroApps → Pitch (proj-1 only)                                                  |
 
 IDs are stable strings (`person-1`, `proj-1`, `obj-1`, `task-1`, `feed-1`, …)
 and cross-reference consistently: every `projectId`/`ownerId`/`assigneeId`/
@@ -38,6 +39,21 @@ shouldn't require reshaping these fixtures — see `types.ts` for the
 per-field mapping notes. `PortfolioEntry`, `FeedItem`, `Transcript`,
 `ChatMessage`, and `WalletEntry` are P1-only concepts with no production
 table yet.
+
+## Derived vs. authored
+
+`ECOSYSTEM_METRICS` and three of `PROJECT_METRICS`' seven fields
+(`proofTotal`, `collaboratorsCount`, `proofAvgPerTask`) are **computed** from
+`OBJECTIVES`/`TASKS`/`PROJECTS` rather than hand-authored, so they cannot
+drift out of sync with the rows they summarize. `progressPct`, `qualityPct`
+and `viewersCount` stay authored — nothing in the fixture layer sources them.
+`PORTFOLIO`'s `rank`/`performanceScore`/`performanceDeltaPct` are derived the
+same way from `scores` (see `portfolio.ts`).
+
+The rule this enforces: any number a screen shows must be reproducible from
+fixture data. `PROJECT_METRICS` previously claimed 41 filed proofs for
+`proj-1` against the 54 actually on its objectives, and 5 collaborators
+against the 3 people actually assigned to its tasks.
 
 ## Relationship to the pre-existing mocks
 

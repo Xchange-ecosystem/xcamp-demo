@@ -14,6 +14,7 @@ export * from "./types";
 export * from "./people";
 export * from "./projects";
 export * from "./objectives";
+export * from "./objectiveEvents";
 export * from "./metrics";
 export * from "./portfolio";
 export * from "./feed";
