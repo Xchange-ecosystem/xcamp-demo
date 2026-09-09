@@ -944,3 +944,33 @@ select {
     opacity: 0.6;
   }
 }
+
+/* Pitch (Founder MicroApps) — recompose settle animation. Gated in JS via
+ * usePrefersReducedMotion (the class below is only applied when motion is
+ * allowed); this media query is a second, CSS-only line of defense. */
+@keyframes pitch-settle {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pitch-composing > p {
+  opacity: 0;
+  animation: pitch-settle 0.5s ease forwards;
+}
+.pitch-composing > p:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.pitch-composing > p:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pitch-composing > p {
+    animation: none;
+    opacity: 1;
+  }
+}

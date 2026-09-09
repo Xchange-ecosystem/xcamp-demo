@@ -22,6 +22,7 @@ import { PEOPLE, PROJECTS, getFeedByKind, getProjectMetrics } from "@/fixtures";
 | `transcripts.ts` | `TRANSCRIPTS`, `getTranscriptById`                                                                                | Founder composer's Transcript mode sample inputs — extraction itself is real, not mocked |
 | `chat.ts`        | `CHAT_MESSAGES`                                                                                                   | Investor Dashboard companion chat panel                                                  |
 | `wallet.ts`      | `WALLET_ENTRIES`, `getWalletByPerson`, `getWalletBalance`                                                         | Collaborator value wallet                                                                |
+| `pitch.ts`       | `PITCH_CARDS`, `getPitchCardById`                                                                                 | Founder MicroApps → Pitch (proj-1 only)                                                  |
 
 IDs are stable strings (`person-1`, `proj-1`, `obj-1`, `task-1`, `feed-1`, …)
 and cross-reference consistently: every `projectId`/`ownerId`/`assigneeId`/

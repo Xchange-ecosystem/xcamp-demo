@@ -21,3 +21,4 @@ export * from "./transcripts";
 export * from "./chat";
 export * from "./wallet";
 export * from "./assignments";
+export * from "./pitch";
