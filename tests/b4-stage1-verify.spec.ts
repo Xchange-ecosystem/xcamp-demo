@@ -107,8 +107,21 @@ function isOffAppRequest(req: Request): boolean {
 const BACKEND_PATTERNS =
   /supabase|demo-verification\.invalid|\/auth\/v1|\/rest\/v1|\/rpc\/|\/functions\/v1/i;
 
+// Requests to the dev server itself are module loads, not backend traffic.
+// Vite serves source by path, so /src/lib/supabase.ts and the
+// @supabase_supabase-js dep bundle both come back as localhost GETs whose
+// URLs contain "supabase" — they mean the module was imported, not that
+// anything was queried. Excluding localhost here is what makes this check
+// mean "talked to a backend" rather than "loaded a file with that name".
+//
+// The import itself is real and worth knowing about (DemoShell mounts
+// ItemSidepanel, which statically imports @/lib/supabase, which is why the
+// demo cannot boot without Supabase env vars) — but that is a bundling
+// coupling, not a network call, and this assertion is about the latter.
 function isBackendRequest(req: Request): boolean {
-  return BACKEND_PATTERNS.test(req.url());
+  const url = req.url();
+  if (/^https?:\/\/(localhost|127\.0\.0\.1):5173\//.test(url)) return false;
+  return BACKEND_PATTERNS.test(url);
 }
 
 test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
@@ -124,7 +137,7 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
       });
       page.on("pageerror", (err) => pageErrors.push(String(err)));
 
-      const response = await page.goto(screen.path, { waitUntil: "networkidle" });
+      const response = await page.goto(screen.path, { waitUntil: "domcontentloaded" });
       expect(response?.status(), `${screen.path} HTTP status`).toBeLessThan(400);
 
       await expect(
@@ -141,6 +154,9 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
         contentType: "image/png",
       });
 
+      // Give any deferred/lazy request a chance to fire before asserting.
+      await page.waitForTimeout(1200);
+
       expect(backend, `${screen.path} reached a backend`).toEqual([]);
       expect(offApp, `${screen.path} made off-app requests`).toEqual([]);
       expect(pageErrors, `${screen.path} console errors`).toEqual([]);
@@ -150,12 +166,14 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
   test("legacy /demo/investor/portfolio still resolves (main-app sidebar link)", async ({
     page,
   }) => {
-    await page.goto("/demo/investor/portfolio", { waitUntil: "networkidle" });
+    await page.goto("/demo/investor/portfolio", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/microapps\/portfolio/, { timeout: 15000 });
     expect(page.url()).toContain("/demo/investor/microapps/portfolio");
   });
 
   test("/demo/collaborator redirects to Assignments", async ({ page }) => {
-    await page.goto("/demo/collaborator", { waitUntil: "networkidle" });
+    await page.goto("/demo/collaborator", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/microapps\/assignments/, { timeout: 15000 });
     expect(page.url()).toContain("/demo/collaborator/microapps/assignments");
   });
 
@@ -167,12 +185,14 @@ test.describe("B4 Stage 1 — unauthenticated render + zero backend", () => {
       if (isOffAppRequest(req)) offApp.push(`${req.method()} ${req.url()}`);
     });
 
-    await page.goto("/demo/collaborator/microapps/peer", { waitUntil: "networkidle" });
+    await page.goto("/demo/collaborator/microapps/peer", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: /Maren Solberg/ }).click();
 
     // UserProfileContent is the "user"-kind branch of ItemSidepanel.
     await expect(page.getByText("Viewing profile")).toBeVisible();
     await expect(page.getByText("Bio")).toBeVisible();
+
+    await page.waitForTimeout(1200);
     expect(backend, "sidepanel user-kind reached a backend").toEqual([]);
     expect(offApp, "sidepanel user-kind made off-app requests").toEqual([]);
   });
