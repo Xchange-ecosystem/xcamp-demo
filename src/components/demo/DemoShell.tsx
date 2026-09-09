@@ -6,8 +6,11 @@ import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DemoNavRail, type DemoNavItem, type DemoPersona } from "@/components/demo/DemoNavRail";
 import { useAmbientToasts } from "@/hooks/useAmbientToasts";
+import { useDemoAltitude } from "@/hooks/useDemoAltitude";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { DemoFullscreenDispatcher } from "@/components/demo/DemoFullscreenDispatcher";
+import { AltitudeRail } from "@/components/demo/AltitudeRail";
+import { CompanionAltitudeShell } from "@/components/demo/companion/CompanionAltitudeShell";
 
 interface DemoShellProps {
   persona: DemoPersona;
@@ -81,14 +84,31 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
   // not on internal nav within one persona's own routes.
   useAmbientToasts(persona);
 
+  // Companion-first guidance vs. Platform ecosystem level, Founder only —
+  // see src/hooks/useDemoAltitude.ts (unrelated to src/store/altitudeStore.ts).
+  const [altitude, setAltitude] = useDemoAltitude();
+  const showAltitudeRail = persona === "founder";
+  const isCompanionAltitude = persona === "founder" && altitude === "companion";
+
   return (
     <SidepanelProvider>
       <RightPanelProvider>
         <CompanionRailProvider>
           <SidebarProvider defaultOpen={false}>
-            <DemoShellBody persona={persona} items={items}>
-              {children}
-            </DemoShellBody>
+            {/* `display: contents` — carries data-altitude without adding a
+                box to the layout, so Platform altitude (the default, and the
+                only altitude for non-founder personas) stays pixel-identical
+                to before this feature existed. */}
+            <div data-altitude={altitude} style={{ display: "contents" }}>
+              {isCompanionAltitude ? (
+                <CompanionAltitudeShell persona={persona} />
+              ) : (
+                <DemoShellBody persona={persona} items={items}>
+                  {children}
+                </DemoShellBody>
+              )}
+              {showAltitudeRail && <AltitudeRail altitude={altitude} onSelect={setAltitude} />}
+            </div>
           </SidebarProvider>
         </CompanionRailProvider>
       </RightPanelProvider>

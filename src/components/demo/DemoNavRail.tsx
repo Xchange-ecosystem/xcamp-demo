@@ -1,15 +1,10 @@
 // src/components/demo/DemoNavRail.tsx
 import { type ComponentType, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronsUpDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { useBrand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { PersonaSwitcher } from "@/components/demo/PersonaSwitcher";
 
 export type DemoPersona = "founder" | "investor" | "collaborator";
 
@@ -25,21 +20,6 @@ export interface DemoNavItem {
   exact?: boolean;
   children?: DemoNavItem[];
 }
-
-interface PersonaOption {
-  id: DemoPersona;
-  label: string;
-  to: string;
-}
-
-// The three persona index routes — same destinations already linked
-// elsewhere in the demo, just surfaced here as a switcher instead of
-// separate links.
-const PERSONAS: PersonaOption[] = [
-  { id: "founder", label: "Founder", to: "/demo/founder" },
-  { id: "investor", label: "Investor", to: "/demo/investor" },
-  { id: "collaborator", label: "Collaborator", to: "/demo/collaborator" },
-];
 
 interface DemoNavRailProps {
   persona: DemoPersona;
@@ -127,7 +107,6 @@ export function DemoNavRail({ persona, items }: DemoNavRailProps) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (to?: string, exact?: boolean) =>
     !!to && (exact ? pathname === to : pathname.startsWith(to));
-  const current = PERSONAS.find((p) => p.id === persona) ?? PERSONAS[0];
 
   return (
     <nav
@@ -144,27 +123,7 @@ export function DemoNavRail({ persona, items }: DemoNavRailProps) {
         ))}
       </ul>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/50"
-            style={{ borderColor: "var(--skin-line)", background: "var(--skin-surface)" }}
-          >
-            <span className="font-medium text-foreground">{current.label}</span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[13rem]">
-          {PERSONAS.map((p) => (
-            <DropdownMenuItem key={p.id} asChild disabled={p.id === persona}>
-              <Link to={p.to} className="w-full cursor-pointer">
-                {p.label}
-              </Link>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <PersonaSwitcher persona={persona} />
     </nav>
   );
 }
