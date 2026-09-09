@@ -19,6 +19,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { updateTaskCore, updateTaskTimeframe, type TaskLabelObjective } from "@/lib/xcamp-api";
 import { MAX_ATTACHMENT_BYTES } from "@/components/editor/RichTextEditor";
 import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
+import { isDemoTaskId } from "@/lib/demo-items";
+import { DemoAboutTab } from "@/components/task-detail/DemoAboutTab";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,14 +37,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function AboutTab({
-  noteRow,
-  labels,
-  ownerName,
-  user,
-  onSaved,
-  patchDetail,
-}: {
+type AboutTabProps = {
   noteRow: NoteRow;
   labels: TaskLabelObjective[];
   ownerName: string | null;
@@ -51,7 +46,22 @@ export function AboutTab({
   /** Centralized in the shell so concurrent detail writes from other tabs (e.g.
    * Do & Document's blob) never get clobbered by a stale `detail` snapshot. */
   patchDetail: (patch: Record<string, unknown>) => Promise<void>;
-}) {
+};
+
+export function AboutTab(props: AboutTabProps) {
+  // Demo tasks (fixture ids) read/write the local demo store, never
+  // updateTaskCore/updateTaskTimeframe/autoTagNote — see
+  // src/lib/demo-items.ts. Real (non-demo) task ids fall through to the
+  // unchanged implementation below. Kept as an outer wrapper (rather than an
+  // early return inside RealAboutTab) so neither branch calls hooks
+  // conditionally.
+  if (isDemoTaskId(props.noteRow.id)) {
+    return <DemoAboutTab taskId={props.noteRow.id} />;
+  }
+  return <RealAboutTab {...props} />;
+}
+
+function RealAboutTab({ noteRow, labels, ownerName, user, onSaved, patchDetail }: AboutTabProps) {
   const [title, setTitle] = useState(noteRow.title);
   const [body, setBody] = useState(noteRow.body_html ?? "");
   const [tags, setTags] = useState<string[]>(noteRow.tags ?? []);

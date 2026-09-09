@@ -28,6 +28,8 @@ import {
 } from "@/lib/proof-notes-api";
 import type { NoteAttachment, NoteRow, XcampUser } from "@/types/xcamp";
 import type { TaskTabKey } from "./tabs";
+import { isDemoTaskId } from "@/lib/demo-items";
+import { DemoSubtasksTab } from "@/components/task-detail/DemoSubtasksTab";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -56,17 +58,27 @@ function formatDate(iso: string) {
   }
 }
 
-export function DoDocumentTab({
-  noteRow,
-  user,
-  onSwitchTab,
-}: {
+type DoDocumentTabProps = {
   noteRow: NoteRow;
   user: XcampUser;
   /** "Find a collaborator" opens the same flow as Match & Collaborate — jump there
    * instead of building a second entry point into an unresolved feature. */
   onSwitchTab: (tab: TaskTabKey) => void;
-}) {
+};
+
+export function DoDocumentTab(props: DoDocumentTabProps) {
+  // Demo tasks (fixture ids) get the fixture-driven subtask checklist
+  // instead of the real proof-notes-api.ts-backed deliverables editor — see
+  // src/lib/demo-items.ts. Real (non-demo) task ids fall through to the
+  // unchanged implementation below. Kept as an outer wrapper so neither
+  // branch calls hooks conditionally.
+  if (isDemoTaskId(props.noteRow.id)) {
+    return <DemoSubtasksTab taskId={props.noteRow.id} onSwitchTab={props.onSwitchTab} />;
+  }
+  return <RealDoDocumentTab {...props} />;
+}
+
+function RealDoDocumentTab({ noteRow, user, onSwitchTab }: DoDocumentTabProps) {
   const qc = useQueryClient();
   const taskId = noteRow.id;
   const proofKey = ["proof-notes", taskId];
