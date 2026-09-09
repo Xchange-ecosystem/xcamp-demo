@@ -6,25 +6,33 @@
 // EXECUTE granted to `anon`, which is the only reason the anon key can read
 // anything here — the three recap tables have RLS on with no policies at all.
 //
-// Two shapes of the live schema drive this page:
+// `get_recap_by_token` returns every follow-up on the session, and
+// `recap_followups` has no recipient_id. The only link between a follow-up and
+// a person is the free-text `owner_name`, so "yours" is a name match made
+// here, and everyone else's are shown below as read-only context.
 //
-//   * `get_recap_by_token` returns every follow-up on the session, and
-//     `recap_followups` has no recipient_id. The only link between a follow-up
-//     and a person is the free-text `owner_name`, so "yours" is a name match
-//     made here, and everything else is shown as context.
-//   * `set_recap_response` writes one answer per recipient, not per follow-up
-//     (`recap_recipients.response` is a single column). So the response
-//     control is page-level. Last write wins.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+// Accept and Dismiss are deliberately LOCAL ONLY — no network call, no
+// persistence, gone on reload. Accept opens an explanatory modal that names
+// these as example tasks and points at a sales contact, so it means "tell me
+// more about Xcamp", not "this task is mine". `set_recap_response` (and the
+// `recap_recipients.response` column behind it) is therefore left uncalled:
+// firing it here would record task ownership that nobody actually claimed.
+// The RPC still exists and is still granted to `anon` if a genuine internal
+// use for the signal comes back.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Undo2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
-  getRecapByToken,
-  setRecapResponse,
-  type PublicRecap,
-  type PublicRecapFollowup,
-  type RecapResponse,
-} from "@/lib/recap-api";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useBrand } from "@/lib/brand";
+import { getRecapByToken, type PublicRecap, type PublicRecapFollowup } from "@/lib/recap-api";
+
+const CONTACT_EMAIL = "claas@xchange.eco";
 
 function normalize(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -61,9 +69,10 @@ export function PublicRecapPage({ token }: { token: string }) {
   const [recap, setRecap] = useState<PublicRecap | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [response, setResponse] = useState<RecapResponse | null>(null);
-  const [saving, setSaving] = useState<RecapResponse | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // Local-only interaction state. Nothing here is sent anywhere or survives a
+  // reload, by design — see the note at the top of this file.
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const [acceptOpen, setAcceptOpen] = useState(false);
 
   // StrictMode runs effects twice in dev. The RPC is idempotent (opened_at is
   // coalesced server-side) but there's no reason to fire it twice.
@@ -80,7 +89,6 @@ export function PublicRecapPage({ token }: { token: string }) {
           return;
         }
         setRecap(data);
-        setResponse(data.recipient.response ?? null);
         setState("ready");
       })
       .catch((err: unknown) => {
@@ -89,22 +97,22 @@ export function PublicRecapPage({ token }: { token: string }) {
       });
   }, [token]);
 
-  const answer = useCallback(
-    async (value: RecapResponse) => {
-      setSaving(value);
-      setSaveError(null);
-      try {
-        const ok = await setRecapResponse(token, value);
-        if (!ok) throw new Error("That link is no longer valid.");
-        setResponse(value);
-      } catch (err) {
-        setSaveError((err as Error).message);
-      } finally {
-        setSaving(null);
-      }
-    },
-    [token],
-  );
+  const toggleDismissed = useCallback((id: string) => {
+    setDismissed((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const { mine, theirs } = useMemo(() => {
+    if (!recap) return { mine: [], theirs: [] as PublicRecapFollowup[] };
+    return {
+      mine: recap.followups.filter((f) => isOwnedBy(f.owner_name, recap.recipient.name)),
+      theirs: recap.followups.filter((f) => !isOwnedBy(f.owner_name, recap.recipient.name)),
+    };
+  }, [recap]);
 
   if (state === "loading") {
     return (
@@ -139,9 +147,7 @@ export function PublicRecapPage({ token }: { token: string }) {
 
   if (!recap) return null;
 
-  const { session, recipient, followups } = recap;
-  const mine = followups.filter((f) => isOwnedBy(f.owner_name, recipient.name));
-  const theirs = followups.filter((f) => !isOwnedBy(f.owner_name, recipient.name));
+  const { session, recipient } = recap;
   const meetingDate = formatMeetingDate(session.meeting_date);
 
   return (
@@ -164,11 +170,18 @@ export function PublicRecapPage({ token }: { token: string }) {
       </header>
 
       <section className="mt-7">
-        <SectionHeading>Yours</SectionHeading>
+        <SectionHeading>Your suggested Xcamp tasks</SectionHeading>
         {mine.length > 0 ? (
           <div className="mt-3 flex flex-col gap-2.5">
             {mine.map((f) => (
-              <FollowupCard key={f.id} followup={f} showOwner={false} />
+              <FollowupCard
+                key={f.id}
+                followup={f}
+                showOwner={false}
+                dismissed={dismissed.has(f.id)}
+                onAccept={() => setAcceptOpen(true)}
+                onToggleDismissed={() => toggleDismissed(f.id)}
+              />
             ))}
           </div>
         ) : (
@@ -177,46 +190,6 @@ export function PublicRecapPage({ token }: { token: string }) {
             context.
           </p>
         )}
-
-        <div
-          className="mt-4 rounded-xl p-4"
-          style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)" }}
-        >
-          <p className="text-sm" style={{ color: "var(--skin-ink)" }}>
-            Does this look like yours?
-          </p>
-          <p className="mt-1 text-[13px]" style={{ color: "var(--skin-ink-soft)" }}>
-            Your answer goes back to {session.presenter_name} so they can correct the record. It
-            doesn&apos;t assign you anything and it doesn&apos;t commit you to anything.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <ResponseButton
-              label="That's mine"
-              value="mine"
-              current={response}
-              saving={saving}
-              onClick={() => void answer("mine")}
-            />
-            <ResponseButton
-              label="Not mine"
-              value="not_mine"
-              current={response}
-              saving={saving}
-              onClick={() => void answer("not_mine")}
-            />
-          </div>
-          {response && !saving && (
-            <p className="mt-2.5 text-[13px]" style={{ color: "var(--skin-ink-soft)" }}>
-              Thanks — recorded as &ldquo;{response === "mine" ? "that's mine" : "not mine"}
-              &rdquo;. You can change it at any time.
-            </p>
-          )}
-          {saveError && (
-            <p className="mt-2.5 text-[13px]" style={{ color: "var(--skin-bad)" }}>
-              {saveError}
-            </p>
-          )}
-        </div>
       </section>
 
       {theirs.length > 0 && (
@@ -242,18 +215,30 @@ export function PublicRecapPage({ token }: { token: string }) {
           was read once to pull out the points above and then discarded.
         </p>
         <p className="mt-1.5">
-          Any figures shown are illustrative, taken from what was said on the call. They are not a
-          quote, an invoice or an agreement.
+          Any figures shown are proposed values, taken from what was said on the call. They are not
+          a quote, an invoice or an agreement.
         </p>
       </footer>
+
+      <AcceptDialog open={acceptOpen} onOpenChange={setAcceptOpen} />
     </Frame>
   );
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
+  const brand = useBrand();
   return (
     <div className="min-h-screen w-full" style={{ background: "var(--skin-surface)" }}>
-      <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-14">{children}</div>
+      <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+        <img
+          src={brand.logoUrl}
+          alt={brand.name}
+          className="mb-8 h-6 w-auto sm:h-8"
+          // A recipient may never have heard of Xcamp before this page. The
+          // mark is the first thing establishing who sent it.
+        />
+        {children}
+      </div>
     </div>
   );
 }
@@ -269,14 +254,28 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 function FollowupCard({
   followup,
   showOwner,
+  dismissed = false,
+  onAccept,
+  onToggleDismissed,
 }: {
   followup: PublicRecapFollowup;
   showOwner: boolean;
+  dismissed?: boolean;
+  onAccept?: () => void;
+  onToggleDismissed?: () => void;
 }) {
+  // Only the recipient's own tasks are actionable. Accepting or dismissing
+  // somebody else's would not mean anything.
+  const actionable = Boolean(onAccept && onToggleDismissed);
+
   return (
     <article
-      className="rounded-xl p-4"
-      style={{ background: "var(--skin-bg)", border: "1px solid var(--skin-line)" }}
+      className="rounded-xl p-4 transition-opacity"
+      style={{
+        background: "var(--skin-bg)",
+        border: "1px solid var(--skin-line)",
+        opacity: dismissed ? 0.55 : 1,
+      }}
     >
       {showOwner && (
         <p
@@ -286,7 +285,13 @@ function FollowupCard({
           {followup.owner_name}
         </p>
       )}
-      <h3 className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
+      <h3
+        className="text-sm font-medium"
+        style={{
+          color: "var(--skin-ink)",
+          textDecoration: dismissed ? "line-through" : undefined,
+        }}
+      >
         {followup.task_title}
       </h3>
       {followup.task_description && (
@@ -296,47 +301,86 @@ function FollowupCard({
       )}
       {followup.illustrative_value !== null && (
         <p className="mt-2 text-[13px]" style={{ color: "var(--skin-ink-soft)" }}>
-          Illustrative value{" "}
+          Proposed value{" "}
           <span style={{ color: "var(--skin-ink)", fontWeight: 500 }}>
             {followup.illustrative_value.toLocaleString()}
           </span>
         </p>
       )}
+
+      {actionable && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {dismissed ? (
+            <>
+              <span className="text-[13px]" style={{ color: "var(--skin-ink-faint)" }}>
+                Dismissed
+              </span>
+              <button
+                type="button"
+                onClick={onToggleDismissed}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px]"
+                style={{ border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                Undo
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onAccept}
+                className="rounded-full px-4 py-1.5 text-[13px] font-medium"
+                style={{
+                  background: "var(--skin-accent)",
+                  color: "var(--skin-on-accent)",
+                  border: "1px solid var(--skin-accent)",
+                }}
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={onToggleDismissed}
+                className="rounded-full px-4 py-1.5 text-[13px]"
+                style={{ border: "1px solid var(--skin-line)", color: "var(--skin-ink)" }}
+              >
+                Dismiss
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </article>
   );
 }
 
-function ResponseButton({
-  label,
-  value,
-  current,
-  saving,
-  onClick,
+function AcceptDialog({
+  open,
+  onOpenChange,
 }: {
-  label: string;
-  value: RecapResponse;
-  current: RecapResponse | null;
-  saving: RecapResponse | null;
-  onClick: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const selected = current === value;
-  const busy = saving === value;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={saving !== null}
-      aria-pressed={selected}
-      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-opacity disabled:opacity-60"
-      style={{
-        background: selected ? "var(--skin-accent)" : "transparent",
-        color: selected ? "var(--skin-on-accent)" : "var(--skin-ink)",
-        border: `1px solid ${selected ? "var(--skin-accent)" : "var(--skin-line)"}`,
-        fontWeight: selected ? 500 : 400,
-      }}
-    >
-      {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-      {label}
-    </button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>About these tasks</DialogTitle>
+          <DialogDescription>
+            This is an example task. If you want to use Xcamp as investor, operator, founder or
+            collaborator contact{" "}
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="underline"
+              style={{ color: "var(--skin-accent)" }}
+            >
+              {CONTACT_EMAIL}
+            </a>{" "}
+            for a follow-up.
+          </DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
   );
 }

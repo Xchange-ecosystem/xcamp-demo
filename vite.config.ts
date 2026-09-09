@@ -47,6 +47,13 @@ export default defineConfig({
       workbox: {
         // Precache all static assets — app-shell only, no API caching
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        // ...except the transcript parsers. pdf.js and mammoth are ~2.3 MB of
+        // JS between them, lazily imported by /admin/recap's transcript step
+        // and by nothing else. Precaching them would put that on the first
+        // load of every visitor — most of whom are here for the demo and will
+        // never open the Recap admin tool. They still work when needed; they
+        // are fetched on demand instead of up front.
+        globIgnores: ["**/transcriptPdf-*.js", "**/transcriptDocx-*.js"],
         navigateFallback: "/index.html",
         // Don't intercept API navigation (belt-and-suspenders; APIs are cross-origin anyway)
         navigateFallbackDenylist: [/^\/api\//],

@@ -10,7 +10,7 @@
 // Send is irreversible: real Supabase rows, real SendGrid email, no unsend and
 // no edit-after-send. Hence the confirmation dialog.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, Copy, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Check, Copy, FileText, Loader2, Plus, Upload, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,12 @@ import {
   type ExtractedFollowup,
   type PublishRecapResult,
 } from "@/lib/recap-api";
+import {
+  describeFile,
+  readTranscriptFile,
+  TRANSCRIPT_ACCEPT,
+  TranscriptFileError,
+} from "./transcriptFile";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -46,7 +52,14 @@ interface FollowupDraft {
   owner_name: string;
   task_title: string;
   task_description: string;
-  /** Held as a string while editing so the field can be genuinely empty. */
+  /**
+   * Held as a string while editing so the field can be genuinely empty.
+   *
+   * Labelled "Proposed value" on screen. The name stays `illustrative_value`
+   * because that is the column in `recap_followups` and the field
+   * `api/recap/publish.ts` accepts — the label was renamed, the wire format
+   * was not.
+   */
   illustrative_value: string;
 }
 
@@ -102,6 +115,16 @@ export function RecapComposer() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const extractAbort = useRef<AbortController | null>(null);
+
+  // Dropped-file reading. Separate from extraction above on purpose — these
+  // are two different waits and the UI keeps them visually distinct.
+  const [dragging, setDragging] = useState(false);
+  const [readingFile, setReadingFile] = useState<string | null>(null);
+  const [loadedFile, setLoadedFile] = useState<{ name: string; meta: string } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  // Bumped per selection so a slow parse that has been superseded by a newer
+  // drop can't overwrite the transcript when it eventually finishes.
+  const selectionVersion = useRef(0);
 
   // Review
   const [followups, setFollowups] = useState<FollowupDraft[]>([]);
@@ -163,6 +186,30 @@ export function RecapComposer() {
     }
   }, [transcript]);
 
+  const handleFiles = useCallback(async (files: FileList | null) => {
+    const picked = files?.[0];
+    if (!picked) return;
+    const version = ++selectionVersion.current;
+    setFileError(null);
+    setReadingFile(picked.name);
+    try {
+      const text = await readTranscriptFile(picked);
+      if (version !== selectionVersion.current) return;
+      setTranscript(text);
+      setLoadedFile({ name: picked.name, meta: describeFile(picked) });
+    } catch (err) {
+      if (version !== selectionVersion.current) return;
+      setLoadedFile(null);
+      setFileError(
+        err instanceof TranscriptFileError
+          ? err.message
+          : `${picked.name} couldn't be read. Paste the transcript instead.`,
+      );
+    } finally {
+      if (version === selectionVersion.current) setReadingFile(null);
+    }
+  }, []);
+
   const patchFollowup = (key: string, patch: Partial<FollowupDraft>) =>
     setFollowups((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
@@ -182,7 +229,7 @@ export function RecapComposer() {
       return missing.length ? `Still needs ${missing.join(", ")}.` : null;
     }
     if (step === "transcript") {
-      return transcript.trim() ? null : "Paste or type the call transcript first.";
+      return transcript.trim() ? null : "Drop in a transcript file, or paste the text, first.";
     }
     if (step === "review") {
       if (followups.length === 0) return "There are no follow-ups to send.";
@@ -328,11 +375,25 @@ export function RecapComposer() {
         {step === "transcript" && (
           <Section
             heading="Transcript"
-            hint="Paste the call transcript. It is sent for extraction and never stored — not in the database, not here."
+            hint="Drop in a PDF, DOCX, TXT, VTT or SRT file, or paste the text. Either way it is sent for extraction and never stored — not in the database, not here."
           >
+            <TranscriptDropzone
+              dragging={dragging}
+              readingFile={readingFile}
+              loadedFile={loadedFile}
+              error={fileError}
+              onFiles={(files) => void handleFiles(files)}
+              onDraggingChange={setDragging}
+            />
+
             <textarea
               value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
+              onChange={(e) => {
+                setTranscript(e.target.value);
+                // Once it has been edited by hand the text is no longer that
+                // file's, so stop claiming it is.
+                setLoadedFile(null);
+              }}
               rows={16}
               spellCheck={false}
               placeholder="Paste the transcript…"
@@ -356,8 +417,11 @@ export function RecapComposer() {
                 style={{ background: "var(--skin-accent-soft)", color: "var(--skin-ink)" }}
               >
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Reading the transcript and pulling out follow-ups. This is a real model call, so it
-                takes a few seconds.
+                {/* Deliberately not "Reading…": the dropzone above says
+                    "Reading <file>" while it parses, and these two can appear
+                    seconds apart. They should not read as the same step. */}
+                Pulling follow-ups out of the transcript. This is a real model call, so it takes a
+                few seconds.
               </div>
             )}
           </Section>
@@ -639,6 +703,97 @@ function RemoveRowButton({ onClick, label }: { onClick: () => void; label: strin
   );
 }
 
+function TranscriptDropzone({
+  dragging,
+  readingFile,
+  loadedFile,
+  error,
+  onFiles,
+  onDraggingChange,
+}: {
+  dragging: boolean;
+  readingFile: string | null;
+  loadedFile: { name: string; meta: string } | null;
+  error: string | null;
+  onFiles: (files: FileList | null) => void;
+  onDraggingChange: (dragging: boolean) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDraggingChange(true);
+        }}
+        onDragLeave={() => onDraggingChange(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDraggingChange(false);
+          onFiles(e.dataTransfer.files);
+        }}
+        className="flex flex-col items-center justify-center gap-1.5 rounded-xl px-4 py-6 text-center transition-colors"
+        style={{
+          border: `1px dashed ${dragging ? "var(--skin-accent)" : "var(--skin-line)"}`,
+          background: dragging ? "var(--skin-accent-soft)" : "var(--skin-bg)",
+        }}
+      >
+        {readingFile ? (
+          // The neutral counterpart to the accent banner the model call uses
+          // further down: same spinner, deliberately different surface and
+          // wording, because both can be on screen within seconds.
+          <div
+            className="flex items-center gap-2 text-sm"
+            style={{ color: "var(--skin-ink-soft)" }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Reading {readingFile}…
+          </div>
+        ) : loadedFile ? (
+          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--skin-ink)" }}>
+            <FileText className="h-4 w-4" style={{ color: "var(--skin-accent)" }} />
+            <span className="font-medium">{loadedFile.name}</span>
+            <span style={{ color: "var(--skin-ink-faint)" }}>{loadedFile.meta}</span>
+          </div>
+        ) : (
+          <>
+            <Upload className="h-5 w-5" style={{ color: "var(--skin-ink-faint)" }} />
+            <p className="text-sm" style={{ color: "var(--skin-ink)" }}>
+              Drop a transcript here, or{" "}
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="underline"
+                style={{ color: "var(--skin-accent)" }}
+              >
+                choose a file
+              </button>
+            </p>
+            <p className="text-xs" style={{ color: "var(--skin-ink-faint)" }}>
+              PDF, DOCX, TXT, VTT or SRT · up to 5 MB · read in your browser, never uploaded
+            </p>
+          </>
+        )}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept={TRANSCRIPT_ACCEPT}
+          className="hidden"
+          onChange={(e) => {
+            onFiles(e.target.files);
+            // Reset so picking the same file twice in a row still fires.
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {error && <ErrorNote>{error}</ErrorNote>}
+    </div>
+  );
+}
+
 function FollowupRow({
   index,
   row,
@@ -703,8 +858,8 @@ function FollowupRow({
           style={{ maxWidth: 180 }}
           value={row.illustrative_value}
           onChange={(e) => onChange({ illustrative_value: e.target.value })}
-          placeholder="Illustrative value"
-          aria-label="Illustrative value"
+          placeholder="Proposed value"
+          aria-label="Proposed value"
         />
         <span className="text-xs" style={{ color: "var(--skin-ink-faint)" }}>
           Only if a number was actually said on the call. Leave it empty otherwise.
