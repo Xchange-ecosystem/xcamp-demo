@@ -1,13 +1,10 @@
 import type { Project } from "@/fixtures/types";
 import type { PitchCardState } from "@/fixtures/pitch";
 
-// Segment color for the "cards composed" meter. No amber/warning token
-// exists in the --skin-* system (confirmed — see session report), so
-// "stale" reads as a distinct neutral tone rather than an invented color:
-// accent = composed, ink-faint = stale, line = not yet composed.
+// Segment color for the "cards composed" meter.
 const SEGMENT_COLOR: Record<PitchCardState, string> = {
   fresh: "var(--skin-accent)",
-  stale: "var(--skin-ink-faint)",
+  stale: "var(--skin-warn)",
   empty: "var(--skin-line)",
 };
 

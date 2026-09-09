@@ -55,18 +55,16 @@ export function PitchStage({
       {stale && (
         <div
           className="mx-6 mt-4 flex items-start gap-2.5 rounded-[var(--xr-lg)] px-3.5 py-2.5 text-sm sm:mx-7"
-          style={{ background: "var(--skin-surface2)", color: "var(--skin-ink-soft)" }}
+          style={{ background: "var(--skin-warn-soft)", color: "var(--skin-warn)" }}
         >
           <History
             className="mt-0.5 h-4 w-4 shrink-0"
             aria-hidden
-            style={{ color: "var(--skin-ink-faint)" }}
+            style={{ color: "var(--skin-warn)" }}
           />
           <p>
-            <strong style={{ color: "var(--skin-ink)" }}>
-              Two source Objectives have moved since this was composed.
-            </strong>{" "}
-            The numbers below may understate where you are now.
+            <strong>Two source Objectives have moved since this was composed.</strong> The numbers
+            below may understate where you are now.
           </p>
         </div>
       )}
