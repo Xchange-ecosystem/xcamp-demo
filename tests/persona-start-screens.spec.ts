@@ -1,10 +1,27 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 
 const SHOTS =
   "/tmp/claude-0/-home-user-xcamp-demo/e9616883-e38a-5227-b847-bcfd567f7a38/scratchpad/shots";
 const LONG = 30000;
 
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// toBeVisible() alone doesn't check CSS opacity, and the tiles grid fades in
+// (opacity 0 -> 1) rather than mounting/unmounting once the greeting
+// typewriter finishes - a tile button is technically "visible" to
+// Playwright the instant it mounts, well before the fade-in completes. Real
+// interactions (click()) auto-wait on pointer-events and don't race this,
+// but a screenshot taken right after toBeVisible() can still catch the
+// fade mid-transition. Wait for the actual opacity before screenshotting.
+async function waitForTilesFadedIn(page: Page, anyTile: Locator) {
+  await anyTile.waitFor({ state: "visible", timeout: LONG });
+  await expect(async () => {
+    const opacity = await anyTile.evaluate(
+      (el) => getComputedStyle(el.closest("div.grid")!).opacity,
+    );
+    expect(opacity).toBe("1");
+  }).toPass({ timeout: LONG });
+}
 
 test("founder start: greeting says Claas, tile titles, Companion-first Guidance -> real Companion altitude", async ({
   page,
@@ -17,6 +34,7 @@ test("founder start: greeting says Claas, tile titles, Companion-first Guidance 
   await expect(companionTile).toBeVisible({ timeout: LONG });
   await expect(page.getByRole("button", { name: /^App-style Creativity/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Platform Experience/ })).toBeVisible();
+  await waitForTilesFadedIn(page, companionTile);
   await page.screenshot({ path: `${SHOTS}/02-founder-tiles.png` });
 
   await companionTile.click();
@@ -67,6 +85,7 @@ test("investor start: greeting + Companion-first Guidance disabled", async ({ pa
   const companionTile = page.getByRole("button", { name: /^Companion-first Guidance/ });
   await expect(companionTile).toBeVisible({ timeout: LONG });
   await expect(companionTile).toBeDisabled();
+  await waitForTilesFadedIn(page, companionTile);
   await page.screenshot({ path: `${SHOTS}/07-investor-tiles.png` });
 
   // Disabled means disabled, not a silent no-op into a broken state -
@@ -83,6 +102,7 @@ test("collaborator start: greeting + Companion-first Guidance disabled", async (
   const companionTile = page.getByRole("button", { name: /^Companion-first Guidance/ });
   await expect(companionTile).toBeVisible({ timeout: LONG });
   await expect(companionTile).toBeDisabled();
+  await waitForTilesFadedIn(page, companionTile);
   await page.screenshot({ path: `${SHOTS}/10-collaborator-tiles.png` });
 
   await companionTile.click({ force: true });
@@ -152,18 +172,7 @@ test("mobile viewport: no overlap / no horizontal scroll on start and platform",
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/demo/founder/start");
   await expect(page.getByText(/Welcome to Xcamp, Claas/)).toBeVisible({ timeout: LONG });
-  // toBeVisible() alone doesn't check CSS opacity, and the tiles fade in
-  // (opacity 0 -> 1) rather than mounting/unmounting - wait for the real
-  // opacity the UI itself animates to, so this doesn't race the fade-in.
-  await page
-    .getByRole("button", { name: /^Platform Experience/ })
-    .waitFor({ state: "visible", timeout: LONG });
-  await expect(async () => {
-    const opacity = await page
-      .getByRole("button", { name: /^Platform Experience/ })
-      .evaluate((el) => getComputedStyle(el.closest("div.grid")!).opacity);
-    expect(opacity).toBe("1");
-  }).toPass({ timeout: LONG });
+  await waitForTilesFadedIn(page, page.getByRole("button", { name: /^Platform Experience/ }));
   await page.screenshot({ path: `${SHOTS}/13-mobile-founder-start.png` });
 
   await page.goto("/demo/founder");
