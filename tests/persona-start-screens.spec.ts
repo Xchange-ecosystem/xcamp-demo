@@ -74,6 +74,10 @@ test("investor start: guided fallback to portfolio", async ({ page }) => {
     timeout: LONG,
   });
   console.log("INVESTOR_FALLBACK_URL:", page.url());
+  // waitForURL fires on the URL change, not the new route's paint -
+  // wait for real landed content so the screenshot isn't a stale frame
+  // of the /start page (same class of race as the companion-seed shot).
+  await expect(page.getByText(/ranked against your mandate/)).toBeVisible({ timeout: LONG });
   await page.screenshot({ path: `${SHOTS}/09-investor-fallback-landed.png` });
 });
 
@@ -90,6 +94,7 @@ test("collaborator start: guided fallback to assignments", async ({ page }) => {
   await firstCard.click();
   await page.waitForURL((u) => u.pathname === "/demo/collaborator", { timeout: LONG });
   console.log("COLLAB_FALLBACK_URL:", page.url());
+  await expect(page.getByText("My assignments")).toBeVisible({ timeout: LONG });
   await page.screenshot({ path: `${SHOTS}/11-collaborator-fallback-landed.png` });
 });
 
