@@ -36,8 +36,13 @@ function DemoShellBody({ persona, items, children }: DemoShellProps) {
       {/* Inset content area — muted page background behind, actual
           screen content floats in a rounded surface card with
           margin on all sides (Chromebook-file-browser-style inset),
-          not full-bleed. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-6 lg:p-8">
+          not full-bleed. Extra right padding reserves room for the
+          fixed, always-on AltitudeRail (68px wide, docked at the
+          viewport edge) so it never overlaps content underneath it. */}
+      <div
+        className="flex min-h-0 min-w-0 flex-1 flex-col p-6 lg:p-8"
+        style={{ paddingRight: "calc(68px + 1.5rem)" }}
+      >
         {/* Sizing/clipping shell only — NOT the scroll container. Each
             route owns its own scroll region(s) (one for a single-column
             screen, two for a split like Founder Home's main content +
@@ -84,10 +89,16 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
   // not on internal nav within one persona's own routes.
   useAmbientToasts(persona);
 
-  // Companion-first guidance vs. Platform ecosystem level, Founder only —
-  // see src/hooks/useDemoAltitude.ts (unrelated to src/store/altitudeStore.ts).
+  // Companion-first guidance vs. Platform ecosystem level — see
+  // src/hooks/useDemoAltitude.ts (unrelated to src/store/altitudeStore.ts).
+  // The rail itself is mounted for every persona ("Everywhere show the
+  // altitude rail" — session spec). The Companion-altitude *shell swap*
+  // below stays Founder-only: CompanionAltitudeShell was built against
+  // Founder fixtures only (Phase 0 audit). AltitudeRail itself disables the
+  // "Companion" segment for Investor/Collaborator (same treatment as the
+  // "App-style" placeholder) so the rail is present everywhere without
+  // leaving a dead click for personas with no Companion shell yet.
   const [altitude, setAltitude] = useDemoAltitude();
-  const showAltitudeRail = persona === "founder";
   const isCompanionAltitude = persona === "founder" && altitude === "companion";
 
   return (
@@ -107,7 +118,7 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
                   {children}
                 </DemoShellBody>
               )}
-              {showAltitudeRail && <AltitudeRail altitude={altitude} onSelect={setAltitude} />}
+              <AltitudeRail persona={persona} altitude={altitude} onSelect={setAltitude} />
             </div>
           </SidebarProvider>
         </CompanionRailProvider>
