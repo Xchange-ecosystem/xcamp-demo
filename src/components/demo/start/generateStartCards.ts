@@ -6,13 +6,9 @@
 // (title/body?/ctaLabel?) — this just runs a handful of them once (not on
 // a randomized interval) and shapes the result into a card.
 //
-// NOT currently imported anywhere: PersonaStartScreen's "Companion-first
-// Guidance" tile now redirects straight into the Companion altitude
-// (writeInitialDemoAltitude + navigate) instead of showing an inline card
-// list on the start page. Left in place, not deleted, since this is the
-// natural source if/when CompanionAltitudeShell grows its own
-// suggestion/card feed on arrival — re-check it still matches
-// AMBIENT_TOAST_TEMPLATES's shape before reusing, don't assume.
+// Used by PersonaStartScreen's "Companion-first Guidance" tile: selecting
+// the tile shows these cards inline (intro line + cards + "Show more");
+// selecting a card is what redirects into the real Companion altitude.
 import { AMBIENT_TOAST_TEMPLATES } from "@/components/demo/ambientToastPools";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 

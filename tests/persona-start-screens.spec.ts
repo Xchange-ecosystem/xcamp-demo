@@ -23,7 +23,27 @@ async function waitForTilesFadedIn(page: Page, anyTile: Locator) {
   }).toPass({ timeout: LONG });
 }
 
-test("founder start: greeting says Claas, tile titles, Companion-first Guidance -> real Companion altitude", async ({
+test("tile text is centered on all three tiles, all three personas", async ({ page }) => {
+  for (const url of ["/demo/founder/start", "/demo/investor/start", "/demo/collaborator/start"]) {
+    await page.goto(url);
+    const anyTile = page.getByRole("button", { name: /^Platform Experience/ });
+    await waitForTilesFadedIn(page, anyTile);
+
+    for (const label of [
+      "Companion-first Guidance",
+      "App-style Creativity",
+      "Platform Experience",
+    ]) {
+      const tile = page.getByRole("button", { name: new RegExp(`^${label}`) });
+      await expect(tile).toHaveCSS("text-align", "center");
+      const spans = tile.locator("span");
+      await expect(spans.first()).toHaveCSS("text-align", "center");
+      await expect(spans.last()).toHaveCSS("text-align", "center");
+    }
+  }
+});
+
+test("founder start: greeting says Claas, tile titles centered, Companion-first Guidance shows cards -> card click reaches real Companion altitude", async ({
   page,
 }) => {
   await page.goto("/demo/founder/start");
@@ -37,16 +57,29 @@ test("founder start: greeting says Claas, tile titles, Companion-first Guidance 
   await waitForTilesFadedIn(page, companionTile);
   await page.screenshot({ path: `${SHOTS}/02-founder-tiles.png` });
 
+  // Selecting the tile shows inline content now - it must NOT redirect.
   await companionTile.click();
-  // Redirects straight into CompanionAltitudeShell at /demo/founder - no
-  // inline step, no separate /demo/founder/companion route.
+  await page.waitForTimeout(300);
+  expect(new URL(page.url()).pathname).toBe("/demo/founder/start");
+
+  const firstCard = page.locator("div.mt-8 button.rounded-xl").first();
+  await expect(firstCard).toBeVisible({ timeout: LONG });
+  await page.screenshot({ path: `${SHOTS}/03-founder-guided-cards.png` });
+
+  const cardTitle = await page.locator("div.mt-8 span.text-sm.font-medium").first().textContent();
+  console.log("FIRST_CARD_TITLE:", cardTitle);
+
+  // The card click is what redirects into CompanionAltitudeShell now - no
+  // inline seeding (no ?seed= mechanism exists on CompanionAltitudeShell;
+  // this lands in the normal, unseeded starting conversation).
+  await firstCard.click();
   await page.waitForURL((u) => u.pathname === "/demo/founder", { timeout: LONG });
   const composer = page.getByPlaceholder("Message Chi…");
   await expect(composer).toBeVisible({ timeout: LONG });
   await expect(page.getByText(/Kenya Power's pilot has been open eleven days/)).toBeVisible({
     timeout: LONG,
   });
-  await page.screenshot({ path: `${SHOTS}/03-founder-companion-altitude.png` });
+  await page.screenshot({ path: `${SHOTS}/04-founder-companion-altitude.png` });
   console.log("COMPANION_ALTITUDE_URL:", page.url());
 
   // Confirm this is genuinely the CompanionAltitudeShell (persisted via
@@ -89,10 +122,13 @@ test("investor start: greeting + Companion-first Guidance disabled", async ({ pa
   await page.screenshot({ path: `${SHOTS}/07-investor-tiles.png` });
 
   // Disabled means disabled, not a silent no-op into a broken state -
-  // clicking it must not navigate anywhere.
+  // clicking it must not navigate anywhere, and must not reveal the
+  // Guided-cards state either (the disabled check in selectTile also
+  // guards against reaching that).
   await companionTile.click({ force: true });
   await page.waitForTimeout(500);
   expect(new URL(page.url()).pathname).toBe("/demo/investor/start");
+  await expect(page.locator("div.mt-8 button.rounded-xl")).toHaveCount(0);
   console.log("INVESTOR_COMPANION_CLICK_URL:", page.url());
 });
 
@@ -108,6 +144,7 @@ test("collaborator start: greeting + Companion-first Guidance disabled", async (
   await companionTile.click({ force: true });
   await page.waitForTimeout(500);
   expect(new URL(page.url()).pathname).toBe("/demo/collaborator/start");
+  await expect(page.locator("div.mt-8 button.rounded-xl")).toHaveCount(0);
   console.log("COLLAB_COMPANION_CLICK_URL:", page.url());
 });
 
