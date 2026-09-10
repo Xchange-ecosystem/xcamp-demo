@@ -23,10 +23,13 @@ interface PersonaOption {
 
 // The three persona index routes — same destinations linked elsewhere in
 // the demo, just surfaced here as a switcher instead of separate links.
+// Switching persona re-arrives at that persona's /start landing (logo +
+// greeting + altitude tiles) rather than dropping straight into their
+// platform screen — same "first arrival" experience either way in.
 const PERSONAS: PersonaOption[] = [
-  { id: "founder", label: "Founder", to: "/demo/founder" },
-  { id: "investor", label: "Investor", to: "/demo/investor" },
-  { id: "collaborator", label: "Collaborator", to: "/demo/collaborator" },
+  { id: "founder", label: "Founder", to: "/demo/founder/start" },
+  { id: "investor", label: "Investor", to: "/demo/investor/start" },
+  { id: "collaborator", label: "Collaborator", to: "/demo/collaborator/start" },
 ];
 
 interface PersonaSwitcherProps {
