@@ -30,10 +30,10 @@ test("founder start: logo -> greeting -> tiles -> guided -> companion seed", asy
 
   await firstCard.click();
   await page.waitForURL(/\/demo\/founder\/companion/, { timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/04-founder-companion-seed.png` });
 
   const details = page.locator("aside");
   await expect(details).toBeVisible({ timeout: LONG });
+  await page.screenshot({ path: `${SHOTS}/04-founder-companion-seed.png` });
   const detailsText = await details.textContent();
   console.log("DETAILS_TEXT:", detailsText);
   console.log("URL:", page.url());
@@ -139,7 +139,19 @@ test("mobile viewport: no overlap / no horizontal scroll on start and platform",
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/demo/founder/start");
-  await expect(page.getByRole("button", { name: /^Broad/ })).toBeVisible({ timeout: LONG });
+  await expect(page.getByText(/Welcome to Xcamp, Maren/)).toBeVisible({ timeout: LONG });
+  // toBeVisible() alone doesn't check CSS opacity, and the tiles fade in
+  // (opacity 0 -> 1) rather than mounting/unmounting — wait for the real
+  // gate the UI itself uses (pointer-events) via an actual click instead of
+  // asserting visibility, so this doesn't race the fade-in like the product
+  // never would.
+  await page.getByRole("button", { name: /^Broad/ }).waitFor({ state: "visible", timeout: LONG });
+  await expect(async () => {
+    const opacity = await page
+      .getByRole("button", { name: /^Broad/ })
+      .evaluate((el) => getComputedStyle(el.closest("div.grid")!).opacity);
+    expect(opacity).toBe("1");
+  }).toPass({ timeout: LONG });
   await page.screenshot({ path: `${SHOTS}/13-mobile-founder-start.png` });
 
   await page.goto("/demo/founder");
