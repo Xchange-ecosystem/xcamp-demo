@@ -70,7 +70,9 @@ test("investor start: guided fallback to portfolio", async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/08-investor-guided-cards.png` });
 
   await firstCard.click();
-  await page.waitForURL((u) => u.pathname === "/demo/investor/", { timeout: LONG });
+  await page.waitForURL((u) => u.pathname === "/demo/investor" || u.pathname === "/demo/investor/", {
+    timeout: LONG,
+  });
   console.log("INVESTOR_FALLBACK_URL:", page.url());
   await page.screenshot({ path: `${SHOTS}/09-investor-fallback-landed.png` });
 });
