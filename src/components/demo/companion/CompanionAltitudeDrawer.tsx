@@ -6,11 +6,13 @@
 // below) plus the reused PersonaSwitcher (extracted from DemoNavRail; see
 // src/components/demo/PersonaSwitcher.tsx).
 //
-// The "Companion" item is deliberately not a link: /demo/founder/companion
-// already exists as a distinct Platform-level nav destination (a much
-// simpler standalone chat page). Making this drawer item a plain "you are
-// here" indicator — no href, no onClick — means it never points at that
-// route, so the two same-named "Companion" surfaces never collide.
+// The "Companion" item is deliberately not a link — it's a "you are here"
+// indicator (no href, no onClick) for a drawer that only ever renders while
+// already inside the Companion altitude. There used to also be a separate
+// /demo/founder/companion route+nav-item this could have collided with;
+// that route was removed (Companion is an altitude, not a URL — see
+// PersonaStartScreen's "Companion-first Guidance" tile), but the item stays
+// non-interactive on its own merits regardless.
 import { Menu, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PersonaSwitcher } from "@/components/demo/PersonaSwitcher";

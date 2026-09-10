@@ -6,99 +6,106 @@ const LONG = 30000;
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-test("founder start: logo -> greeting -> tiles -> guided -> companion seed", async ({ page }) => {
+test("founder start: greeting says Claas, tile titles, Companion-first Guidance -> real Companion altitude", async ({
+  page,
+}) => {
   await page.goto("/demo/founder/start");
-  await expect(page.getByText(/Welcome to Xcamp, Maren/)).toBeVisible({ timeout: LONG });
+  await expect(page.getByText(/Welcome to Xcamp, Claas/)).toBeVisible({ timeout: LONG });
   await page.screenshot({ path: `${SHOTS}/01-founder-greeting.png` });
 
-  const guidedTile = page.getByRole("button", { name: /^Guided/ });
-  await expect(guidedTile).toBeVisible({ timeout: LONG });
-  await expect(page.getByRole("button", { name: /^Creative/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Broad/ })).toBeVisible();
+  const companionTile = page.getByRole("button", { name: /^Companion-first Guidance/ });
+  await expect(companionTile).toBeVisible({ timeout: LONG });
+  await expect(page.getByRole("button", { name: /^App-style Creativity/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Platform Experience/ })).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/02-founder-tiles.png` });
 
-  await guidedTile.click();
-  const firstCard = page.locator("div.mt-8 button.rounded-xl").first();
-  await expect(firstCard).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/03-founder-guided-cards.png` });
+  await companionTile.click();
+  // Redirects straight into CompanionAltitudeShell at /demo/founder - no
+  // inline step, no separate /demo/founder/companion route.
+  await page.waitForURL((u) => u.pathname === "/demo/founder", { timeout: LONG });
+  const composer = page.getByPlaceholder("Message Chi…");
+  await expect(composer).toBeVisible({ timeout: LONG });
+  await expect(page.getByText(/Kenya Power's pilot has been open eleven days/)).toBeVisible({
+    timeout: LONG,
+  });
+  await page.screenshot({ path: `${SHOTS}/03-founder-companion-altitude.png` });
+  console.log("COMPANION_ALTITUDE_URL:", page.url());
 
-  const cardTitle = await page
-    .locator("div.mt-8 span.text-sm.font-medium")
-    .first()
-    .textContent();
-  console.log("FIRST_CARD_TITLE:", cardTitle);
-
-  await firstCard.click();
-  await page.waitForURL(/\/demo\/founder\/companion/, { timeout: LONG });
-
-  const details = page.locator("aside");
-  await expect(details).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/04-founder-companion-seed.png` });
-  const detailsText = await details.textContent();
-  console.log("DETAILS_TEXT:", detailsText);
-  console.log("URL:", page.url());
+  // Confirm this is genuinely the CompanionAltitudeShell (persisted via
+  // sessionStorage altitude), not just a coincidental page - reload and
+  // check it's still there.
+  await page.reload();
+  await expect(composer).toBeVisible({ timeout: LONG });
 });
 
-test("founder start: creative + broad", async ({ page }) => {
+test("founder start: App-style Creativity + Platform Experience", async ({ page }) => {
   await page.goto("/demo/founder/start");
-  const creativeTile = page.getByRole("button", { name: /^Creative/ });
+  const creativeTile = page.getByRole("button", { name: /^App-style Creativity/ });
   await expect(creativeTile).toBeVisible({ timeout: LONG });
   await creativeTile.click();
   await expect(page.getByText("Not available in demo!")).toBeVisible({ timeout: LONG });
   await page.screenshot({ path: `${SHOTS}/05-founder-creative.png` });
 
-  const broadTile = page.getByRole("button", { name: /^Broad/ });
-  await broadTile.click();
+  const platformTile = page.getByRole("button", { name: /^Platform Experience/ });
+  await platformTile.click();
   const enterBtn = page.getByRole("button", { name: /Enter Platform/ });
   await expect(enterBtn).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/06-founder-broad.png` });
-  await enterBtn.click();
-  await page.waitForURL((u) => u.pathname === "/demo/founder", { timeout: LONG });
-  console.log("BROAD_URL:", page.url());
-});
-
-test("investor start: guided fallback to portfolio", async ({ page }) => {
-  await page.goto("/demo/investor/start");
-  await expect(page.getByText(/Welcome to Xcamp, Ingrid/)).toBeVisible({ timeout: LONG });
-  const guidedTile = page.getByRole("button", { name: /^Guided/ });
-  await expect(guidedTile).toBeVisible({ timeout: LONG });
-  await guidedTile.click();
-  await page.screenshot({ path: `${SHOTS}/07-investor-tiles.png` });
-
-  const firstCard = page.locator("div.mt-8 button.rounded-xl").first();
-  await expect(firstCard).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/08-investor-guided-cards.png` });
-
-  await firstCard.click();
-  await page.waitForURL((u) => u.pathname === "/demo/investor" || u.pathname === "/demo/investor/", {
+  await expect(page.getByText(/Platform gives you the full ecosystem/)).toBeVisible({
     timeout: LONG,
   });
-  console.log("INVESTOR_FALLBACK_URL:", page.url());
-  // waitForURL fires on the URL change, not the new route's paint -
-  // wait for real landed content so the screenshot isn't a stale frame
-  // of the /start page (same class of race as the companion-seed shot).
-  await expect(page.getByText(/ranked against your mandate/)).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/09-investor-fallback-landed.png` });
+  await page.screenshot({ path: `${SHOTS}/06-founder-platform.png` });
+  await enterBtn.click();
+  await page.waitForURL((u) => u.pathname === "/demo/founder", { timeout: LONG });
+  // Regular Founder Home, not the Companion altitude - no seeded chat.
+  await expect(page.getByPlaceholder("Message Chi…")).not.toBeVisible();
+  console.log("PLATFORM_URL:", page.url());
 });
 
-test("collaborator start: guided fallback to assignments", async ({ page }) => {
+test("investor start: greeting + Companion-first Guidance disabled", async ({ page }) => {
+  await page.goto("/demo/investor/start");
+  await expect(page.getByText(/Welcome to Xcamp, Claas/)).toBeVisible({ timeout: LONG });
+  const companionTile = page.getByRole("button", { name: /^Companion-first Guidance/ });
+  await expect(companionTile).toBeVisible({ timeout: LONG });
+  await expect(companionTile).toBeDisabled();
+  await page.screenshot({ path: `${SHOTS}/07-investor-tiles.png` });
+
+  // Disabled means disabled, not a silent no-op into a broken state -
+  // clicking it must not navigate anywhere.
+  await companionTile.click({ force: true });
+  await page.waitForTimeout(500);
+  expect(new URL(page.url()).pathname).toBe("/demo/investor/start");
+  console.log("INVESTOR_COMPANION_CLICK_URL:", page.url());
+});
+
+test("collaborator start: greeting + Companion-first Guidance disabled", async ({ page }) => {
   await page.goto("/demo/collaborator/start");
-  await expect(page.getByText(/Welcome to Xcamp, Yuki/)).toBeVisible({ timeout: LONG });
-  const guidedTile = page.getByRole("button", { name: /^Guided/ });
-  await expect(guidedTile).toBeVisible({ timeout: LONG });
-  await guidedTile.click();
+  await expect(page.getByText(/Welcome to Xcamp, Claas/)).toBeVisible({ timeout: LONG });
+  const companionTile = page.getByRole("button", { name: /^Companion-first Guidance/ });
+  await expect(companionTile).toBeVisible({ timeout: LONG });
+  await expect(companionTile).toBeDisabled();
   await page.screenshot({ path: `${SHOTS}/10-collaborator-tiles.png` });
 
-  const firstCard = page.locator("div.mt-8 button.rounded-xl").first();
-  await expect(firstCard).toBeVisible({ timeout: LONG });
-  await firstCard.click();
-  await page.waitForURL((u) => u.pathname === "/demo/collaborator", { timeout: LONG });
-  console.log("COLLAB_FALLBACK_URL:", page.url());
-  await expect(page.getByText("My assignments")).toBeVisible({ timeout: LONG });
-  await page.screenshot({ path: `${SHOTS}/11-collaborator-fallback-landed.png` });
+  await companionTile.click({ force: true });
+  await page.waitForTimeout(500);
+  expect(new URL(page.url()).pathname).toBe("/demo/collaborator/start");
+  console.log("COLLAB_COMPANION_CLICK_URL:", page.url());
 });
 
-test("AltitudeRail hover + spacing on founder, investor, collaborator", async ({ page }) => {
+test("/demo/founder/companion is gone - real not-found page, not a redirect or crash", async ({
+  page,
+}) => {
+  const response = await page.goto("/demo/founder/companion");
+  // SPA: server returns 200 with index.html for any path: the real check
+  // is the client-side router's own not-found state, not the HTTP status.
+  console.log("COMPANION_ROUTE_HTTP_STATUS:", response?.status());
+  await expect(page.getByText("404")).toBeVisible({ timeout: LONG });
+  await expect(page.getByText("Page not found")).toBeVisible({ timeout: LONG });
+  await page.screenshot({ path: `${SHOTS}/15-founder-companion-404.png` });
+});
+
+test("AltitudeRail hover + Companion segment disabled state on founder, investor, collaborator", async ({
+  page,
+}) => {
   for (const [persona, url] of [
     ["founder", "/demo/founder"],
     ["investor", "/demo/investor"],
@@ -115,7 +122,7 @@ test("AltitudeRail hover + spacing on founder, investor, collaborator", async ({
 
     const companionBtn = page.getByRole("button", { name: /Companion/ });
     const isDisabled = await companionBtn.isDisabled();
-    console.log(`${persona} companion-disabled:`, isDisabled);
+    console.log(`${persona} rail companion-disabled:`, isDisabled);
   }
 });
 
@@ -128,7 +135,7 @@ test("PersonaSwitcher lands on /start", async ({ page }) => {
   await page.waitForURL(/\/demo\/investor\/start/, { timeout: LONG });
   console.log("SWITCH_TO_INVESTOR_URL:", page.url());
 
-  // /start is full-bleed, no DemoNavRail/PersonaSwitcher there by design —
+  // /start is full-bleed, no DemoNavRail/PersonaSwitcher there by design -
   // go back to a platform screen to switch again.
   await page.goto("/demo/investor");
   const switcher2 = page.getByRole("button", { name: /Investor/ }).first();
@@ -144,16 +151,16 @@ test("mobile viewport: no overlap / no horizontal scroll on start and platform",
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/demo/founder/start");
-  await expect(page.getByText(/Welcome to Xcamp, Maren/)).toBeVisible({ timeout: LONG });
+  await expect(page.getByText(/Welcome to Xcamp, Claas/)).toBeVisible({ timeout: LONG });
   // toBeVisible() alone doesn't check CSS opacity, and the tiles fade in
-  // (opacity 0 -> 1) rather than mounting/unmounting — wait for the real
-  // gate the UI itself uses (pointer-events) via an actual click instead of
-  // asserting visibility, so this doesn't race the fade-in like the product
-  // never would.
-  await page.getByRole("button", { name: /^Broad/ }).waitFor({ state: "visible", timeout: LONG });
+  // (opacity 0 -> 1) rather than mounting/unmounting - wait for the real
+  // opacity the UI itself animates to, so this doesn't race the fade-in.
+  await page
+    .getByRole("button", { name: /^Platform Experience/ })
+    .waitFor({ state: "visible", timeout: LONG });
   await expect(async () => {
     const opacity = await page
-      .getByRole("button", { name: /^Broad/ })
+      .getByRole("button", { name: /^Platform Experience/ })
       .evaluate((el) => getComputedStyle(el.closest("div.grid")!).opacity);
     expect(opacity).toBe("1");
   }).toPass({ timeout: LONG });

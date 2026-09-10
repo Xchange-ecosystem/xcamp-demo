@@ -3,62 +3,58 @@
 // stays persona-agnostic and new personas only need a new entry here, not a
 // new component.
 //
-// Demo-user names match the person already used as "you" for that persona
-// elsewhere in the codebase: Maren Solberg is the Founder Home greeting
-// (demo.founder.index.tsx), Yuki Tanaka is the established default
-// collaborator (see DEFAULT_ASSIGNEE_ID in demo.founder.index.tsx), Ingrid
-// Halvorsen is the first investor fixture (src/fixtures/people.ts) and
-// matches the Fjord Ventures references already used across the ambient
-// toast pools.
+// The greeting always addresses "Claas" regardless of persona — a live-demo
+// personalization (Fabian's own instruction), not a per-persona fixture
+// name like the rest of this file. It intentionally does not follow the
+// Maren/Yuki/Ingrid pattern used elsewhere for "you" in each persona's own
+// screens (e.g. Founder Home's greeting, DEFAULT_ASSIGNEE_ID) — those stay
+// untouched; this is the start page's own greeting only.
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 export interface PersonaStartConfig {
   persona: DemoPersona;
-  /** First name only, for the greeting line. */
+  /** First name only, for the greeting line. Same value for every persona
+   *  by design — see the file header. */
   name: string;
-  /** Guided-mode "here's what moved" intro line. */
+  /** Guided-mode "here's what moved" intro line — currently unused (the
+   *  Companion-first Guidance tile redirects straight into the Companion
+   *  altitude rather than showing this inline; kept for when that altitude
+   *  grows its own onboarding line). */
   guidedIntro: string;
-  /** Broad-mode explainer line, typed out before the entry button. */
-  broadExplainer: string;
-  /** Where the Broad button and a Guided card's "Details" fall back to —
-   *  the persona's existing platform-level screen. */
-  broadTarget: string;
-  /** Where a Guided card click opens with the card's content preloaded.
-   *  Only Founder has a Companion route today (Phase 0 audit) — Investor
-   *  and Collaborator fall back to broadTarget until they get one. */
-  companionTarget: string | null;
+  /** Platform-mode explainer line, typed out before the entry button. */
+  platformExplainer: string;
+  /** The persona's base platform route — both the Platform Experience
+   *  tile's button and the Companion-first Guidance tile (after writing
+   *  the "companion" altitude, see useDemoAltitude's
+   *  writeInitialDemoAltitude) land here. DemoShell reads the altitude on
+   *  arrival and swaps in CompanionAltitudeShell itself when applicable —
+   *  there is deliberately no separate "companion route" to target. */
+  platformTarget: string;
 }
 
 export const PERSONA_START: Record<DemoPersona, PersonaStartConfig> = {
   founder: {
     persona: "founder",
-    name: "Maren",
+    name: "Claas",
     guidedIntro: "Here are the latest updates from your project.",
-    broadExplainer:
-      "Broad gives you the full platform — every project, every lever, laid out for you to steer directly.",
-    broadTarget: "/demo/founder",
-    companionTarget: "/demo/founder/companion",
+    platformExplainer:
+      "Platform gives you the full ecosystem — every project, every lever, laid out for you to steer directly.",
+    platformTarget: "/demo/founder",
   },
   investor: {
     persona: "investor",
-    name: "Ingrid",
+    name: "Claas",
     guidedIntro: "Here's what moved across your portfolio.",
-    broadExplainer:
-      "Broad gives you the full platform — the ranked portfolio and ecosystem metrics, laid out for you to steer directly.",
-    broadTarget: "/demo/investor",
-    // No Investor Companion route exists yet — cards open the portfolio
-    // screen instead until one is built.
-    companionTarget: null,
+    platformExplainer:
+      "Platform gives you the full ecosystem — the ranked portfolio and ecosystem metrics, laid out for you to steer directly.",
+    platformTarget: "/demo/investor",
   },
   collaborator: {
     persona: "collaborator",
-    name: "Yuki",
+    name: "Claas",
     guidedIntro: "Here's what moved on your assignments.",
-    broadExplainer:
-      "Broad gives you the full platform — every assignment and your value wallet, laid out for you to steer directly.",
-    broadTarget: "/demo/collaborator",
-    // No Collaborator Companion route exists yet — cards open the
-    // assignments screen instead until one is built.
-    companionTarget: null,
+    platformExplainer:
+      "Platform gives you the full ecosystem — every assignment and your value wallet, laid out for you to steer directly.",
+    platformTarget: "/demo/collaborator",
   },
 };

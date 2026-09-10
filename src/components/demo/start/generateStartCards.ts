@@ -5,6 +5,14 @@
 // set. A template call already returns a full AmbientToastSpec
 // (title/body?/ctaLabel?) — this just runs a handful of them once (not on
 // a randomized interval) and shapes the result into a card.
+//
+// NOT currently imported anywhere: PersonaStartScreen's "Companion-first
+// Guidance" tile now redirects straight into the Companion altitude
+// (writeInitialDemoAltitude + navigate) instead of showing an inline card
+// list on the start page. Left in place, not deleted, since this is the
+// natural source if/when CompanionAltitudeShell grows its own
+// suggestion/card feed on arrival — re-check it still matches
+// AMBIENT_TOAST_TEMPLATES's shape before reusing, don't assume.
 import { AMBIENT_TOAST_TEMPLATES } from "@/components/demo/ambientToastPools";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 

@@ -8,7 +8,7 @@
 // rail (mood/appearance/detail-search panel).
 import { useState } from "react";
 import { Compass, MessageCircle, Sparkles } from "lucide-react";
-import type { DemoAltitude } from "@/hooks/useDemoAltitude";
+import { NO_COMPANION_SHELL, type DemoAltitude } from "@/hooks/useDemoAltitude";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 interface AltitudeSegment {
@@ -22,14 +22,6 @@ const SEGMENTS: AltitudeSegment[] = [
   { key: "app", label: "App-style", icon: Sparkles },
   { key: "platform", label: "Platform", icon: Compass },
 ];
-
-// Personas without a Companion-altitude shell (see DemoShell's
-// isCompanionAltitude — Founder-only, CompanionAltitudeShell was built
-// against Founder fixtures only). Rather than hide the segment for those
-// personas — which would break "everywhere show the same rail" — it's kept
-// visible but inert, same treatment as the "App-style" placeholder below:
-// visible, deliberately disabled, not removed and not hidden.
-const NO_COMPANION_SHELL: DemoPersona[] = ["investor", "collaborator"];
 
 interface AltitudeRailProps {
   persona: DemoPersona;

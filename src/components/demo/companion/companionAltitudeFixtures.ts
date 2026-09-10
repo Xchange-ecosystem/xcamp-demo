@@ -1,8 +1,7 @@
 // src/components/demo/companion/companionAltitudeFixtures.ts
 // Static message history for the Companion-altitude chat column. Fixture
-// content only — no real chat/AI wiring in this session (see
-// demo.founder.companion.tsx's existing "lighter build for the demo"
-// pattern, which this follows for the canned-reply-on-send behavior too).
+// content only — no real chat/AI wiring in this session: sending a message
+// gets a canned acknowledgement, not a real model call.
 import type { ChatMessage } from "@/components/companion/ChatThread";
 
 export const COMPANION_ALTITUDE_THREAD: ChatMessage[] = [
@@ -29,6 +28,6 @@ export const COMPANION_ALTITUDE_THREAD: ChatMessage[] = [
   },
 ];
 
-// Canned acknowledgement for anything typed into the composer — same "not a
-// real backend call" pattern as demo.founder.companion.tsx.
+// Canned acknowledgement for anything typed into the composer — not a real
+// backend call.
 export const COMPANION_ALTITUDE_ACK = "Got it — noted for this project.";
