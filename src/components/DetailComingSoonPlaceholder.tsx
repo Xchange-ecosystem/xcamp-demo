@@ -14,7 +14,7 @@ export function DetailComingSoonPlaceholder() {
         fontSize: 15,
       }}
     >
-      Detail view coming soon.
+      This feature is not activated in the demo. Contact admin@xchange.eco.
     </div>
   );
 }

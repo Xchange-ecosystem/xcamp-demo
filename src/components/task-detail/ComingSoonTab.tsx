@@ -18,7 +18,9 @@ export function ComingSoonTab({ icon: Icon, label }: { icon: LucideIcon; label: 
       <p style={{ fontSize: 14, fontWeight: 500, color: "var(--skin-ink-soft)", margin: 0 }}>
         {label}
       </p>
-      <p style={{ fontSize: 13, margin: 0 }}>Coming soon.</p>
+      <p style={{ fontSize: 13, margin: 0 }}>
+        This feature is not activated in the demo. Contact admin@xchange.eco.
+      </p>
     </div>
   );
 }

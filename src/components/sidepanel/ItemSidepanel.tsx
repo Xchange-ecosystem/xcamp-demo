@@ -1781,7 +1781,9 @@ function KebabMenu({ item, onClose }: { item: PanelItem; onClose: () => void }) 
         <DropdownMenuSeparator />
         {item.kind === "note" && (
           <DropdownMenuItem
-            onClick={() => alert("Promote to objective: not yet implemented")}
+            onClick={() =>
+              alert("This feature is not activated in the demo. Contact admin@xchange.eco.")
+            }
             style={{ display: "flex", alignItems: "center", gap: 8 }}
           >
             <Sparkles size={13} />

@@ -19,7 +19,7 @@ function AiPlanPage() {
       <ComingSoonPage
         icon={Sparkles}
         title="AI Plan"
-        subtitle="AI-generated project planning and roadmapping — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </AppShell>
   );

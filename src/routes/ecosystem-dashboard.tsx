@@ -21,7 +21,7 @@ function EcosystemDashboardPage() {
       <ComingSoonPage
         icon={LayoutDashboard}
         title="Dashboard"
-        subtitle="Portfolio-wide analytics and reporting — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </AppShell>
   );

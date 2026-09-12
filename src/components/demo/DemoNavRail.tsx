@@ -5,6 +5,8 @@ import { ChevronDown } from "lucide-react";
 import { useBrand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { PersonaSwitcher } from "@/components/demo/PersonaSwitcher";
+import { ProjectSwitcher } from "@/components/demo/ProjectSwitcher";
+import type { DemoAltitude } from "@/hooks/useDemoAltitude";
 
 export type DemoPersona = "founder" | "investor" | "collaborator";
 
@@ -25,9 +27,14 @@ interface DemoNavRailProps {
   persona: DemoPersona;
   items: DemoNavItem[];
   /** Persona-specific control rendered between the logo and the nav list —
-   *  e.g. the Investor persona's ecosystem/project switcher. Nothing renders
-   *  here for personas that don't pass it (Founder, Collaborator). */
+   *  e.g. the Investor persona's ecosystem/project switcher. Takes priority
+   *  over the Founder-only ProjectSwitcher fallback below when passed. */
   extra?: ReactNode;
+  /** Only altitude reaching this component that should hide the Founder
+   *  project switcher — "app" stays a disabled placeholder everywhere (see
+   *  AltitudeRail), so the switcher shows only on Platform here. Unused by
+   *  personas that pass `extra` instead. */
+  altitude?: DemoAltitude;
 }
 
 // Does any leaf under this entry match the current path? Used to keep a
@@ -106,11 +113,12 @@ function NavEntry({
   );
 }
 
-export function DemoNavRail({ persona, items, extra }: DemoNavRailProps) {
+export function DemoNavRail({ persona, items, extra, altitude }: DemoNavRailProps) {
   const { logoUrl, name } = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (to?: string, exact?: boolean) =>
     !!to && (exact ? pathname === to : pathname.startsWith(to));
+  const showProjectSwitcher = persona === "founder" && altitude !== "app";
 
   return (
     <nav
@@ -121,7 +129,7 @@ export function DemoNavRail({ persona, items, extra }: DemoNavRailProps) {
         <img src={logoUrl} alt={name} style={{ height: 26, objectFit: "contain" }} />
       </Link>
 
-      {extra}
+      {extra ?? (showProjectSwitcher && <ProjectSwitcher />)}
 
       <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {items.map((item) => (

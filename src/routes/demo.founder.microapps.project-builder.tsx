@@ -17,7 +17,7 @@ function MicroAppsProjectBuilderPage() {
       <ComingSoonPage
         icon={Hammer}
         title="Project Builder"
-        subtitle="Generate a project plan from a one-line pitch — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );
