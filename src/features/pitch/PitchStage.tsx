@@ -148,7 +148,7 @@ function EmptyStage({ card }: { card: PitchCard }) {
           Compose card
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/demo/founder/navigator">Open in Navigator</Link>
+          <Link to="/demo/founder/navigator/board">Open in Navigator</Link>
         </Button>
       </div>
     </div>
