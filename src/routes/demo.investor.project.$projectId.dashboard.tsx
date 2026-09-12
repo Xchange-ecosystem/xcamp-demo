@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutDashboard } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { InvestorProjectDashboard } from "@/features/investor-project/InvestorProjectDashboard";
 
 export const Route = createFileRoute("/demo/investor/project/$projectId/dashboard")({
   head: () => ({ meta: [{ title: "Project Dashboard — Xcamp" }] }),
@@ -8,11 +7,6 @@ export const Route = createFileRoute("/demo/investor/project/$projectId/dashboar
 });
 
 function InvestorProjectDashboardPage() {
-  return (
-    <ComingSoonPage
-      icon={LayoutDashboard}
-      title="Project Dashboard"
-      subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
-    />
-  );
+  const { projectId } = Route.useParams();
+  return <InvestorProjectDashboard projectId={projectId} />;
 }

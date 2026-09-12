@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Presentation } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { InvestorProjectPitch } from "@/features/investor-project/InvestorProjectPitch";
 
 export const Route = createFileRoute("/demo/investor/project/$projectId/pitch")({
   head: () => ({ meta: [{ title: "Pitchdeck — Xcamp" }] }),
@@ -8,11 +7,6 @@ export const Route = createFileRoute("/demo/investor/project/$projectId/pitch")(
 });
 
 function InvestorProjectPitchPage() {
-  return (
-    <ComingSoonPage
-      icon={Presentation}
-      title="Pitchdeck"
-      subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
-    />
-  );
+  const { projectId } = Route.useParams();
+  return <InvestorProjectPitch projectId={projectId} />;
 }

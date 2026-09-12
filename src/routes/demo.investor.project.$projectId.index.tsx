@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Home } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { InvestorProjectHome } from "@/features/investor-project/InvestorProjectHome";
 
 export const Route = createFileRoute("/demo/investor/project/$projectId/")({
   head: () => ({ meta: [{ title: "Project Home — Xcamp" }] }),
@@ -8,11 +7,6 @@ export const Route = createFileRoute("/demo/investor/project/$projectId/")({
 });
 
 function InvestorProjectHomePage() {
-  return (
-    <ComingSoonPage
-      icon={Home}
-      title="Project Home"
-      subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
-    />
-  );
+  const { projectId } = Route.useParams();
+  return <InvestorProjectHome projectId={projectId} />;
 }
