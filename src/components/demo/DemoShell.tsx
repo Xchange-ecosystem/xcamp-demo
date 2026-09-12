@@ -16,6 +16,8 @@ interface DemoShellProps {
   persona: DemoPersona;
   items: DemoNavItem[];
   children: ReactNode;
+  /** Forwarded to DemoNavRail's `extra` slot — see that component. */
+  navExtra?: ReactNode;
 }
 
 interface DemoShellBodyProps extends DemoShellProps {
@@ -30,12 +32,12 @@ const SIDEPANEL_WIDTH = 420;
 // rendering the panel it drives. DemoFullscreenDispatcher is the demo-only
 // counterpart to the real, auth-gated FullscreenDispatcher (never mounted
 // here) — see that file for why.
-function DemoShellBody({ persona, items, children, altitude }: DemoShellBodyProps) {
+function DemoShellBody({ persona, items, children, navExtra, altitude }: DemoShellBodyProps) {
   const { isOpen, close } = useSidepanel();
 
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: "var(--skin-bg)" }}>
-      <DemoNavRail persona={persona} items={items} altitude={altitude} />
+      <DemoNavRail persona={persona} items={items} extra={navExtra} altitude={altitude} />
 
       {/* Inset content area — muted page background behind, actual
           screen content floats in a rounded surface card with
@@ -115,7 +117,7 @@ function DemoShellBody({ persona, items, children, altitude }: DemoShellBodyProp
   );
 }
 
-export function DemoShell({ persona, items, children }: DemoShellProps) {
+export function DemoShell({ persona, items, children, navExtra }: DemoShellProps) {
   // Keyed on `persona` — fires once on arrival at a persona's pages and
   // restarts only when persona actually changes (the Navrail switcher),
   // not on internal nav within one persona's own routes.
@@ -146,7 +148,12 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
               {isCompanionAltitude ? (
                 <CompanionAltitudeShell persona={persona} />
               ) : (
-                <DemoShellBody persona={persona} items={items} altitude={altitude}>
+                <DemoShellBody
+                  persona={persona}
+                  items={items}
+                  navExtra={navExtra}
+                  altitude={altitude}
+                >
                   {children}
                 </DemoShellBody>
               )}

@@ -24,6 +24,15 @@ import { PEOPLE, PROJECTS, getFeedByKind, getProjectMetrics } from "@/fixtures";
 | `chat.ts`            | `CHAT_MESSAGES`                                                                                                   | Investor Dashboard companion chat panel                                                  |
 | `wallet.ts`          | `WALLET_ENTRIES`, `getWalletByPerson`, `getWalletBalance`                                                         | Collaborator value wallet                                                                |
 | `pitch.ts`           | `PITCH_CARDS`, `getPitchCardById`                                                                                 | Founder MicroApps → Pitch (proj-1 only)                                                  |
+| `investorDeals.ts`   | `INVESTOR_DEALS`, `getDealByProjectId`, `getDealsByLabel`                                                         | Investor Portfolio View's filters + tabs                                                 |
+| `ecosystems.ts`      | `ECOSYSTEMS`, `getEcosystemById`, `getEcosystemIdForProject`, `getEcosystemIdForPerson`, `getProjectsByEcosystem`, `getEcosystemHoverMetrics` | Investor Ecosystem/Project switcher, Ecosystem Navigator's Ecosphere altitude |
+| `network.ts`         | `NETWORK_NODES`, `NETWORK_EDGES`, `ECOSYSTEM_EDGES`, `getEcosystemNetwork`, `getEcosphereNetwork`, `getProjectAltitudeNetwork` | Ecosystem Navigator's network canvas at all three altitudes |
+
+`PROJECTS` and `PEOPLE` grew from 8/12 to 10/14 rows in the Investor/Operator
+showcase session (`proj-9`/`proj-10`, owned by `person-13`/`person-14`) so
+the new Portfolio View's tabs and filters all have non-empty results —
+`INVESTOR_DEALS`/`ECOSYSTEMS`/`NETWORK_NODES` cover all 10 projects and 14
+people, not just the original 8/12.
 
 IDs are stable strings (`person-1`, `proj-1`, `obj-1`, `task-1`, `feed-1`, …)
 and cross-reference consistently: every `projectId`/`ownerId`/`assigneeId`/

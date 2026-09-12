@@ -60,9 +60,18 @@ function deltaText(delta: number): string {
 export function RankedPortfolioBars({
   selectedProjectId,
   onSelect,
+  matchThresholdPct,
 }: {
   selectedProjectId: string | null;
   onSelect: (projectId: string | null) => void;
+  /** Vertical marker at this % across every bar track, tied to the Portfolio
+   *  View's "Match investment criteria %" filter lever below (see
+   *  PortfolioDealsView) rather than a hardcoded value. Rendered once per
+   *  row rather than once for the whole chart — every row's track resolves
+   *  to the same width (identical flex layout, shared container), so the
+   *  per-row lines line up into one continuous line without needing to
+   *  measure anything. */
+  matchThresholdPct: number;
 }) {
   const rows = useMemo(buildRows, []);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -413,6 +422,23 @@ export function RankedPortfolioBars({
                       transition: markerTransition,
                     }}
                   />
+                  {/* Mandate threshold marker — extends 11px above/below the
+                      22px track (half of ROW_HEIGHT's 22px remainder) so
+                      consecutive rows' lines touch and read as one
+                      continuous line down the chart. */}
+                  <span
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      top: -11,
+                      bottom: -11,
+                      left: `${matchThresholdPct}%`,
+                      width: 2,
+                      background: "var(--skin-warn, #f59e0b)",
+                      zIndex: 5,
+                      pointerEvents: "none",
+                    }}
+                  />
                 </span>
                 <span
                   className="num"
@@ -434,7 +460,9 @@ export function RankedPortfolioBars({
       </div>
       <p style={{ margin: "14px 2px 0", fontSize: 12, color: "var(--skin-ink-faint)" }}>
         The darker tip of a bar is what it gained this week. A dashed edge past a bar is where it
-        reached last week. The figure on the right is the exact change.
+        reached last week. The figure on the right is the exact change. The{" "}
+        <span style={{ color: "var(--skin-warn, #f59e0b)", fontWeight: 600 }}>vertical line</span>{" "}
+        at {matchThresholdPct}% is your mandate's match threshold — set it in the filters below.
       </p>
     </div>
   );

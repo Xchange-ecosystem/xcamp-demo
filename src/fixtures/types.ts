@@ -209,3 +209,58 @@ export interface WalletEntry {
   description: string;
   date: string; // ISO date
 }
+
+// ── Investor/Operator showcase (this session) ───────────────────────────────
+// P1-only, no production analog yet — same disclaimer as PortfolioEntry.
+
+export type InvestmentRound = "pre-seed" | "seed" | "series-a" | "series-b" | "series-c-plus";
+
+/** Which sidepanel CTA / tab a project sits under for one investor. `null`
+ *  means "no label yet" — the project still appears under the "All" tab
+ *  (see the tab table in the session brief), just not under any other. */
+export type PortfolioLabel = "watchlist" | "shortlist" | "access" | "dealflow" | "invested";
+
+/** Investor Portfolio View's filter/label dataset — one entry per Project.
+ *  `matchPct` is authored directly (there's no underlying series to derive
+ *  it from, same as ProjectMetricsEntry.progressPct); everything else here
+ *  is also authored deal-term data, not derived. */
+export interface PortfolioDeal {
+  projectId: string;
+  matchPct: number; // 0-100 — how well the project matches this investor's mandate
+  riskLevel: 1 | 2 | 3 | 4 | 5; // 1 = lowest risk, 5 = highest
+  clubDealInvestors: number; // co-investors already committed to this round; 0 = none
+  round: InvestmentRound;
+  askAmount: number; // EUR — total raise the project is seeking
+  ticketSize: number; // EUR — this investor's own typical/suggested ticket
+  label: PortfolioLabel | null;
+}
+
+export interface Ecosystem {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  region: string;
+}
+
+export type NetworkNodeKind = "person" | "project";
+
+/** One node in the Ecosystem Navigator's network canvas, scoped to one
+ *  ecosystem. `refId` resolves to a real Person.id or Project.id — never an
+ *  orphaned reference, per the fixture layer's cross-referencing rule. */
+export interface NetworkNode {
+  id: string;
+  kind: NetworkNodeKind;
+  ecosystemId: string;
+  refId: string;
+}
+
+/** A cross-connection between two NetworkNode ids (or, for the Ecosphere
+ *  altitude, two Ecosystem ids). Decorative only — the brief is explicit
+ *  that these carry no defined semantic meaning for this showcase, just
+ *  enough visual density to read as a live network. */
+export interface NetworkEdge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+}

@@ -1,34 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Briefcase } from "lucide-react";
-import { DemoShell } from "@/components/demo/DemoShell";
-import type { DemoNavItem } from "@/components/demo/DemoNavRail";
-import { InvestorPortfolioScreen } from "@/features/investor-portfolio/InvestorPortfolioScreen";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Kept only because the real (non-demo) app's investor sidebar
+// (AppSidebarExperimental.tsx's ECOSYSTEM_NAV "investor-portfolio" entry)
+// links here directly. The content itself moved to the ecosystem-level
+// landing page at /demo/investor (see demo.investor.index.tsx) once that
+// route stopped being a bare duplicate of this one — this route now just
+// redirects rather than maintaining two copies of the same screen.
 export const Route = createFileRoute("/demo/investor/portfolio")({
-  head: () => ({
-    meta: [
-      { title: "Portfolio — Xcamp" },
-      {
-        name: "description",
-        content:
-          "Ranked portfolio, project updates, and ecosystem metrics for investors and operators.",
-      },
-    ],
-  }),
-  component: InvestorPortfolioPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/demo/investor" });
+  },
 });
-
-// Investor only has one screen today — Navrail gets a single item pointing
-// at their persona home. More screens (and a real multi-item Navrail) are
-// deferred to a later session per Fabian's instruction.
-const investorNavItems: DemoNavItem[] = [
-  { to: "/demo/investor", label: "Portfolio", icon: Briefcase, exact: true },
-];
-
-function InvestorPortfolioPage() {
-  return (
-    <DemoShell persona="investor" items={investorNavItems}>
-      <InvestorPortfolioScreen />
-    </DemoShell>
-  );
-}

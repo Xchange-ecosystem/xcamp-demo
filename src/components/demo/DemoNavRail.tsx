@@ -1,5 +1,5 @@
 // src/components/demo/DemoNavRail.tsx
-import { type ComponentType, useState } from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useBrand } from "@/lib/brand";
@@ -26,9 +26,14 @@ export interface DemoNavItem {
 interface DemoNavRailProps {
   persona: DemoPersona;
   items: DemoNavItem[];
-  /** Only altitude reaching this component that should hide the project
-   *  switcher — "app" stays a disabled placeholder everywhere (see
-   *  AltitudeRail), so the switcher shows only on Platform here. */
+  /** Persona-specific control rendered between the logo and the nav list —
+   *  e.g. the Investor persona's ecosystem/project switcher. Takes priority
+   *  over the Founder-only ProjectSwitcher fallback below when passed. */
+  extra?: ReactNode;
+  /** Only altitude reaching this component that should hide the Founder
+   *  project switcher — "app" stays a disabled placeholder everywhere (see
+   *  AltitudeRail), so the switcher shows only on Platform here. Unused by
+   *  personas that pass `extra` instead. */
   altitude?: DemoAltitude;
 }
 
@@ -108,7 +113,7 @@ function NavEntry({
   );
 }
 
-export function DemoNavRail({ persona, items, altitude }: DemoNavRailProps) {
+export function DemoNavRail({ persona, items, extra, altitude }: DemoNavRailProps) {
   const { logoUrl, name } = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (to?: string, exact?: boolean) =>
@@ -124,7 +129,7 @@ export function DemoNavRail({ persona, items, altitude }: DemoNavRailProps) {
         <img src={logoUrl} alt={name} style={{ height: 26, objectFit: "contain" }} />
       </Link>
 
-      {showProjectSwitcher && <ProjectSwitcher />}
+      {extra ?? (showProjectSwitcher && <ProjectSwitcher />)}
 
       <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {items.map((item) => (

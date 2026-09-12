@@ -1,7 +1,9 @@
 import type { Person } from "./types";
 
-// 12 people across all four personas — enough for multiple collaborators
+// 14 people across all four personas — enough for multiple collaborators
 // per project without every project sharing the exact same roster.
+// person-13/person-14 were added for the Investor/Operator showcase
+// session as owners of proj-9/proj-10.
 export const PEOPLE: Person[] = [
   {
     id: "person-1",
@@ -98,6 +100,22 @@ export const PEOPLE: Person[] = [
     role: "admin",
     title: "Program Admin, Xcamp",
     email: "admin@xcamp.example",
+  },
+  {
+    id: "person-13",
+    displayName: "Astrid Lund",
+    avatarUrl: null,
+    role: "founder",
+    title: "Founder, Verdant Foods",
+    email: "astrid@verdant.example",
+  },
+  {
+    id: "person-14",
+    displayName: "Rui Cabral",
+    avatarUrl: null,
+    role: "founder",
+    title: "Founder, Aurex Robotics",
+    email: "rui@aurex.example",
   },
 ];
 
