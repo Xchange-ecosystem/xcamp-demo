@@ -1,9 +1,9 @@
-// MicroApps scaffold (Pitch session) — placeholder. Goals is carried over
-// to a separate future session per that session's scope; this route
-// exists only so the nav item resolves somewhere.
+// Goals microapp — clone of the real /project/:projectId/goals page (see
+// src/components/demo/microapps/GoalsMicroApp.tsx for the adaptation
+// details: flat styling instead of the real page's hero background, backed
+// by the fixture data CompanionInfoPanel already reads instead of Supabase).
 import { createFileRoute } from "@tanstack/react-router";
-import { Target } from "lucide-react";
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { GoalsMicroApp } from "@/components/demo/microapps/GoalsMicroApp";
 
 export const Route = createFileRoute("/demo/founder/microapps/goals")({
   head: () => ({ meta: [{ title: "Goals — Xcamp" }] }),
@@ -13,11 +13,7 @@ export const Route = createFileRoute("/demo/founder/microapps/goals")({
 function MicroAppsGoalsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <ComingSoonPage
-        icon={Target}
-        title="Goals"
-        subtitle="Build and refine Objectives with AI assistance — coming soon."
-      />
+      <GoalsMicroApp />
     </div>
   );
 }

@@ -141,7 +141,11 @@ export function TaskDetailShell({
                   type="button"
                   disabled={tab.inactive}
                   onClick={() => setActiveTab(tab.key)}
-                  title={tab.inactive ? "Coming soon" : undefined}
+                  title={
+                    tab.inactive
+                      ? "This feature is not activated in the demo. Contact admin@xchange.eco."
+                      : undefined
+                  }
                   style={{
                     display: "flex",
                     alignItems: "center",

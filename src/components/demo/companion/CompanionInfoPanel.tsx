@@ -23,9 +23,13 @@ import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
 import { getObjectivesByProject, TASKS } from "@/fixtures/objectives";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
-import type { Task } from "@/fixtures/types";
-import { PEOPLE } from "@/fixtures/people";
+import type { ObjectiveStatus, Task } from "@/fixtures/types";
+import { PEOPLE, getPersonById } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
+import {
+  EMPTY_SIDE_EFFECTS,
+  type ChatSideEffects,
+} from "@/components/demo/companion/deriveChatSideEffects";
 
 type InfoTabKey = "items" | "artifacts-actions" | "metrics";
 
@@ -67,7 +71,14 @@ function urgencyOf(dueDate: string): Urgency {
   return "upcoming";
 }
 
-export function CompanionInfoPanel() {
+interface CompanionInfoPanelProps {
+  /** Demo-state mutations from chat turns (see deriveChatSideEffects.ts) —
+   *  never new fixture rows, just which existing objectives/tasks/people are
+   *  advanced/invited. Optional so the panel still renders standalone. */
+  sideEffects?: ChatSideEffects;
+}
+
+export function CompanionInfoPanel({ sideEffects = EMPTY_SIDE_EFFECTS }: CompanionInfoPanelProps) {
   const [activeTab, setActiveTab] = useState<InfoTabKey>("items");
 
   return (
@@ -105,7 +116,7 @@ export function CompanionInfoPanel() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
         {activeTab === "items" ? (
-          <ItemsTabContent />
+          <ItemsTabContent sideEffects={sideEffects} />
         ) : activeTab === "metrics" ? (
           <MetricsTabContent />
         ) : (
@@ -116,9 +127,19 @@ export function CompanionInfoPanel() {
   );
 }
 
-function ItemsTabContent() {
+// One status step forward: open/suggested -> in_progress -> done.
+const NEXT_STATUS: Record<ObjectiveStatus, ObjectiveStatus> = {
+  open: "in_progress",
+  suggested: "in_progress",
+  in_progress: "done",
+  done: "done",
+};
+
+function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
   const founderProject = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-  const founderObjectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const founderObjectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID).map((o) =>
+    sideEffects.advancedObjectiveIds.includes(o.id) ? { ...o, status: NEXT_STATUS[o.status] } : o,
+  );
   const counts = LABEL_ORDER.map((label) => ({
     label,
     count: founderObjectives.filter((o) => AGREEMENT_LABEL[o.status] === label).length,
@@ -126,7 +147,11 @@ function ItemsTabContent() {
   const total = founderObjectives.length;
 
   const risks: (Task & { urgency: Urgency })[] = TASKS.filter(
-    (t) => t.status === "active" && t.priority === "high" && t.dueDate,
+    (t) =>
+      t.status === "active" &&
+      t.priority === "high" &&
+      t.dueDate &&
+      !sideEffects.advancedTaskIds.includes(t.id),
   )
     .map((t) => ({ ...t, urgency: urgencyOf(t.dueDate!) }))
     .sort(
@@ -134,6 +159,10 @@ function ItemsTabContent() {
         URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency] || a.dueDate!.localeCompare(b.dueDate!),
     )
     .slice(0, 3);
+
+  const invitedPeople = sideEffects.invitedPersonIds
+    .map((id) => getPersonById(id))
+    .filter((p): p is NonNullable<typeof p> => !!p);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -254,43 +283,67 @@ function ItemsTabContent() {
           People across your ecosystem
         </h2>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {PEOPLE.filter((p) => p.role === "investor" || p.role === "collaborator")
+          {PEOPLE.filter(
+            (p) =>
+              (p.role === "investor" || p.role === "collaborator") &&
+              !sideEffects.invitedPersonIds.includes(p.id),
+          )
             .slice(0, 3)
             .map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 0",
-                  borderBottom: "1px solid var(--skin-line-soft, var(--skin-line))",
-                }}
-              >
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback
-                    className="text-[11px]"
-                    style={{
-                      background: avatarColor(p.displayName).bg,
-                      color: avatarColor(p.displayName).fg,
-                    }}
-                  >
-                    {initials(p.displayName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>
-                    {p.displayName}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--skin-ink-soft)" }}>{p.title}</div>
-                </div>
-                <Badge variant="secondary" className="ml-auto capitalize">
-                  {p.role}
-                </Badge>
-              </div>
+              <PersonRow key={p.id} person={p} />
             ))}
+          {invitedPeople.map((p) => (
+            <PersonRow key={p.id} person={p} newlyInvited />
+          ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function PersonRow({
+  person,
+  newlyInvited,
+}: {
+  person: NonNullable<ReturnType<typeof getPersonById>>;
+  newlyInvited?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 0",
+        borderBottom: "1px solid var(--skin-line-soft, var(--skin-line))",
+      }}
+    >
+      <Avatar className="h-7 w-7">
+        <AvatarFallback
+          className="text-[11px]"
+          style={{
+            background: avatarColor(person.displayName).bg,
+            color: avatarColor(person.displayName).fg,
+          }}
+        >
+          {initials(person.displayName)}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--skin-ink)" }}>
+          {person.displayName}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--skin-ink-soft)" }}>{person.title}</div>
+      </div>
+      {newlyInvited ? (
+        <Badge className="ml-auto" style={{ background: "var(--skin-good)", color: "#fff" }}>
+          Newly invited
+        </Badge>
+      ) : (
+        <Badge variant="secondary" className="ml-auto capitalize">
+          {person.role}
+        </Badge>
+      )}
     </div>
   );
 }

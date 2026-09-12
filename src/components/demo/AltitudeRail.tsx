@@ -41,7 +41,7 @@ export function AltitudeRail({ persona, altitude, onSelect }: AltitudeRailProps)
 
   return (
     <div
-      style={{ position: "fixed", top: 20, right: 0, zIndex: 45 }}
+      style={{ position: "fixed", top: "50%", right: 0, transform: "translateY(-50%)", zIndex: 45 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -93,7 +93,11 @@ export function AltitudeRail({ persona, altitude, onSelect }: AltitudeRailProps)
               aria-pressed={active}
               aria-disabled={disabled || undefined}
               onClick={disabled ? undefined : () => onSelect(segment.key)}
-              title={disabled ? `${segment.label} — coming soon` : segment.label}
+              title={
+                disabled
+                  ? "This feature is not activated in the demo. Contact admin@xchange.eco."
+                  : segment.label
+              }
               style={{
                 display: "flex",
                 flexDirection: "column",

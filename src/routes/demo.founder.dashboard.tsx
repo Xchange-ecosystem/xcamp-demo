@@ -7,6 +7,7 @@ import { CardFeed } from "@/components/card-feed/CardFeed";
 import { investorUpdateConfig } from "@/components/card-feed/configs";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
 import { getFeedByKind } from "@/fixtures/feed";
+import { TaskProgressChart } from "@/components/demo/dashboard/TaskProgressChart";
 
 export const Route = createFileRoute("/demo/founder/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Xcamp" }] }),
@@ -22,6 +23,8 @@ function FounderDashboardPage() {
       <p className="mb-6 text-sm text-muted-foreground">
         Where your projects stand, in the terms an investor asks about.
       </p>
+
+      <TaskProgressChart />
 
       <div className="mb-7 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {[

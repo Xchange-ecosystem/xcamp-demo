@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { OBJECTIVES } from "@/fixtures/objectives";
 import { getProjectById } from "@/fixtures/projects";
 import type { ObjectiveStatus } from "@/fixtures/types";
+import { useSidepanel } from "@/contexts/sidepanel";
 
 export const Route = createFileRoute("/demo/founder/navigator")({
   head: () => ({ meta: [{ title: "Navigator — Xcamp" }] }),
@@ -21,6 +22,14 @@ const COLUMNS: { status: ObjectiveStatus; label: string }[] = [
 ];
 
 function FounderNavigatorPage() {
+  // Navigator is the other primary entry point for opening a task/objective's
+  // detail panel (alongside Founder Home's "Details" action) — see
+  // ItemSidepanel/SidepanelProvider (src/contexts/sidepanel.tsx), mounted as
+  // a fixed overlay by DemoShell. `kind: "objective"` + a real OBJECTIVES id
+  // routes ItemSidepanel into its demo ObjectiveContent branch (same as
+  // Home's `kind: "note", noteType: "task"` routes into DemoNoteContent).
+  const { open: openSidepanel } = useSidepanel();
+
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-foreground">Navigator</h1>
@@ -38,16 +47,18 @@ function FounderNavigatorPage() {
               </h3>
               <div className="flex flex-col gap-2">
                 {objectives.map((o) => (
-                  <div
+                  <button
                     key={o.id}
-                    className="rounded-md border p-3"
-                    style={{ borderColor: "var(--skin-line)" }}
+                    type="button"
+                    onClick={() => openSidepanel({ id: o.id, kind: "objective", title: o.title })}
+                    className="rounded-md border p-3 text-left transition-colors hover:border-[var(--skin-accent)]"
+                    style={{ borderColor: "var(--skin-line)", background: "var(--skin-surface)" }}
                   >
                     <b className="block text-sm font-semibold text-foreground">{o.title}</b>
                     <small className="text-xs text-muted-foreground">
                       {getProjectById(o.projectId)?.name}
                     </small>
-                  </div>
+                  </button>
                 ))}
                 {objectives.length === 0 && (
                   <p className="text-xs text-muted-foreground">Nothing here.</p>

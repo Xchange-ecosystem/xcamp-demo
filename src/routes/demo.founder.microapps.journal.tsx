@@ -16,7 +16,7 @@ function MicroAppsJournalPage() {
       <ComingSoonPage
         icon={BookOpen}
         title="My Journal"
-        subtitle="Capture and review journal entries for this project — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );

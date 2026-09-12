@@ -283,7 +283,11 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
                     opacity: disabled ? 0.55 : 1,
                     cursor: disabled ? "default" : "pointer",
                   }}
-                  title={disabled ? "Not available for this persona yet" : undefined}
+                  title={
+                    disabled
+                      ? "This feature is not activated in the demo. Contact admin@xchange.eco."
+                      : undefined
+                  }
                 >
                   <tile.icon
                     size={18}
@@ -367,7 +371,7 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
           {selected === "app" && (
             <div className="mt-8 w-full text-center">
               <p className="text-sm font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-                <Typewriter text="Not available in demo!" />
+                <Typewriter text="This feature is not activated in the demo. Contact admin@xchange.eco." />
               </p>
             </div>
           )}

@@ -347,7 +347,7 @@ function ProjectPage() {
               <button
                 type="button"
                 disabled
-                title="AI tag suggestions coming soon"
+                title="This feature is not activated in the demo. Contact admin@xchange.eco."
                 className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs opacity-40 cursor-not-allowed"
                 style={{
                   border: "1px solid var(--skin-line)",

@@ -16,6 +16,8 @@
 import { Menu, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PersonaSwitcher } from "@/components/demo/PersonaSwitcher";
+import { ProjectSwitcher } from "@/components/demo/ProjectSwitcher";
+import { useBrand } from "@/lib/brand";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 interface CompanionAltitudeDrawerProps {
@@ -23,6 +25,8 @@ interface CompanionAltitudeDrawerProps {
 }
 
 export function CompanionAltitudeDrawer({ persona }: CompanionAltitudeDrawerProps) {
+  const { logoUrl, name } = useBrand();
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -60,6 +64,15 @@ export function CompanionAltitudeDrawer({ persona }: CompanionAltitudeDrawerProp
         <SheetHeader>
           <SheetTitle className="sr-only">Companion navigation</SheetTitle>
         </SheetHeader>
+
+        <img
+          src={logoUrl}
+          alt={name}
+          className="px-1"
+          style={{ height: 26, objectFit: "contain" }}
+        />
+
+        {persona === "founder" && <ProjectSwitcher />}
 
         <ul className="flex flex-1 flex-col gap-1">
           <li>

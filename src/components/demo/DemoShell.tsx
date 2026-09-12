@@ -6,7 +6,7 @@ import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DemoNavRail, type DemoNavItem, type DemoPersona } from "@/components/demo/DemoNavRail";
 import { useAmbientToasts } from "@/hooks/useAmbientToasts";
-import { useDemoAltitude } from "@/hooks/useDemoAltitude";
+import { useDemoAltitude, type DemoAltitude } from "@/hooks/useDemoAltitude";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { DemoFullscreenDispatcher } from "@/components/demo/DemoFullscreenDispatcher";
 import { AltitudeRail } from "@/components/demo/AltitudeRail";
@@ -18,6 +18,10 @@ interface DemoShellProps {
   children: ReactNode;
 }
 
+interface DemoShellBodyProps extends DemoShellProps {
+  altitude: DemoAltitude;
+}
+
 const SIDEPANEL_WIDTH = 420;
 
 // Mounts the same shared ItemSidepanel the real AppShell uses (see
@@ -26,12 +30,12 @@ const SIDEPANEL_WIDTH = 420;
 // rendering the panel it drives. DemoFullscreenDispatcher is the demo-only
 // counterpart to the real, auth-gated FullscreenDispatcher (never mounted
 // here) — see that file for why.
-function DemoShellBody({ persona, items, children }: DemoShellProps) {
-  const { isOpen } = useSidepanel();
+function DemoShellBody({ persona, items, children, altitude }: DemoShellBodyProps) {
+  const { isOpen, close } = useSidepanel();
 
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: "var(--skin-bg)" }}>
-      <DemoNavRail persona={persona} items={items} />
+      <DemoNavRail persona={persona} items={items} altitude={altitude} />
 
       {/* Inset content area — muted page background behind, actual
           screen content floats in a rounded surface card with
@@ -61,21 +65,49 @@ function DemoShellBody({ persona, items, children }: DemoShellProps) {
         </div>
       </div>
 
+      {/* True fixed-position overlay (previously a docked flex sibling that
+          pushed/reflowed the content column beside it) — a backdrop scrim
+          plus a right-edge panel sliding in over existing content, matching
+          the real app's ItemSidepanel/SidepanelProvider pattern's intent.
+          Right offset (84px, not just the panel's own 24px margin) clears
+          the always-on fixed AltitudeRail (~68px wide, docked at the
+          viewport edge) so the panel never renders underneath it — same
+          clearance value CompanionAltitudeShell already uses for the same
+          reason (see its ALTITUDE_RAIL_CLEARANCE). */}
       {isOpen && (
-        <aside
-          style={{
-            width: SIDEPANEL_WIDTH,
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            margin: "24px 24px 24px 0",
-            borderRadius: "var(--skin-radius-lg, 22px)",
-            border: "1px solid var(--skin-line)",
-            overflow: "hidden",
-          }}
-        >
-          <ItemSidepanel />
-        </aside>
+        <>
+          <div
+            onClick={close}
+            aria-hidden="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 32, 0.35)",
+              zIndex: 60,
+              animation: "demo-sidepanel-scrim-in 180ms ease-out",
+            }}
+          />
+          <aside
+            style={{
+              position: "fixed",
+              top: 24,
+              right: 84,
+              bottom: 24,
+              width: SIDEPANEL_WIDTH,
+              zIndex: 61,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: "var(--skin-radius-lg, 22px)",
+              border: "1px solid var(--skin-line)",
+              overflow: "hidden",
+              background: "var(--skin-surface)",
+              boxShadow: "0 12px 48px rgba(0,0,0,0.28)",
+              animation: "demo-sidepanel-slide-in 220ms ease-out",
+            }}
+          >
+            <ItemSidepanel />
+          </aside>
+        </>
       )}
 
       <DemoFullscreenDispatcher />
@@ -114,7 +146,7 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
               {isCompanionAltitude ? (
                 <CompanionAltitudeShell persona={persona} />
               ) : (
-                <DemoShellBody persona={persona} items={items}>
+                <DemoShellBody persona={persona} items={items} altitude={altitude}>
                   {children}
                 </DemoShellBody>
               )}
