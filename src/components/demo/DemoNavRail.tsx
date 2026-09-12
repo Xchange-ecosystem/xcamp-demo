@@ -1,5 +1,5 @@
 // src/components/demo/DemoNavRail.tsx
-import { type ComponentType, useState } from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useBrand } from "@/lib/brand";
@@ -24,6 +24,10 @@ export interface DemoNavItem {
 interface DemoNavRailProps {
   persona: DemoPersona;
   items: DemoNavItem[];
+  /** Persona-specific control rendered between the logo and the nav list —
+   *  e.g. the Investor persona's ecosystem/project switcher. Nothing renders
+   *  here for personas that don't pass it (Founder, Collaborator). */
+  extra?: ReactNode;
 }
 
 // Does any leaf under this entry match the current path? Used to keep a
@@ -102,7 +106,7 @@ function NavEntry({
   );
 }
 
-export function DemoNavRail({ persona, items }: DemoNavRailProps) {
+export function DemoNavRail({ persona, items, extra }: DemoNavRailProps) {
   const { logoUrl, name } = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (to?: string, exact?: boolean) =>
@@ -116,6 +120,8 @@ export function DemoNavRail({ persona, items }: DemoNavRailProps) {
       <Link to="/demo" aria-label={`${name} demo home`} className="px-1">
         <img src={logoUrl} alt={name} style={{ height: 26, objectFit: "contain" }} />
       </Link>
+
+      {extra}
 
       <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {items.map((item) => (
