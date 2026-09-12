@@ -10,7 +10,7 @@ import { Briefcase, Home, LayoutDashboard, Map, Presentation } from "lucide-reac
 import { DemoShell } from "@/components/demo/DemoShell";
 import type { DemoNavItem } from "@/components/demo/DemoNavRail";
 import { InvestorEcosystemSwitcher } from "@/components/investor/InvestorEcosystemSwitcher";
-import { useInvestorEcosystem } from "@/hooks/useInvestorEcosystem";
+import { InvestorEcosystemProvider, useInvestorEcosystem } from "@/contexts/investor-ecosystem";
 import { getProjectById } from "@/fixtures";
 
 const ECOSYSTEM_NAV_ITEMS: DemoNavItem[] = [
@@ -31,6 +31,14 @@ function projectNavItems(projectId: string): DemoNavItem[] {
 }
 
 export function InvestorShell() {
+  return (
+    <InvestorEcosystemProvider>
+      <InvestorShellBody />
+    </InvestorEcosystemProvider>
+  );
+}
+
+function InvestorShellBody() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const params = useParams({ strict: false }) as { projectId?: string };
   const [ecosystemId, setEcosystemId] = useInvestorEcosystem();

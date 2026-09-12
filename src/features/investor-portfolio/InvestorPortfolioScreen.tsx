@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import { CardFeed } from "@/components/card-feed/CardFeed";
 import { investorUpdateConfig } from "@/components/card-feed/configs";
-import { getFeedByKind, getProjectById } from "@/fixtures";
+import { getFeedByKind, getProjectById, getEcosystemById } from "@/fixtures";
+import { useInvestorEcosystem } from "@/contexts/investor-ecosystem";
 import { RankedPortfolioBars } from "./RankedPortfolioBars";
-import { ProjectSelectorStrip } from "./ProjectSelectorStrip";
 import { EcosystemMetricsPanel } from "./EcosystemMetricsPanel";
+import { PortfolioDealsView } from "./PortfolioDealsView";
+import { DEFAULT_FILTER_STATE } from "./dealHelpers";
+import type { PortfolioFilterState } from "./dealHelpers";
 
 // Below this width the 316px metrics aside plus the main column no longer
 // both fit without the main column's content overlapping it, so the aside
@@ -23,12 +26,19 @@ const LAYOUT_STYLE = `
   }
 `;
 
-// P1.2 — Investor/Operator Portfolio screen. Composes the four parts of the
-// session brief: the ranked bar list and the selector strip share one
-// `selectedProjectId` so either can drive the filter that Part 3's feed
-// reads.
+// Ecosystem-level landing page. RankedPortfolioBars keeps its original
+// P1.2 8-project ranked view (those are the only projects with an 8-week
+// score history — see fixtures/portfolio.ts); the Investor/Operator
+// showcase session's new six-tab, filterable Portfolio View
+// (PortfolioDealsView) sits below it, scoped to whichever ecosystem the nav
+// switcher currently has selected. Both share `filters.minMatchPct` so the
+// ranked bars' mandate-threshold line and the deals view's own filter stay
+// in sync.
 export function InvestorPortfolioScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<PortfolioFilterState>(DEFAULT_FILTER_STATE);
+  const [ecosystemId] = useInvestorEcosystem();
+  const ecosystem = getEcosystemById(ecosystemId);
 
   const updateItems = useMemo(() => getFeedByKind("project_update"), []);
   const feedItems = useMemo(
@@ -58,9 +68,10 @@ export function InvestorPortfolioScreen() {
           <RankedPortfolioBars
             selectedProjectId={selectedProjectId}
             onSelect={setSelectedProjectId}
+            matchThresholdPct={filters.minMatchPct}
           />
 
-          <div style={{ margin: "30px 0 12px", display: "flex", alignItems: "baseline", gap: 10 }}>
+          <div style={{ margin: "34px 0 12px", display: "flex", alignItems: "baseline", gap: 10 }}>
             <h2
               style={{
                 margin: 0,
@@ -70,15 +81,16 @@ export function InvestorPortfolioScreen() {
                 color: "var(--skin-ink)",
               }}
             >
-              Projects
+              Portfolio — {ecosystem?.name ?? "Ecosystem"}
             </h2>
             <span style={{ color: "var(--skin-ink-faint)", fontSize: 13 }}>
-              Pick one to filter what's below
+              Filter, label, and drill into projects in this ecosystem
             </span>
           </div>
-          <ProjectSelectorStrip
-            selectedProjectId={selectedProjectId}
-            onSelect={setSelectedProjectId}
+          <PortfolioDealsView
+            ecosystemId={ecosystemId}
+            filters={filters}
+            onFiltersChange={setFilters}
           />
 
           <div style={{ margin: "30px 0 12px", display: "flex", alignItems: "baseline", gap: 10 }}>
