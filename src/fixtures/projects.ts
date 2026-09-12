@@ -1,8 +1,11 @@
 import type { Project } from "./types";
 
-// 8 projects, owned by the 4 founder fixtures (2 each) — enough spread for
-// the Investor/Operator ranked list and Portfolio selector to look like a
-// real portfolio rather than a 2-3 item stub.
+// 10 projects. proj-1..8 are owned by the 4 founder fixtures (2 each) —
+// enough spread for the Investor/Operator ranked list and Portfolio
+// selector to look like a real portfolio rather than a 2-3 item stub.
+// proj-9/proj-10 (owned by person-13/person-14) were added for the
+// Investor/Operator showcase session so the Portfolio View's six tabs and
+// six filters all have non-empty results — see investorDeals.ts.
 export const PROJECTS: Project[] = [
   {
     id: "proj-1",
@@ -91,6 +94,28 @@ export const PROJECTS: Project[] = [
     tags: ["climate", "robotics", "SaaS"],
     ownerId: "person-4",
     updatedAt: "2026-07-20T14:10:00.000Z",
+  },
+  {
+    id: "proj-9",
+    name: "Verdant Foods",
+    description: "Precision-fermentation dairy proteins for regional food manufacturers.",
+    color: "#65a30d",
+    featureImage: null,
+    status: "active",
+    tags: ["climate", "food"],
+    ownerId: "person-13",
+    updatedAt: "2026-09-05T09:40:00.000Z",
+  },
+  {
+    id: "proj-10",
+    name: "Aurex Robotics",
+    description: "Modular robotic arms for small-batch electronics assembly lines.",
+    color: "#9333ea",
+    featureImage: null,
+    status: "active",
+    tags: ["robotics", "hardware"],
+    ownerId: "person-14",
+    updatedAt: "2026-08-22T13:05:00.000Z",
   },
 ];
 

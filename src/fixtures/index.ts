@@ -23,3 +23,6 @@ export * from "./chat";
 export * from "./wallet";
 export * from "./assignments";
 export * from "./pitch";
+export * from "./investorDeals";
+export * from "./ecosystems";
+export * from "./network";
