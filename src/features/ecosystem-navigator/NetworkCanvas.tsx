@@ -20,7 +20,7 @@ import "@xyflow/react/dist/style.css";
 // since every edge here is decorative per the session brief rather than an
 // editable relationship.
 
-export type CanvasNodeKind = "ecosystem" | "project" | "person" | "goal";
+export type CanvasNodeKind = "ecosystem" | "project" | "person" | "goal" | "objective" | "task";
 
 export interface CanvasNode {
   id: string;
@@ -44,7 +44,8 @@ export interface CanvasEdge {
 function nodeSize(kind: CanvasNodeKind): number {
   if (kind === "ecosystem") return 110;
   if (kind === "project") return 84;
-  if (kind === "goal") return 90;
+  if (kind === "goal" || kind === "objective") return 90;
+  if (kind === "task") return 56;
   return 64;
 }
 
@@ -137,12 +138,38 @@ function CircleNode({ data }: NodeProps) {
 
 const nodeTypes = { circle: CircleNode };
 
+// Fixed dark palette (not the app's --skin-* theme tokens, which follow the
+// user's light/dark preference) — the Founder Navigator's Network view wants
+// an intentionally dark canvas regardless of theme (Obsidian/Kumu-style),
+// distinct from Ecosystem Navigator's themed background. Reuses the same
+// dark background already established as this app's "Nox" dark color
+// (vite.config.ts PWA manifest background_color).
+const DARK_CANVAS = {
+  background: "#0d1117",
+  dot: "#2a3138",
+  controlsBg: "#161b22",
+};
+
 interface NetworkCanvasProps {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  /** Ecosystem Navigator's read-only decorative canvas keeps this false
+   *  (default) — set true for a canvas where drag-to-reposition is itself a
+   *  feature (Founder Navigator's Network view). */
+  draggable?: boolean;
+  /** "themed" (default) follows --skin-bg/--skin-line like the rest of the
+   *  app; "dark" forces the fixed dark palette above regardless of the
+   *  user's light/dark preference. */
+  variant?: "themed" | "dark";
 }
 
-export function NetworkCanvas({ nodes: canvasNodes, edges: canvasEdges }: NetworkCanvasProps) {
+export function NetworkCanvas({
+  nodes: canvasNodes,
+  edges: canvasEdges,
+  draggable = false,
+  variant = "themed",
+}: NetworkCanvasProps) {
+  const isDark = variant === "dark";
   const nodes: Node[] = useMemo(
     () =>
       canvasNodes.map((n) => ({
@@ -150,10 +177,10 @@ export function NetworkCanvas({ nodes: canvasNodes, edges: canvasEdges }: Networ
         type: "circle",
         data: n as unknown as Record<string, unknown>,
         position: n.position,
-        draggable: false,
+        draggable,
         connectable: false,
       })),
-    [canvasNodes],
+    [canvasNodes, draggable],
   );
 
   const edges: Edge[] = useMemo(
@@ -162,9 +189,9 @@ export function NetworkCanvas({ nodes: canvasNodes, edges: canvasEdges }: Networ
         id: e.id,
         source: e.source,
         target: e.target,
-        style: { stroke: "var(--skin-line)", strokeWidth: 1.25 },
+        style: { stroke: isDark ? DARK_CANVAS.dot : "var(--skin-line)", strokeWidth: 1.25 },
       })),
-    [canvasEdges],
+    [canvasEdges, isDark],
   );
 
   return (
@@ -173,7 +200,7 @@ export function NetworkCanvas({ nodes: canvasNodes, edges: canvasEdges }: Networ
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        nodesDraggable={false}
+        nodesDraggable={draggable}
         nodesConnectable={false}
         elementsSelectable={false}
         nodeOrigin={[0.5, 0.5]}
@@ -181,17 +208,25 @@ export function NetworkCanvas({ nodes: canvasNodes, edges: canvasEdges }: Networ
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
         maxZoom={2}
-        style={{ background: "var(--skin-bg)" }}
+        style={{ background: isDark ? DARK_CANVAS.background : "var(--skin-bg)" }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--skin-line)" />
-        <Controls showInteractive={false} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color={isDark ? DARK_CANVAS.dot : "var(--skin-line)"}
+        />
+        <Controls
+          showInteractive={false}
+          style={isDark ? { background: DARK_CANVAS.controlsBg } : undefined}
+        />
         <MiniMap
           nodeColor={(n) => {
             const data = n.data as unknown as CanvasNode;
             return data.kind === "person" ? "var(--skin-line)" : data.color;
           }}
           maskColor="rgba(0,0,0,0.05)"
-          style={{ background: "var(--skin-surface)" }}
+          style={{ background: isDark ? DARK_CANVAS.controlsBg : "var(--skin-surface)" }}
         />
       </ReactFlow>
     </div>

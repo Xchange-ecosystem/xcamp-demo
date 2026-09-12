@@ -1,27 +1,30 @@
 // Shell for the P1.1 Founder screens — wraps DemoShell (context providers
 // only, no auth gate or real product chrome/sidebar — see
 // src/components/demo/DemoShell.tsx), passing it the Founder persona's nav
-// tree for DemoNavRail: the original P1.1 three (Home / Navigator /
-// Dashboard — Companion was a fourth item here but is now an altitude, not
-// a Navrail destination, see the comment below) plus a MicroApps group added
-// this session (Pitch session scaffold). Only Pitch is a real screen so far — Readiness and
-// Evolution are placeholders this session built them for; Logbook (My
-// Journal / My Notes), Goals, and Project Builder are shown as items but
-// intentionally point at the same placeholder component, carried over to a
-// separate future session per that session's scope. These are demo-only,
-// mock-data-driven views distinct from the app's real /home, /navigator,
-// /journal, /notes, /project/$projectId/goals, /project-builder, etc. — see
+// tree for DemoNavRail: Home / Navigator (now a parent with four sub-views —
+// Board/List/Network/Timeline, mirroring the Logbook group's nesting below;
+// see src/components/demo/navigator/) / Dashboard (Companion was a fourth
+// top-level item here but is now an altitude, not a Navrail destination, see
+// the comment below) plus a MicroApps group. Goals/Pitch/Readiness are real
+// screens; Logbook (My Journal / My Notes), Evolution, and Project Builder
+// are still placeholders. These are demo-only, mock-data-driven views
+// distinct from the app's real /home, /navigator, /journal, /notes,
+// /project/$projectId/goals, /project-builder, etc. — see
 // src/routes/demo.founder*.tsx.
 import { Outlet } from "@tanstack/react-router";
 import {
   BookOpen,
   ClipboardCheck,
+  GanttChartSquare,
   Hammer,
   Home,
+  Kanban,
   LayoutDashboard,
   LayoutGrid,
+  List,
   Navigation as NavigationIcon,
   Presentation,
+  Share2,
   StickyNote,
   Target,
   TrendingUp,
@@ -39,7 +42,16 @@ import type { DemoNavItem } from "@/components/demo/DemoNavRail";
 // "Companion-first Guidance" tile for how you now get there instead.
 const founderNavItems: DemoNavItem[] = [
   { to: "/demo/founder", label: "Home", icon: Home, exact: true },
-  { to: "/demo/founder/navigator", label: "Navigator", icon: NavigationIcon },
+  {
+    label: "Navigator",
+    icon: NavigationIcon,
+    children: [
+      { to: "/demo/founder/navigator/board", label: "Board", icon: Kanban },
+      { to: "/demo/founder/navigator/list", label: "List", icon: List },
+      { to: "/demo/founder/navigator/network", label: "Network", icon: Share2 },
+      { to: "/demo/founder/navigator/timeline", label: "Timeline", icon: GanttChartSquare },
+    ],
+  },
   { to: "/demo/founder/dashboard", label: "Dashboard", icon: LayoutDashboard },
   {
     label: "MicroApps",
