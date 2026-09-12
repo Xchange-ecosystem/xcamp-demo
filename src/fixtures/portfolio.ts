@@ -78,6 +78,54 @@ const SEEDS: PortfolioSeed[] = [
     investedAmount: 150000,
     currentValuation: 280000,
   },
+  // proj-9..15 added in the session's revision pass so Home's ranked bar
+  // chart and Portfolio's project pool stay coherent (same 15 projects,
+  // not two different sets) — final-week scores land near each project's
+  // INVESTOR_DEALS.matchPct for narrative consistency, though the two are
+  // separate fixture concepts (historical performance vs. current mandate
+  // match) and aren't required to match exactly.
+  {
+    projectId: "proj-9",
+    scores: [42, 45, 48, 50, 52, 54, 55, 55],
+    investedAmount: 300000,
+    currentValuation: 620000,
+  },
+  {
+    projectId: "proj-10",
+    scores: [80, 78, 76, 74, 72, 71, 70, 69],
+    investedAmount: 450000,
+    currentValuation: 900000,
+  },
+  {
+    projectId: "proj-11",
+    scores: [50, 52, 55, 57, 58, 59, 60, 61],
+    investedAmount: 350000,
+    currentValuation: 700000,
+  },
+  {
+    projectId: "proj-12",
+    scores: [65, 66, 68, 69, 70, 71, 71, 72],
+    investedAmount: 600000,
+    currentValuation: 1300000,
+  },
+  {
+    projectId: "proj-13",
+    scores: [70, 73, 76, 78, 80, 82, 83, 84],
+    investedAmount: 800000,
+    currentValuation: 2000000,
+  },
+  {
+    projectId: "proj-14",
+    scores: [72, 71, 70, 68, 67, 67, 66, 66],
+    investedAmount: 400000,
+    currentValuation: 850000,
+  },
+  {
+    projectId: "proj-15",
+    scores: [60, 64, 68, 71, 73, 75, 77, 78],
+    investedAmount: 900000,
+    currentValuation: 2400000,
+  },
 ];
 
 function buildPortfolio(): PortfolioEntry[] {

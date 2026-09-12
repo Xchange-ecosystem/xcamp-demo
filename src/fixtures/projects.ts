@@ -1,11 +1,13 @@
 import type { Project } from "./types";
 
-// 10 projects. proj-1..8 are owned by the 4 founder fixtures (2 each) —
+// 15 projects. proj-1..8 are owned by the 4 founder fixtures (2 each) —
 // enough spread for the Investor/Operator ranked list and Portfolio
 // selector to look like a real portfolio rather than a 2-3 item stub.
 // proj-9/proj-10 (owned by person-13/person-14) were added for the
 // Investor/Operator showcase session so the Portfolio View's six tabs and
-// six filters all have non-empty results — see investorDeals.ts.
+// six filters all have non-empty results; proj-11..15 were added in the
+// session's revision pass so every label tab holds 3 projects rather than
+// 1-2 — see investorDeals.ts.
 export const PROJECTS: Project[] = [
   {
     id: "proj-1",
@@ -116,6 +118,61 @@ export const PROJECTS: Project[] = [
     tags: ["robotics", "hardware"],
     ownerId: "person-14",
     updatedAt: "2026-08-22T13:05:00.000Z",
+  },
+  {
+    id: "proj-11",
+    name: "Aegis Biotech",
+    description: "AI-assisted early screening for chronic kidney disease.",
+    color: "#0ea5e9",
+    featureImage: null,
+    status: "active",
+    tags: ["health", "AI"],
+    ownerId: "person-2",
+    updatedAt: "2026-09-04T10:00:00.000Z",
+  },
+  {
+    id: "proj-12",
+    name: "Kestrel Logistics",
+    description: "Autonomous last-mile delivery robots for dense urban blocks.",
+    color: "#4f46e5",
+    featureImage: null,
+    status: "active",
+    tags: ["robotics", "SaaS"],
+    ownerId: "person-4",
+    updatedAt: "2026-08-27T10:00:00.000Z",
+  },
+  {
+    id: "proj-13",
+    name: "Bramble Finance",
+    description: "Embedded working-capital lending for climate-hardware manufacturers.",
+    color: "#0d9488",
+    featureImage: null,
+    status: "active",
+    tags: ["SaaS", "climate"],
+    ownerId: "person-1",
+    updatedAt: "2026-09-06T10:00:00.000Z",
+  },
+  {
+    id: "proj-14",
+    name: "Solstice Grid",
+    description: "Grid-scale battery orchestration software for solar co-ops.",
+    color: "#ea580c",
+    featureImage: null,
+    status: "active",
+    tags: ["climate", "hardware"],
+    ownerId: "person-3",
+    updatedAt: "2026-08-29T10:00:00.000Z",
+  },
+  {
+    id: "proj-15",
+    name: "Terra Foods",
+    description: "Regenerative-agriculture supply chain tracking for grocery buyers.",
+    color: "#16a34a",
+    featureImage: null,
+    status: "active",
+    tags: ["food", "climate"],
+    ownerId: "person-14",
+    updatedAt: "2026-09-07T10:00:00.000Z",
   },
 ];
 
