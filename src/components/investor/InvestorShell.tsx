@@ -6,7 +6,7 @@
 // so there's exactly one source of truth for "am I looking at an ecosystem
 // or a project right now."
 import { Outlet, useParams, useRouterState } from "@tanstack/react-router";
-import { Briefcase, Home, LayoutDashboard, Map, Presentation } from "lucide-react";
+import { Briefcase, ClipboardCheck, Home, LayoutDashboard, Map, Presentation } from "lucide-react";
 import { DemoShell } from "@/components/demo/DemoShell";
 import type { DemoNavItem } from "@/components/demo/DemoNavRail";
 import { InvestorEcosystemSwitcher } from "@/components/investor/InvestorEcosystemSwitcher";
@@ -27,6 +27,11 @@ function projectNavItems(projectId: string): DemoNavItem[] {
       icon: LayoutDashboard,
     },
     { to: `/demo/investor/project/${projectId}/pitch`, label: "Pitchdeck", icon: Presentation },
+    {
+      to: `/demo/investor/project/${projectId}/readiness`,
+      label: "Readiness",
+      icon: ClipboardCheck,
+    },
   ];
 }
 

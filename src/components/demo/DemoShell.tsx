@@ -148,7 +148,12 @@ export function DemoShell({ persona, items, children, navExtra }: DemoShellProps
               {isCompanionAltitude ? (
                 <CompanionAltitudeShell persona={persona} />
               ) : (
-                <DemoShellBody persona={persona} items={items} navExtra={navExtra} altitude={altitude}>
+                <DemoShellBody
+                  persona={persona}
+                  items={items}
+                  navExtra={navExtra}
+                  altitude={altitude}
+                >
                   {children}
                 </DemoShellBody>
               )}
