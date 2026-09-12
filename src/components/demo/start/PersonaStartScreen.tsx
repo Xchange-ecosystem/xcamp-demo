@@ -28,11 +28,12 @@
 // instruction, this is a known, flagged gap rather than a bolted-on parallel
 // seeding mechanism: a card click lands in the Companion altitude with the
 // normal starting conversation, not one seeded from the card.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Compass, MessageCircle, Sparkles } from "lucide-react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import { useBrand } from "@/lib/brand";
+import { useLocationGreetingClause } from "@/hooks/useLocationGreeting";
 import {
   NO_COMPANION_SHELL,
   writeInitialDemoAltitude,
@@ -82,14 +83,31 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
   const [selected, setSelected] = useState<DemoAltitude | null>(null);
   const [guidedStage, setGuidedStage] = useState<"intro" | "cards">("intro");
   const [cardCount, setCardCount] = useState(5);
+  const [greeting, setGreeting] = useState("");
+
+  // Kicked off on mount so geolocation + reverse-geocode + weather have the
+  // full logo-animation window to settle before the greeting is frozen
+  // below — see useLocationGreeting.ts for the fallback/timeout behavior.
+  // Read via a ref (not the hook's return value directly) so a late
+  // resolution after the typewriter has already started never rewrites the
+  // greeting mid-type.
+  const locationClause = useLocationGreetingClause();
+  const locationClauseRef = useRef(locationClause);
+  locationClauseRef.current = locationClause;
 
   // Logo fades/scales in on mount, then the greeting typewriter starts.
+  // The greeting text itself is frozen right here — whatever
+  // useLocationGreetingClause has resolved to by now (real city/weather, or
+  // still the static fallback) is what plays out, never swapped later.
   useEffect(() => {
-    const t = window.setTimeout(() => setStage("greeting"), 900);
+    const t = window.setTimeout(() => {
+      setGreeting(
+        `Welcome to Xcamp, ${config.name}.\n${locationClauseRef.current} Let's make the best of it.\nHow do you want to get started?`,
+      );
+      setStage("greeting");
+    }, 900);
     return () => window.clearTimeout(t);
-  }, []);
-
-  const greeting = `Welcome to Xcamp, ${config.name}.\nIt's a beautiful sunny afternoon in Berlin. Let's make the best of it.\nHow do you want to get started?`;
+  }, [config.name]);
 
   const companionDisabled = NO_COMPANION_SHELL.includes(config.persona);
 
