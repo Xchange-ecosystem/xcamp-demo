@@ -987,3 +987,31 @@ select {
     opacity: 1;
   }
 }
+
+/* Demo ItemSidepanel overlay (src/components/demo/DemoShell.tsx) — a true
+ * fixed-position panel sliding in from the right edge over existing
+ * content, plus its backdrop scrim. */
+@keyframes demo-sidepanel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes demo-sidepanel-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="demo-sidepanel-slide-in"],
+  [style*="demo-sidepanel-scrim-in"] {
+    animation: none !important;
+  }
+}

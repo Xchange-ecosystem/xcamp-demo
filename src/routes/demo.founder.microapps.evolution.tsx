@@ -17,7 +17,7 @@ function MicroAppsEvolutionPage() {
       <ComingSoonPage
         icon={TrendingUp}
         title="Evolution"
-        subtitle="An AI review of how your Objectives have moved over time — designed, not yet built."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );

@@ -17,7 +17,7 @@ function MicroAppsReadinessPage() {
       <ComingSoonPage
         icon={ClipboardCheck}
         title="Readiness"
-        subtitle="A structured check of how investor-ready this project is — designed, not yet built."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );
