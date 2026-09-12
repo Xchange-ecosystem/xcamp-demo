@@ -30,7 +30,7 @@
 // normal starting conversation, not one seeded from the card.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Compass, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, Loader2, MessageCircle, Sparkles } from "lucide-react";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import { useBrand } from "@/lib/brand";
 import { useLocationGreetingClause } from "@/hooks/useLocationGreeting";
@@ -41,8 +41,27 @@ import {
 } from "@/hooks/useDemoAltitude";
 import { generateStartCards, type StartCard } from "@/components/demo/start/generateStartCards";
 import type { PersonaStartConfig } from "@/fixtures/personaStart";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import nexusLogo from "@/assets/Nexus logo cropped.png";
 
-type Stage = "logo" | "greeting" | "tiles";
+type Stage = "signin" | "logo" | "greeting" | "tiles";
+
+// Mock Nexus SSO — a visual beat only, no real auth. Shown once per browser
+// session (confirmed with Fabian): the first persona a visitor lands on
+// signs in, every later persona switch (which also routes through
+// PersonaStartScreen, see the file header) skips straight to the
+// logo/greeting/tiles sequence rather than re-prompting.
+const NEXUS_SESSION_KEY = "xcamp-demo-nexus-signed-in";
+
+function hasSignedInThisSession(): boolean {
+  try {
+    return window.sessionStorage.getItem(NEXUS_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 interface TileSpec {
   key: DemoAltitude;
@@ -79,7 +98,8 @@ interface PersonaStartScreenProps {
 export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
   const navigate = useNavigate();
   const { logoUrl, name: brandName } = useBrand();
-  const [stage, setStage] = useState<Stage>("logo");
+  const [stage, setStage] = useState<Stage>(() => (hasSignedInThisSession() ? "logo" : "signin"));
+  const [signingIn, setSigningIn] = useState(false);
   const [selected, setSelected] = useState<DemoAltitude | null>(null);
   const [guidedStage, setGuidedStage] = useState<"intro" | "cards">("intro");
   const [cardCount, setCardCount] = useState(5);
@@ -95,11 +115,14 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
   const locationClauseRef = useRef(locationClause);
   locationClauseRef.current = locationClause;
 
-  // Logo fades/scales in on mount, then the greeting typewriter starts.
-  // The greeting text itself is frozen right here — whatever
-  // useLocationGreetingClause has resolved to by now (real city/weather, or
-  // still the static fallback) is what plays out, never swapped later.
+  // Logo fades/scales in once the "logo" stage begins (either immediately,
+  // if this session already signed in, or right after the mock sign-in
+  // below), then the greeting typewriter starts. The greeting text itself
+  // is frozen right here — whatever useLocationGreetingClause has resolved
+  // to by now (real city/weather, or still the static fallback) is what
+  // plays out, never swapped later.
   useEffect(() => {
+    if (stage !== "logo") return;
     const t = window.setTimeout(() => {
       setGreeting(
         `Welcome to Xcamp, ${config.name}.\n${locationClauseRef.current} Let's make the best of it.\nHow do you want to get started?`,
@@ -107,7 +130,25 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
       setStage("greeting");
     }, 900);
     return () => window.clearTimeout(t);
-  }, [config.name]);
+  }, [stage, config.name]);
+
+  // Mock SSO — no real auth, just the visual beat of signing in before the
+  // welcome sequence plays. Brief spinner, then straight into the existing
+  // logo → greeting → tiles flow exactly as it runs today.
+  const handleNexusSignIn = () => {
+    if (signingIn) return;
+    setSigningIn(true);
+    window.setTimeout(() => {
+      try {
+        window.sessionStorage.setItem(NEXUS_SESSION_KEY, "1");
+      } catch {
+        /* sessionStorage unavailable (e.g. private mode) — re-prompts next
+           persona switch instead of persisting, which is an acceptable
+           degradation for a decorative mock login. */
+      }
+      setStage("logo");
+    }, 900);
+  };
 
   const companionDisabled = NO_COMPANION_SHELL.includes(config.persona);
 
@@ -140,164 +181,215 @@ export function PersonaStartScreen({ config }: PersonaStartScreenProps) {
           "radial-gradient(circle at 50% 38%, #ffffff 0%, #ffffff 42%, var(--skin-accent-soft) 100%)",
       }}
     >
-      <div className="flex w-full max-w-xl flex-col items-center text-center">
-        {/* Logo */}
-        <img
-          src={logoUrl}
-          alt={brandName}
-          className="mb-8 transition-all duration-700 ease-out"
-          style={{
-            height: 40,
-            objectFit: "contain",
-            opacity: stage === "logo" ? 0 : 1,
-            transform: stage === "logo" ? "scale(0.85) translateY(6px)" : "scale(1) translateY(0)",
-          }}
-        />
-
-        {/* Greeting */}
-        {stage !== "logo" && (
-          <h1
-            className="whitespace-pre-line text-xl font-semibold leading-snug tracking-tight"
-            style={{ color: "var(--skin-ink)", minHeight: "4.5em" }}
-          >
-            <Typewriter
-              text={greeting}
-              targetMs={greeting.length * 14}
-              onDone={() => setStage("tiles")}
-            />
-          </h1>
-        )}
-
-        {/* Altitude tiles */}
-        <div
-          className="mt-10 grid w-full grid-cols-1 gap-3 transition-opacity duration-500 sm:grid-cols-3"
-          style={{
-            opacity: stage === "tiles" ? 1 : 0,
-            pointerEvents: stage === "tiles" ? "auto" : "none",
-          }}
-        >
-          {TILES.map((tile) => {
-            const active = selected === tile.key;
-            const disabled = tile.key === "companion" && companionDisabled;
-            return (
+      {stage === "signin" ? (
+        <div className="flex w-full max-w-sm flex-col items-center">
+          <Card className="w-full">
+            <CardContent className="flex flex-col items-center gap-6 p-8">
+              <img src={logoUrl} alt={brandName} style={{ height: 32, objectFit: "contain" }} />
+              <h1 className="text-lg font-semibold" style={{ color: "var(--skin-ink)" }}>
+                Welcome to Xcamp
+              </h1>
+              <div className="flex w-full flex-col gap-3">
+                <div className="flex flex-col gap-1.5 text-left">
+                  <Label htmlFor="nexus-email">Email</Label>
+                  <Input
+                    id="nexus-email"
+                    type="email"
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <Label htmlFor="nexus-password">Password</Label>
+                  <Input
+                    id="nexus-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
               <button
-                key={tile.key}
                 type="button"
-                disabled={disabled}
-                onClick={() => selectTile(tile.key)}
-                className="flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-colors"
-                style={{
-                  borderColor: active ? "var(--skin-accent)" : "var(--skin-line)",
-                  background: active ? "var(--skin-accent-soft)" : "var(--skin-surface)",
-                  opacity: disabled ? 0.55 : 1,
-                  cursor: disabled ? "default" : "pointer",
-                }}
-                title={disabled ? "Not available for this persona yet" : undefined}
+                onClick={handleNexusSignIn}
+                disabled={signingIn}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors hover:bg-black/[0.02] disabled:cursor-default disabled:opacity-70"
+                style={{ borderColor: "var(--skin-line)", color: "var(--skin-ink)" }}
               >
-                <tile.icon
-                  size={18}
-                  color={active ? "var(--skin-accent)" : "var(--skin-ink-soft)"}
-                />
-                <span
-                  className="text-center text-sm font-semibold"
-                  style={{ color: "var(--skin-ink)" }}
-                >
-                  {tile.label}
-                </span>
-                <span className="text-center text-xs" style={{ color: "var(--skin-ink-soft)" }}>
-                  {tile.blurb}
-                </span>
+                {signingIn ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    Sign in with{" "}
+                    <img src={nexusLogo} alt="Nexus" style={{ height: 15, objectFit: "contain" }} />{" "}
+                    identity
+                  </>
+                )}
               </button>
-            );
-          })}
+            </CardContent>
+          </Card>
         </div>
+      ) : (
+        <div className="flex w-full max-w-xl flex-col items-center text-center">
+          {/* Logo */}
+          <img
+            src={logoUrl}
+            alt={brandName}
+            className="mb-8 transition-all duration-700 ease-out"
+            style={{
+              height: 40,
+              objectFit: "contain",
+              opacity: stage === "logo" ? 0 : 1,
+              transform:
+                stage === "logo" ? "scale(0.85) translateY(6px)" : "scale(1) translateY(0)",
+            }}
+          />
 
-        {/* Companion-first Guidance — typewriter intro, then 5 cards (up to
+          {/* Greeting */}
+          {stage !== "logo" && (
+            <h1
+              className="whitespace-pre-line text-xl font-semibold leading-snug tracking-tight"
+              style={{ color: "var(--skin-ink)", minHeight: "4.5em" }}
+            >
+              <Typewriter
+                text={greeting}
+                targetMs={greeting.length * 14}
+                onDone={() => setStage("tiles")}
+              />
+            </h1>
+          )}
+
+          {/* Altitude tiles */}
+          <div
+            className="mt-10 grid w-full grid-cols-1 gap-3 transition-opacity duration-500 sm:grid-cols-3"
+            style={{
+              opacity: stage === "tiles" ? 1 : 0,
+              pointerEvents: stage === "tiles" ? "auto" : "none",
+            }}
+          >
+            {TILES.map((tile) => {
+              const active = selected === tile.key;
+              const disabled = tile.key === "companion" && companionDisabled;
+              return (
+                <button
+                  key={tile.key}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => selectTile(tile.key)}
+                  className="flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-colors"
+                  style={{
+                    borderColor: active ? "var(--skin-accent)" : "var(--skin-line)",
+                    background: active ? "var(--skin-accent-soft)" : "var(--skin-surface)",
+                    opacity: disabled ? 0.55 : 1,
+                    cursor: disabled ? "default" : "pointer",
+                  }}
+                  title={disabled ? "Not available for this persona yet" : undefined}
+                >
+                  <tile.icon
+                    size={18}
+                    color={active ? "var(--skin-accent)" : "var(--skin-ink-soft)"}
+                  />
+                  <span
+                    className="text-center text-sm font-semibold"
+                    style={{ color: "var(--skin-ink)" }}
+                  >
+                    {tile.label}
+                  </span>
+                  <span className="text-center text-xs" style={{ color: "var(--skin-ink-soft)" }}>
+                    {tile.blurb}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Companion-first Guidance — typewriter intro, then 5 cards (up to
             10 via "Show more") generated once from AMBIENT_TOAST_TEMPLATES
             (generateStartCards). Selecting a card is what redirects into the
             real Companion altitude (selectCard) — the tile click itself
             only shows this inline content, same pattern as the other two
             tiles. */}
-        {selected === "companion" && (
-          <div className="mt-8 w-full text-left">
-            <p className="mb-4 text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
-              {guidedStage === "intro" ? (
-                <Typewriter text={config.guidedIntro} onDone={() => setGuidedStage("cards")} />
-              ) : (
-                config.guidedIntro
-              )}
-            </p>
-
-            {guidedStage === "cards" && (
-              <div className="flex flex-col gap-2">
-                {cards.map((card) => (
-                  <button
-                    key={card.id}
-                    type="button"
-                    onClick={() => selectCard(card)}
-                    className="flex flex-col gap-1 rounded-xl border p-3.5 text-left transition-colors hover:border-[var(--skin-accent)]"
-                    style={{ borderColor: "var(--skin-line)", background: "var(--skin-surface)" }}
-                  >
-                    <span className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
-                      {card.title}
-                    </span>
-                    {card.body && (
-                      <span className="text-xs" style={{ color: "var(--skin-ink-soft)" }}>
-                        {card.body}
-                      </span>
-                    )}
-                    <span
-                      className="mt-1 inline-flex items-center gap-1 text-xs font-semibold"
-                      style={{ color: "var(--skin-accent)" }}
-                    >
-                      {card.ctaLabel} <ArrowRight size={12} />
-                    </span>
-                  </button>
-                ))}
-                {cardCount < 10 && (
-                  <button
-                    type="button"
-                    onClick={() => setCardCount((c) => Math.min(c + 5, 10))}
-                    className="mt-1 self-start text-xs font-medium underline"
-                    style={{ color: "var(--skin-ink-soft)" }}
-                  >
-                    Show more
-                  </button>
+          {selected === "companion" && (
+            <div className="mt-8 w-full text-left">
+              <p className="mb-4 text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
+                {guidedStage === "intro" ? (
+                  <Typewriter text={config.guidedIntro} onDone={() => setGuidedStage("cards")} />
+                ) : (
+                  config.guidedIntro
                 )}
-              </div>
-            )}
-          </div>
-        )}
+              </p>
 
-        {/* App-style Creativity — not built for the demo; the tile stays
+              {guidedStage === "cards" && (
+                <div className="flex flex-col gap-2">
+                  {cards.map((card) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => selectCard(card)}
+                      className="flex flex-col gap-1 rounded-xl border p-3.5 text-left transition-colors hover:border-[var(--skin-accent)]"
+                      style={{ borderColor: "var(--skin-line)", background: "var(--skin-surface)" }}
+                    >
+                      <span className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
+                        {card.title}
+                      </span>
+                      {card.body && (
+                        <span className="text-xs" style={{ color: "var(--skin-ink-soft)" }}>
+                          {card.body}
+                        </span>
+                      )}
+                      <span
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold"
+                        style={{ color: "var(--skin-accent)" }}
+                      >
+                        {card.ctaLabel} <ArrowRight size={12} />
+                      </span>
+                    </button>
+                  ))}
+                  {cardCount < 10 && (
+                    <button
+                      type="button"
+                      onClick={() => setCardCount((c) => Math.min(c + 5, 10))}
+                      className="mt-1 self-start text-xs font-medium underline"
+                      style={{ color: "var(--skin-ink-soft)" }}
+                    >
+                      Show more
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* App-style Creativity — not built for the demo; the tile stays
             selectable (unlike AltitudeRail's inert "App-style" segment) so
             choosing it is itself the answer, typed out rather than just
             disabled. */}
-        {selected === "app" && (
-          <div className="mt-8 w-full text-center">
-            <p className="text-sm font-medium" style={{ color: "var(--skin-ink-soft)" }}>
-              <Typewriter text="Not available in demo!" />
-            </p>
-          </div>
-        )}
+          {selected === "app" && (
+            <div className="mt-8 w-full text-center">
+              <p className="text-sm font-medium" style={{ color: "var(--skin-ink-soft)" }}>
+                <Typewriter text="Not available in demo!" />
+              </p>
+            </div>
+          )}
 
-        {/* Platform Experience */}
-        {selected === "platform" && (
-          <div className="mt-8 flex w-full flex-col items-center gap-5 text-center">
-            <p className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
-              <Typewriter text={config.platformExplainer} />
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate({ to: config.platformTarget })}
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--skin-accent-gradient)" }}
-            >
-              Enter Platform <ArrowRight size={14} />
-            </button>
-          </div>
-        )}
-      </div>
+          {/* Platform Experience */}
+          {selected === "platform" && (
+            <div className="mt-8 flex w-full flex-col items-center gap-5 text-center">
+              <p className="text-sm font-medium" style={{ color: "var(--skin-ink)" }}>
+                <Typewriter text={config.platformExplainer} />
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate({ to: config.platformTarget })}
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: "var(--skin-accent-gradient)" }}
+              >
+                Enter Platform <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
