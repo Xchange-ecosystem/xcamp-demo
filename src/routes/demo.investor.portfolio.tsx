@@ -1,13 +1,21 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { InvestorPortfolioScreen } from "@/features/investor-portfolio/InvestorPortfolioScreen";
 
-// Kept only because the real (non-demo) app's investor sidebar
+// Portfolio — its own page again (session brief revision §3), after an
+// earlier pass conflated it with Home's ranked-bar-chart content on one
+// route. Also the URL the real (non-demo) app's investor sidebar
 // (AppSidebarExperimental.tsx's ECOSYSTEM_NAV "investor-portfolio" entry)
-// links here directly. The content itself moved to the ecosystem-level
-// landing page at /demo/investor (see demo.investor.index.tsx) once that
-// route stopped being a bare duplicate of this one — this route now just
-// redirects rather than maintaining two copies of the same screen.
+// links to directly, so this being a real page again (not a redirect) is a
+// bonus fix, not just a rename.
 export const Route = createFileRoute("/demo/investor/portfolio")({
-  beforeLoad: () => {
-    throw redirect({ to: "/demo/investor" });
-  },
+  head: () => ({
+    meta: [
+      { title: "Portfolio — Xcamp" },
+      {
+        name: "description",
+        content: "Filter, label, and drill into projects in this ecosystem.",
+      },
+    ],
+  }),
+  component: InvestorPortfolioScreen,
 });

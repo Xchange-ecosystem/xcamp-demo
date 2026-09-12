@@ -44,6 +44,9 @@ export function PortfolioDealsView({
     [ecosystemProjectIds],
   );
 
+  // Counts reflect the active filters, same as visibleDeals below — a
+  // count that ignored filters would show a number the tab's own card grid
+  // wouldn't back up the moment you clicked it.
   const countsByTab = useMemo(() => {
     const counts: Record<PortfolioTabKey, number> = {
       all: 0,
@@ -54,12 +57,13 @@ export function PortfolioDealsView({
       invested: 0,
     };
     for (const deal of dealsInEcosystem) {
+      if (!matchesFilters(deal, filters)) continue;
       for (const t of PORTFOLIO_TABS) {
         if (matchesTab(deal, t.key)) counts[t.key]++;
       }
     }
     return counts;
-  }, [dealsInEcosystem]);
+  }, [dealsInEcosystem, filters]);
 
   const visibleDeals: PortfolioDeal[] = useMemo(
     () => dealsInEcosystem.filter((d) => matchesTab(d, tab) && matchesFilters(d, filters)),

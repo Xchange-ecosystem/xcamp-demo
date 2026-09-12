@@ -2,8 +2,15 @@ import { AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { avatarColor, initials } from "@/lib/avatarColor";
-import { getPersonById, getProjectById, getProjectMetrics, getTasksByProject } from "@/fixtures";
+import {
+  getPersonById,
+  getPortfolioEntry,
+  getProjectById,
+  getProjectMetrics,
+  getTasksByProject,
+} from "@/fixtures";
 import type { Task } from "@/fixtures";
+import { MatchScoreTrendChart } from "./MatchScoreTrendChart";
 
 // Investor-flavored variant of Founder Dashboard (session brief §4) —
 // same KPI-tile + "worth your attention" + team shape as Founder's
@@ -48,6 +55,7 @@ export function InvestorProjectDashboard({ projectId }: { projectId: string }) {
   const project = getProjectById(projectId);
   const metrics = getProjectMetrics(projectId);
   const tasks = getTasksByProject(projectId);
+  const portfolioEntry = getPortfolioEntry(projectId);
 
   if (!project) return null;
 
@@ -76,6 +84,30 @@ export function InvestorProjectDashboard({ projectId }: { projectId: string }) {
       <p style={{ margin: "4px 0 24px", fontSize: 14, color: "var(--skin-ink-soft)" }}>
         Where this project stands, in the terms an investor asks about.
       </p>
+
+      {portfolioEntry && (
+        <div
+          style={{
+            padding: 16,
+            marginBottom: 24,
+            borderRadius: "var(--xr-lg, 10px)",
+            border: "1px solid var(--skin-line)",
+            background: "var(--skin-surface)",
+          }}
+        >
+          <h2
+            style={{
+              margin: "0 0 4px",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--skin-ink-soft)",
+            }}
+          >
+            Mandate fit over time
+          </h2>
+          <MatchScoreTrendChart scores={portfolioEntry.scores} />
+        </div>
+      )}
 
       {metrics ? (
         <div

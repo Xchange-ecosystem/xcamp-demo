@@ -11,10 +11,12 @@ import { DemoShell } from "@/components/demo/DemoShell";
 import type { DemoNavItem } from "@/components/demo/DemoNavRail";
 import { InvestorEcosystemSwitcher } from "@/components/investor/InvestorEcosystemSwitcher";
 import { InvestorEcosystemProvider, useInvestorEcosystem } from "@/contexts/investor-ecosystem";
+import { InvestorMatchThresholdProvider } from "@/contexts/investor-match-threshold";
 import { getProjectById } from "@/fixtures";
 
 const ECOSYSTEM_NAV_ITEMS: DemoNavItem[] = [
-  { to: "/demo/investor", label: "Portfolio", icon: Briefcase, exact: true },
+  { to: "/demo/investor", label: "Home", icon: Home, exact: true },
+  { to: "/demo/investor/portfolio", label: "Portfolio", icon: Briefcase },
   { to: "/demo/investor/navigator", label: "Ecosystem Navigator", icon: Map },
 ];
 
@@ -38,7 +40,9 @@ function projectNavItems(projectId: string): DemoNavItem[] {
 export function InvestorShell() {
   return (
     <InvestorEcosystemProvider>
-      <InvestorShellBody />
+      <InvestorMatchThresholdProvider>
+        <InvestorShellBody />
+      </InvestorMatchThresholdProvider>
     </InvestorEcosystemProvider>
   );
 }

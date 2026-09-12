@@ -1,6 +1,7 @@
 import { CardFeed } from "@/components/card-feed/CardFeed";
 import { investorUpdateConfig } from "@/components/card-feed/configs";
 import { getFeedByKind, getObjectivesByProject, getProjectById } from "@/fixtures";
+import { SuggestedActionItems } from "./SuggestedActionItems";
 
 // Investor-flavored variant of Founder Home (session brief §4) — same
 // "activity feed" shape as the Founder screen's action-item CardFeed, but
@@ -112,6 +113,8 @@ export function InvestorProjectHome({ projectId }: { projectId: string }) {
           </div>
         </div>
       )}
+
+      <SuggestedActionItems projectId={projectId} />
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--skin-ink)" }}>

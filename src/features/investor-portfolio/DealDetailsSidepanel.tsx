@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import type { Project, PortfolioDeal } from "@/fixtures";
 import { formatEUR, RISK_LABELS, ROUND_LABELS } from "./dealHelpers";
+import { DealHeaderArt } from "./DealHeaderArt";
 
 interface DealDetailsSidepanelProps {
   project: Project | null;
@@ -61,14 +62,9 @@ export function DealDetailsSidepanel({
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         {project && deal && (
           <>
-            <div
-              style={{
-                height: 100,
-                margin: "-24px -24px 0",
-                background: project.color,
-                borderRadius: "0",
-              }}
-            />
+            <div style={{ margin: "-24px -24px 0" }}>
+              <DealHeaderArt project={project} height={120} />
+            </div>
             <SheetHeader>
               <SheetTitle>{project.name}</SheetTitle>
             </SheetHeader>

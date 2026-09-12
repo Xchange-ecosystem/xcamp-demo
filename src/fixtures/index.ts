@@ -26,3 +26,4 @@ export * from "./pitch";
 export * from "./investorDeals";
 export * from "./ecosystems";
 export * from "./network";
+export * from "./investorSuggestions";

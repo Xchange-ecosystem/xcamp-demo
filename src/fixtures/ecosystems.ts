@@ -43,6 +43,11 @@ const PROJECT_ECOSYSTEM: Record<string, string> = {
   "proj-8": "eco-3",
   "proj-9": "eco-1",
   "proj-10": "eco-3",
+  "proj-11": "eco-2",
+  "proj-12": "eco-3",
+  "proj-13": "eco-1",
+  "proj-14": "eco-1",
+  "proj-15": "eco-1",
 };
 
 // Person -> ecosystem "home" for the Navigator's grid/network views. Not
