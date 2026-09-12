@@ -16,7 +16,7 @@ function MicroAppsGoalsPage() {
       <ComingSoonPage
         icon={Target}
         title="Goals"
-        subtitle="Build and refine Objectives with AI assistance — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );

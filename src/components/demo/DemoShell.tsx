@@ -6,7 +6,7 @@ import { CompanionRailProvider } from "@/contexts/companion-rail";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DemoNavRail, type DemoNavItem, type DemoPersona } from "@/components/demo/DemoNavRail";
 import { useAmbientToasts } from "@/hooks/useAmbientToasts";
-import { useDemoAltitude } from "@/hooks/useDemoAltitude";
+import { useDemoAltitude, type DemoAltitude } from "@/hooks/useDemoAltitude";
 import { ItemSidepanel } from "@/components/sidepanel/ItemSidepanel";
 import { DemoFullscreenDispatcher } from "@/components/demo/DemoFullscreenDispatcher";
 import { AltitudeRail } from "@/components/demo/AltitudeRail";
@@ -18,6 +18,10 @@ interface DemoShellProps {
   children: ReactNode;
 }
 
+interface DemoShellBodyProps extends DemoShellProps {
+  altitude: DemoAltitude;
+}
+
 const SIDEPANEL_WIDTH = 420;
 
 // Mounts the same shared ItemSidepanel the real AppShell uses (see
@@ -26,12 +30,12 @@ const SIDEPANEL_WIDTH = 420;
 // rendering the panel it drives. DemoFullscreenDispatcher is the demo-only
 // counterpart to the real, auth-gated FullscreenDispatcher (never mounted
 // here) — see that file for why.
-function DemoShellBody({ persona, items, children }: DemoShellProps) {
+function DemoShellBody({ persona, items, children, altitude }: DemoShellBodyProps) {
   const { isOpen } = useSidepanel();
 
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: "var(--skin-bg)" }}>
-      <DemoNavRail persona={persona} items={items} />
+      <DemoNavRail persona={persona} items={items} altitude={altitude} />
 
       {/* Inset content area — muted page background behind, actual
           screen content floats in a rounded surface card with
@@ -114,7 +118,7 @@ export function DemoShell({ persona, items, children }: DemoShellProps) {
               {isCompanionAltitude ? (
                 <CompanionAltitudeShell persona={persona} />
               ) : (
-                <DemoShellBody persona={persona} items={items}>
+                <DemoShellBody persona={persona} items={items} altitude={altitude}>
                   {children}
                 </DemoShellBody>
               )}

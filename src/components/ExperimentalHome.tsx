@@ -1027,7 +1027,7 @@ function ToolTile({ title, videoSrc, to }: { title: string; videoSrc?: string; t
               borderBottom: "1px solid var(--skin-line)",
             }}
           >
-            Video coming soon
+            This feature is not activated in the demo. Contact admin@xchange.eco.
           </div>
         )}
       </div>
@@ -1863,7 +1863,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
                     textAlign: "center",
                   }}
                 >
-                  Backcaster-generated suggestions — coming soon.
+                  This feature is not activated in the demo. Contact admin@xchange.eco.
                 </div>
               </section>
             </>
@@ -1917,7 +1917,7 @@ export function ProjectHomeView(props: ExperimentalHomeProps) {
                   textAlign: "center",
                 }}
               >
-                Your task assignments for this project — coming soon.
+                This feature is not activated in the demo. Contact admin@xchange.eco.
               </div>
             </section>
           )}

@@ -77,7 +77,7 @@ export function MatchCollaborateTab() {
         disabled
         className="x-btn-secondary"
         style={{ alignSelf: "flex-start", opacity: 0.5, cursor: "not-allowed" }}
-        title="Not available yet"
+        title="This feature is not activated in the demo. Contact admin@xchange.eco."
       >
         + Invite a collaborator
       </button>

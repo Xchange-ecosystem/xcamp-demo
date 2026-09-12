@@ -16,7 +16,7 @@ function MicroAppsNotesPage() {
       <ComingSoonPage
         icon={StickyNote}
         title="My Notes"
-        subtitle="Search, tag, and organize project notes — coming soon."
+        subtitle="This feature is not activated in the demo. Contact admin@xchange.eco."
       />
     </div>
   );

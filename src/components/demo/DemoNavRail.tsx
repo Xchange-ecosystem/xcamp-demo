@@ -5,6 +5,8 @@ import { ChevronDown } from "lucide-react";
 import { useBrand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { PersonaSwitcher } from "@/components/demo/PersonaSwitcher";
+import { ProjectSwitcher } from "@/components/demo/ProjectSwitcher";
+import type { DemoAltitude } from "@/hooks/useDemoAltitude";
 
 export type DemoPersona = "founder" | "investor" | "collaborator";
 
@@ -24,6 +26,10 @@ export interface DemoNavItem {
 interface DemoNavRailProps {
   persona: DemoPersona;
   items: DemoNavItem[];
+  /** Only altitude reaching this component that should hide the project
+   *  switcher — "app" stays a disabled placeholder everywhere (see
+   *  AltitudeRail), so the switcher shows only on Platform here. */
+  altitude?: DemoAltitude;
 }
 
 // Does any leaf under this entry match the current path? Used to keep a
@@ -102,11 +108,12 @@ function NavEntry({
   );
 }
 
-export function DemoNavRail({ persona, items }: DemoNavRailProps) {
+export function DemoNavRail({ persona, items, altitude }: DemoNavRailProps) {
   const { logoUrl, name } = useBrand();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (to?: string, exact?: boolean) =>
     !!to && (exact ? pathname === to : pathname.startsWith(to));
+  const showProjectSwitcher = persona === "founder" && altitude !== "app";
 
   return (
     <nav
@@ -116,6 +123,8 @@ export function DemoNavRail({ persona, items }: DemoNavRailProps) {
       <Link to="/demo" aria-label={`${name} demo home`} className="px-1">
         <img src={logoUrl} alt={name} style={{ height: 26, objectFit: "contain" }} />
       </Link>
+
+      {showProjectSwitcher && <ProjectSwitcher />}
 
       <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {items.map((item) => (
