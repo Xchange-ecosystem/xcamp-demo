@@ -19,16 +19,17 @@ export type DemoAltitude = "companion" | "app" | "platform";
 const STORAGE_KEY = "xcamp-demo-altitude";
 const DEFAULT_ALTITUDE: DemoAltitude = "platform";
 
-// Personas without a Companion-altitude shell (see DemoShell's
-// isCompanionAltitude — Founder-only, CompanionAltitudeShell was built
-// against Founder fixtures only). AltitudeRail keeps its "Companion" segment
-// visible but disabled for these personas rather than hiding it (same
-// treatment as the "App-style" placeholder — visible, deliberately inert,
-// not removed and not hidden), and PersonaStartScreen's "Companion-first
-// Guidance" tile disables off this same list so the two surfaces can't
-// drift apart. Lives here (not in AltitudeRail.tsx, a component file) so
-// importing it doesn't trip react-refresh/only-export-components.
-export const NO_COMPANION_SHELL: DemoPersona[] = ["investor", "collaborator"];
+// Personas without a Companion-altitude shell. Originally Founder-only
+// (CompanionAltitudeShell was built against Founder fixtures only) — now
+// empty, since CompanionAltitudeShell/CompanionInfoPanel/api/companion/chat.ts
+// all branch per persona (see buildCompanionContext.ts). Kept as a list
+// (rather than removed) so AltitudeRail's "Companion" segment and
+// PersonaStartScreen's "Companion-first Guidance" tile — both of which
+// disable off this same array so the two surfaces can't drift apart — don't
+// need their own edits if a persona ever needs disabling again. Lives here
+// (not in AltitudeRail.tsx, a component file) so importing it doesn't trip
+// react-refresh/only-export-components.
+export const NO_COMPANION_SHELL: DemoPersona[] = [];
 
 function isDemoAltitude(value: string | null): value is DemoAltitude {
   return value === "companion" || value === "app" || value === "platform";

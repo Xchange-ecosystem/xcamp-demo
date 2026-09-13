@@ -26,12 +26,24 @@ import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
 import type { ObjectiveStatus, Task } from "@/fixtures/types";
 import { PEOPLE, getPersonById } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
+import { getDealByProjectId } from "@/fixtures/investorDeals";
+import { getPortfolioEntry, getRankedPortfolio } from "@/fixtures/portfolio";
+import { DEMO_COLLABORATOR_ID, getAssignmentsByAssignee } from "@/fixtures/assignments";
+import { getWalletBalance } from "@/fixtures/wallet";
 import {
   EMPTY_SIDE_EFFECTS,
   type ChatSideEffects,
 } from "@/components/demo/companion/deriveChatSideEffects";
+import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 type InfoTabKey = "items" | "artifacts-actions" | "metrics";
+
+const SECTION_HEADING_STYLE = {
+  marginBottom: 10,
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--skin-ink-soft)",
+} as const;
 
 const INFO_TABS: { key: InfoTabKey; label: string }[] = [
   { key: "items", label: "Items" },
@@ -72,13 +84,22 @@ function urgencyOf(dueDate: string): Urgency {
 }
 
 interface CompanionInfoPanelProps {
+  persona: DemoPersona;
+  /** The investor's currently-active project, or `null` at the ecosystem
+   *  level. Unused for Founder/Collaborator. */
+  projectId?: string | null;
   /** Demo-state mutations from chat turns (see deriveChatSideEffects.ts) —
    *  never new fixture rows, just which existing objectives/tasks/people are
-   *  advanced/invited. Optional so the panel still renders standalone. */
+   *  advanced/invited. Founder-only (see that file); optional so the panel
+   *  still renders standalone. */
   sideEffects?: ChatSideEffects;
 }
 
-export function CompanionInfoPanel({ sideEffects = EMPTY_SIDE_EFFECTS }: CompanionInfoPanelProps) {
+export function CompanionInfoPanel({
+  persona,
+  projectId = null,
+  sideEffects = EMPTY_SIDE_EFFECTS,
+}: CompanionInfoPanelProps) {
   const [activeTab, setActiveTab] = useState<InfoTabKey>("items");
 
   return (
@@ -116,7 +137,13 @@ export function CompanionInfoPanel({ sideEffects = EMPTY_SIDE_EFFECTS }: Compani
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
         {activeTab === "items" ? (
-          <ItemsTabContent sideEffects={sideEffects} />
+          persona === "investor" ? (
+            <InvestorItemsTabContent projectId={projectId} />
+          ) : persona === "collaborator" ? (
+            <CollaboratorItemsTabContent />
+          ) : (
+            <ItemsTabContent sideEffects={sideEffects} />
+          )
         ) : activeTab === "metrics" ? (
           <MetricsTabContent />
         ) : (
@@ -167,16 +194,7 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
-        <h2
-          style={{
-            marginBottom: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--skin-ink-soft)",
-          }}
-        >
-          Objective progress
-        </h2>
+        <h2 style={SECTION_HEADING_STYLE}>Objective progress</h2>
         <div
           style={{
             marginBottom: 10,
@@ -223,16 +241,7 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
       </section>
 
       <section>
-        <h2
-          style={{
-            marginBottom: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--skin-ink-soft)",
-          }}
-        >
-          Worth your attention
-        </h2>
+        <h2 style={SECTION_HEADING_STYLE}>Worth your attention</h2>
         {risks.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
             Nothing high-priority to flag right now.
@@ -272,16 +281,7 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
       </section>
 
       <section>
-        <h2
-          style={{
-            marginBottom: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--skin-ink-soft)",
-          }}
-        >
-          People across your ecosystem
-        </h2>
+        <h2 style={SECTION_HEADING_STYLE}>People across your ecosystem</h2>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {PEOPLE.filter(
             (p) =>
@@ -297,6 +297,169 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function InvestorItemsTabContent({ projectId }: { projectId: string | null }) {
+  if (projectId) {
+    const project = getProjectById(projectId);
+    const entry = getPortfolioEntry(projectId);
+    const deal = getDealByProjectId(projectId);
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <section>
+          <h2 style={SECTION_HEADING_STYLE}>Performance — {project?.name ?? "this project"}</h2>
+          {entry ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                fontSize: 12,
+                color: "var(--skin-ink-soft)",
+              }}
+            >
+              <StatRow label="Rank" value={`#${entry.rank}`} />
+              <StatRow
+                label="Score"
+                value={`${entry.performanceScore} (${entry.performanceDeltaPct >= 0 ? "+" : ""}${entry.performanceDeltaPct})`}
+              />
+              <StatRow label="Invested" value={formatCurrency(entry.investedAmount)} />
+              <StatRow label="Valuation" value={formatCurrency(entry.currentValuation)} />
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
+              No performance history for this project yet.
+            </p>
+          )}
+        </section>
+
+        {deal && (
+          <section>
+            <h2 style={SECTION_HEADING_STYLE}>Deal terms</h2>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                fontSize: 12,
+                color: "var(--skin-ink-soft)",
+              }}
+            >
+              <StatRow label="Match" value={`${deal.matchPct}%`} />
+              <StatRow label="Risk" value={`${deal.riskLevel}/5`} />
+              <StatRow label="Round" value={deal.round} />
+              <StatRow label="Ask" value={formatCurrency(deal.askAmount)} />
+              <StatRow label="Your ticket" value={formatCurrency(deal.ticketSize)} />
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  }
+
+  const topProjects = getRankedPortfolio().slice(0, 5);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <section>
+        <h2 style={SECTION_HEADING_STYLE}>Top-ranked projects</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {topProjects.map((entry) => {
+            const project = getProjectById(entry.projectId);
+            return (
+              <div
+                key={entry.projectId}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  borderRadius: 8,
+                  padding: 10,
+                  background: "var(--skin-raised, var(--muted))",
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>
+                  #{entry.rank} {project?.name}
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--skin-ink-soft)" }}>
+                  {entry.performanceScore} ({entry.performanceDeltaPct >= 0 ? "+" : ""}
+                  {entry.performanceDeltaPct})
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 style={SECTION_HEADING_STYLE}>Ecosystem</h2>
+        <p style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>
+          {ECOSYSTEM_METRICS.activeProjects} active projects, {ECOSYSTEM_METRICS.avgProgressPct}%
+          avg. progress, {ECOSYSTEM_METRICS.avgQualityPct}% avg. quality.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function CollaboratorItemsTabContent() {
+  const assignments = getAssignmentsByAssignee(DEMO_COLLABORATOR_ID);
+  const balance = getWalletBalance(DEMO_COLLABORATOR_ID);
+  const open = assignments.filter((a) => a.workflowState !== "settled").slice(0, 4);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <section>
+        <h2 style={SECTION_HEADING_STYLE}>My wallet</h2>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>{balance} cr</div>
+        <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
+          Settled value across all projects
+        </div>
+      </section>
+
+      <section>
+        <h2 style={SECTION_HEADING_STYLE}>Open assignments</h2>
+        {open.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
+            Nothing open right now — everything's settled.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {open.map((a) => (
+              <div
+                key={a.id}
+                style={{
+                  borderRadius: 8,
+                  padding: 10,
+                  background: "var(--skin-raised, var(--muted))",
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>
+                  {a.title}
+                </div>
+                <div style={{ marginTop: 2, fontSize: 11, color: "var(--skin-ink-soft)" }}>
+                  {a.dueLabel} · {a.value} cr · {a.valueState}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function formatCurrency(value: number | undefined): string {
+  if (value === undefined) return "—";
+  return `€${value.toLocaleString()}`;
+}
+
+function StatRow({ label, value }: { label: string; value: string | number | undefined }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span>{label}</span>
+      <b style={{ color: "var(--skin-ink)" }}>{value ?? "—"}</b>
     </div>
   );
 }

@@ -62,6 +62,7 @@ function InvestorShellBody() {
     <DemoShell
       persona="investor"
       items={items}
+      activeProjectId={inProjectMode ? (params.projectId ?? null) : null}
       navExtra={
         <InvestorEcosystemSwitcher
           ecosystemId={ecosystemId}
