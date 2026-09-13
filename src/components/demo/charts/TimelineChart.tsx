@@ -18,7 +18,9 @@
 // line/granularity props entirely; the component supports that (an
 // undersized bars array and missing line/granularity props are valid, not
 // special-cased) so both personas render through the exact same mechanism.
+import { useId } from "react";
 import {
+  Area,
   Bar,
   CartesianGrid,
   ComposedChart,
@@ -147,6 +149,10 @@ export interface TimelineChartProps<G extends string = string> {
     value: G;
     onChange: (value: G) => void;
   };
+  /** Render `line` as a gradient-fill area instead of a plain stroke — for a
+   *  caller with no bars (an empty `bars` array), where the line series is
+   *  the whole chart rather than an overlay on top of stacked bars. */
+  lineArea?: boolean;
   height?: number;
 }
 
@@ -161,8 +167,11 @@ export function TimelineChart<G extends string = string>({
   formatDate,
   totalLabel,
   granularity,
+  lineArea = false,
   height = 240,
 }: TimelineChartProps<G>) {
+  // useId()'s colons aren't safe inside a fill="url(#...)" reference.
+  const gradientId = `timeline-area-${useId().replace(/:/g, "")}`;
   return (
     <div className="mb-7 rounded-md p-4" style={{ background: "var(--skin-raised, var(--muted))" }}>
       <div className="mb-2 flex items-center justify-between">
@@ -213,19 +222,22 @@ export function TimelineChart<G extends string = string>({
             tickLine={false}
             minTickGap={24}
           />
-          <YAxis
-            yAxisId="count"
-            allowDecimals={false}
-            tick={{ fontSize: 11, fill: "var(--skin-ink-faint)" }}
-            axisLine={false}
-            tickLine={false}
-            width={28}
-          />
+          {bars.length > 0 && (
+            <YAxis
+              yAxisId="count"
+              allowDecimals={false}
+              tick={{ fontSize: 11, fill: "var(--skin-ink-faint)" }}
+              axisLine={false}
+              tickLine={false}
+              width={28}
+            />
+          )}
           {line && (
             <YAxis
               yAxisId="line"
               orientation="right"
               domain={lineDomain}
+              allowDecimals={false}
               tick={{ fontSize: 11, fill: "var(--skin-ink-faint)" }}
               axisLine={false}
               tickLine={false}
@@ -247,6 +259,14 @@ export function TimelineChart<G extends string = string>({
             wrapperStyle={{ fontSize: 12, color: "var(--skin-ink-soft)" }}
             formatter={(value: string) => value}
           />
+          {line && lineArea && (
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={line.color} stopOpacity={0.35} />
+                <stop offset="95%" stopColor={line.color} stopOpacity={0.03} />
+              </linearGradient>
+            </defs>
+          )}
           {bars.map((b, i) => (
             <Bar
               key={b.key}
@@ -259,17 +279,30 @@ export function TimelineChart<G extends string = string>({
               isAnimationActive={false}
             />
           ))}
-          {line && (
-            <Line
-              yAxisId="line"
-              dataKey={line.key}
-              name={line.label}
-              stroke={line.color}
-              strokeWidth={2}
-              dot={data.length <= 14}
-              isAnimationActive={false}
-            />
-          )}
+          {line &&
+            (lineArea ? (
+              <Area
+                yAxisId="line"
+                type="monotone"
+                dataKey={line.key}
+                name={line.label}
+                stroke={line.color}
+                strokeWidth={2}
+                fill={`url(#${gradientId})`}
+                dot={data.length <= 14}
+                isAnimationActive={false}
+              />
+            ) : (
+              <Line
+                yAxisId="line"
+                dataKey={line.key}
+                name={line.label}
+                stroke={line.color}
+                strokeWidth={2}
+                dot={data.length <= 14}
+                isAnimationActive={false}
+              />
+            ))}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
