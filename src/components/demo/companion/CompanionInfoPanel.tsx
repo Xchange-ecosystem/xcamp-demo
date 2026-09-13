@@ -30,6 +30,7 @@ import { getDealByProjectId } from "@/fixtures/investorDeals";
 import { getPortfolioEntry, getRankedPortfolio } from "@/fixtures/portfolio";
 import { DEMO_COLLABORATOR_ID, getAssignmentsByAssignee } from "@/fixtures/assignments";
 import { ValueWallet } from "@/features/collaborator/ValueWallet";
+import { useSidepanel } from "@/contexts/sidepanel";
 import {
   EMPTY_SIDE_EFFECTS,
   type ChatSideEffects,
@@ -406,6 +407,7 @@ function InvestorItemsTabContent({ projectId }: { projectId: string | null }) {
 function CollaboratorItemsTabContent() {
   const assignments = getAssignmentsByAssignee(DEMO_COLLABORATOR_ID);
   const open = assignments.filter((a) => a.workflowState !== "settled").slice(0, 4);
+  const { open: openSidepanel } = useSidepanel();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -425,10 +427,22 @@ function CollaboratorItemsTabContent() {
             {open.map((a) => (
               <div
                 key={a.id}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  openSidepanel({ id: a.taskId, kind: "note", noteType: "task", title: a.title })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openSidepanel({ id: a.taskId, kind: "note", noteType: "task", title: a.title });
+                  }
+                }}
                 style={{
                   borderRadius: 8,
                   padding: 10,
                   background: "var(--skin-raised, var(--muted))",
+                  cursor: "pointer",
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>

@@ -31,15 +31,7 @@ interface DemoShellBodyProps extends DemoShellProps {
 
 const SIDEPANEL_WIDTH = 420;
 
-// Mounts the same shared ItemSidepanel the real AppShell uses (see
-// src/components/AppShell.tsx's RightPanelSlot) as an aside next to the demo
-// content — DemoShell previously provided SidepanelProvider without ever
-// rendering the panel it drives. DemoFullscreenDispatcher is the demo-only
-// counterpart to the real, auth-gated FullscreenDispatcher (never mounted
-// here) — see that file for why.
 function DemoShellBody({ persona, items, children, navExtra, altitude }: DemoShellBodyProps) {
-  const { isOpen, close } = useSidepanel();
-
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: "var(--skin-bg)" }}>
       <DemoNavRail persona={persona} items={items} extra={navExtra} altitude={altitude} />
@@ -71,7 +63,28 @@ function DemoShellBody({ persona, items, children, navExtra, altitude }: DemoShe
           {children}
         </div>
       </div>
+    </div>
+  );
+}
 
+// Mounts the same shared ItemSidepanel the real AppShell uses (see
+// src/components/AppShell.tsx's RightPanelSlot) as an aside over the demo
+// content — DemoShell previously provided SidepanelProvider without ever
+// rendering the panel it drives. DemoFullscreenDispatcher is the demo-only
+// counterpart to the real, auth-gated FullscreenDispatcher (never mounted
+// here) — see that file for why.
+//
+// Rendered as a sibling of the Platform/Companion altitude branch (not
+// nested inside DemoShellBody, which only mounts for Platform altitude) so
+// it's reachable from *both* altitudes — Companion altitude previously had
+// no ItemSidepanel/DemoFullscreenDispatcher anywhere in its render tree, so
+// even a correctly-wired openSidepanel() call there had nothing to display
+// (see Collaborator Companion task-click wiring, CompanionInfoPanel.tsx).
+function DemoGlobalOverlays() {
+  const { isOpen, close } = useSidepanel();
+
+  return (
+    <>
       {/* True fixed-position overlay (previously a docked flex sibling that
           pushed/reflowed the content column beside it) — a backdrop scrim
           plus a right-edge panel sliding in over existing content, matching
@@ -118,7 +131,7 @@ function DemoShellBody({ persona, items, children, navExtra, altitude }: DemoShe
       )}
 
       <DemoFullscreenDispatcher />
-    </div>
+    </>
   );
 }
 
@@ -167,6 +180,7 @@ export function DemoShell({
                 </DemoShellBody>
               )}
               <AltitudeRail persona={persona} altitude={altitude} onSelect={setAltitude} />
+              <DemoGlobalOverlays />
             </div>
           </SidebarProvider>
         </CompanionRailProvider>

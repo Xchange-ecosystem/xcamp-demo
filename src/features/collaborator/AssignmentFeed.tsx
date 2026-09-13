@@ -30,6 +30,7 @@ import {
 } from "@/fixtures/assignments";
 import { getPersonById } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
+import { useSidepanel } from "@/contexts/sidepanel";
 
 // Value vocabulary rule (P1.3 brief): value that isn't yet locked is
 // "informational" and part of a sketch; locked value reads as "committed
@@ -74,6 +75,7 @@ export function AssignmentFeed({
 }) {
   const [filter, setFilter] = useState<AssignmentWorkflowState | "all">("all");
   const [reviewing, setReviewing] = useState<Assignment | null>(null);
+  const { open: openSidepanel } = useSidepanel();
 
   const visible = useMemo(
     () => (filter === "all" ? assignments : assignments.filter((a) => a.workflowState === filter)),
@@ -116,6 +118,13 @@ export function AssignmentFeed({
     getId: (a) => a.id,
     getTitle: (a) => a.title,
     getDescription: (a) => a.body,
+    // Assignment.taskId is a real Task.id (src/fixtures/objectives.ts,
+    // "task-N") — the same id space ItemSidepanel/useFullscreenItemStore
+    // already key off for Founder's task surfaces, so this needs no
+    // adaptation, just the same openSidepanel call Founder Home's own
+    // action-item feed uses (demo.founder.index.tsx's openItemDetails).
+    onItemClick: (a) =>
+      openSidepanel({ id: a.taskId, kind: "note", noteType: "task", title: a.title }),
     getVisual: (a) => ({
       icon: WORKFLOW_META[a.workflowState].icon,
       badgeLabel: WORKFLOW_META[a.workflowState].label,
