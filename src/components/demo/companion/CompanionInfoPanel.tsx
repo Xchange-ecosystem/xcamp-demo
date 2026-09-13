@@ -29,7 +29,7 @@ import { getProjectById } from "@/fixtures/projects";
 import { getDealByProjectId } from "@/fixtures/investorDeals";
 import { getPortfolioEntry, getRankedPortfolio } from "@/fixtures/portfolio";
 import { DEMO_COLLABORATOR_ID, getAssignmentsByAssignee } from "@/fixtures/assignments";
-import { getWalletBalance } from "@/fixtures/wallet";
+import { ValueWallet } from "@/features/collaborator/ValueWallet";
 import {
   EMPTY_SIDE_EFFECTS,
   type ChatSideEffects,
@@ -405,17 +405,13 @@ function InvestorItemsTabContent({ projectId }: { projectId: string | null }) {
 
 function CollaboratorItemsTabContent() {
   const assignments = getAssignmentsByAssignee(DEMO_COLLABORATOR_ID);
-  const balance = getWalletBalance(DEMO_COLLABORATOR_ID);
   const open = assignments.filter((a) => a.workflowState !== "settled").slice(0, 4);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
         <h2 style={SECTION_HEADING_STYLE}>My wallet</h2>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>{balance} cr</div>
-        <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
-          Settled value across all projects
-        </div>
+        <ValueWallet assignments={assignments} collaboratorId={DEMO_COLLABORATOR_ID} />
       </section>
 
       <section>
