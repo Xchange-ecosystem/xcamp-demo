@@ -1,22 +1,27 @@
 // src/components/demo/companion/CompanionAltitudeShell.tsx
 //
-// Companion-first guidance altitude — Founder persona only, mounted by
-// DemoShell in place of the normal Navrail + routed page when
-// altitude === "companion" (see useDemoAltitude). Named "*AltitudeShell"
-// rather than "CompanionShell" because src/components/CompanionShell.tsx
-// already exists — the real chrome for the live /home surface — and is an
-// unrelated component; reusing that name here would be confusing next to
-// it, not with it.
+// Companion-first guidance altitude, mounted by DemoShell in place of the
+// normal Navrail + routed page when altitude === "companion" (see
+// useDemoAltitude). Originally Founder-only; now shared by all three
+// personas — see buildCompanionContext.ts for how each persona's fixture
+// grounding differs, and DemoShell/InvestorShell for how an investor's
+// currently-active project (if any) reaches this component as `projectId`.
+// Named "*AltitudeShell" rather than "CompanionShell" because
+// src/components/CompanionShell.tsx already exists — the real chrome for
+// the live /home surface — and is an unrelated component; reusing that name
+// here would be confusing next to it, not with it.
 //
 // This is a self-contained demo simulation, no Supabase writes — but the
 // composer's send handler below does make one real call: POSTs to
 // api/companion/chat.ts (Anthropic Messages API, web search enabled), the
-// only real AI call in the Founder showcase. Deterministic, non-AI chat
-// side-effects (deriveChatSideEffects.ts) run alongside it, independent of
-// what the model replies. Background photo comes from the same bucket
-// utility ProjectEntryScreen uses (useHeroImage); the tabbed right panel is
-// CompanionInfoPanel (fixture-fed, see that file); the burger drawer reuses
-// PersonaSwitcher via CompanionAltitudeDrawer.
+// only real AI call in the demo. Deterministic, non-AI chat side-effects
+// (deriveChatSideEffects.ts) run alongside it for the Founder persona only
+// (its fixture model — advancing objectives/tasks/invites — doesn't map
+// onto Investor/Collaborator data), independent of what the model replies.
+// Background photo comes from the same bucket utility ProjectEntryScreen
+// uses (useHeroImage); the tabbed right panel is CompanionInfoPanel
+// (fixture-fed, see that file); the burger drawer reuses PersonaSwitcher via
+// CompanionAltitudeDrawer.
 import { useMemo, useRef, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useHeroImage } from "@/lib/useHeroImage";
@@ -28,21 +33,18 @@ import {
   COMPANION_ALTITUDE_ACK,
   COMPANION_ALTITUDE_THREAD,
 } from "@/components/demo/companion/companionAltitudeFixtures";
+import { buildCompanionContext } from "@/components/demo/companion/buildCompanionContext";
 import {
   deriveChatSideEffects,
   EMPTY_SIDE_EFFECTS,
   type ChatSideEffects,
 } from "@/components/demo/companion/deriveChatSideEffects";
-import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
-import { getProjectById } from "@/fixtures/projects";
-import { getObjectivesByProject, TASKS } from "@/fixtures/objectives";
-import { PEOPLE } from "@/fixtures/people";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 // Horizontal clearance reserved on the right so the drawer/panel-toggle
 // button and the info panel never sit under AltitudeRail (fixed, right
-// edge, ~68px wide — see AltitudeRail.tsx). This shell is Founder-only and
-// AltitudeRail always renders alongside it, so the clearance is unconditional.
+// edge, ~68px wide — see AltitudeRail.tsx). AltitudeRail always renders
+// alongside this shell for every persona, so the clearance is unconditional.
 const ALTITUDE_RAIL_CLEARANCE = 84;
 // Floor so the panel stays usable at narrow widths; deliberately no ceiling
 // — center and panel both use flex:1 so they split the content area evenly
@@ -73,9 +75,14 @@ const CHAT_GLASS_STYLE = {
 
 interface CompanionAltitudeShellProps {
   persona: DemoPersona;
+  /** The investor's currently-active project (drilled into from the route),
+   *  or `null` at the ecosystem level. Ignored for Founder/Collaborator —
+   *  their context has no such notion (Founder is always their one venture;
+   *  Collaborator is always their own assignments). */
+  projectId?: string | null;
 }
 
-export function CompanionAltitudeShell({ persona }: CompanionAltitudeShellProps) {
+export function CompanionAltitudeShell({ persona, projectId = null }: CompanionAltitudeShellProps) {
   // Presentational variety only, picked once per mount (i.e. per visit to
   // this altitude) — same in-memory, non-persisted spirit as the ambient
   // persona toasts (useAmbientToasts resets on page load / persona switch).
@@ -85,49 +92,30 @@ export function CompanionAltitudeShell({ persona }: CompanionAltitudeShellProps)
   );
   const { url: heroUrl } = useHeroImage();
   const [panelOpen, setPanelOpen] = useState(true);
-  const [messages, setMessages] = useState<ChatMessage[]>(COMPANION_ALTITUDE_THREAD);
+  const [messages, setMessages] = useState<ChatMessage[]>(COMPANION_ALTITUDE_THREAD[persona]);
   const [isLoading, setIsLoading] = useState(false);
   const [sideEffects, setSideEffects] = useState<ChatSideEffects>(EMPTY_SIDE_EFFECTS);
   const turnIndexRef = useRef(0);
 
   // Mock context the model's replies can plausibly reference — the same
-  // fixture data CompanionInfoPanel reads, trimmed to the fields worth
-  // sending. Static per mount: unaffected by sideEffects (those are a
-  // presentational overlay, not a rewrite of the underlying fixtures).
-  const chatContext = useMemo(() => {
-    const project = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-    const objectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID).map((o) => ({
-      title: o.title,
-      description: o.description,
-      status: o.status,
-      dimension: o.dimension,
-    }));
-    const tasks = TASKS.filter((t) => t.projectId === DEMO_FOUNDER_PROJECT_ID).map((t) => ({
-      title: t.title,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.dueDate,
-    }));
-    const people = PEOPLE.filter((p) => p.role === "investor" || p.role === "collaborator").map(
-      (p) => ({ displayName: p.displayName, role: p.role, title: p.title }),
-    );
-    return {
-      project: project
-        ? { name: project.name, description: project.description, tags: project.tags }
-        : undefined,
-      objectives,
-      tasks,
-      people,
-    };
-  }, []);
+  // fixture data CompanionInfoPanel reads, scoped per persona (see
+  // buildCompanionContext.ts). Recomputed only when persona/projectId
+  // change — not on every render — since sideEffects are a presentational
+  // overlay on top of the fixtures, not a rewrite of them.
+  const chatContext = useMemo(
+    () => buildCompanionContext(persona, projectId),
+    [persona, projectId],
+  );
 
   const handleSend = async (text: string) => {
     const userId = `ca-user-${Date.now()}`;
     const ackId = `ca-ack-${Date.now()}`;
     setMessages((prev) => [...prev, { id: userId, kind: "user", text }]);
 
-    setSideEffects((prev) => deriveChatSideEffects(text, turnIndexRef.current, prev));
-    turnIndexRef.current += 1;
+    if (persona === "founder") {
+      setSideEffects((prev) => deriveChatSideEffects(text, turnIndexRef.current, prev));
+      turnIndexRef.current += 1;
+    }
 
     setIsLoading(true);
     let replyText = COMPANION_ALTITUDE_ACK;
@@ -135,7 +123,7 @@ export function CompanionAltitudeShell({ persona }: CompanionAltitudeShellProps)
       const res = await fetch("/api/companion/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, context: chatContext }),
+        body: JSON.stringify({ message: text, persona, context: chatContext }),
       });
       if (res.ok) {
         const data = (await res.json()) as { reply?: string };
@@ -304,7 +292,11 @@ export function CompanionAltitudeShell({ persona }: CompanionAltitudeShellProps)
                 boxShadow: "0 8px 32px rgba(0,0,0,0.16)",
               }}
             >
-              <CompanionInfoPanel sideEffects={sideEffects} />
+              <CompanionInfoPanel
+                persona={persona}
+                projectId={projectId}
+                sideEffects={sideEffects}
+              />
             </aside>
           </div>
         )}

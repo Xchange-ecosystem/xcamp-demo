@@ -18,6 +18,11 @@ interface DemoShellProps {
   children: ReactNode;
   /** Forwarded to DemoNavRail's `extra` slot — see that component. */
   navExtra?: ReactNode;
+  /** Investor-only: the project currently drilled into (from the route), or
+   *  `null`/omitted at the ecosystem level. Forwarded to CompanionAltitudeShell
+   *  so the Companion altitude can ground replies in the right project when
+   *  the investor switches into it. Ignored for other personas. */
+  activeProjectId?: string | null;
 }
 
 interface DemoShellBodyProps extends DemoShellProps {
@@ -117,7 +122,13 @@ function DemoShellBody({ persona, items, children, navExtra, altitude }: DemoShe
   );
 }
 
-export function DemoShell({ persona, items, children, navExtra }: DemoShellProps) {
+export function DemoShell({
+  persona,
+  items,
+  children,
+  navExtra,
+  activeProjectId = null,
+}: DemoShellProps) {
   // Keyed on `persona` — fires once on arrival at a persona's pages and
   // restarts only when persona actually changes (the Navrail switcher),
   // not on internal nav within one persona's own routes.
@@ -127,13 +138,11 @@ export function DemoShell({ persona, items, children, navExtra }: DemoShellProps
   // src/hooks/useDemoAltitude.ts (unrelated to src/store/altitudeStore.ts).
   // The rail itself is mounted for every persona ("Everywhere show the
   // altitude rail" — session spec). The Companion-altitude *shell swap*
-  // below stays Founder-only: CompanionAltitudeShell was built against
-  // Founder fixtures only (Phase 0 audit). AltitudeRail itself disables the
-  // "Companion" segment for Investor/Collaborator (same treatment as the
-  // "App-style" placeholder) so the rail is present everywhere without
-  // leaving a dead click for personas with no Companion shell yet.
+  // below now applies to every persona — CompanionAltitudeShell/
+  // CompanionInfoPanel/api/companion/chat.ts all branch on persona (see
+  // buildCompanionContext.ts) rather than assuming Founder fixtures.
   const [altitude, setAltitude] = useDemoAltitude();
-  const isCompanionAltitude = persona === "founder" && altitude === "companion";
+  const isCompanionAltitude = altitude === "companion";
 
   return (
     <SidepanelProvider>
@@ -146,7 +155,7 @@ export function DemoShell({ persona, items, children, navExtra }: DemoShellProps
                 to before this feature existed. */}
             <div data-altitude={altitude} style={{ display: "contents" }}>
               {isCompanionAltitude ? (
-                <CompanionAltitudeShell persona={persona} />
+                <CompanionAltitudeShell persona={persona} projectId={activeProjectId} />
               ) : (
                 <DemoShellBody
                   persona={persona}

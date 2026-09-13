@@ -4,19 +4,24 @@
 // api/recap/extract.ts (this repo's only other real LLM call): the
 // ANTHROPIC_API_KEY lives here, never in a VITE_* var or client code.
 //
-// This is the one real AI call in the Founder Companion showcase. The
-// Companion altitude's chat composer (CompanionAltitudeShell.tsx) POSTs the
-// user's message plus a snapshot of the demo's own fixture data here, so the
-// model's replies can plausibly reference the demo's own content (named
-// collaborators, the Solari Energy project, its objectives/tasks). Web
-// search is enabled so the model can also ground replies in real-world
-// information ("Kenya Power", industry context, etc.) — that's the
-// "internet access" requirement for this feature.
+// This is the one real AI call in the demo. The Companion altitude's chat
+// composer (CompanionAltitudeShell.tsx) POSTs the user's message, a persona
+// tag, and a snapshot of that persona's own fixture data (see
+// src/components/demo/companion/buildCompanionContext.ts) here, so the
+// model's replies can plausibly reference the demo's own content — a
+// founder's named collaborators and project objectives, an investor's
+// portfolio standing or deal terms, a collaborator's assignments and
+// wallet. Web search is enabled so the model can also ground replies in
+// real-world information ("Kenya Power", industry context, etc.) — that's
+// the "internet access" requirement for this feature.
 //
 // Nothing downstream of this call (the deterministic chat side-effects in
-// deriveChatSideEffects.ts) invokes a model — this is the only one.
+// deriveChatSideEffects.ts, Founder-only) invokes a model — this is the
+// only one.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+type Persona = "founder" | "investor" | "collaborator";
 
 interface ChatContextProject {
   name: string;
@@ -44,17 +49,56 @@ interface ChatContextPerson {
   title: string;
 }
 
+interface ChatContextPortfolioProject {
+  name: string;
+  description?: string;
+  rank?: number;
+  performanceScore?: number;
+  performanceDeltaPct?: number;
+  investedAmount?: number;
+  currentValuation?: number;
+  matchPct?: number;
+  riskLevel?: number;
+  round?: string;
+  askAmount?: number;
+  ticketSize?: number;
+}
+
+interface ChatContextEcosystemMetrics {
+  avgProgressPct: number;
+  avgQualityPct: number;
+  totalTasksCompleted: number;
+  activeProjects: number;
+}
+
+interface ChatContextAssignment {
+  title: string;
+  workflowState: string;
+  valueState: string;
+  value: number;
+  dueLabel: string;
+}
+
 interface ChatRequestBody {
   message?: string;
+  persona?: Persona;
   context?: {
+    // Founder
     project?: ChatContextProject;
     objectives?: ChatContextObjective[];
     tasks?: ChatContextTask[];
     people?: ChatContextPerson[];
+    // Investor
+    activeProject?: ChatContextPortfolioProject | null;
+    topProjects?: ChatContextPortfolioProject[];
+    ecosystemMetrics?: ChatContextEcosystemMetrics;
+    // Collaborator
+    assignments?: ChatContextAssignment[];
+    walletBalance?: number;
   };
 }
 
-function buildSystemPrompt(context: ChatRequestBody["context"]): string {
+function buildFounderPrompt(context: ChatRequestBody["context"]): string[] {
   const project = context?.project;
   const objectives = context?.objectives ?? [];
   const tasks = context?.tasks ?? [];
@@ -62,8 +106,7 @@ function buildSystemPrompt(context: ChatRequestBody["context"]): string {
 
   return [
     "You are Chi, an AI companion helping a startup founder run their project inside Xcamp.",
-    "Speak directly to the founder, in a warm, concise, senior-operator tone. A few sentences per reply, not an essay.",
-    "You have web search available — use it when a reply would benefit from real-world grounding (market context, a named partner or customer, industry news), and say what you found plainly.",
+    "Speak directly to the founder, in a warm, concise, senior-operator tone coaching them on their own venture. A few sentences per reply, not an essay.",
     "",
     project
       ? `The founder's project: "${project.name}" — ${project.description} (tags: ${project.tags.join(", ")}).`
@@ -79,6 +122,80 @@ function buildSystemPrompt(context: ChatRequestBody["context"]): string {
       : "",
     "",
     "Reference this data naturally where relevant — named people, the project's own objectives/tasks — rather than speaking in generalities.",
+  ];
+}
+
+function describePortfolioProject(p: ChatContextPortfolioProject): string {
+  const parts = [p.name];
+  if (p.rank !== undefined) parts.push(`rank #${p.rank}`);
+  if (p.performanceScore !== undefined)
+    parts.push(
+      `score ${p.performanceScore}${p.performanceDeltaPct !== undefined ? ` (${p.performanceDeltaPct >= 0 ? "+" : ""}${p.performanceDeltaPct} vs. last week)` : ""}`,
+    );
+  if (p.investedAmount !== undefined) parts.push(`invested €${p.investedAmount.toLocaleString()}`);
+  if (p.currentValuation !== undefined)
+    parts.push(`valuation €${p.currentValuation.toLocaleString()}`);
+  if (p.matchPct !== undefined) parts.push(`${p.matchPct}% mandate match`);
+  if (p.riskLevel !== undefined) parts.push(`risk ${p.riskLevel}/5`);
+  if (p.round) parts.push(`${p.round} round`);
+  if (p.askAmount !== undefined) parts.push(`asking €${p.askAmount.toLocaleString()}`);
+  if (p.ticketSize !== undefined) parts.push(`your ticket €${p.ticketSize.toLocaleString()}`);
+  return parts.join(", ");
+}
+
+function buildInvestorPrompt(context: ChatRequestBody["context"]): string[] {
+  const activeProject = context?.activeProject;
+  const topProjects = context?.topProjects ?? [];
+  const metrics = context?.ecosystemMetrics;
+
+  return [
+    "You are Chi, an AI companion helping an investor evaluate dealflow and manage their portfolio inside Xcamp.",
+    "Speak directly to the investor, in a sharp, concise, buy-side analyst tone. A few sentences per reply, not an essay.",
+    "",
+    activeProject
+      ? `The investor is currently looking at one project: ${describePortfolioProject(activeProject)}.`
+      : "",
+    !activeProject && topProjects.length
+      ? `Top of the investor's ranked portfolio:\n${topProjects.map((p) => `- ${describePortfolioProject(p)}`).join("\n")}`
+      : "",
+    !activeProject && metrics
+      ? `Ecosystem: ${metrics.activeProjects} active projects, ${metrics.avgProgressPct}% avg. progress, ${metrics.avgQualityPct}% avg. quality, ${metrics.totalTasksCompleted} tasks completed.`
+      : "",
+    "",
+    "Reference this data naturally where relevant — the project or portfolio names, their actual numbers — rather than speaking in generalities.",
+  ];
+}
+
+function buildCollaboratorPrompt(context: ChatRequestBody["context"]): string[] {
+  const assignments = context?.assignments ?? [];
+  const walletBalance = context?.walletBalance;
+
+  return [
+    "You are Chi, an AI companion helping a collaborator track their assignments and earnings inside Xcamp.",
+    "Speak directly to the collaborator, in a warm, concise, supportive tone helping them prioritize their work. A few sentences per reply, not an essay.",
+    "",
+    assignments.length
+      ? `Their assignments:\n${assignments.map((a) => `- [${a.workflowState}, ${a.valueState}] ${a.title} — ${a.value} cr, ${a.dueLabel}`).join("\n")}`
+      : "",
+    walletBalance !== undefined
+      ? `Current wallet balance: ${walletBalance} cr (settled value).`
+      : "",
+    "",
+    "Reference this data naturally where relevant — their actual assignments and balance — rather than speaking in generalities.",
+  ];
+}
+
+function buildSystemPrompt(persona: Persona, context: ChatRequestBody["context"]): string {
+  const personaLines =
+    persona === "investor"
+      ? buildInvestorPrompt(context)
+      : persona === "collaborator"
+        ? buildCollaboratorPrompt(context)
+        : buildFounderPrompt(context);
+
+  return [
+    ...personaLines,
+    "You have web search available — use it when a reply would benefit from real-world grounding (market context, a named partner or customer, industry news), and say what you found plainly.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -90,10 +207,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { message, context } = (req.body ?? {}) as ChatRequestBody;
+  const { message, context, persona: rawPersona } = (req.body ?? {}) as ChatRequestBody;
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "message is required" });
   }
+  const persona: Persona =
+    rawPersona === "investor" || rawPersona === "collaborator" ? rawPersona : "founder";
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -111,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
-        system: buildSystemPrompt(context),
+        system: buildSystemPrompt(persona, context),
         messages: [{ role: "user", content: message }],
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
       }),
