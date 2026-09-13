@@ -21,6 +21,7 @@ import {
   type CanvasNode,
   type CanvasNodeKind,
 } from "@/features/ecosystem-navigator/NetworkCanvas";
+import { useDemoObjectivesByProject, useDemoTasksByProject } from "@/store/demoItemsStore";
 import { computeForceLayout } from "./forceLayout";
 import { getNavigatorItems, type NavigatorItem } from "./navigatorItems";
 
@@ -38,7 +39,9 @@ const LEGEND_COLOR: Record<LegendKind, string> = Object.fromEntries(
 export function NavigatorNetworkView() {
   const { open: openSidepanel } = useSidepanel();
   const project = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-  const items = useMemo(() => getNavigatorItems(), []);
+  const objectives = useDemoObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const tasks = useDemoTasksByProject(DEMO_FOUNDER_PROJECT_ID);
+  const items = useMemo(() => getNavigatorItems(objectives, tasks), [objectives, tasks]);
   const [visible, setVisible] = useState<Record<LegendKind, boolean>>({
     project: true,
     objective: true,

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { create } from "zustand";
 import { OBJECTIVES, TASKS, getTasksByObjective } from "@/fixtures/objectives";
 import type { Objective, Task } from "@/fixtures/types";
@@ -248,6 +249,40 @@ export const useDemoItemsStore = create<DemoItemsStore>()((set) => ({
       };
     }),
 }));
+
+// ── Live, project-scoped selectors ──────────────────────────────────────
+//
+// The Navigator sub-views (Board/List/Network/Timeline) previously read
+// getObjectivesByProject/getTasksByObjective/TASKS directly from the static
+// fixtures module — so a status change or subtask completion made via the
+// sidepanel/fullscreen task view (both of which write here, to
+// useDemoItemsStore) never showed up in any of the four views. These two
+// hooks are the live equivalents: same filter/sort shape as their static
+// fixture counterparts, but read from (and re-render on changes to) this
+// store instead.
+
+/** Live, project-scoped, sorted objectives — the store-backed equivalent of
+ *  fixtures/objectives.ts's getObjectivesByProject. */
+export function useDemoObjectivesByProject(projectId: string): DemoObjectiveState[] {
+  const objectives = useDemoItemsStore((s) => s.objectives);
+  return useMemo(
+    () =>
+      Object.values(objectives)
+        .filter((o) => o.projectId === projectId && !o.deleted)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [objectives, projectId],
+  );
+}
+
+/** Live, project-scoped tasks — the store-backed equivalent of
+ *  fixtures/objectives.ts's getTasksByProject. */
+export function useDemoTasksByProject(projectId: string): DemoTaskState[] {
+  const tasks = useDemoItemsStore((s) => s.tasks);
+  return useMemo(
+    () => Object.values(tasks).filter((t) => t.projectId === projectId && !t.deleted),
+    [tasks, projectId],
+  );
+}
 
 /** Default + extra linked task ids for an objective, minus removed ones. */
 export function linkedTaskIdsForObjective(obj: DemoObjectiveState): string[] {

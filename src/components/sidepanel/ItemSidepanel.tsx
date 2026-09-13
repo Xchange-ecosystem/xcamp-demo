@@ -1682,11 +1682,23 @@ export function ItemSidepanel() {
 function FullscreenButton({ item }: { item: PanelItem }) {
   // Every note type can go fullscreen now — "task" gets the real view,
   // everything else gets the shared placeholder (see FullscreenDispatcher).
+  const { close: closeSidepanel } = useSidepanel();
   if (item.kind !== "note") return null;
 
   return (
     <button
-      onClick={() => useFullscreenItemStore.getState().open(item.id, item.noteType ?? "note")}
+      onClick={() => {
+        // Close this sidepanel before opening fullscreen. In the real app's
+        // desktop layout the sidepanel is an in-flow, non-overlapping <aside>
+        // so this is cosmetic, but the demo's sidepanel (DemoShell.tsx) is a
+        // fixed-position overlay at a higher z-index (60/61) than the
+        // fullscreen modal (40/50) — left open, its full-viewport backdrop
+        // sits on top of the fullscreen view and silently swallows clicks on
+        // anything not directly under the visible sidepanel panel itself
+        // (e.g. the fullscreen shell's own left-rail tabs).
+        closeSidepanel();
+        useFullscreenItemStore.getState().open(item.id, item.noteType ?? "note");
+      }}
       aria-label="Open fullscreen"
       title="Open fullscreen"
       data-testid="sidepanel-open-fullscreen"

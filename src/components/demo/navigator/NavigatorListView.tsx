@@ -23,6 +23,7 @@ import {
 import { useSidepanel } from "@/contexts/sidepanel";
 import { getProjectById } from "@/fixtures/projects";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
+import { useDemoObjectivesByProject, useDemoTasksByProject } from "@/store/demoItemsStore";
 import { getNavigatorItems, type NavigatorItem, type NavigatorItemType } from "./navigatorItems";
 
 type SortKey = "title" | "type" | "status" | "ownerName" | "dueDate";
@@ -85,7 +86,9 @@ function SortHeader({
 export function NavigatorListView() {
   const { open: openSidepanel } = useSidepanel();
   const project = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-  const allItems = useMemo(() => getNavigatorItems(), []);
+  const objectives = useDemoObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const tasks = useDemoTasksByProject(DEMO_FOUNDER_PROJECT_ID);
+  const allItems = useMemo(() => getNavigatorItems(objectives, tasks), [objectives, tasks]);
 
   const [typeFilter, setTypeFilter] = useState<NavigatorItemType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");

@@ -11,10 +11,14 @@
 // between tasks are intentionally left out, per the brief's default (flag
 // if you want them added).
 import { useMemo } from "react";
-import { getObjectivesByProject, getTasksByObjective } from "@/fixtures/objectives";
 import { getProjectById } from "@/fixtures/projects";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
 import { useSidepanel } from "@/contexts/sidepanel";
+import {
+  useDemoObjectivesByProject,
+  useDemoTasksByProject,
+  type DemoTaskState,
+} from "@/store/demoItemsStore";
 import { deriveTaskDateRange } from "./navigatorItems";
 import type { Task } from "@/fixtures/types";
 
@@ -32,7 +36,7 @@ const STATUS_COLOR: Record<Task["status"], string> = {
 };
 
 interface Bar {
-  task: Task;
+  task: DemoTaskState;
   start: Date;
   end: Date;
   track: number;
@@ -63,14 +67,13 @@ function assignTracks(bars: Omit<Bar, "track">[]): Bar[] {
 export function NavigatorTimelineView() {
   const { open: openSidepanel } = useSidepanel();
   const project = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-  const objectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const objectives = useDemoObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const projectTasks = useDemoTasksByProject(DEMO_FOUNDER_PROJECT_ID);
 
   const lanes = useMemo(
     () =>
       objectives.map((o) => {
-        const tasks = getTasksByObjective(o.id).filter(
-          (t) => t.projectId === DEMO_FOUNDER_PROJECT_ID,
-        );
+        const tasks = projectTasks.filter((t) => t.objectiveId === o.id);
         const rawBars = tasks
           .map((task) => {
             const range = deriveTaskDateRange(task);
@@ -82,7 +85,7 @@ export function NavigatorTimelineView() {
         const trackCount = bars.reduce((max, b) => Math.max(max, b.track + 1), 0);
         return { objective: o, bars, trackCount };
       }),
-    [objectives],
+    [objectives, projectTasks],
   );
 
   const { rangeStart, rangeEnd } = useMemo(() => {

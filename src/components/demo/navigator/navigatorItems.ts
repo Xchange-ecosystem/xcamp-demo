@@ -4,9 +4,17 @@
 // List / Network / Timeline) — every view draws from the same
 // Objective+Task item set for Solari Energy (DEMO_FOUNDER_PROJECT_ID), per
 // the session brief's scoping decision (see route files for the flagged
-// rationale). No Supabase, no new fixture rows — this only reshapes
-// src/fixtures/objectives.ts's real OBJECTIVES/TASKS for proj-1.
-import { getObjectivesByProject, getTasksByObjective, TASKS } from "@/fixtures/objectives";
+// rationale). No Supabase, no new fixture rows.
+//
+// These functions take live, already project-scoped objectives/tasks as
+// params (see useDemoObjectivesByProject/useDemoTasksByProject in
+// demoItemsStore.ts) rather than reading the static OBJECTIVES/TASKS
+// fixture arrays directly — a status change or subtask completion made via
+// the sidepanel/fullscreen task view writes to that store, and previously
+// none of these four views ever reflected it since they bypassed the store
+// entirely. DemoObjectiveState/DemoTaskState are supersets of
+// Objective/Task (every original field plus the demo-only ones), so they
+// satisfy these functions' existing Objective/Task-shaped signatures as-is.
 import { getPersonById } from "@/fixtures/people";
 import { getProjectById } from "@/fixtures/projects";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
@@ -82,26 +90,24 @@ function toTaskItem(t: Task): NavigatorItem {
   };
 }
 
-/** All Objectives for Solari Energy, as NavigatorItems (Board's item set). */
-export function getNavigatorObjectiveItems(): NavigatorItem[] {
+/** Objectives, as NavigatorItems (Board's item set). */
+export function getNavigatorObjectiveItems(objectives: Objective[]): NavigatorItem[] {
   const ownerName = objectiveOwnerName();
-  return getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID).map((o) => toObjectiveItem(o, ownerName));
+  return objectives.map((o) => toObjectiveItem(o, ownerName));
 }
 
-/** All Tasks for Solari Energy, as NavigatorItems. */
-export function getNavigatorTaskItems(): NavigatorItem[] {
-  return TASKS.filter((t) => t.projectId === DEMO_FOUNDER_PROJECT_ID).map(toTaskItem);
+/** Tasks, as NavigatorItems. */
+export function getNavigatorTaskItems(tasks: Task[]): NavigatorItem[] {
+  return tasks.map(toTaskItem);
 }
 
 /** Objectives + Tasks together (List/Network/Timeline's shared item set). */
-export function getNavigatorItems(): NavigatorItem[] {
-  return [...getNavigatorObjectiveItems(), ...getNavigatorTaskItems()];
+export function getNavigatorItems(objectives: Objective[], tasks: Task[]): NavigatorItem[] {
+  return [...getNavigatorObjectiveItems(objectives), ...getNavigatorTaskItems(tasks)];
 }
 
-export function getNavigatorTasksForObjective(objectiveId: string): NavigatorItem[] {
-  return getTasksByObjective(objectiveId)
-    .filter((t) => t.projectId === DEMO_FOUNDER_PROJECT_ID)
-    .map(toTaskItem);
+export function getNavigatorTasksForObjective(objectiveId: string, tasks: Task[]): NavigatorItem[] {
+  return tasks.filter((t) => t.objectiveId === objectiveId).map(toTaskItem);
 }
 
 /* ── Deterministic task start dates (Timeline only) ──────────────────────
