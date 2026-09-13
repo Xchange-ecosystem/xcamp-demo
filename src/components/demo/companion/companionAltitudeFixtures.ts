@@ -56,7 +56,7 @@ const COLLABORATOR_THREAD: ChatMessage[] = [
   {
     id: "ca-col-1",
     kind: "chi",
-    text: "Hey Yuki — you've got one assignment awaiting your acceptance and one overdue for proof. Want the rundown?",
+    text: "Hey Claas — you've got one assignment awaiting your acceptance and one overdue for proof. Want the rundown?",
   },
   { id: "ca-col-2", kind: "user", text: "What's overdue?" },
   {

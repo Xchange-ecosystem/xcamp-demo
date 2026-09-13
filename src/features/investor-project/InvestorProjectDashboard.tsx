@@ -10,7 +10,7 @@ import {
   getTasksByProject,
 } from "@/fixtures";
 import type { Task } from "@/fixtures";
-import { MatchScoreTrendChart } from "./MatchScoreTrendChart";
+import { MandateFitChart } from "./MandateFitChart";
 
 // Investor-flavored variant of Founder Dashboard (session brief §4) —
 // same KPI-tile + "worth your attention" + team shape as Founder's
@@ -85,29 +85,7 @@ export function InvestorProjectDashboard({ projectId }: { projectId: string }) {
         Where this project stands, in the terms an investor asks about.
       </p>
 
-      {portfolioEntry && (
-        <div
-          style={{
-            padding: 16,
-            marginBottom: 24,
-            borderRadius: "var(--xr-lg, 10px)",
-            border: "1px solid var(--skin-line)",
-            background: "var(--skin-surface)",
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 4px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--skin-ink-soft)",
-            }}
-          >
-            Mandate fit over time
-          </h2>
-          <MatchScoreTrendChart scores={portfolioEntry.scores} />
-        </div>
-      )}
+      {portfolioEntry && <MandateFitChart scores={portfolioEntry.scores} />}
 
       {metrics ? (
         <div
