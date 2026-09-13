@@ -11,6 +11,7 @@ import {
 } from "@/fixtures";
 import type { Task } from "@/fixtures";
 import { MandateFitChart } from "./MandateFitChart";
+import { ProjectProgressChart } from "./ProjectProgressChart";
 
 // Investor-flavored variant of Founder Dashboard (session brief §4) —
 // same KPI-tile + "worth your attention" + team shape as Founder's
@@ -85,7 +86,17 @@ export function InvestorProjectDashboard({ projectId }: { projectId: string }) {
         Where this project stands, in the terms an investor asks about.
       </p>
 
-      {portfolioEntry && <MandateFitChart scores={portfolioEntry.scores} />}
+      {/* Real per-task daily data (a metrics.ts fixture entry) beats the
+          reduced weekly "mandate fit" aggregate whenever it exists — same
+          principle as the KPI tiles' own metrics/"no metrics yet" branch
+          just below. Only Founder-fixture-depth projects (currently
+          proj-1..proj-8) get it; other portfolio companies keep the
+          honest, lower-resolution aggregate rather than invented numbers. */}
+      {metrics ? (
+        <ProjectProgressChart projectId={projectId} projectName={project.name} />
+      ) : (
+        portfolioEntry && <MandateFitChart scores={portfolioEntry.scores} />
+      )}
 
       {metrics ? (
         <div

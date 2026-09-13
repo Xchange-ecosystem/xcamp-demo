@@ -28,24 +28,24 @@ import {
   getAssignmentsByAssignee,
   type Assignment,
 } from "@/fixtures/assignments";
-import { getPersonById } from "@/fixtures/people";
 
 export function CollaboratorScreen() {
   const [assignments, setAssignments] = useState<Assignment[]>(() =>
     getAssignmentsByAssignee(DEMO_COLLABORATOR_ID),
   );
-  const collaborator = getPersonById(DEMO_COLLABORATOR_ID);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden px-6 py-6 lg:flex-row lg:gap-8">
       <section className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        {/* "My assignments" is first-person-possessive — direct address, same
+            naming fix as Founder Home / Collaborator Companion opener (PR
+            #27), so it names "Claas" (the person running the demo), not the
+            DEMO_COLLABORATOR_ID fixture's own displayName ("Yuki Tanaka" —
+            which stays correct wherever it's used in third person, e.g. Team
+            panels elsewhere in this app; unrelated to this heading). */}
         <h1 className="mb-4 text-2xl font-semibold tracking-tight text-foreground">
           My assignments
-          {collaborator && (
-            <span className="ml-2 font-normal text-muted-foreground">
-              — {collaborator.displayName}
-            </span>
-          )}
+          <span className="ml-2 font-normal text-muted-foreground">— Claas</span>
         </h1>
         <AssignmentFeed assignments={assignments} onChange={setAssignments} />
       </section>

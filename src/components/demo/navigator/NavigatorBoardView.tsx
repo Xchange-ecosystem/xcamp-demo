@@ -10,11 +10,11 @@
 // new Solari-scoped sibling views would make that mismatch worse, not
 // better. Flagged as a judgment call, not silently assumed — see session
 // notes.
-import { getObjectivesByProject } from "@/fixtures/objectives";
 import { getProjectById } from "@/fixtures/projects";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
 import type { ObjectiveStatus } from "@/fixtures/types";
 import { useSidepanel } from "@/contexts/sidepanel";
+import { useDemoObjectivesByProject } from "@/store/demoItemsStore";
 
 const COLUMNS: { status: ObjectiveStatus; label: string }[] = [
   { status: "suggested", label: "Suggested" },
@@ -26,7 +26,7 @@ const COLUMNS: { status: ObjectiveStatus; label: string }[] = [
 export function NavigatorBoardView() {
   const { open: openSidepanel } = useSidepanel();
   const project = getProjectById(DEMO_FOUNDER_PROJECT_ID);
-  const objectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
+  const objectives = useDemoObjectivesByProject(DEMO_FOUNDER_PROJECT_ID);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
