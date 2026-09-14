@@ -1,5 +1,7 @@
 # xcamp-nox-founder-app
 
+> **Superseded.** This repo is superseded by [`xcamp-app`](https://github.com/Xchange-ecosystem/xcamp-app), which carries this repo's full commit history forward as of 2026-09-13. New development happens there — nothing here has been deleted or archived yet (tracked separately as its own cleanup step).
+
 ## Updating vendored SDK
 
 `@xchange/companion`, `@xchange/client`, and `@xchange/ui` are vendored under `vendor/` from their respective source repos.
