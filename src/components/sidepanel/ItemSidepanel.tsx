@@ -61,6 +61,7 @@ import { useDemoItemsStore } from "@/store/demoItemsStore";
 import { DemoObjectiveContent } from "@/components/sidepanel/DemoObjectiveContent";
 import { DemoNoteContent } from "@/components/sidepanel/DemoNoteContent";
 import { DemoLinkedItemsTab } from "@/components/sidepanel/DemoLinkedItemsTab";
+import { TaskArtifactsActionsTab } from "@/components/task-detail/TaskArtifactsActionsTab";
 
 const STATUS_OPTIONS = ["draft", "active", "in_progress", "blocked", "done"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -1664,8 +1665,15 @@ export function ItemSidepanel() {
         ) : activeTab === "linked" ? (
           <LinkedItemsTab key={current.id} itemId={current.id} itemKind={current.kind} />
         ) : activeTab === "artifacts-actions" ? (
-          <ComingSoonTab icon={Zap} label="Artifacts & Actions" />
+          current.kind === "note" && isDemoTaskId(current.id) ? (
+            <TaskArtifactsActionsTab taskId={current.id} />
+          ) : (
+            <ComingSoonTab icon={Zap} label="Artifacts & Actions" />
+          )
         ) : (
+          // Match: deliberately left as the "not activated in the demo"
+          // state — see the CC brief's Scope E2 instruction not to silently
+          // replace this one without confirming; kept as-is.
           <ComingSoonTab icon={Users} label="Match" />
         )}
       </div>

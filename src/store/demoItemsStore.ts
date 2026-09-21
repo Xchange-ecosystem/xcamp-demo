@@ -3,6 +3,13 @@ import { create } from "zustand";
 import { OBJECTIVES, TASKS, getTasksByObjective } from "@/fixtures/objectives";
 import type { Objective, Task } from "@/fixtures/types";
 import type { NoteAttachment } from "@/types/xcamp";
+import {
+  buildMockTaskContent,
+  pickExtraLinkedIds,
+  type DemoCollaborator,
+  type DemoTaskAgentAction,
+  type DemoTaskArtifact,
+} from "@/store/demoTaskMockContent";
 
 // In-memory, session-local store backing the B1 sidepanel + fullscreen demo.
 // Every write action from ItemSidepanel's demo fork and the fullscreen demo
@@ -42,6 +49,17 @@ export interface DemoTaskState extends Task {
   extraLinkedObjectiveIds: string[];
   /** Ids of demo objectives removed from the Linked Items list (default or extra). */
   removedLinkedObjectiveIds: string[];
+  /** Ids of demo tasks linked to this one (tasks have no default task-link,
+   *  unlike the objective relationship above — every entry here is "extra"). */
+  extraLinkedTaskIds: string[];
+  /** Ids of linked-task entries removed from the Linked Items list. */
+  removedLinkedTaskIds: string[];
+  /** Task-scoped mock content for Match & Collaborate / Actions & Artifacts —
+   *  see demoTaskMockContent.ts for how these are seeded (deterministic,
+   *  keyed by task id, computed once here). */
+  collaborators: DemoCollaborator[];
+  artifacts: DemoTaskArtifact[];
+  agentActions: DemoTaskAgentAction[];
   deleted: boolean;
 }
 
@@ -63,21 +81,30 @@ function seedObjectives(): Record<string, DemoObjectiveState> {
 
 function seedTasks(): Record<string, DemoTaskState> {
   return Object.fromEntries(
-    TASKS.map((t) => [
-      t.id,
-      {
-        ...t,
-        bodyHtml: `<p>${t.title}.</p>`,
-        tags: [],
-        attachments: [],
-        startDate: null,
-        endDate: null,
-        subtasks: [],
-        extraLinkedObjectiveIds: [],
-        removedLinkedObjectiveIds: [],
-        deleted: false,
-      },
-    ]),
+    TASKS.map((t) => {
+      const mock = buildMockTaskContent(t.id, t.title);
+      const { extraObjectiveIds, extraTaskIds } = pickExtraLinkedIds(t, OBJECTIVES, TASKS);
+      return [
+        t.id,
+        {
+          ...t,
+          bodyHtml: `<p>${t.title}.</p>`,
+          tags: [],
+          attachments: [],
+          startDate: null,
+          endDate: null,
+          subtasks: mock.subtasks,
+          extraLinkedObjectiveIds: extraObjectiveIds,
+          removedLinkedObjectiveIds: [],
+          extraLinkedTaskIds: extraTaskIds,
+          removedLinkedTaskIds: [],
+          collaborators: mock.collaborators,
+          artifacts: mock.artifacts,
+          agentActions: mock.agentActions,
+          deleted: false,
+        },
+      ];
+    }),
   );
 }
 
@@ -98,6 +125,9 @@ interface DemoItemsStore {
 
   linkObjectiveTask: (objectiveId: string, taskId: string) => void;
   unlinkObjectiveTask: (objectiveId: string, taskId: string) => void;
+
+  linkTaskTask: (taskId: string, otherTaskId: string) => void;
+  unlinkTaskTask: (taskId: string, otherTaskId: string) => void;
 }
 
 export const useDemoItemsStore = create<DemoItemsStore>()((set) => ({
@@ -248,6 +278,58 @@ export const useDemoItemsStore = create<DemoItemsStore>()((set) => ({
         },
       };
     }),
+
+  linkTaskTask: (taskId, otherTaskId) =>
+    set((s) => {
+      const task = s.tasks[taskId];
+      const other = s.tasks[otherTaskId];
+      if (!task || !other || taskId === otherTaskId) return s;
+      return {
+        tasks: {
+          ...s.tasks,
+          [taskId]: {
+            ...task,
+            extraLinkedTaskIds: task.extraLinkedTaskIds.includes(otherTaskId)
+              ? task.extraLinkedTaskIds
+              : [...task.extraLinkedTaskIds, otherTaskId],
+            removedLinkedTaskIds: task.removedLinkedTaskIds.filter((id) => id !== otherTaskId),
+          },
+          [otherTaskId]: {
+            ...other,
+            extraLinkedTaskIds: other.extraLinkedTaskIds.includes(taskId)
+              ? other.extraLinkedTaskIds
+              : [...other.extraLinkedTaskIds, taskId],
+            removedLinkedTaskIds: other.removedLinkedTaskIds.filter((id) => id !== taskId),
+          },
+        },
+      };
+    }),
+
+  unlinkTaskTask: (taskId, otherTaskId) =>
+    set((s) => {
+      const task = s.tasks[taskId];
+      const other = s.tasks[otherTaskId];
+      if (!task || !other) return s;
+      return {
+        tasks: {
+          ...s.tasks,
+          [taskId]: {
+            ...task,
+            extraLinkedTaskIds: task.extraLinkedTaskIds.filter((id) => id !== otherTaskId),
+            removedLinkedTaskIds: task.removedLinkedTaskIds.includes(otherTaskId)
+              ? task.removedLinkedTaskIds
+              : [...task.removedLinkedTaskIds, otherTaskId],
+          },
+          [otherTaskId]: {
+            ...other,
+            extraLinkedTaskIds: other.extraLinkedTaskIds.filter((id) => id !== taskId),
+            removedLinkedTaskIds: other.removedLinkedTaskIds.includes(taskId)
+              ? other.removedLinkedTaskIds
+              : [...other.removedLinkedTaskIds, taskId],
+          },
+        },
+      };
+    }),
 }));
 
 // ── Live, project-scoped selectors ──────────────────────────────────────
@@ -296,4 +378,10 @@ export function linkedObjectiveIdsForTask(task: DemoTaskState): string[] {
   const defaultIds = task.objectiveId ? [task.objectiveId] : [];
   const all = [...new Set([...defaultIds, ...task.extraLinkedObjectiveIds])];
   return all.filter((id) => !task.removedLinkedObjectiveIds.includes(id));
+}
+
+/** Extra linked task ids for a task (no default — tasks have no built-in
+ *  task-to-task relationship the way objective<->task has), minus removed ones. */
+export function linkedTaskIdsForTask(task: DemoTaskState): string[] {
+  return task.extraLinkedTaskIds.filter((id) => !task.removedLinkedTaskIds.includes(id));
 }

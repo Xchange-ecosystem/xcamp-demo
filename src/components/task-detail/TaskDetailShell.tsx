@@ -5,7 +5,10 @@ import { AboutTab } from "./AboutTab";
 import { DoDocumentTab } from "./DoDocumentTab";
 import { MatchCollaborateTab } from "./MatchCollaborateTab";
 import { LinkedItemsTab } from "@/components/sidepanel/ItemSidepanel";
+import { TaskArtifactsActionsTab } from "./TaskArtifactsActionsTab";
+import { ReviewCompleteTab } from "./ReviewCompleteTab";
 import { ComingSoonTab } from "./ComingSoonTab";
+import { isDemoTaskId } from "@/lib/demo-items";
 import type { TaskLabelObjective } from "@/lib/xcamp-api";
 import type { NoteRow, XcampUser } from "@/types/xcamp";
 
@@ -245,13 +248,16 @@ export function TaskDetailShell({
           {activeTab === "do-document" && (
             <DoDocumentTab noteRow={noteRow} user={user} onSwitchTab={setActiveTab} />
           )}
-          {activeTab === "match-collaborate" && <MatchCollaborateTab />}
+          {activeTab === "match-collaborate" && <MatchCollaborateTab taskId={noteRow.id} />}
           {activeTab === "linked-items" && <LinkedItemsTab itemId={noteRow.id} itemKind="note" />}
-          {activeTab === "actions-artifacts" && (
-            <ComingSoonTab icon={TASK_TABS[4].icon} label={TASK_TABS[4].label} />
-          )}
+          {activeTab === "actions-artifacts" &&
+            (isDemoTaskId(noteRow.id) ? (
+              <TaskArtifactsActionsTab taskId={noteRow.id} />
+            ) : (
+              <ComingSoonTab icon={TASK_TABS[4].icon} label={TASK_TABS[4].label} />
+            ))}
           {activeTab === "review-complete" && (
-            <ComingSoonTab icon={TASK_TABS[5].icon} label={TASK_TABS[5].label} />
+            <ReviewCompleteTab noteRow={noteRow} onComplete={onComplete} />
           )}
         </div>
       </div>

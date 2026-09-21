@@ -6,6 +6,7 @@ import type { ItemKind, LinkedItem } from "@/lib/sidepanel-service";
 import {
   linkedObjectiveIdsForTask,
   linkedTaskIdsForObjective,
+  linkedTaskIdsForTask,
   useDemoItemsStore,
 } from "@/store/demoItemsStore";
 
@@ -102,6 +103,8 @@ export function DemoLinkedItemsTab({ itemId, itemKind }: { itemId: string; itemK
   const tasks = useDemoItemsStore((s) => s.tasks);
   const linkObjectiveTask = useDemoItemsStore((s) => s.linkObjectiveTask);
   const unlinkObjectiveTask = useDemoItemsStore((s) => s.unlinkObjectiveTask);
+  const linkTaskTask = useDemoItemsStore((s) => s.linkTaskTask);
+  const unlinkTaskTask = useDemoItemsStore((s) => s.unlinkTaskTask);
   const [showAddLink, setShowAddLink] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -124,10 +127,24 @@ export function DemoLinkedItemsTab({ itemId, itemKind }: { itemId: string; itemK
     }
     const task = tasks[itemId];
     if (!task) return [];
-    return linkedObjectiveIdsForTask(task)
+    const linkedObjectives = linkedObjectiveIdsForTask(task)
       .map((id) => objectives[id])
       .filter((o): o is NonNullable<typeof o> => !!o && !o.deleted)
       .map((o) => ({ id: o.id, title: o.title, kind: "objective" as const, status: o.status }));
+    // Mixed-type linked items — sibling tasks alongside the parent/extra
+    // objectives above, so this tab reads as populated with more than one
+    // item kind (see demoTaskMockContent.ts's pickExtraLinkedIds).
+    const linkedTasks = linkedTaskIdsForTask(task)
+      .map((id) => tasks[id])
+      .filter((t): t is NonNullable<typeof t> => !!t && !t.deleted)
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        kind: "note" as const,
+        noteType: "task",
+        status: t.status,
+      }));
+    return [...linkedObjectives, ...linkedTasks];
   }, [isObjective, itemId, objectives, tasks]);
 
   const linkedIds = useMemo(() => new Set(linked.map((l) => l.id)), [linked]);
@@ -147,7 +164,7 @@ export function DemoLinkedItemsTab({ itemId, itemKind }: { itemId: string; itemK
           status: t.status,
         }));
     }
-    return Object.values(objectives)
+    const objectiveResults = Object.values(objectives)
       .filter(
         (o) =>
           !o.deleted &&
@@ -155,20 +172,37 @@ export function DemoLinkedItemsTab({ itemId, itemKind }: { itemId: string; itemK
           !linkedIds.has(o.id) &&
           o.title.toLowerCase().includes(q),
       )
-      .slice(0, 8)
       .map((o) => ({ id: o.id, title: o.title, kind: "objective" as const, status: o.status }));
+    const taskResults = Object.values(tasks)
+      .filter(
+        (t) =>
+          !t.deleted &&
+          t.id !== itemId &&
+          !linkedIds.has(t.id) &&
+          t.title.toLowerCase().includes(q),
+      )
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        kind: "note" as const,
+        noteType: "task",
+        status: t.status,
+      }));
+    return [...objectiveResults, ...taskResults].slice(0, 8);
   }, [query, isObjective, tasks, objectives, linkedIds, itemId]);
 
   const handleLink = (item: LinkedItem) => {
     if (isObjective) linkObjectiveTask(itemId, item.id);
-    else linkObjectiveTask(item.id, itemId);
+    else if (item.kind === "objective") linkObjectiveTask(item.id, itemId);
+    else linkTaskTask(itemId, item.id);
     setShowAddLink(false);
     setQuery("");
   };
 
   const handleRemove = (item: LinkedItem) => {
     if (isObjective) unlinkObjectiveTask(itemId, item.id);
-    else unlinkObjectiveTask(item.id, itemId);
+    else if (item.kind === "objective") unlinkObjectiveTask(item.id, itemId);
+    else unlinkTaskTask(itemId, item.id);
   };
 
   return (
