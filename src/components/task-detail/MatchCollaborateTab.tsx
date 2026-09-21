@@ -1,10 +1,37 @@
 import { Users } from "lucide-react";
+import { isDemoTaskId } from "@/lib/demo-items";
+import { useDemoItemsStore } from "@/store/demoItemsStore";
+import { getPersonById } from "@/fixtures/people";
+import { avatarColor, initials } from "@/lib/avatarColor";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import type { CollaboratorStatus } from "@/store/demoTaskMockContent";
 
-// Placeholder only — Fabian is reconsidering whether binding assignment should
-// exist at the task level at all (vs. only objective level), a real architecture
-// question that isn't resolved yet. This renders the mockup's static layout with
-// no live persistence: no reads from `task_assignments` / `assignments`, no writes.
-export function MatchCollaborateTab() {
+// Real (non-demo) tasks have no assignment data anywhere in this app yet —
+// Fabian is still reconsidering whether task-level assignment should exist
+// at all (vs. only objective level). That's still true of the shipped
+// product, so the banner below stays for every task, demo or real — this is
+// a deliberate "flagged, not silently dropped" call (see the CC brief's
+// Scope E1 instruction on this exact banner): only the *rows underneath* it
+// are new, and only for demo task ids, whose mock content already lives in
+// the shared store (see demoTaskMockContent.ts) — this renders that, it
+// doesn't invent its own.
+const STATUS_LABEL: Record<CollaboratorStatus, string> = {
+  invited: "Invited",
+  active: "Active",
+  confirmed: "Confirmed",
+};
+const STATUS_COLOR: Record<CollaboratorStatus, string> = {
+  invited: "var(--skin-ink-faint, var(--muted-foreground))",
+  active: "var(--skin-accent)",
+  confirmed: "var(--skin-good)",
+};
+
+export function MatchCollaborateTab({ taskId }: { taskId: string }) {
+  const isDemo = isDemoTaskId(taskId);
+  const collaborators = useDemoItemsStore((s) =>
+    isDemo ? s.tasks[taskId]?.collaborators : undefined,
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div
@@ -39,7 +66,7 @@ export function MatchCollaborateTab() {
             gap: 0,
             padding: "8px 14px",
             background: "var(--skin-surface2)",
-            borderBottom: "1px solid var(--skin-line)",
+            borderBottom: collaborators?.length ? "1px solid var(--skin-line)" : "none",
             fontSize: 11,
             fontWeight: 600,
             color: "var(--skin-ink-faint)",
@@ -53,23 +80,87 @@ export function MatchCollaborateTab() {
           <span>Max hours</span>
           <span>Status</span>
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr",
-            gap: 0,
-            padding: "12px 14px",
-            fontSize: 13,
-            color: "var(--skin-ink-faint)",
-            fontStyle: "italic",
-          }}
-        >
-          <span>No collaborators yet</span>
-          <span>—</span>
-          <span>—</span>
-          <span>—</span>
-          <span>—</span>
-        </div>
+        {collaborators && collaborators.length > 0 ? (
+          collaborators.map((c, i) => {
+            const person = getPersonById(c.personId);
+            if (!person) return null;
+            return (
+              <div
+                key={c.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr",
+                  gap: 0,
+                  alignItems: "center",
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  color: "var(--skin-ink)",
+                  borderTop: i > 0 ? "1px solid var(--skin-line-soft, var(--skin-line))" : "none",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <Avatar className="h-6 w-6" style={{ flexShrink: 0 }}>
+                    <AvatarFallback
+                      className="text-[10px]"
+                      style={{
+                        background: avatarColor(person.displayName).bg,
+                        color: avatarColor(person.displayName).fg,
+                      }}
+                    >
+                      {initials(person.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span style={{ minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {person.displayName}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--skin-ink-faint)" }}>{c.role}</span>
+                  </span>
+                </span>
+                <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>
+                  {c.remuneration}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>{c.valueXcoins}</span>
+                <span style={{ fontSize: 12, color: "var(--skin-ink-soft)" }}>{c.maxHours}h</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: STATUS_COLOR[c.status],
+                  }}
+                >
+                  {STATUS_LABEL[c.status]}
+                </span>
+              </div>
+            );
+          })
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr",
+              gap: 0,
+              padding: "12px 14px",
+              fontSize: 13,
+              color: "var(--skin-ink-faint)",
+              fontStyle: "italic",
+            }}
+          >
+            <span>No collaborators yet</span>
+            <span>—</span>
+            <span>—</span>
+            <span>—</span>
+            <span>—</span>
+          </div>
+        )}
       </div>
 
       <button
