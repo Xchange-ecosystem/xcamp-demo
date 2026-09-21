@@ -15,11 +15,11 @@
 // component from ItemSidepanel and should stay visually distinct in the
 // codebase from it.
 import { useState } from "react";
-import { AlertTriangle, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, FileStack, Flag, Gauge } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { avatarColor, initials } from "@/lib/avatarColor";
-import { ComingSoonTab } from "@/components/task-detail/ComingSoonTab";
 import { ECOSYSTEM_METRICS } from "@/fixtures/metrics";
 import { getObjectivesByProject, TASKS } from "@/fixtures/objectives";
 import { DEMO_FOUNDER_PROJECT_ID } from "@/fixtures/pitch";
@@ -35,6 +35,9 @@ import {
   EMPTY_SIDE_EFFECTS,
   type ChatSideEffects,
 } from "@/components/demo/companion/deriveChatSideEffects";
+import { AllTasksListView } from "@/components/demo/companion/AllTasksListView";
+import { getCompanionTaskLifecycleStatus } from "@/components/demo/companion/companionTaskListFixtures";
+import { ArtifactsActionsTabContent } from "@/components/demo/companion/ArtifactsActionsTabContent";
 import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 type InfoTabKey = "items" | "artifacts-actions" | "metrics";
@@ -148,7 +151,7 @@ export function CompanionInfoPanel({
         ) : activeTab === "metrics" ? (
           <MetricsTabContent />
         ) : (
-          <ComingSoonTab icon={Zap} label="Artifacts & Actions" />
+          <ArtifactsActionsTabContent />
         )}
       </div>
     </div>
@@ -164,6 +167,30 @@ const NEXT_STATUS: Record<ObjectiveStatus, ObjectiveStatus> = {
 };
 
 function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
+  const { open: openSidepanel } = useSidepanel();
+  const [view, setView] = useState<"default" | "all-tasks">("default");
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const openTask = (task: Task) =>
+    openSidepanel({ id: task.id, kind: "note", noteType: "task", title: task.title });
+  const dismissTask = (taskId: string) =>
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(taskId);
+      return next;
+    });
+
+  if (view === "all-tasks") {
+    return (
+      <AllTasksListView
+        onBack={() => setView("default")}
+        dismissedIds={dismissedIds}
+        onDismiss={dismissTask}
+        onOpen={openTask}
+      />
+    );
+  }
+
   const founderProject = getProjectById(DEMO_FOUNDER_PROJECT_ID);
   const founderObjectives = getObjectivesByProject(DEMO_FOUNDER_PROJECT_ID).map((o) =>
     sideEffects.advancedObjectiveIds.includes(o.id) ? { ...o, status: NEXT_STATUS[o.status] } : o,
@@ -179,7 +206,8 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
       t.status === "active" &&
       t.priority === "high" &&
       t.dueDate &&
-      !sideEffects.advancedTaskIds.includes(t.id),
+      !sideEffects.advancedTaskIds.includes(t.id) &&
+      !dismissedIds.has(t.id),
   )
     .map((t) => ({ ...t, urgency: urgencyOf(t.dueDate!) }))
     .sort(
@@ -242,7 +270,31 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
       </section>
 
       <section>
-        <h2 style={SECTION_HEADING_STYLE}>Worth your attention</h2>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
+          <h2 style={{ ...SECTION_HEADING_STYLE, marginBottom: 0 }}>Worth your attention</h2>
+          <button
+            type="button"
+            onClick={() => setView("all-tasks")}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--skin-accent)",
+              cursor: "pointer",
+            }}
+          >
+            See all tasks
+          </button>
+        </div>
         {risks.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--skin-ink-faint)" }}>
             Nothing high-priority to flag right now.
@@ -252,28 +304,67 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
             {risks.map((task) => {
               const project = getProjectById(task.projectId);
               const style = URGENCY_STYLE[task.urgency];
+              const lifecycle = getCompanionTaskLifecycleStatus(task.id);
               return (
                 <div
                   key={task.id}
                   style={{
                     display: "flex",
-                    gap: 10,
+                    flexDirection: "column",
+                    gap: 8,
                     borderRadius: 8,
                     padding: 10,
                     background: "var(--skin-raised, var(--muted))",
                   }}
                 >
-                  <AlertTriangle
-                    size={15}
-                    style={{ marginTop: 2, color: style.color, flexShrink: 0 }}
-                  />
-                  <p style={{ margin: 0, fontSize: 12, color: "var(--skin-ink-soft)" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <b style={{ color: "var(--skin-ink)" }}>{task.title}</b>
-                      <span style={{ fontWeight: 600, color: style.color }}>{style.label}</span>
-                    </span>
-                    {project?.name} · due {task.dueDate}
-                  </p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <AlertTriangle
+                      size={15}
+                      style={{ marginTop: 2, color: style.color, flexShrink: 0 }}
+                    />
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--skin-ink-soft)" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <b style={{ color: "var(--skin-ink)" }}>{task.title}</b>
+                        <span style={{ fontWeight: 600, color: style.color }}>{style.label}</span>
+                      </span>
+                      {project?.name} · due {task.dueDate}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    {lifecycle === "suggested" && (
+                      <button
+                        type="button"
+                        onClick={() => dismissTask(task.id)}
+                        style={{
+                          background: "none",
+                          border: "1px solid var(--skin-line)",
+                          borderRadius: 6,
+                          padding: "3px 10px",
+                          fontSize: 11,
+                          color: "var(--skin-ink-soft)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openTask(task)}
+                      style={{
+                        background: "var(--skin-accent)",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "3px 10px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "var(--skin-on-accent, #fff)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Open
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -282,7 +373,7 @@ function ItemsTabContent({ sideEffects }: { sideEffects: ChatSideEffects }) {
       </section>
 
       <section>
-        <h2 style={SECTION_HEADING_STYLE}>People across your ecosystem</h2>
+        <h2 style={SECTION_HEADING_STYLE}>Suggested people for your project</h2>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {PEOPLE.filter(
             (p) =>
@@ -521,39 +612,112 @@ function PersonRow({
   );
 }
 
+// Each tile opens the real Founder microapp it teases (Readiness/Pitch are
+// live, per project memory; "Define and share milestones" maps onto the
+// existing Goals microapp — no separate milestones feature exists). These
+// routes are Founder-only; MetricsTabContent is currently only reached via
+// the Founder persona's Companion Items->Metrics path (Investor/Collaborator
+// have their own Items tab content, see CompanionInfoPanel above), so no
+// persona branch is needed here.
+const METRICS_TEASER_TILES: {
+  id: string;
+  icon: typeof Gauge;
+  title: string;
+  description: string;
+  platformTarget: string;
+}[] = [
+  {
+    id: "teaser-readiness",
+    icon: Gauge,
+    title: "Assess investment readiness on the platform",
+    description: "Score your project against what investors actually check for.",
+    platformTarget: "/demo/founder/microapps/readiness",
+  },
+  {
+    id: "teaser-pitch",
+    icon: FileStack,
+    title: "Auto-create pitch from your documentation",
+    description: "Turn your existing notes and docs into a first pitch draft.",
+    platformTarget: "/demo/founder/microapps/pitch",
+  },
+  {
+    id: "teaser-milestones",
+    icon: Flag,
+    title: "Define and share milestones",
+    description: "Set milestones your ecosystem can track alongside you.",
+    platformTarget: "/demo/founder/microapps/goals",
+  },
+];
+
 function MetricsTabContent() {
+  const navigate = useNavigate();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      <div style={{ borderRadius: 8, padding: 12, background: "var(--skin-raised, var(--muted))" }}>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
-          {ECOSYSTEM_METRICS.avgProgressPct}%
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div
+          style={{ borderRadius: 8, padding: 12, background: "var(--skin-raised, var(--muted))" }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
+            {ECOSYSTEM_METRICS.avgProgressPct}%
+          </div>
+          <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
+            Avg. progress
+          </div>
         </div>
-        <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
-          Avg. progress
+        <div
+          style={{ borderRadius: 8, padding: 12, background: "var(--skin-raised, var(--muted))" }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
+            {ECOSYSTEM_METRICS.avgQualityPct}%
+          </div>
+          <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
+            Avg. quality
+          </div>
+        </div>
+        <div
+          style={{
+            gridColumn: "span 2",
+            borderRadius: 8,
+            padding: 12,
+            background: "var(--skin-raised, var(--muted))",
+          }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
+            {ECOSYSTEM_METRICS.totalTasksCompleted}
+          </div>
+          <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
+            Tasks completed across {ECOSYSTEM_METRICS.activeProjects} active projects
+          </div>
         </div>
       </div>
-      <div style={{ borderRadius: 8, padding: 12, background: "var(--skin-raised, var(--muted))" }}>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
-          {ECOSYSTEM_METRICS.avgQualityPct}%
-        </div>
-        <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
-          Avg. quality
-        </div>
-      </div>
-      <div
-        style={{
-          gridColumn: "span 2",
-          borderRadius: 8,
-          padding: 12,
-          background: "var(--skin-raised, var(--muted))",
-        }}
-      >
-        <div style={{ fontSize: 20, fontWeight: 600, color: "var(--skin-ink)" }}>
-          {ECOSYSTEM_METRICS.totalTasksCompleted}
-        </div>
-        <div style={{ marginTop: 2, fontSize: 12, color: "var(--skin-ink-soft)" }}>
-          Tasks completed across {ECOSYSTEM_METRICS.activeProjects} active projects
-        </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {METRICS_TEASER_TILES.map(({ id, icon: Icon, title, description, platformTarget }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => navigate({ to: platformTarget })}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              textAlign: "left",
+              borderRadius: 8,
+              padding: 12,
+              background: "var(--skin-raised, var(--muted))",
+              border: "1px solid var(--skin-line)",
+              cursor: "pointer",
+            }}
+          >
+            <Icon size={16} style={{ marginTop: 2, color: "var(--skin-accent)", flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--skin-ink)" }}>{title}</div>
+              <div style={{ marginTop: 2, fontSize: 11, color: "var(--skin-ink-soft)" }}>
+                {description}
+              </div>
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );

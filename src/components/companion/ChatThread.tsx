@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Typewriter } from "@/shared/ui/Typewriter";
 import type { ProjectFull } from "@/types/xcamp";
 import type { AICard } from "@xchange/client";
@@ -12,10 +13,7 @@ import { EntityTypeSelector, type EntityType } from "@/components/JournalFlow";
 
 // Legacy inline component types
 type LegacyComponentType =
-  | "project-grid"
-  | "backcaster-stub"
-  | "action-cards-stub"
-  | "action-cards";
+  "project-grid" | "backcaster-stub" | "action-cards-stub" | "action-cards";
 // Spec-contracted inline component types (CC_SPEC_inline_component_contract)
 type SpecComponentType = "line_chart" | "bar_chart" | "data_table" | "kpi_card" | "rubric_mini";
 
@@ -168,6 +166,7 @@ function ChiMessage({
         χ
       </div>
       <div
+        className={isTyping ? undefined : "chi-markdown"}
         style={{
           background: "var(--glass-bubble-bg)",
           borderRadius: "12px 12px 12px 4px",
@@ -179,7 +178,11 @@ function ChiMessage({
           minHeight: 20,
         }}
       >
-        {isTyping ? <Typewriter text={message.text} /> : message.text}
+        {isTyping ? (
+          <Typewriter text={message.text} />
+        ) : (
+          <ReactMarkdown>{message.text}</ReactMarkdown>
+        )}
       </div>
     </div>
   );
