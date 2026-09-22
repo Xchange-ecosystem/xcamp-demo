@@ -22,9 +22,19 @@ import type { DemoPersona } from "@/components/demo/DemoNavRail";
 
 interface CompanionAltitudeDrawerProps {
   persona: DemoPersona;
+  /** Is the hero-photo background active (vs. the plain --skin-bg one)? See
+   *  CompanionAltitudeShell's showThemedBg. --glass-bubble-bg's near-
+   *  transparent tint doesn't reliably contrast against an arbitrary photo,
+   *  so this swaps to the more-opaque --glass-pill-bg/-border pair already
+   *  used elsewhere (AppShell.tsx, home.tsx) for controls sitting directly
+   *  on photo/content. Independent of light/dark theme. */
+  themedBackground?: boolean;
 }
 
-export function CompanionAltitudeDrawer({ persona }: CompanionAltitudeDrawerProps) {
+export function CompanionAltitudeDrawer({
+  persona,
+  themedBackground,
+}: CompanionAltitudeDrawerProps) {
   const { logoUrl, name } = useBrand();
 
   return (
@@ -44,8 +54,8 @@ export function CompanionAltitudeDrawer({ persona }: CompanionAltitudeDrawerProp
             width: 40,
             height: 40,
             borderRadius: 999,
-            border: "1px solid var(--glass-border-color)",
-            background: "var(--glass-bubble-bg)",
+            border: `1px solid ${themedBackground ? "var(--glass-pill-border)" : "var(--glass-border-color)"}`,
+            background: themedBackground ? "var(--glass-pill-bg)" : "var(--glass-bubble-bg)",
             color: "var(--glass-text)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",

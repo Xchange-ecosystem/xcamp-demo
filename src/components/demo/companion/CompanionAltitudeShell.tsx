@@ -173,7 +173,7 @@ export function CompanionAltitudeShell({ persona, projectId = null }: CompanionA
         )}
       </div>
 
-      <CompanionAltitudeDrawer persona={persona} />
+      <CompanionAltitudeDrawer persona={persona} themedBackground={showThemedBg} />
 
       {!panelOpen && (
         <button
@@ -191,8 +191,14 @@ export function CompanionAltitudeShell({ persona, projectId = null }: CompanionA
             width: 40,
             height: 40,
             borderRadius: 999,
-            border: "1px solid var(--glass-border-color)",
-            background: "var(--glass-bubble-bg)",
+            // Over the hero-photo background, --glass-bubble-bg's near-transparent
+            // tint doesn't reliably contrast against an arbitrary photo — swap to
+            // the more-opaque --glass-pill-bg/-border pair already used elsewhere
+            // in this app (AppShell.tsx, home.tsx) for controls sitting directly
+            // on photo/content rather than a flat surface. Independent of light/
+            // dark theme — both variants of both token pairs already exist.
+            border: `1px solid ${showThemedBg ? "var(--glass-pill-border)" : "var(--glass-border-color)"}`,
+            background: showThemedBg ? "var(--glass-pill-bg)" : "var(--glass-bubble-bg)",
             color: "var(--glass-text)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
@@ -237,7 +243,7 @@ export function CompanionAltitudeShell({ persona, projectId = null }: CompanionA
               </div>
             </div>
             <div style={{ marginTop: 12, flexShrink: 0 }}>
-              <CompanionAltitudeComposer onSend={handleSend} />
+              <CompanionAltitudeComposer onSend={handleSend} themedBackground={showThemedBg} />
             </div>
           </div>
         </div>
@@ -271,8 +277,8 @@ export function CompanionAltitudeShell({ persona, projectId = null }: CompanionA
                 width: 40,
                 height: 40,
                 borderRadius: 999,
-                border: "1px solid var(--glass-border-color)",
-                background: "var(--glass-bubble-bg)",
+                border: `1px solid ${showThemedBg ? "var(--glass-pill-border)" : "var(--glass-border-color)"}`,
+                background: showThemedBg ? "var(--glass-pill-bg)" : "var(--glass-bubble-bg)",
                 color: "var(--glass-text)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
