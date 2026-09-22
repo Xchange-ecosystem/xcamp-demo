@@ -15,6 +15,13 @@ import { toast } from "sonner";
 
 interface CompanionAltitudeComposerProps {
   onSend: (text: string) => void;
+  /** Is the hero-photo background active (vs. the plain --skin-bg one)? See
+   *  CompanionAltitudeShell's showThemedBg. --glass-bubble-bg's near-
+   *  transparent tint doesn't reliably contrast against an arbitrary photo,
+   *  so this swaps to the more-opaque --glass-pill-bg/-border pair already
+   *  used elsewhere (AppShell.tsx, home.tsx) for controls sitting directly
+   *  on photo/content. Independent of light/dark theme. */
+  themedBackground?: boolean;
 }
 
 function InertIconButton({ icon: Icon, label }: { icon: typeof Mic; label: string }) {
@@ -41,7 +48,10 @@ function InertIconButton({ icon: Icon, label }: { icon: typeof Mic; label: strin
   );
 }
 
-export function CompanionAltitudeComposer({ onSend }: CompanionAltitudeComposerProps) {
+export function CompanionAltitudeComposer({
+  onSend,
+  themedBackground,
+}: CompanionAltitudeComposerProps) {
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,8 +71,8 @@ export function CompanionAltitudeComposer({ onSend }: CompanionAltitudeComposerP
         gap: 6,
         width: "100%",
         borderRadius: 22,
-        border: "1px solid var(--glass-border-color)",
-        background: "var(--glass-bubble-bg)",
+        border: `1px solid ${themedBackground ? "var(--glass-pill-border)" : "var(--glass-border-color)"}`,
+        background: themedBackground ? "var(--glass-pill-bg)" : "var(--glass-bubble-bg)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         padding: "10px 8px 10px 16px",
@@ -110,7 +120,11 @@ export function CompanionAltitudeComposer({ onSend }: CompanionAltitudeComposerP
             height: 30,
             border: "none",
             borderRadius: 999,
-            background: draft.trim() ? "var(--skin-accent)" : "var(--glass-bubble-bg)",
+            background: draft.trim()
+              ? "var(--skin-accent)"
+              : themedBackground
+                ? "var(--glass-pill-bg)"
+                : "var(--glass-bubble-bg)",
             color: draft.trim() ? "#fff" : "var(--skin-ink-faint)",
             cursor: draft.trim() ? "pointer" : "default",
             transition: "background 0.15s, color 0.15s",
